@@ -49,6 +49,8 @@ uint8_t  encoding:3;
 </br>the encoding  flags are for knowing the encoding of the stored data.
 </br>
 </br>the heap block can be thought of as :
+
+</br>
 ```
 struct {
 size_t  reference_count;
