@@ -55,7 +55,7 @@ uint8_t  encoding:3;
 struct {
 size_t  reference_count;
 char heap_buffer[capacity];
-}
+};
 ```
 </br>
 </br>
