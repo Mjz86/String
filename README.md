@@ -125,6 +125,21 @@ char heap_buffer[capacity];
 </br>*this=move(temp);
 </br>
 </br>
+</br>possible plan for easier mutable iterators would be( its good , but idk if its  intuitive):
+```
+struct iterator {
+size_t i;
+mjz::string*str;
+// stuff ....
+auto& operator=(char ch){
+//.... stuff
+str->replace_ch(i,ch);
+return*this;
+}
+};
+```
+</br>
+</br>
 </br># thread-safety(opt-out):
 </br>the string ensures to use atomic operations if is_threaded is true 
 </br>
