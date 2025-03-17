@@ -122,7 +122,7 @@ char heap_buffer[capacity];
 </br>temp=move(*this);
 </br>temp.ownerize();
 </br>change(temp);
-</br>#this=move(temp);
+</br>*this=move(temp);
 </br>
 </br>
 </br># thread-safety(opt-out):
