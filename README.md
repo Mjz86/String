@@ -165,7 +165,9 @@ return*this;
 </br>#mutable strings:
 </br>the string manages its resources and can be modified using the other part of the object, 
 </br>the functions ensure correct COW semantics and  they allocate when necessary.
-</br>
+</br> almost all equipment functionality of std string can ve supported , except  the following:
+</br>  the value of  operator[](i),at(i), *data() , front(),back()  cannot  be mutated.
+</br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
 </br>
 </br>
 </br>#built-in stack buffer( advanced users only):
