@@ -138,6 +138,26 @@ return*this;
 }
 };
 ```
+</br> another possible solution that i think will be the best bet is a proxy string, basically  this( haven't tried yet):
+```
+// as a friend class to the string
+struct proxy {
+private:
+//....
+mjz::string value;
+ //copy and move are deleted.
+//  the only way to get the value back out is by moving it out with a function.
+// and the value is always the owner of the mutable string .
+// we can get the usual  mutable string interface.
+};
+```
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
 </br>
 </br>
 </br># thread-safety(opt-out):
