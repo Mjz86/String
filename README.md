@@ -253,6 +253,12 @@ return*this;
 </br> 
 </br> also , sorry if markdown is not professional,  i don't have much experience with it
 </br>
+</br>
+</br> this paper is located at :
+</br>https://github.com/Mjz86/String_description/blob/main/README.md
+</br>you may give feedback in:
+</br>https://github.com/Mjz86/String_description/issues
+</br>
 </br>references and inspirations:
 </br>
 </br>string view usage:
