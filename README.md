@@ -277,5 +277,5 @@ return*this;
 </br>https://www.youtube.com/watch?v=xwP4YCP_0q0
 </br>Postmodern immutable data structures :
 </br>https://www.youtube.com/watch?v=sPhpelUfu8Q
-</br> COW draw backs in historical std string :
+</br> strings 1 - Why COW is ungood for std string\strings 1 - Why COW is ungood for std string :
 </br>https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755
