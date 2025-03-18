@@ -170,7 +170,7 @@ return*this;
 </br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
 </br>
 </br>
-</br>#built-in stack buffer( advanced users only):
+</br>#built-in stack buffer optimization( advanced users only):
 </br>by using a stack buffer, you ensure that no allocation occurs as long as the buffer is big enough,  if not , allocation may occur.
 </br>
 </br>
@@ -194,10 +194,10 @@ return*this;
 </br>#small string optimization:
 </br>the 15 bytes of sso capacity  allows us to not allocate anything for small strings.
 </br>
-</br>#copy on write:
+</br>#copy on write optimization:
 </br>allows us to share most of the data , even sharing the substrings , reducing fragmentation , allocations and improving performance.
 </br>
-</br>#built-in string view:
+</br>#built-in string view optimization:
 </br>when initializating a string from a litteral, no allocation is preformed. 
 </br>for example in the following case  , we do not allocate but std does:
 </br>
