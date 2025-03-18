@@ -142,7 +142,7 @@ return*this;
 </br>
 </br># thread-safety(opt-out):
 </br>the string ensures to use atomic operations if is_threaded is true 
-</br>
+</br> for a berif summery , the thread-safety grantees are similar to a shared_ptr of a std string if the flag is true.
 </br>
 </br>#constexpr compatibility:
 </br>the reference_count  variable  is stored as 8 bytes and is bitcasted, ( no thread-safety in constexpr mode because of obvious reasons).
@@ -172,7 +172,7 @@ return*this;
 </br>
 </br>#built-in stack buffer optimization( advanced users only):
 </br>by using a stack buffer, you ensure that no allocation occurs as long as the buffer is big enough,  if not , allocation may occur.
-</br>
+</br> the users must ensure that the buffer outlives the string object  and the objects that it moved to or a view that it was converted to , but unlike the Allocators,  they dont need to grantee outliving a copy of it.
 </br>
 </br>
 </br>#the optimizations of remove prefix/suffix ,  push back , pop back , push front and pop front:
@@ -217,7 +217,18 @@ return*this;
 </br>in my library , almost everything is noexcept, i mainly wanted everything to be testable in constexpr mode,  therfore,  i added a custom error encoding  for making the string an error value , but , if anyone wants exceptions , thats easy to do with a wrapper ( or a different class , but i currently really like noexcept,  so i wont do that for now).
 </br>
 </br>
-</br>
+</br>#allocators( advanced users only) : 
+</br> while  a generic implementation could allow any allocators , because of the amount of templates in it , 
+</br>i  made my library with a optional constexpr friendly pmr-like allocator  , the string would be 8 bytes more with it , but its beneficial for some contexts.
+</br> everything is noexcept in its api and a failure is a simple nullptr return. 
+</br> the Allocator object ( memory resource like) needs to outline the string object, its copies and its views.
+</br> 
+</br># value semantics:
+</br>the string is a value type , in my library,  all of the move and copy functions are implemented and are noexcept,  theres also a third one for const r values, but i won't touch on that implementation detail, because  this is more of a nice to have thing.
+</br> but as a summary,  
+</br> move moves everything.
+</br> share (const r value ) shares ( no alloc) sharables and copies(alloc) the non sharables.
+</br> copy  dose a memcpy ( no alloc) if  an allocation doesn't occur, if not calls share.
 </br>#the rope counterpart:
 </br>im currently designing a semi-immutable post modorn COW and SSO optimized rope class based on an (a,b)-tree of  slices of this string and its lazy counterpart , but i havent still implemented it im the library.
 </br>hopefully i will present it soon.
