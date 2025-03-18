@@ -125,7 +125,7 @@ char heap_buffer[capacity];
 </br>*this=move(temp);
 </br>
 </br>
-</br>possible plan for easier mutable iterators would be( its good , but idk if its  intuitive):
+</br>possible plan for easier mutable iterators would be( its good , but idk if its  intuitive, i didnt do it , it seems too hacky ):
 ```
 struct iterator {
 size_t i;
@@ -166,7 +166,7 @@ return*this;
 </br>the string manages its resources and can be modified using the other part of the object, 
 </br>the functions ensure correct COW semantics and  they allocate when necessary.
 </br> almost all equipment functionality of std string can ve supported , except  the following:
-</br>  the value of  operator[](i),at(i), *data() , front(),back()  cannot  be mutated.
+</br>  the value of  operator[](i),at(i), *data() , front(),back()  cannot  be mutated ( see the historical cow reference for why)
 </br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
 </br>
 </br>
@@ -277,4 +277,5 @@ return*this;
 </br>https://www.youtube.com/watch?v=xwP4YCP_0q0
 </br>Postmodern immutable data structures :
 </br>https://www.youtube.com/watch?v=sPhpelUfu8Q
-</br>
+</br> COW draw backs in historical std string :
+</br>https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755
