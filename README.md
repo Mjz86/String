@@ -66,8 +66,8 @@ char heap_buffer[capacity];
 </br>1.at the string view state:
 </br>begin!=buffer.
 </br>active union member== referencal_t.
-</br>begin || not length.
-</br>heap_block==nullptr.
+</br>begin!=0 || 0== length.
+</br>data_block==nullptr.
 </br>capacity==0.
 </br>is_owner()==false.
 </br>is_sso==false.
@@ -85,7 +85,7 @@ char heap_buffer[capacity];
 </br>3.heap string state:
 </br>begin!=buffer.
 </br>active union member== referencal_t.
-</br>!!begin .
+</br>begin!=nullptr.
 </br>data_block==&heap_buffer.
 </br>capacity!=0.
 </br>( capacity  is almost always bigger than 15 but no grantees are made)
@@ -252,7 +252,7 @@ return*this;
 </br> I think I will eventually make it open source,  but not for rn.
 </br> 
 </br> also , sorry if markdown is not professional,  i don't have much experience with it
-</br>
+</br> 
 </br>
 </br> this paper is located at :
 </br>https://github.com/Mjz86/String_description/blob/main/README.md
