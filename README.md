@@ -66,7 +66,7 @@ char heap_buffer[capacity];
 </br>1.at the string view state:
 </br>begin!=buffer.
 </br>active union member== referencal_t.
-</br>begin!=0 || 0== length.
+</br>begin!=nullptr || 0== length.
 </br>data_block==nullptr.
 </br>capacity==0.
 </br>is_owner()==false.
@@ -99,7 +99,7 @@ char heap_buffer[capacity];
 </br>4.stack buffer  string state:
 </br>begin!=buffer.
 </br>active union member== referencal_t.
-</br>!!begin .
+</br>begin!=nullptr.
 </br>data_block!=nullptr.
 </br>capacity!=0.
 </br>is_owner()==true.
