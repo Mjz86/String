@@ -204,7 +204,7 @@ bool has_null;
 </br> almost all equipment functionality of std string can ve supported , except  the following:
 </br>  the value of  operator[](i),at(i), *data() , front(),back()  cannot  be mutated ( see the historical cow reference for why)
 </br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
-</br>
+</br>i cannot prove a const alternative,  i do not want pointers to temporaris nor relying on has_null being true.
 </br>
 </br>#built-in stack buffer optimization( advanced users only):
 </br>by using a stack buffer, you ensure that no allocation occurs as long as the buffer is big enough,  if not , allocation may occur.
