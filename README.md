@@ -7,7 +7,7 @@
 </br>the paper is mainly focused on the 64bit little endian implementation but  the other platforms also have equivalent functionality.
 </br>the string class provides a way to store various encodings in different string types , its  allocator aware and uses the SSO and COW features while adding others with minimal overhead.
 </br>the class is as constexpr friendly as the standard string, mostly comparable to the gcc implementation.
-</br>
+</br> 
 </br>
 </br>#introduction:
 </br> many c++ programmers have worked with strings , several of them have been forced to use either immutable value semantics with views or reference semantics and allocations for mutable strings , 
@@ -154,6 +154,22 @@ mjz::string value;
 </br>
 </br>
 </br>
+</br>
+</br>
+</br># how to do this without  my help :
+</br> the string design presented may be complex for readers to implement on their own, but they can make it easily  if they dont care about  the object size or indirections and allocation strategy( i needed the object size to be small, but if not):
+```
+struct simpler_version{
+std::variant <std::uniqe_ptr<std::string> // cow
+,std::array<char,16>// sso
+,std::span<char>// stack buffer 
+> data;
+std::string_view view;
+encodings_t encoding;
+bool has_null;
+// functionality....
+};
+```
 </br>
 </br>
 </br>
