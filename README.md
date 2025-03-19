@@ -160,7 +160,7 @@ mjz::string value;
 </br> the string design presented may be complex for readers to implement on their own, but they can make it easily  if they dont care about  the object size or indirections and allocation strategy( i needed the object size to be small, but if not):
 ```
 struct simpler_version{
-std::variant <std::uniqe_ptr<std::string> // cow
+std::variant <std::shared_ptr<std::string> // cow
 ,std::array<char,16>// sso
 ,std::span<char>// stack buffer 
 > data;
