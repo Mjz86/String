@@ -204,9 +204,11 @@ node_ref node_ref;
 </br>https://www.youtube.com/watch?v=5Xt6qN269Uo
 </br>
 </br>amortized analysis:
-</br>https://www.youtube.com/watch?v=3MpzavN3Mco rope data structure |
-</br>strings: https://www.youtube.com/watch?v=NinWEPPrkDQ
-</br>
+</br>https://www.youtube.com/watch?v=3MpzavN3Mco 
+</br>rope data structure |strings:
+</br> https://www.youtube.com/watch?v=NinWEPPrkDQ
+</br>https://en.m.wikipedia.org/wiki/Rope_(data_structure)
+</br>https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf
 </br>standard any:
 </br>https://en.cppreference.com/w/cpp/utility/any
 </br>string view usage:
