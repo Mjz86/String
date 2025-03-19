@@ -15,8 +15,12 @@
 </br>
 </br>
 </br>#implementation details:
+</br>heres some conceptual code, not actual code , but less hard to understand:
+</br>
 </br>
 ```
+//firstly,  we care about  not trashing the cache line , therfore,  each node has this padded base as the reference count holder.
+//because its going to be padded anyway , i wanted to put sone redundant members for convenience in the destruction.
 struct  alignas(std::hardware_destructive_interference_size)
 node_shared_cache{
 size_t  reference_count;
@@ -86,11 +90,6 @@ node_ref node_ref;
 };
 };
 ```
-</br>firstly,  we care about  not trashing the cache line , therfore,  each node has this padded base as the reference count holder.
-</br>because its going to be padded anyway , i wanted to put sone redundant members for convenience in the destruction.
-</br>
-</br>heres some conceptual code, not actual code , but less hard to understand:
-</br>
 </br>#invariants :
 </br>we have the index of the string end as the key to the tree.
 </br>its more nuanced,  but its still like a tree.
