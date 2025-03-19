@@ -187,6 +187,10 @@ node_ref node_ref;
 </br>#note
 </br>While the implementation is still under development, and noy yet open source,  i would appreciate your feedback. 
 </br>also , sorry if the markdown is hard to read. 
+</br>this paper is located at :
+</br>https://github.com/Mjz86/String_description/blob/main/rope_paper.md
+</br>you may give feedback in:
+</br>https://github.com/Mjz86/String_description/issues
 </br>
 </br>
 </br>
