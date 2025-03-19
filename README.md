@@ -267,7 +267,7 @@ bool has_null;
 </br> copy  dose a memcpy ( no alloc) if  an allocation doesn't occur, if not calls share.
 </br>#the rope counterpart:
 </br>im currently designing a semi-immutable post modorn COW and SSO optimized rope class based on an (a,b)-tree of  slices of this string and its lazy counterpart , but i havent still implemented it im the library.
-</br>hopefully i will present it soon.
+</br> its the ajason paper in the repository for anyone interested. 
 </br>
 </br>
 </br>
