@@ -139,11 +139,11 @@ node_ref node_ref;
 </br>°  Iteration: (important note: ALL iterators are const, because of COW limitations in my string. But I have for_range and other functions to allow mutations, similar to how my mjz::string works.)
 </br>
 </br>  °  Simple Iterators (index and object): O(h×k) ≈ O(k) These iterators are lightweight but less efficient because they need to traverse the tree for each character. But in reality , h is constant.
-</br>  °  Specialized Iterators (for std::ranges): O(k) These iterators cache the path down the tree, but require O(h) memory to store that path.
+</br>  °  Specialized Iterators (for std::ranges): O(h+k) These iterators cache the path down the tree, but require O(h) memory to store that path.
 </br>
-</br>°  for_each_slice (Function called for each slice - doesn't change the rope): O(k) This is also constant time because the string already exists.
+</br>°  for_each_slice (Function called for each slice - doesn't change the rope): O(k+h) .
 </br>
-</br>°  for_range (Mutable Reference - CAN change the rope): O(k) time, Memory O(k). This is the important one for in-place modifications. It create a continoues mjz string and apply the function and then it inserts the new string to the list of strings.
+</br>°  for_range (Mutable Reference - CAN change the rope): O(h+k) time, Memory O(k). This is the important one for in-place modifications. It create a continoues mjz string and apply the function and then it inserts the new string to the list of strings.
 </br>more explanation:
 </br>this makes each of the characters go first  to a continuous mjz string buffer with reserved size of k  , then calles the function, then insert that buffer into the appropriate position,  potentially reducing fragmentation for free, this also makes it possible for the api to actually always give a continuous mutable string to this  function improving its performance and the users quality of life for free.
 </br> use this with caution,  if you have a one gigabyte file , and use this on all of it , you need 2 gigabytes of memory in the middle of the function ( buffer+rope) ,  but the end result of this , would be that the rope is more continuous,  reducing fragmentation, so its a trade off.
