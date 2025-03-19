@@ -38,7 +38,7 @@ elem children[B];
 // so , for a typical B=15 ( B is a template pram ),
 // the node  sso segment would be 960 bytes , 
 // efficiently,  the rope slice progression is from root(48) to slice(56) to node(960) to more .
-// effectively  , the maximum m would be n/56 , and the minimum would be 1.
+// effectively  , the maximum m would be n/28 , and the minimum would be 1.
 // we know that m is only dependent on the number of operations that the user did , and not n so we can say that in almost all cases fragmentation is low.
 char sso_buffer[sizeof(children)];
 };
@@ -104,7 +104,7 @@ node_ref node_ref;
 </br> then the block which i and j reside must be the same , 
 </br> and we know  that in the first operation  , the rope has a minimal fragmentation (m<2) 
 </br> so , even if the string that the tope was initialized with was a gigabyte, 
-</br> you would have to modify almost all of that data to get the worst fragmentation of m=n/56
+</br> you would have to modify almost all of that data to get the worst fragmentation of m=n/28
 </br> and frankly,  the cpu itself struggles with this task for an array , a continuous array!
 </br> and i wouldn't expect the users of a rope to want to modify all of that gigabyte 
 </br> and if they really wanted to do that , we have a great way to do so while reducing fragmentation back to 1 ( use for_range for this task)
