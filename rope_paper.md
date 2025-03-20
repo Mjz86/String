@@ -199,6 +199,18 @@ node_ref node_ref;
 </br>•Mutable Iteration Limitations:
 </br>Due to the COW implementation, mutable iteration is complex, but the For Range solves this problem .
 </br>
+</br>
+</br>#  usability:
+</br> a great way to do undo, redo is to make a vector of ropes , each modification would be stored at the last position, because  of cow , this is easily manageable.
+</br>  for synchronization in file operations,  we can pass a rope cow copy to be written to a file , 
+</br>  or get a lazy evaluated immutable view into a constant file .
+</br>  we can also generate data on the go , 
+</br>for example if we have a hard to do computation for knowing the value ( such as decoding a massage encrypted with AES), we dont need to do it right away ,
+</br> we can make a generator with a mutext and a mutable sub rope initilized with an internal generator as the storage,  the subrope is materialized using the for_crange( basically for range but we  do not give a mutable reference  , but a constant  one , this is more efficient  in some cases where mutations have to copy a section but this doesn't ,while also reducing  fragmentation) every time a subrange is required 
+</br> this way , the generator only runs the algorithm once per block , and saves us many decodings .
+</br> the rope api is as close to the main string while also not assuming a continuous representations,  and at last .
+</br> the rope doesn't need to be a tree for smal strings , it actually cannot be , if you remember from the invariants,  the rope with a size less than B*64 ( lets say 960 for example) must be at most one leaf , therfore a singular allocation is granteed for such small ropes ( if we assume that the generator object is not going to allocate).
+</br> also , for all strings bellow the 48 threshold,  the rope  collapses to the inline sso , and the generator is eagerly executed,  because in such cases, its brutal to not be continuous and inline. 
 </br>#Conclusion
 </br>
 </br>This paper has presented a custom rope implementation designed to address the challenges of manipulating large strings efficiently.
