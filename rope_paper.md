@@ -161,8 +161,8 @@ node_ref node_ref;
 </br>°  Iteration: (important note: ALL iterators are const, because of COW limitations in my string. But I have for_range and other functions to allow mutations, similar to how my mjz::string works.)
 </br>
 </br>  °  Simple Iterators (index and object): O(h×k) ≈ O(k) These iterators are lightweight but less efficient because they need to traverse the tree for each character. But in reality , h is constant.
-</br>  °  Specialized Iterators (for std::ranges): O(h+k) These iterators cache the path down the tree, but require O(h) memory to store that path.
-</br>
+</br>  °  Specialized Iterators (for std::ranges): O(h+k) These iterators cache the path down the tree, but require O(h) memory to store that path,
+</br>    they also cache the nearby area (i-G,i+G] ( currently lacking the best G value to say ) ( if in bounds, if not , the value is simply 0, also , the i that was the previous chache is stored to compare and see if the current index is in cache, if not , we update the cache ) in a temporary storage  and the current index ( if the iteration is smooth , then we save many lazy calls and chche misses)
 </br>°  for_each_slice (Function called for each slice - doesn't change the rope): O(k+h) .
 </br>
 </br>°  for_range (Mutable Reference - CAN change the rope): O(h+k) time, Memory O(k). This is the important one for in-place modifications. It create a continoues mjz string and apply the function and then it inserts the new string to the list of strings.
