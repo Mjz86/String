@@ -1,6 +1,10 @@
 #reconsidering COW , a modern c++20 string implementation :
 </br>
 </br>
+</br> tl;dr:
+</br>Less lifetime management ( dangling views) .
+</br>while maintaining view (and value)  semantics and performance characteristics ( no coping or allocation). 
+</br> and planned unicode support 
 </br>
 </br>#abstract:
 </br> this paper presents a custom string class , designed for memory efficiency.
