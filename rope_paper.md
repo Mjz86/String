@@ -237,6 +237,8 @@ node_ref node_ref;
 </br>https://youtube.com/watch?v=lifFgyB77zc&si=IPNlqVVdr0nU-n\_G
 </br>https://www.youtube.com/watch?v=K1a2Bk8NrYQ
 </br>
+</br>learn about the cache:
+</br>https://www.youtube.com/watch?v=dFIqNZ8VbRY
 </br>lazy evaluation |Ruby Conference 2007 Ropes： An Alternative to
 </br>Ruby's Strings by Eric Ivancich :
 </br>https://www.youtube.com/watch?v=5Xt6qN269Uo
