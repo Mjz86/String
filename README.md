@@ -189,6 +189,7 @@ bool has_null;
 </br>
 </br>#c interoperability:
 </br>the has null flag is used to see if theres a null terminator,  if not , we may add it in the  as_c_str function (non const function , use .data() , .length() and .has_null() and memcpy() if you want a constant alternative ).
+</br> also calling the copy ( or share) constructor and using as_c_str on the l value you made is effectively a const alternative with the same overhead ( if we assume that stack buffer was not used on the first part)
 </br>
 </br>
 </br>#features and implementation:
