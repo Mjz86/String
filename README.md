@@ -206,6 +206,28 @@ bool has_null;
 </br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
 </br>i cannot prove a const alternative,  i do not want pointers to temporaris nor relying on has_null being true.
 </br>
+</br>
+</br># COW overhead:
+</br> other than the destruction, and construction, 
+ </br> which may need a branch to the non view path if the optimizer doesn't realize triviality,
+</br>  the string const overhead  is similar to a view , which is minimal, 
+</br> we can easily make a view out of this ,no branching required,  
+</br>actually,  i had my previous string layout with a sso size of 31 , but the downside was branch in the const view path
+</br>i discarded that and made all of the view information accessible without branching, 
+</br> the only time where the overhead is felt , is in modification of the string content,  
+</br> i tried my best to get the modification function as efficient as possible 
+</br> but in these worse cases , i cant do much else:
+</br> the string was cold,  the reference count was cold  or has false sharing ( contention when modification trashes the cache line ) ( heap strings )
+</br> the data was cold , the data needed deallocating or reallocation
+</br>
+</br>but at last , any function that is marked const , doesn't even think about the storage location or strategy nor lifetime, 
+</br>its as if it was a view all along.
+</br>
+</br>and the ones that are not marked const are the ones who beed to know about other stuff.
+</br>also , there is some functions that are not const , ( remove\_suffix or prefix , as\_substring) 
+</br>that only address the sso part and treat the other parts as views , these dont even need to know about cow nor ownership.
+</br>
+</br>
 </br>#built-in stack buffer optimization( advanced users only):
 </br>by using a stack buffer, you ensure that no allocation occurs as long as the buffer is big enough,  if not , allocation may occur.
 </br> the users must ensure that the buffer outlives the string object  and the objects that it moved to or a view that it was converted to , but unlike the Allocators,  they dont need to grantee outliving a copy of it.
