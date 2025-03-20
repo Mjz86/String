@@ -323,7 +323,8 @@ bool has_null;
 </br>https://github.com/Mjz86/String_description/issues
 </br>
 </br>references and inspirations:
-</br>
+</br>learn about the cache:
+</br>https://www.youtube.com/watch?v=dFIqNZ8VbRY
 </br>string view usage:
 </br>https://www.youtube.com/watch?v=PEvkBmuMIr8
 </br>std::basic_string:
