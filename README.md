@@ -267,7 +267,16 @@ chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
 
-* we may provide a safe wrapper class that has a bigger sso buffer , while also reusing all the code of the string , think of it like an implace vector , this wouldn't need lifetime knowledge,  so it would be for intermediate users .
+# tunable sso , no code bloat, no big types:
+ we may provide a safe wrapper ( the string would be a public base of the wrapper, the buffer would be a private member) class that has a bigger sso buffer ,
+ while also reusing all the code of the string , think of it like an implace vector ,
+ this wouldn't need lifetime knowledge,  so it would be for intermediate users .
+ even if they never use the unsafe stack buffer directly. 
+ this is like the game industry's sso strategy,  but with minimal code bloat,
+ as a bonus, you can seamlessly pass this around without lifetime issues ( the is_sharable flag disables cow for the private sso buffer, so no dangling references)
+ also , if you remember,  from the copy construction section, 
+ we would de-share automatically for these strings , essentially,
+ the template size argument and type incompatibility dissappears (but does its job).
 
 # The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
 
