@@ -211,6 +211,9 @@ bool has_null;
 </br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
 </br>i cannot prove a const alternative,  i do not want pointers to temporaris nor relying on has_null being true.
 </br> the "as" means that it modified it to be "as" requested ( thats what the prefix in the name means)
+</br>   we can also use another name , but the function nsim isnt important  in  the design ("add_null_c_str")
+</br> 
+</br> 
 </br> 
 </br># COW overhead:
 </br> other than the destruction, and construction, 
