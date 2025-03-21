@@ -1,5 +1,6 @@
 
 
+
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -205,7 +206,7 @@ add it in the `as_c_str` function (non-const function, use `.data()`,
 alternative). Also, calling the copy (or share) constructor and using
 `as_c_str` on the l-value you made is effectively a const alternative with the
 same overhead (if we assume that stack buffer was not used on the first part).
-
+ also , see `to_c_str()` if you need a `const` alternative .
 # Features and Implementation
 
 The built-in string viewer and shared substrings: the string is accessed via
@@ -229,6 +230,9 @@ function name isn't important in the design (`add_null_c_str`).
 note that the `data()` function  will have output a null terminated `const char*` if and only if `has_null()`.
 also , if you called `as_c_str()` without failing,  you know that `has_null()` is true.
 when we have `const` `data()`, i see no need for `const` `c_str()`
+we can also provide a `to_c_str()` that returns a copy(or share)  with has_null() set to true , 
+after this , the user can call `data()` , a `const` function, to get the null terminated string, 
+and unless a non const function is applied,  the string would be null terminated. 
 
 # COW Overhead
 
@@ -268,12 +272,13 @@ this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
 
 # tunable sso , no code bloat, no big types:
- we may provide a safe wrapper ( the string would be a public base of the wrapper, the buffer would be a private member) class that has a bigger sso buffer ,
+ we may provide a safe wrapper ( the string would be a private member ,the buffer would be a private member) class that has a bigger sso buffer ,
  while also reusing all the code of the string , think of it like an implace vector ,
  this wouldn't need lifetime knowledge,  so it would be for intermediate users .
  even if they never use the unsafe stack buffer directly. 
  this is like the game industry's sso strategy,  but with minimal code bloat,
  as a bonus, you can seamlessly pass this around without lifetime issues ( the is_sharable flag disables cow for the private sso buffer, so no dangling references)
+ it can be converted to other wrappers of different sizes and to the string itself .
  also , if you remember,  from the copy construction section, 
  we would de-share automatically for these strings , essentially,
  the template size argument and type incompatibility dissappears (but does its job).
