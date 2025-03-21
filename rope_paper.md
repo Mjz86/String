@@ -110,7 +110,6 @@ String operations can be performed using substringing, concatenation, and creati
 *   `h` is the height of the tree.  This represents the number of levels from the root to a leaf. Since it's a balanced (a,b)-tree, h is O(log\_a(m)).
 *   `m` is the number of slices in the rope.  This is *not* the same as the number of characters. The design prioritizes keeping 'm' much smaller than 'n'.
 *   `n` is the number of characters in the rope.
-*   `Δh` is the change in height after an operation like concatenation or insertion. It's generally a small constant due to (a,b)-tree rebalancing.
 *   `k` is the iteration length/number of chunks iterated over.
 
 Given the string constraints, the height `h` is typically bounded by a small constant (e.g., 50), and in practice, `h` is often less than 4.  Therefore, O(h) ≈ O(1).
@@ -127,7 +126,7 @@ Approximate Time Complexity for various operations:
 
 *   Destruction: O(1+) (Amortized constant time). Most of the time, destruction is just decrementing reference counts. But, occasionally, we need to reclaim memory.
 
-*   Concatenation: O(Δh) ≈ O(1) (Rebalancing the tree after joining two ropes. Because Δh is almost constant)
+*   Concatenation: O(h) ≈ O(1) (Rebalancing the tree after joining two ropes. Because h is almost constant)
 
 *   Substring: O(h+) ≈ O(1+) (Mostly constant time due to the balanced tree and amortized rebalancing. We are basically finding the start and end slices and decrementing unused ones )
 
