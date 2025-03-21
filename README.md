@@ -226,6 +226,8 @@ alternative; I do not want pointers to temporaries nor relying on `has_null`
 being true. The "as" means that it modified it to be "as" requested (that's
 what the prefix in the name means). We can also use another name, but the
 function name isn't important in the design (`add_null_c_str`).
+note that the `data()` function  will have output a null terminated `const char*` if and only if `has_null()`.
+also , if you called `as_c_str()` without failing,  you know that `has_null()` is true.
 
 # COW Overhead
 
@@ -263,6 +265,8 @@ obvious reasons. Also, this is not checked; it's raw performance of a span of
 chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
+
+* we may provide a safe wrapper class that has a bigger sso buffer , while also reusing all the code of the string , think of it like an implace vector 
 
 # The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
 
