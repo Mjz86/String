@@ -210,8 +210,8 @@ bool has_null;
 </br>  the value of  operator[](i),at(i), *data() , front(),back()  cannot  be mutated ( see the historical cow reference for why)
 </br> c_str() does not exist ( as_c_str()  does,  but it can mutate, and it only gives a pointer to const ).
 </br>i cannot prove a const alternative,  i do not want pointers to temporaris nor relying on has_null being true.
-</br>
-</br>
+</br> the "as" means that it modified it to be "as" requested ( thats what the prefix in the name means)
+</br> 
 </br># COW overhead:
 </br> other than the destruction, and construction, 
  </br> which may need a branch to the non view path if the optimizer doesn't realize triviality,
@@ -292,6 +292,8 @@ bool has_null;
 </br> move moves everything.
 </br> share (const r value ) shares ( no alloc) sharables and copies(alloc) the non sharables.
 </br> copy  dose a memcpy ( no alloc) if  an allocation doesn't occur, if not calls share.
+</br>
+</br>
 </br>#the rope counterpart:
 </br>im currently designing a semi-immutable post modorn COW and SSO optimized rope class based on an (a,b)-tree of  slices of this string and its lazy counterpart , but i havent still implemented it im the library.
 </br> its the ajason paper in the repository for anyone interested. 
@@ -310,7 +312,13 @@ bool has_null;
 </br>
 </br> any algorithm for a continuous string is usable and implemented ( with regard to its encoding,  ascii is like the standard c implementation)
 </br>
-</br>as i said , we know that  this is a implementation to  be in-between of view and string, so this is an acceptable tradeoff 
+</br>as i said , we know that  this is a implementation to  be in-between of view and string, so this is an acceptable tradeoff.
+</br> if you want to complain about mutable iteration,  i dont think you needed a viewing type in the first place,
+</br> and , do you think the operation that you want to do can use the proxy?  its just 2 move operations and a reference count check if you owned it before, and if not , you would have copied anyways.
+</br> after than that , you get a char* as your iterator type with all of the normal string functionality ( potentially null terminated if requested).
+</br>if you want to complain about null terminators , i think you either need to be comfortable with c APIs ( explicit work with memcpy) or rethink your design,
+</br> when the sandard string is allowed to have intermediate null terminators , i think it would be a bug to require null termination ( see the talk on folly's string implementation)
+</br>and again,  we did put as_c_str,  so i think theres no valid complaints. 
 </br>
 </br>
 </br>#conclusion:
