@@ -296,6 +296,21 @@ bool has_null;
 </br>im currently designing a semi-immutable post modorn COW and SSO optimized rope class based on an (a,b)-tree of  slices of this string and its lazy counterpart , but i havent still implemented it im the library.
 </br> its the ajason paper in the repository for anyone interested. 
 </br>
+</br> 
+</br>
+</br> # usability:
+</br> all of the string_view functionality is supported ( an equivalent of it in my library )
+</br> because we focused on being like views , we lost the ease of these two functionalitis:
+</br>mutable iteration + null terminated.
+</br>  we do almost the same thing for views 
+</br>( std string is like the proxy object i talked about)
+</br>(  the string view has no c_str method )
+</br>but other than the above,  we have equivalent functionality for std string .
+</br>( by equivalent , i mean if you dont consider mine being encoding aware)
+</br>
+</br> any algorithm for a continuous string is usable and implemented ( with regard to its encoding,  ascii is like the standard c implementation)
+</br>
+</br>as i said , we know that  this is a implementation to  be in-between of view and string, so this is an acceptable tradeoff 
 </br>
 </br>
 </br>#conclusion:
