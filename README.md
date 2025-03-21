@@ -228,6 +228,7 @@ what the prefix in the name means). We can also use another name, but the
 function name isn't important in the design (`add_null_c_str`).
 note that the `data()` function  will have output a null terminated `const char*` if and only if `has_null()`.
 also , if you called `as_c_str()` without failing,  you know that `has_null()` is true.
+when we have `const` `data()`, i see no need for `const` `c_str()`
 
 # COW Overhead
 
@@ -266,7 +267,7 @@ chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
 
-* we may provide a safe wrapper class that has a bigger sso buffer , while also reusing all the code of the string , think of it like an implace vector 
+* we may provide a safe wrapper class that has a bigger sso buffer , while also reusing all the code of the string , think of it like an implace vector , this wouldn't need lifetime knowledge,  so it would be for intermediate users .
 
 # The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
 
@@ -330,6 +331,7 @@ friendly pmr-like allocator. The string would be 8 bytes more with it, but
 it's beneficial for some contexts. Everything is `noexcept` in its API, and a
 failure is a simple `nullptr` return. The Allocator object (memory resource
 like) needs to outlive the string object, its copies, and its views.
+i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested. 
 
 # Value Semantics
 
