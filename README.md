@@ -370,6 +370,11 @@ intermediate null terminators, I think it would be a bug to require null
 termination (see the talk on Folly's string implementation), and again, we did
 put `as_c_str`, so I think there's no valid complaints.
 
+# Extensions:
+in my library,  i have a fmt like format library,  to generate these strings , 
+so , mutable iteration is not a problem for me at all, in my opinion. 
+my formatting library should also support ropes in a efficient way when they are implemented  
+( every section would be like rope sections, and if it get it right,  the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
 # Conclusion
 
 With the growing use of string views, there has become an opportunity to get
@@ -423,3 +428,5 @@ You may give feedback in:
 *   strings 1 - Why COW is ungood for std string\strings 1 - Why COW is
     ungood for std string:
     [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
+* lib format :
+   [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
