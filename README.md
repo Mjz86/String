@@ -1,4 +1,5 @@
 
+
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -9,25 +10,16 @@ planned Unicode support.
 
 # Abstract
 
-This paper presents a custom string class, designed for memory efficiency.
-The paper is mainly focused on the 64bit little endian implementation but the
-other platforms also have equivalent functionality. The string class provides
-a way to store various encodings in different string types, its allocator
-aware and uses the SSO and COW features while adding others with minimal
-overhead. The class is as constexpr friendly as the standard string, mostly
-comparable to the gcc implementation.
+This paper presents a custom string class designed for memory efficiency.
+The paper is mainly focused on the 64-bit little-endian implementation, but other platforms also have equivalent functionality. The string class provides a way to store various encodings in different string types. It's allocator-aware and uses SSO and COW features while adding others with minimal overhead. The class is as `constexpr` friendly as the standard string, mostly comparable to the GCC implementation.
 
 # Introduction
 
-Many C++ programmers have worked with strings, several of them have been
-forced to use either immutable value semantics with views or reference
-semantics and allocations for mutable strings. This string class is a bridge
-between these, providing an owning tagged string view as its storage.
+Many C++ programmers have worked with strings. Several have been forced to use either immutable value semantics with views or reference semantics and allocations for mutable strings. This string class bridges these, providing an owning tagged string view as its storage.
 
 # Implementation Details
 
-The basic layout can be thought of as the following (not valid c++, but its
-equivalent) (total of 32 bytes in my own implementation):
+The basic layout can be thought of as the following (not valid C++, but its equivalent) (total of 32 bytes in my own implementation):
 
 ```c++
 struct {
@@ -49,7 +41,7 @@ The control byte can be thought of as:
 
 ```c++
 struct {
-  uint8_t  is_sso:1; //a bit redundant, but i used it for more safety
+  uint8_t  is_sso:1; // a bit redundant, but I used it for more safety
   uint8_t  is_sharable:1;
   uint8_t unused_for_now_:1;
   uint8_t has_null:1;
@@ -100,7 +92,7 @@ struct {
     *   `begin != nullptr`.
     *   `data_block == &heap_buffer`.
     *   `capacity != 0`.
-    *   (`capacity` is almost always bigger than 15 but no guarantees are made)
+    *   (`capacity` is almost always bigger than 15, but no guarantees are made)
     *   `is_owner() == (reference_count < 2)`.
     *   `is_sso == false`.
     *   `is_sharable == true`.
@@ -122,12 +114,12 @@ null and alive.
 
 # Addressing COW and the Drawbacks
 
-1.  All of the iterators, the methods and functions only give a constant
+1.  All of the iterators, the methods, and functions only give constant
     references to the data.
 
 2.  For mutable iteration over a string, one can call a specialized function
-    to involve a monad, that gives the data as a continuous temporary (i mean
-    the lifetime of the range is only guaranteed in the function call) range.
+    to involve a monad that gives the data as a continuous temporary range (I mean
+    the lifetime of the range is only guaranteed in the function call).
     Like this (we need to know that `*this` is not captured in any way):
 
     ```c++
@@ -137,8 +129,8 @@ null and alive.
     *this = move(temp);
     ```
 
-Possible plan for easier mutable iterators would be (its good, but idk if its
-intuitive, i didnt do it, it seems too hacky):
+Possible plan for easier mutable iterators would be (it's good, but I don't know if it's
+intuitive; I didn't do it; it seems too hacky):
 
 ```c++
 struct iterator {
@@ -153,8 +145,7 @@ struct iterator {
 };
 ```
 
-Another possible solution that i think will be the best bet is a proxy string,
-basically this (haven't tried yet):
+Another possible solution that I think will be the best bet is a proxy string, basically this (haven't tried yet):
 
 ```c++
 // as a friend class to the string
@@ -165,16 +156,16 @@ private:
   //copy and move are deleted.
   //  the only way to get the value back out is by moving it out with a
   //  function.
-  // and the value is always the owner of the mutable string .
-  // we can get the usual  mutable string interface.
+  // and the value is always the owner of the mutable string.
+  // we can get the usual mutable string interface.
 };
 ```
 
 # How to do This Without My Help
 
 The string design presented may be complex for readers to implement on their
-own, but they can make it easily if they dont care about the object size or
-indirections and allocation strategy( i needed the object size to be small,
+own, but they can make it easily if they don't care about the object size or
+indirections and allocation strategy (I needed the object size to be small,
 but if not):
 
 ```c++
@@ -192,86 +183,86 @@ struct simpler_version{
 
 # Thread-Safety (Opt-Out)
 
-The string ensures to use atomic operations if `is_threaded` is true for a
+The string ensures to use atomic operations if `is_threaded` is true. For a
 brief summary, the thread-safety grantees are similar to a `shared_ptr` of a
-`std string` if the flag is true.
+`std::string` if the flag is true.
 
 # Constexpr Compatibility
 
-The `reference_count` variable is stored as 8 bytes and is bitcasted, (no
-thread-safety in constexpr mode because of obvious reasons). Only the static
+The `reference_count` variable is stored as 8 bytes and is bitcasted (no
+thread-safety in `constexpr` mode because of obvious reasons). Only the static
 string view can be stored as a static constant expression value, but the
-string is fully functional in a constexpr context. No `reinterpret_cast` is
+string is fully functional in a `constexpr` context. No `reinterpret_cast` is
 used (the only time we do use it is for the thread-safe atomic operations
-which are not constexpr anyways). A constexpr friendly allocator is provided
+which are not `constexpr` anyways). A `constexpr` friendly allocator is provided
 by the implemented library.
 
 # C Interoperability
 
-The `has_null` flag is used to see if theres a null terminator, if not, we may
-add it in the `as_c_str` function (non const function, use `.data()`,
-`.length()` and `.has_null()` and `memcpy()` if you want a constant
-alternative). Also calling the copy (or share) constructor and using
-`as_c_str` on the l value you made is effectively a const alternative with the
-same overhead (if we assume that stack buffer was not used on the first part)
+The `has_null` flag is used to see if there's a null terminator. If not, we may
+add it in the `as_c_str` function (non-const function, use `.data()`,
+`.length()`, `.has_null()`, and `memcpy()` if you want a constant
+alternative). Also, calling the copy (or share) constructor and using
+`as_c_str` on the l-value you made is effectively a const alternative with the
+same overhead (if we assume that stack buffer was not used on the first part).
 
 # Features and Implementation
 
 The built-in string viewer and shared substrings: the string is accessed via
 the begin and length pair, they provide the minimal functionality of a string
-viewer. A substring function may share the underlying data if and only if its
+viewer. A substring function may share the underlying data if and only if it's
 sharable.
 
 # Mutable Strings
 
 The string manages its resources and can be modified using the other part of
-the object, the functions ensure correct COW semantics and they allocate when
-necessary. Almost all equipment functionality of `std string` can ve
+the object. The functions ensure correct COW semantics, and they allocate when
+necessary. Almost all equipment functionality of `std::string` can be
 supported, except the following: the value of `operator[](i)`, `at(i)`,
-`*data()`, `front()`, `back()` cannot be mutated (see the historical cow
-reference for why) `c_str()` does not exist (`as_c_str()` does, but it can
-mutate, and it only gives a pointer to const). i cannot prove a const
-alternative, i do not want pointers to temporaries nor relying on has_null
-being true. the "as" means that it modified it to be "as" requested ( thats
-what the prefix in the name means) we can also use another name , but the
-function name isn't important in the design ("add\_null\_c\_str")
+`*data()`, `front()`, `back()` cannot be mutated (see the historical COW
+reference for why). `c_str()` does not exist (`as_c_str()` does, but it can
+mutate and it only gives a pointer to `const`). I cannot prove a `const`
+alternative; I do not want pointers to temporaries nor relying on `has_null`
+being true. The "as" means that it modified it to be "as" requested (that's
+what the prefix in the name means). We can also use another name, but the
+function name isn't important in the design (`add_null_c_str`).
 
 # COW Overhead
 
-Other than the destruction, and construction, which may need a branch to the
-non view path if the optimizer doesn't realize triviality, the string const
-overhead is similar to a view, which is minimal, we can easily make a view
-out of this, no branching required, actually, i had my previous string layout
-with a sso size of 31, but the downside was branch in the const view path i
+Other than the destruction and construction, which may need a branch to the
+non-view path if the optimizer doesn't realize triviality, the string const
+overhead is similar to a view, which is minimal. We can easily make a view
+out of this, no branching required. Actually, I had my previous string layout
+with an SSO size of 31, but the downside was a branch in the const view path. I
 discarded that and made all of the view information accessible without
-branching, the only time where the overhead is felt, is in modification of the
-string content, i tried my best to get the modification function as efficient
-as possible but in these worse cases, i cant do much else: the string was
+branching. The only time where the overhead is felt is in modification of the
+string content. I tried my best to get the modification function as efficient
+as possible, but in these worse cases, I can't do much else: the string was
 cold, the reference count was cold or has false sharing (contention when
-modification trashes the cache line) (heap strings) the data was cold, the
-data needed deallocating or reallocation
+modification trashes the cache line) (heap strings), the data was cold, the
+data needed deallocating or reallocation.
 
-But at last, any function that is marked const, doesn't even think about the
-storage location or strategy nor lifetime, its as if it was a view all along.
+But at last, any function that is marked const doesn't even think about the
+storage location or strategy nor lifetime; it's as if it was a view all along.
 
 And the ones that are not marked const are the ones who need to know about
-other stuff. Also, there is some functions that are not const,
-(`remove_suffix` or `prefix`, `as_substring`) that only address the sso part
-and treat the other parts as views, these dont even need to know about cow nor
+other stuff. Also, there are some functions that are not const
+(`remove_suffix` or `prefix`, `as_substring`) that only address the SSO part
+and treat the other parts as views; these don't even need to know about COW nor
 ownership.
 
 # Built-In Stack Buffer Optimization (Advanced Users Only)
 
 By using a stack buffer, you ensure that no allocation occurs as long as the
-buffer is big enough, if not, allocation may occur. The users must ensure
+buffer is big enough. If not, allocation may occur. The users must ensure
 that the buffer outlives the string object and the objects that it moved to or
-a view that it was converted to, but unlike the Allocators, they dont need to
+a view that it was converted to, but unlike the Allocators, they don't need to
 guarantee outliving a copy of it. Notice that copies are allowed to outlive
-the buffer, this is because cow doesn't apply to stack buffers, because of
-obvious reasons. also, this is not checked, its raw performance of a span of
-chars, and most users wont ever need such performance ( lifetimes are hard,
-this is discouraged) but some places (in the internals of my rope
-implementation) may need it, so its there.
+the buffer; this is because COW doesn't apply to stack buffers because of
+obvious reasons. Also, this is not checked; it's raw performance of a span of
+chars, and most users won't ever need such performance (lifetimes are hard;
+this is discouraged), but some places (in the internals of my rope
+implementation) may need it, so it's there.
 
 # The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
 
@@ -280,27 +271,27 @@ can use the view semantics to remove the extra character without memmove.
 
 We also have 3 mods of the first position alignment of the range:
 
-*   Centeral buffer  (`begin = buffer + (cap - len) / 2`)
+*   Central buffer  (`begin = buffer + (cap - len) / 2`)
 *   Front buffer   (`begin = buffer`)
 *   Back buffer  (`begin = buffer + cap - len`)
 
 After that, the position may change, but we could append and prepend to the
-range without memmove in many cases if we want.
+range without memmove in many cases if we want to.
 
 # Small String Optimization
 
-The 15 bytes of sso capacity allows us to not allocate anything for small
+The 15 bytes of SSO capacity allows us to not allocate anything for small
 strings.
 
 # Copy on Write Optimization
 
 Allows us to share most of the data, even sharing the substrings, reducing
-fragmentation, allocations and improving performance.
+fragmentation, allocations, and improving performance.
 
 # Built-In String View Optimization
 
-When initializing a string from a literal, no allocation is preformed. For
-example in the following case, we do not allocate but std does:
+When initializing a string from a literal, no allocation is performed. For
+example, in the following case, we do not allocate, but `std::string` does:
 
 ```c++
 void fn(std::string str);
@@ -312,93 +303,93 @@ mjz_fn("im too long too fit in sso ............"_str);
 
 # Unicode Support
 
-While i haven't made that part in the library, we can easily support unicode
+While I haven't made that part in the library, we can easily support Unicode
 or any other encoding just by using one of the 8 states of encoding flags (if
-they were too small, we could use 2 bits ( is_sso and the reserved bit) to add
-support for 32 separate encodings, but i dont see any reason for supporting
-mire than 8 encodings at the same time ). Strings with different encodings
-may not interact, if they do, thats an error and will throw if you allow it.
+they were too small, we could use 2 bits ( `is_sso` and the reserved bit) to add
+support for 32 separate encodings, but I don't see any reason for supporting
+more than 8 encodings at the same time). Strings with different encodings
+may not interact; if they do, that's an error and will throw if you allow it.
 
-# Exception Safely
+# Exception Safety
 
-In my library, almost everything is noexcept, i mainly wanted everything to be
-testable in constexpr mode, therfore, i added a custom error encoding for
-making the string an error value, but, if anyone wants exceptions, thats easy
-to do with a wrapper ( or a different class, but i currently really like
-noexcept, so i wont do that for now).
+In my library, almost everything is `noexcept`. I mainly wanted everything to be
+testable in `constexpr` mode; therefore, I added a custom error encoding for
+making the string an error value. But, if anyone wants exceptions, that's easy
+to do with a wrapper (or a different class, but I currently really like
+`noexcept`, so I won't do that for now).
 
 # Allocators (Advanced Users Only)
 
 While a generic implementation could allow any allocators, because of the
-amount of templates in it, i made my library with a optional constexpr
-friendly pmr-like allocator , the string would be 8 bytes more with it, but
-its beneficial for some contexts. Everything is noexcept in its api and a
+amount of templates in it, I made my library with an optional `constexpr`
+friendly pmr-like allocator. The string would be 8 bytes more with it, but
+it's beneficial for some contexts. Everything is `noexcept` in its API, and a
 failure is a simple `nullptr` return. The Allocator object (memory resource
-like) needs to outline the string object, its copies and its views.
+like) needs to outlive the string object, its copies, and its views.
 
 # Value Semantics
 
-The string is a value type, in my library, all of the move and copy functions
-are implemented and are noexcept, theres also a third one for const r values,
-but i won't touch on that implementation detail, because this is more of a
-nice to have thing. But as a summary, move moves everything. share (const r
-value ) shares ( no alloc) sharables and copies(alloc) the non sharables. copy
-dose a memcpy ( no alloc) if an allocation doesn't occur, if not calls share.
+The string is a value type. In my library, all of the move and copy functions
+are implemented and are `noexcept`. There's also a third one for const r-values,
+but I won't touch on that implementation detail because this is more of a
+nice-to-have thing. But as a summary, move moves everything. Share (const r-value)
+shares (no alloc) sharables and copies (alloc) the non-sharables. Copy
+does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # The Rope Counterpart
 
-Im currently designing a semi-immutable post modern COW and SSO optimized rope
+I'm currently designing a semi-immutable post-modern COW and SSO-optimized rope
 class based on an (a,b)-tree of slices of this string and its lazy
-counterpart, but i havent still implemented it im the library. its the ajason
+counterpart, but I haven't still implemented it in the library. It's the ajason
 paper in the repository for anyone interested.
 
 # Usability
 
 All of the `string_view` functionality is supported (an equivalent of it in my
 library) because we focused on being like views, we lost the ease of these two
-functionalities: mutable iteration + null terminated. we do almost the same
-thing for views ( std string is like the proxy object i talked about) ( the
-string view has no c_str method ) but other than the above, we have
-equivalent functionality for `std string`. (by equivalent, i mean if you dont
-consider mine being encoding aware)
+functionalities: mutable iteration + null terminated. We do almost the same
+thing for views (`std::string` is like the proxy object I talked about) (the
+string view has no `c_str` method), but other than the above, we have
+equivalent functionality for `std::string` (by equivalent, I mean if you don't
+consider mine being encoding aware).
 
 Any algorithm for a continuous string is usable and implemented (with regard
-to its encoding, ascii is like the standard c implementation)
+to its encoding; ASCII is like the standard C implementation).
 
-As i said, we know that this is a implementation to be in-between of view and
-string, so this is an acceptable tradeoff. if you want to complain about
-mutable iteration, i dont think you needed a viewing type in the first place,
-and, do you think the operation that you want to do can use the proxy? its
+As I said, we know that this is an implementation to be in-between of view and
+string, so this is an acceptable tradeoff. If you want to complain about
+mutable iteration, I don't think you needed a viewing type in the first place,
+and do you think the operation that you want to do can use the proxy? It's
 just 2 move operations and a reference count check if you owned it before, and
-if not, you would have copied anyways. after than that, you get a char* as
+if not, you would have copied anyways. After than that, you get a `char*` as
 your iterator type with all of the normal string functionality (potentially
-null terminated if requested). if you want to complain about null terminators,
-i think you either need to be comfortable with c APIs ( explicit work with
-memcpy) or rethink your design, when the sandard string is allowed to have
-intermediate null terminators, i think it would be a bug to require null
-termination ( see the talk on folly's string implementation) and again, we did
-put `as_c_str`, so i think theres no valid complaints.
+null terminated if requested). If you want to complain about null terminators,
+I think you either need to be comfortable with C APIs (explicit work with
+`memcpy`) or rethink your design. When the standard string is allowed to have
+intermediate null terminators, I think it would be a bug to require null
+termination (see the talk on Folly's string implementation), and again, we did
+put `as_c_str`, so I think there's no valid complaints.
 
 # Conclusion
 
 With the growing use of string views, there has become an opportunity to get
-the best of both worlds, we can use our strings like a string view, get value
+the best of both worlds. We can use our strings like a string view, get value
 semantics, still not copy or allocate, and use a unified type for our strings,
 making using the string as a mutable reference easier and reducing the
 overhead for functions who need to change the string in certain areas but not
 the others. While there's some inherent complexity in this method, this was
-the best implemented out of 5 that i made, but this provides a good way to
-minimize UB of use-after-free with using a reference counted string view,
+the best implemented out of 5 that I made, but this provides a good way to
+minimize UB of use-after-free with using a reference-counted string view,
 while still benefiting from most of its upsides.
 
 **Note:**
 
-Although I can share my library, I'm a bit scared to do so, because of how
-open source products are treated, I think I will eventually make it open
+Although I can share my library, I'm a bit scared to do so because of how
+open-source products are treated. I think I will eventually make it open
 source, but not for rn.
 
-Also, sorry if markdown is not professional, i don't have much experience
-with it
+Also, sorry if the markdown is not professional; I don't have much experience
+with it.
 
 This paper is located at:
 [https://github.com/Mjz86/String_description/blob/main/README.md](https://github.com/Mjz86/String_description/blob/main/README.md)
