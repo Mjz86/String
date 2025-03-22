@@ -449,11 +449,14 @@ my formatting library should also support ropes in a efficient way when they are
 ( every section would be like rope sections, and if it get it right,  the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
 
 # where would you place this:
+
 * mutable owner:
 `std::string` vs `mjz::ownerized_string`
 * in between:
  `mjz::string`,continuous. vs ?
+( maybe rust cow string)
   `mjz::rope`, discontinues. vs ?
+( maybe other lazy ropes)
 * immutable viewer:
  `std::string_view` vs `mjz::string_view`
 
@@ -492,6 +495,8 @@ You may give feedback in:
 
 **References and Inspirations:**
 
+* All Rust string types explained :
+    [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
 *   Learn about the cache:
     [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
 *   String view usage:
