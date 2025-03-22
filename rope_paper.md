@@ -103,6 +103,48 @@ The index of the string end serves as the key to the tree structure. All (a,b)-t
 *   If there is only one leaf, the tree height is 0, and no node exists.
 *   Leaves (except SSO leaves and the root inline leaf) cannot be directly modified (i.e., characters cannot be changed or appended via direct buffer access). However, substring operations are permitted.
 
+## definition of substring and concatenate:
+* note that a node copy is just sharing it , its O(1).
+* note : if at any point two ajason children or a  node had less size than its corresponding sso , we collapse them O(B)+O(iteration(B))+O(1+)=O(B+)=O(1+).
+
+### node destroy definition :
+  we  ( either unsharing or dealocating) the unused children O(1+).
+
+### substring:
+
+* case of no length: destroy the whole rope , set to sso.
+* case of a leaf : we know that sharing substings is O(1) , an SSO  memmove is O(B)=O(1) , a lazy substring is a copy of generator and offset and length change O(1)+O(gen-cpy)=O(1) because generators should be cheap to copy.
+* case of a node:
+  we search for the new begin and end pair , and we find the range of children that the substring needs. O(logB)=O(1).
+  * if there was only one child left , we correct our offset, we make that child the new root and  destroy the old root and do a substring  on the new root O(h-1 +).
+  * if there was more :
+    we  ownerize the current node O(1)( either a reference check or an unshare-destroy copy).
+    we destroy each unused node O(1+).
+    we reposition the nodes and their keys ( the indexes may need to change) O(B)=O(1).
+    we ownerize the first and last child O(1).( if these children's length is not changed,  we do not ownerize).
+    we make sure that the first and last child have more than A  children ( not A itself) (  merge or steal , or collapse to root) O(1).
+    we  do a a substring on the first and last  children with the right index adjustment( if the length is unchanged we do nothing ) O(h-1).
+
+    
+
+### concatenation of two nodes O(new\_h):
+rhs=right hand side. 
+lhs=left hand side.
+ohs= opposite hand side.
+chs=current hand side.
+
+ * case of two roots with same hight:
+  merge these (hight may increase). O(1).
+  * else:
+  choose the taller rope as chs.
+   make sure chs has less nodes than B  ( maybe by split and increasing the hight ) and ownerise it O(B)=O(1).
+  lets call the ohs child of chs  , C.
+   * if ohs has same hight as C :
+     we insert ohs at the position of C child of chs O(B)=O(1).
+    * else ( we know it has less hight):
+     make sure C  has less nodes than B  ( by split  ) and ownerise it O(B)=O(1).
+     we concatenate  C( C is going  to change ) with ohs in the correct order. O(new\_h-1).
+
 ## Results of Said Properties:
 
 String operations can be performed using substringing, concatenation, and creation.  This rope implementation achieves the property that its big O complexity is independent of the string length for operations other than iterating.
