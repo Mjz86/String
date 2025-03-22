@@ -48,7 +48,8 @@ struct {
                                                         // to always disable cow and viewer for a specific string ,
                                                         // to remove the reference_count checks, 
                                                        //currently not available , but potentially a  useful addition  with  always_ownerize(bool flag_state),
-                                                       // if is_ownerized is added as a flag ,  then (is_sharable&&is_ownerized) would be used to determine sharability
+                                                       // if is_ownerized is added as a flag ,  then (is_sharable&&!is_ownerized) would be used to determine sharability
+                                                       // im planing on adding it , so ill mention it in the documentation. 
   uint8_t has_null:1;
   uint8_t  is_threaded:1;
   uint8_t  encoding:3;
@@ -77,9 +78,8 @@ struct {
     *   `capacity == 0`.
     *   `is_owner() == false`.
     *   `is_sso == false`.
-    *   (Note that `is_sharable` is true for string literals or strings that the
-        user "promised" to outlive the object and its accessors)
-
+    *   `is_ownerized == false`
+    
 2.  **At the SSO string state:**
 
     *   `begin == buffer`.
@@ -98,7 +98,7 @@ struct {
     *   `data_block == &heap_buffer`.
     *   `capacity != 0`.
     *   (`capacity` is almost always bigger than 15, but no guarantees are made)
-    *   `is_owner() == (reference_count < 2)`.
+    *   `is_owner() ==is_ownerized ||  (reference_count < 2)`.
     *   `is_sso == false`.
     *   `is_sharable == true`.
 
@@ -215,8 +215,7 @@ same overhead (if we assume that stack buffer was not used on the first part).
 
 The built-in string viewer and shared substrings: the string is accessed via
 the begin and length pair, they provide the minimal functionality of a string
-viewer. A substring function may share the underlying data if and only if it's
-sharable.
+viewer. A substring function may share the underlying data if and only if `!is_ownerized&&is_sharable`.
 
 # Mutable Strings
 
@@ -314,7 +313,8 @@ fragmentation, allocations, and improving performance.
 if the user suspected that a peice of code had false sharing ( thread contention on reference count) ,  we recommend the `ownerize()` method, 
 it should  make the string the owner of the data , note that this does mostly nothing if we are the owner .
 note that sharing  is not applied in the copy constructor or assignment if the destination  buffer ia large enough to hold the data , and is an owner , this is because we dont want to deallocate a hot buffer for no reason. 
- if i add `is_ownerized` as a flag , then we could  make the strings with the most contention,  force ownerized, so , no one would ever change their reference count to false share.
+ then we could  make the strings with the most contention,  force ownerized,using , `always_ownerize(true)` so , no one would ever change their reference count to false share,
+ this effectively kills cow for things that would suffer from it.
 
 # Built-In String View Optimization
 
@@ -333,8 +333,8 @@ mjz_fn("im too long too fit in sso ............"_str);
 
 While I haven't made that part in the library, we can easily support Unicode
 or any other encoding just by using one of the 8 states of encoding flags (if
-they were too small, we could use 2 bits ( `is_sso` and the reserved bit) to add
-support for 32 separate encodings, but I don't see any reason for supporting
+they were too small, we could use 1 bits ( `is_sso` ) to add
+support for 16 separate encodings, but I don't see any reason for supporting
 more than 8 encodings at the same time). Strings with different encodings
 may not interact; if they do, that's an error and will throw if you allow it.
 
@@ -362,7 +362,7 @@ The string is a value type. In my library, all of the move and copy functions
 are implemented and are `noexcept`. There's also a third one for const r-values,
 but I won't touch on that implementation detail because this is more of a
 nice-to-have thing. But as a summary, move moves everything. Share (const r-value)
-shares (no alloc) sharables and copies (alloc) the non-sharables. Copy
+shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_sharable&&!is_ownerized)`. Copy
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # The Rope Counterpart
