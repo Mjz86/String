@@ -29,9 +29,9 @@ struct {
   size_t  length;
   union{
     char  buffer[15];
-    struct referencal_t{
+    struct referencal_t{// the string is a reference to something 
       char* data_block;
-      size_t capacity:56;
+      size_t capacity:56;// in actuality only 7 bytes 
     };
   };
   uint8_t  control_byte;
@@ -43,16 +43,16 @@ The control byte can be thought of as:
 ```c++
 struct {
   uint8_t  is_sso:1; // a bit redundant,  i plan on depreciation of it  and removal 
-  uint8_t  is_sharable:1;
+  uint8_t  is_sharable:1;// this  indicates  that we are in a heap or litteral view , vs , sso or stack buffer or copying view.
   uint8_t unused_for_now_:1;// this could  be used for a "no cow/viewer flag" ,  or "is_ownerized"
                                                         // to always disable cow and viewer for a specific string ,
                                                         // to remove the reference_count checks, 
                                                        //currently not available , but potentially a  useful addition  with  always_ownerize(bool flag_state),
                                                        // if is_ownerized is added as a flag ,  then (is_sharable&&!is_ownerized) would be used to determine sharability
                                                        // im planing on adding it , so ill mention it in the documentation. 
-  uint8_t has_null:1;
-  uint8_t  is_threaded:1;
-  uint8_t  encoding:3;
+  uint8_t has_null:1;// needed to share substrings 
+  uint8_t  is_threaded:1;// i dont like atomics in my single thread.
+  uint8_t  encoding:3; // we are not a bag of bytes 
 };
 ```
 
@@ -61,7 +61,7 @@ The encoding flags are for knowing the encoding of the stored data.
 The heap block can be thought of as:
 
 ```c++
-struct {
+struct {// this is just a 8 or 16 byte aligned char array with this layout 
   size_t  reference_count;
   char heap_buffer[capacity];
 };
@@ -78,7 +78,8 @@ struct {
     *   `capacity == 0`.
     *   `is_owner() == false`.
     *   `is_sso == false`.
-    *   `is_ownerized == false`
+    *   `is_ownerized == false`. 
+    the view optimization is essentially a cow string with   static lifetime,  therfore its not ownerized. 
     
 2.  **At the SSO string state:**
 
@@ -176,8 +177,9 @@ but if not):
 ```c++
 struct simpler_version{
   std::variant <std::shared_ptr<std::string> // cow
-                ,std::array<char,16>         // sso
+                ,std::array<char,sizeof(std::string)>         // sso
                 ,std::span<char>             // stack buffer
+                ,std::string // ownerized 
                 > data;
   std::string_view view;
   encodings_t encoding;
