@@ -55,7 +55,7 @@ uint8_t  /*the negation of this is actually stored*/is_threaded:1;
  // to remove the reference_count checks, 
  //controled  with  always_ownerize(bool flag_state),
  //  (is_sharable&&!is_ownerized) determines sharability 
- 
+ // both of these flags are essential and they do not correlate. 
  
   uint8_t has_null:1;// needed to share substrings 
   
@@ -171,7 +171,7 @@ private:
   // we can get the usual mutable string interface.
 };
 ```
-* the following solution and the tunable sso  will be in the next release with the same wrapper template type , templated on these  `(sso_cap_v,is_ownerized_v,has_null_v)` and the last 2 are just for invariants that the wrapper ensures( `if X_v then X`) , also if `sso_cap_v<=15`, no stack buffer wrapping is preformed, also , if `has_null_v` is true , `c_str` would be provided, and if `is_ownerized_v` is true,  then the ability for mutable iteration is provided. 
+* the following solution and the tunable sso  will be in the next release with the same wrapper template type , templated on these  `(sso_cap_v,is_ownerized_v,has_null_v)` and the last 2 are just for invariants that the wrapper ensures(`if has_null_v then has_null` ` is_ownerized_v == is_ownerized`) , also if `sso_cap_v<=15`, no stack buffer wrapping is preformed, also , if `has_null_v` is true , `c_str` would be provided, and if `is_ownerized_v` is true,  then the ability for mutable iteration is provided. 
 
 Another possible solution is that I think will be the best bet(haven't tried yet , ownerization is in the next release):
 
