@@ -43,13 +43,17 @@ The control byte can be thought of as:
 ```c++
 struct {
 uint8_t  /*the negation of this is actually stored*/is_threaded:1;
+
   uint8_t  is_sharable:1;// this  indicates  that we are in a heap or litteral view , vs , sso or stack buffer or copying view.
 
-  /*this flag is not propagated by copy or share, only by move, if any side (dest or src) has this flag set to true, a memcpy and a potential allocation occurs (if sso or stack buffer is not large enough) */
- uint8_t is_ownerized:1; // to always disable cow and viewer for a specific string ,
-                                                        // to remove the reference_count checks, 
-                                                       //controled  with  always_ownerize(bool flag_state),
-                                                       //  (is_sharable&&!is_ownerized) determines sharability                                         
+
+ uint8_t is_ownerized:1;   /*this flag is not propagated by copy or share, only by move,in the non-move case,  if any side (dest or src) has this flag set to true, a memcpy and a potential allocation occurs (if sso or stack buffer is not large enough) */
+ // to always disable cow and viewer for a specific string ,
+ // to remove the reference_count checks, 
+ //controled  with  always_ownerize(bool flag_state),
+ //  (is_sharable&&!is_ownerized) determines sharability 
+ 
+ 
   uint8_t has_null:1;// needed to share substrings 
   
   uint8_t unused_for_now_:1;
