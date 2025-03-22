@@ -20,6 +20,9 @@ Many C++ programmers have worked with strings. Several have been forced to use e
 
 # Implementation Details
 
+note that in the 32bit platform,  there are two options, 
+one is big address space ( 56 bit) and one is small address space ( 24bit) , in the small case , the object size is 16bytes and in the large case 32bytes.
+
 The basic layout can be thought of as the following (not valid C++, but its equivalent) (total of 32 bytes in my own implementation):
 
 ```c++
@@ -168,7 +171,7 @@ private:
   // we can get the usual mutable string interface.
 };
 ```
-* the following solution and the tunable sso  will be in the next release with the same wrapper template type , templated on these  `(sso_cap_v,is_ownerized_v,has_null_v)` and the last 2 are just for invariants that the wrapper ensures( `if X_v then X`) , also if `sso_cap_v<=15`, no stack buffer wrapping is preformed.
+* the following solution and the tunable sso  will be in the next release with the same wrapper template type , templated on these  `(sso_cap_v,is_ownerized_v,has_null_v)` and the last 2 are just for invariants that the wrapper ensures( `if X_v then X`) , also if `sso_cap_v<=15`, no stack buffer wrapping is preformed, also , if `has_null_v` is true , `c_str` would be provided, and if `is_ownerized_v` is true,  then the ability for mutable iteration is provided. 
 
 Another possible solution is that I think will be the best bet(haven't tried yet , ownerization is in the next release):
 
@@ -189,6 +192,7 @@ private:
 i dont think the null terminator is important enough for a wrapper, 
 it shouldn't be dependent upon at all , its purely legacy. 
 
+but , its easy enough to add another template flag for it , so why not.
 
 # How to do This Without My Help
 
