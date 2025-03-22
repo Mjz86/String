@@ -167,6 +167,8 @@ private:
   // we can get the usual mutable string interface.
 };
 ```
+* the following solution and the tunable sso  will be in the next release with the same wrapper template type , templated on these  `(sso_cap_v,is_ownerized_v,has_null_v)` and the last 2 are just for invariants that the wrapper ensures( `if X_v then X`) , also if `sso_cap_v<=15`, no stack buffer wrapping is preformed.
+
 Another possible solution is that I think will be the best bet(haven't tried yet , ownerization is in the next release):
 
 this may be more intuitive,  like , this is the `std::string` ( the wrapper) equivalent to my `std::string_view`( the main class).
