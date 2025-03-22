@@ -30,7 +30,7 @@ node_shared_cache {
 struct node : node_shared_cache {
   union {
     elem children[B];
-    //  B*64 bytes
+    //  B×64 bytes
     //  For B=15, the node's SSO segment would be 960 bytes.
     //  Rope slice progression: root(48) -> slice(56) -> node(960) -> more.
     //  The maximum m would be approximately n/28, and the minimum would be 1.
@@ -221,11 +221,11 @@ a generator with a mutex and a mutable sub-rope initialized with an internal gen
 This ensures that the algorithm only runs once per block, saving many decodings.
 The rope API is designed to be similar to the main string API, without assuming continuous representations. 
 The rope does not need to be a tree for small strings.  
-In fact, it cannot be a tree for those.  As per the invariants, a rope with a size less than B*64 (e.g., 960) must have at most one sso leaf,
+In fact, it cannot be a tree for those.  As per the invariants, a rope with a size less than B×64 (e.g., 960) must have at most one sso leaf,
  guaranteeing a single sso node allocation for such small ropes .
 Also, for all strings below the 48-byte threshold, the rope collapses to the inline SSO.
 so , B is more than just a fanout, the bigger the B , the more continuous and eager the rope.
-this means , that for example,  a one gigabyte file,  may have some very hot , 960 (B*64) byte chunks that it works with to edit text ( note that when we own the node , theres no thread contention on it , because we are the only thread that owns it) , and the other parts would probably be some multi megabyte lazy fragments. 
+this means , that for example,  a one gigabyte file,  may have some very hot , 960 (B×64) byte chunks that it works with to edit text ( note that when we own the node , theres no thread contention on it , because we are the only thread that owns it) , and the other parts would probably be some multi megabyte lazy fragments. 
 
 ## Conclusion
 
