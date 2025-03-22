@@ -306,6 +306,9 @@ strings.
 
 Allows us to share most of the data, even sharing the substrings, reducing
 fragmentation, allocations, and improving performance.
+if the user suspected that a peice of code had false sharing ( thread contention on reference count) ,  we recommend the `ownerize()` method, 
+it should  make the string the owner of the data , note that this does mostly nothing if we are the owner .
+note that sharing  is not applied in the copy constructor or assignment if the destination  buffer ia large enough to hold the data , and is an owner , this is because we dont want to deallocate a hot buffer for no reason. 
 
 # Built-In String View Optimization
 
