@@ -44,10 +44,11 @@ The control byte can be thought of as:
 struct {
   uint8_t  is_sso:1; // a bit redundant, but I used it for more safety
   uint8_t  is_sharable:1;
-  uint8_t unused_for_now_:1;// this could  be used for a "no cow/viewer flag" ,
+  uint8_t unused_for_now_:1;// this could  be used for a "no cow/viewer flag" ,  or "is_ownerized"
                                                         // to always disable cow and viewer for a specific string ,
                                                         // to remove the reference_count checks, 
                                                        //currently not available , but potentially a  useful addition  with  always_ownerize(bool flag_state),
+                                                       // if is_ownerized is added as a flag ,  then (is_sharable&&is_ownerized) would be used to determine sharability
   uint8_t has_null:1;
   uint8_t  is_threaded:1;
   uint8_t  encoding:3;
@@ -275,6 +276,7 @@ this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
 
 # tunable sso , no code bloat, no big types:
+( a safe wrapper of the stack buffer )
  we may provide a safe wrapper ( the string would be a private member ,the buffer would be a private member) class that has a bigger sso buffer ,
  while also reusing all the code of the string , think of it like an implace vector ,
  this wouldn't need lifetime knowledge,  so it would be for intermediate users .
@@ -312,6 +314,7 @@ fragmentation, allocations, and improving performance.
 if the user suspected that a peice of code had false sharing ( thread contention on reference count) ,  we recommend the `ownerize()` method, 
 it should  make the string the owner of the data , note that this does mostly nothing if we are the owner .
 note that sharing  is not applied in the copy constructor or assignment if the destination  buffer ia large enough to hold the data , and is an owner , this is because we dont want to deallocate a hot buffer for no reason. 
+ if i add `is_ownerized` as a flag , then we could  make the strings with the most contention,  force ownerized, so , no one would ever change their reference count to false share.
 
 # Built-In String View Optimization
 
