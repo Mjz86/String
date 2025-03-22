@@ -151,7 +151,7 @@ struct iterator {
 };
 ```
 
-Another possible solution that I think will be the best bet is a proxy string, basically this (haven't tried yet):
+Another possible solution  is a proxy string, basically this (haven't tried yet):
 
 ```c++
 // as a friend class to the string
@@ -166,7 +166,7 @@ private:
   // we can get the usual mutable string interface.
 };
 ```
-Another possible solution is:
+Another possible solution is that I think will be the best bet(haven't tried yet , ownerization is in the next release):
 this may be more intuitive,  like , this is the `std::string` ( the wrapper) equivalent to my `std::string_view`( the main class).
 users can convert between these easily without any lifetime issues,
 and because its a wrapper,  it wouldn't have code bloat. 
@@ -197,11 +197,11 @@ struct simpler_version{
   std::variant <std::shared_ptr<std::string> // cow
                 ,std::array<char,sizeof(std::string)>         // sso
                 ,std::span<char>             // stack buffer
-                ,std::string // ownerized 
                 > data;
   std::string_view view;
   encodings_t encoding;
   bool has_null;
+  bool is_ownerized;
   // functionality....
 };
 ```
