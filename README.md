@@ -56,7 +56,7 @@ uint8_t  /*the negation of this is actually stored*/is_threaded:1;
  
   uint8_t has_null:1;// needed to share substrings 
   
-  uint8_t unused_for_now_:1;
+  uint8_t:1;//unused_for_now_
   uint8_t  encoding:3; // we are not a bag of bytes 
 };
 ```
