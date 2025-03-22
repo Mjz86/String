@@ -99,7 +99,7 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     *   `data_block == &heap_buffer`.
     *   `capacity != 0`.
     *   (`capacity` is almost always bigger than 15, but no guarantees are made)
-    *   `is_owner() ==is_ownerized ||  (reference_count < 2)`.
+    *   `is_owner() ==(is_ownerized ||  (reference_count < 2))`.
     *   `is_sso == false`.
     *   `is_sharable == true`.
 
@@ -166,6 +166,24 @@ private:
   // we can get the usual mutable string interface.
 };
 ```
+Another possible solution is:
+this may be more intuitive,  like , this is the `std::string` ( the wrapper) equivalent to my `std::string_view`( the main class).
+users can convert between these easily without any lifetime issues,
+and because its a wrapper,  it wouldn't have code bloat. 
+ this would be like the proxy,  but its intuitive like the standard. 
+ i think rust had a cow and non cow string as well. 
+```c++
+struct ownerized_string{
+private:
+  //....
+  mjz::string value;// is_ownerized being true is an invariant.
+  // the standard string interface can be used( other than c_str )
+};
+```
+
+i dont think the null terminator is important enough for a wrapper, 
+it shouldn't be dependent upon at all , its purely legacy. 
+
 
 # How to do This Without My Help
 
