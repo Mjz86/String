@@ -392,6 +392,23 @@ class based on an (a,b)-tree of slices of this string and its lazy
 counterpart, but I haven't still implemented it in the library. It's the ajason
 paper in the repository for anyone interested.
 
+# the pure view counterpart ( advanced users):
+ ill briefly talk about this , as its an important part. 
+ when we need a trivial view type , this is it ,
+ but when we need safety and can afford 16 bytes more ,
+ use the main string. 
+we  have this as the view type in the library:
+ ```c++
+ struct {
+size_t  length:59;
+size_t  encoding:3;
+size_t has_null:1;
+size_t  is_static:1;// equivalent to is_sharable,  but in the view world,  this is just a tag.
+const char*begin;
+};
+ ```
+ 
+
 # Usability
 
 All of the `string_view` functionality is supported (an equivalent of it in my
@@ -424,8 +441,18 @@ in my library,  i have a fmt like format library,  to generate these strings ,
 so , mutable iteration is not a problem for me at all, in my opinion. 
 my formatting library should also support ropes in a efficient way when they are implemented  
 ( every section would be like rope sections, and if it get it right,  the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
-# Conclusion
 
+# where would you place this:
+* mutable owner:
+`std::string` vs `mjz::ownerized_string`
+* in between:
+ `mjz::string`,continuous. vs ?
+  `mjz::rope`, discontinues. vs ?
+* immutable viewer:
+ `std::string_view` vs `mjz::string_view`
+
+
+# Conclusion
 With the growing use of string views, there has become an opportunity to get
 the best of both worlds. We can use our strings like a string view, get value
 semantics, still not copy or allocate, and use a unified type for our strings,
@@ -435,6 +462,12 @@ the others. While there's some inherent complexity in this method, this was
 the best implemented out of 5 that I made, but this provides a good way to
 minimize UB of use-after-free with using a reference-counted string view,
 while still benefiting from most of its upsides.
+
+
+
+
+
+
 
 **Note:**
 
