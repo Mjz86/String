@@ -233,6 +233,9 @@ by the implemented library.
 
 # C Interoperability
 
+* this will be significantly simpler in the next release( wrapper ),  but for the main string , this is the criticism:
+
+
 The `has_null` flag is used to see if there's a null terminator. If not, we may
 add it in the `as_c_str` function (non-const function, use `.data()`,
 `.length()`, `.has_null()`, and `memcpy()` if you want a constant
@@ -247,6 +250,7 @@ the begin and length pair, they provide the minimal functionality of a string
 viewer. A substring function may share the underlying data if and only if `!is_ownerized&&is_sharable`.
 
 # Mutable Strings
+* this will be significantly simpler in the next release( wrapper ),  but for the main string , this is the criticism:
 
 The string manages its resources and can be modified using the other part of
 the object. The functions ensure correct COW semantics, and they allocate when
