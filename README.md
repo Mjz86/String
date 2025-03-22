@@ -42,16 +42,15 @@ The control byte can be thought of as:
 
 ```c++
 struct {
-  uint8_t  is_sso:1; // a bit redundant,  i plan on depreciation of it  and removal 
+uint8_t  /*the negation of this is actually stored*/is_threaded:1;
   uint8_t  is_sharable:1;// this  indicates  that we are in a heap or litteral view , vs , sso or stack buffer or copying view.
-  uint8_t unused_for_now_:1;// this could  be used for a "no cow/viewer flag" ,  or "is_ownerized"
-                                                        // to always disable cow and viewer for a specific string ,
+ uint8_t is_ownerized:1; // to always disable cow and viewer for a specific string ,
                                                         // to remove the reference_count checks, 
-                                                       //currently not available , but potentially a  useful addition  with  always_ownerize(bool flag_state),
-                                                       // if is_ownerized is added as a flag ,  then (is_sharable&&!is_ownerized) would be used to determine sharability
-                                                       // im planing on adding it , so ill mention it in the documentation. 
+                                                       //controled  with  always_ownerize(bool flag_state),
+                                                       //  (is_sharable&&!is_ownerized) determines sharability                                         
   uint8_t has_null:1;// needed to share substrings 
-  uint8_t  is_threaded:1;// i dont like atomics in my single thread.
+  
+  uint8_t unused_for_now_:1;
   uint8_t  encoding:3; // we are not a bag of bytes 
 };
 ```
@@ -77,7 +76,6 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     *   `data_block == nullptr`.
     *   `capacity == 0`.
     *   `is_owner() == false`.
-    *   `is_sso == false`.
     *   `is_ownerized == false`. 
     the view optimization is essentially a cow string with   static lifetime,  therfore its not ownerized. 
     
@@ -87,7 +85,6 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     *   `active union member == buffer`.
     *   `capacity == 15`.
     *   `is_owner() == true`.
-    *   `is_sso == true`.
     *   `is_sharable == false`.
     *   `has_null == (length != 15)`.
 
@@ -100,7 +97,6 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     *   `capacity != 0`.
     *   (`capacity` is almost always bigger than 15, but no guarantees are made)
     *   `is_owner() ==(is_ownerized ||  (reference_count < 2))`.
-    *   `is_sso == false`.
     *   `is_sharable == true`.
 
 4.  **Stack buffer string state:**
@@ -111,7 +107,6 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     *   `data_block != nullptr`.
     *   `capacity != 0`.
     *   `is_owner() == true`.
-    *   `is_sso == false`.
     *   `is_sharable == false`.
 
 Also, `[begin, end)` is a continuous sub-range of
@@ -354,7 +349,7 @@ mjz_fn("im too long too fit in sso ............"_str);
 
 While I haven't made that part in the library, we can easily support Unicode
 or any other encoding just by using one of the 8 states of encoding flags (if
-they were too small, we could use 1 bits ( `is_sso` ) to add
+they were too small, we could use 1 bits ( `unused_for_now_` ) to add
 support for 16 separate encodings, but I don't see any reason for supporting
 more than 8 encodings at the same time). Strings with different encodings
 may not interact; if they do, that's an error and will throw if you allow it.
