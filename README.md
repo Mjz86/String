@@ -398,6 +398,13 @@ nice-to-have thing. But as a summary, move moves everything. Share (const r-valu
 shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_sharable&&!is_ownerized)`. Copy
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
+# future versions:
+in the next release,  ill provide wrappers for mutation, null termination , and tuned sso .
+i also plan to support unicode with another library component that integrates with the byte-string, 
+currently,  i want to implement the rope, 
+but these two are planned. 
+
+
 # The Rope Counterpart
 
 I'm currently designing a semi-immutable post-modern COW and SSO-optimized rope
