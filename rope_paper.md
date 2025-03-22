@@ -99,7 +99,7 @@ The degree of fragmentation in the rope is influenced by the randomness of user 
 
 The index of the string end serves as the key to the tree structure. All (a,b)-tree invariants must hold. Additionally, the following optimization invariants are enforced:
 
-*   If two adjacent children have a combined size smaller than the SSO buffer, they must be combined into a single SSO leaf.
+*   If two adjacent non sso children have a combined size smaller than the SSO buffer, they must be combined into a single SSO leaf.
 *   If there is only one leaf, the tree height is 0, and no node exists.
 *   Leaves (except SSO leaves and the root inline leaf) cannot be directly modified (i.e., characters cannot be changed or appended via direct buffer access). However, substring operations are permitted.
 
@@ -210,7 +210,22 @@ Approximate Time Complexity for various operations:
 
 ## Usability:
 
-A good approach for implementing undo/redo functionality is to maintain a vector of ropes. Each modification can be stored as a new rope at the end of the vector. Thanks to COW, this is manageable.  For synchronization in file operations, a COW copy of a rope can be passed to be written to a file, or a lazily evaluated immutable view can be obtained for a constant file.  Data can be generated on-the-fly. For example, if the value is hard to compute (e.g., decoding a message encrypted with AES), a generator with a mutex and a mutable sub-rope initialized with an internal generator as storage can be used. The sub-rope is materialized using `for_crange` (basically `for_range` but provides a constant reference rather than a mutable one, which is more efficient in some cases and also reduces fragmentation) every time a subrange is needed.  This ensures that the algorithm only runs once per block, saving many decodings. The rope API is designed to be similar to the main string API, without assuming continuous representations. The rope does not need to be a tree for small strings.  In fact, it cannot be a tree.  As per the invariants, a rope with a size less than B*64 (e.g., 960) must have at most one leaf, guaranteeing a single allocation for such small ropes (assuming the generator object doesn't allocate).  Also, for all strings below the 48-byte threshold, the rope collapses to the inline SSO, and the generator is eagerly executed, since a continuous and inline representation is the most efficient option in these cases.
+A good approach for implementing undo/redo functionality is to maintain a vector of ropes. 
+Each modification can be stored as a new rope at the end of the vector. 
+Thanks to COW, this is manageable.  
+For synchronization in file operations, a COW copy of a rope can be passed to be written to a file, or a lazily evaluated immutable view can be obtained for a constant file. 
+ Data can be generated on-the-fly. For example, 
+if the value is hard to compute (e.g., decoding a message encrypted with AES), 
+a generator with a mutex and a mutable sub-rope initialized with an internal generator as storage can be used.
+ The sub-rope is materialized using `for_crange` (basically `for_range` but provides a constant reference rather than a mutable one, which is more efficient in some cases and also reduces fragmentation) every time a subrange is needed.  
+This ensures that the algorithm only runs once per block, saving many decodings.
+The rope API is designed to be similar to the main string API, without assuming continuous representations. 
+The rope does not need to be a tree for small strings.  
+In fact, it cannot be a tree for those.  As per the invariants, a rope with a size less than B*64 (e.g., 960) must have at most one sso leaf,
+ guaranteeing a single sso node allocation for such small ropes .
+Also, for all strings below the 48-byte threshold, the rope collapses to the inline SSO.
+so , B is more than just a fanout, the bigger the B , the more continuous and eager the rope.
+this means , that for example,  a one gigabyte file,  may have some very hot , 960 (B*64) byte chunks that it works with to edit text ( note that when we own the node , theres no thread contention on it , because we are the only thread that owns it) , and the other parts would probably be some multi megabyte lazy fragments. 
 
 ## Conclusion
 
