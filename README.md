@@ -44,7 +44,10 @@ The control byte can be thought of as:
 struct {
   uint8_t  is_sso:1; // a bit redundant, but I used it for more safety
   uint8_t  is_sharable:1;
-  uint8_t unused_for_now_:1;
+  uint8_t unused_for_now_:1;// this could  be used for a "no cow/viewer flag" ,
+                                                        // to always disable cow and viewer for a specific string ,
+                                                        // to remove the reference_count checks, 
+                                                       //currently not available , but potentially a  useful addition  with  always_ownerize(bool flag_state),
   uint8_t has_null:1;
   uint8_t  is_threaded:1;
   uint8_t  encoding:3;
