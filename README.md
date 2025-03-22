@@ -42,7 +42,7 @@ The control byte can be thought of as:
 
 ```c++
 struct {
-  uint8_t  is_sso:1; // a bit redundant, but I used it for more safety
+  uint8_t  is_sso:1; // a bit redundant,  i plan on depreciation of it  and removal 
   uint8_t  is_sharable:1;
   uint8_t unused_for_now_:1;// this could  be used for a "no cow/viewer flag" ,  or "is_ownerized"
                                                         // to always disable cow and viewer for a specific string ,
