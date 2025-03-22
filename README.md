@@ -103,6 +103,7 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     *   `capacity != 0`.
     *   (`capacity` is almost always bigger than 15, but no guarantees are made)
     *   `is_owner() ==(is_ownerized ||  (reference_count < 2))`.
+    * ` !is_ownerized || reference_count < 2`.
     *   `is_sharable == true`.
 
 4.  **Stack buffer string state:**
