@@ -414,6 +414,7 @@ const char*begin;
  
 
 # Usability
+* this is a header only library, i currently support gcc and msvc (haven't tested on clang).
 
 All of the `string_view` functionality is supported (an equivalent of it in my
 library) because we focused on being like views, we lost the ease of these two
