@@ -481,9 +481,6 @@ while still benefiting from most of its upsides.
 
 **Note:**
 
-Although I can share my library, I'm a bit scared to do so because of how
-open-source products are treated. I think I will eventually make it open
-source, but not for rn.
 
 Also, sorry if the markdown is not professional; I don't have much experience
 with it.
