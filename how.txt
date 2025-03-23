@@ -1,0 +1,3 @@
+cd tests
+g++ -std=c++2a  -Wall -Wextra  -s -O3 main.cpp -o main2 
+./main2
