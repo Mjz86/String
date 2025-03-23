@@ -58,7 +58,7 @@ basic_str_t<version_v, has_alloc_v_>::make_right_then_give_has_null(
     uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
   byte_offset = std::min(byte_offset, m.length);
   byte_count = std::min(byte_offset + byte_count, m.length) - byte_offset;
-  return byte_offset + byte_count == m.length;
+  return byte_offset + byte_count == m.length&& has_null();
 }
 
 template <version_t version_v, bool has_alloc_v_>
