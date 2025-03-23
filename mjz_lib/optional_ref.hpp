@@ -266,15 +266,16 @@ struct better_runtime_only_union_mimic_t : runtime_only_union_mimic_t<T> {
 
 /* suppress the deleted copy/move assignment or construction stuff */
 MJZ_DISABLE_WANINGS_START_;
+template <class lam_t>
+concept multilambda_segment_ne_c = requires(lam_t&& arg) {
+  { (std::remove_cvref_t<lam_t>(std::forward<lam_t>(arg))) } noexcept;
+};
+
 template <class... lambdas_t>
 struct multilambda_t : public std::remove_cvref_t<lambdas_t>... {
   using std::remove_cvref_t<lambdas_t>::operator()...;
   MJZ_CX_FN multilambda_t(lambdas_t&&... args) noexcept(
-      (bool(requires(lambdas_t&& arg) {
-         {
-           (std::remove_cvref_t<lambdas_t>(std::forward<lambdas_t>(arg)))
-         } noexcept;
-       }) && ...))
+      (multilambda_segment_ne_c<lambdas_t> && ...))
       : std::remove_cvref_t<lambdas_t>(std::forward<lambdas_t>(args))... {}
 };
 MJZ_DISABLE_WANINGS_END_;
