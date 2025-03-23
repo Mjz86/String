@@ -41,8 +41,8 @@ struct main_t {
 
 MJZ_CX_FN void main_t::run() const {
   std::array<char, 128> buf{};
-  owned_stack_buffer_t<version_v> osb{.buffer{buf.data()},
-                                      .buffer_size{buf.size()}};
+  owned_stack_buffer_t<version_v> osb{.buffer=buf.data(),
+                                      .buffer_size=buf.size()};
   bool disable_cow{false};
   str_t result{unsafe_ns::unsafe_v, std::move(osb)};
   str_t s = "i am a big massage 0123456789abcdefghijklmnop"_str;

@@ -100,8 +100,9 @@ struct mjz_assert_t {
     }
     if (mjz_assertv_e < debug && !MJZ_IN_DEBUG_MODE) {
       if (can_assume) {
-        MJZ_JUST_ASSUME_(value());
-        ;
+       // warning: assumption is ignored because it contains (potential) side-effects [-Wassume]
+       // MJZ_JUST_ASSUME_(value());
+       std::ignore=0 ;
       }
       return *this;
     }

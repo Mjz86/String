@@ -805,7 +805,7 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
     return false;
   }
   #else 
-  failure_ft check{};
+MJZ_UNUSED  failure_ft check{};
 #endif
   return vformat_to(iter, value(), std::forward<Ts>(args)...);
 }
