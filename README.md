@@ -489,10 +489,10 @@ Also, sorry if the markdown is not professional; I don't have much experience
 with it.
 
 This paper is located at:
-[https://github.com/Mjz86/String_description/blob/main/README.md](https://github.com/Mjz86/String_description/blob/main/README.md)
+[https://github.com/Mjz86/String/blob/main/README.md](https://github.com/Mjz86/String/blob/main/README.md)
 
 You may give feedback in:
-[https://github.com/Mjz86/String_description/issues](https://github.com/Mjz86/String_description/issues)
+[https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
 **References and Inspirations:**
 
