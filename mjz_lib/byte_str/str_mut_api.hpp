@@ -240,33 +240,42 @@ MJZ_CX_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data(
-    const basic_str_t &str, bool no_allocate) noexcept {
+    const basic_str_t &str, bool no_allocate, uintlen_t offset,
+    uintlen_t count) noexcept {
   if (&str == this) return true;
   /* this is early check becacuse replace_data is probably not inline*/
   if (no_allocate && m.mut_data.sso_cap < str.length() &&
       (m.get_capacity() < str.length() || !m.is_owner())) {
     return false;
   }
-  return replace_data(
-             0, nops, str,
-             replace_flags{
-                 .can_choose_back = true,
-                 .can_choose_front = true,
-                 .no_encoding_check = true,
-                 .no_allocation = no_allocate,
-                 .can_change_to_ts = !no_allocate,
-                 .to_is_threaded_v = !str.m.template d_get_cntrl<bool>(
-                     my_details::as_not_threaded_bit),
-                 .change_alloc_v{replace_flags::change_e::always_force_change},
-                 .change_threaded_v =
-                     replace_flags::change_e::always_force_change}) &&
-         [&]() noexcept {
-           m.d_set_cntrl(my_details::encodings_bits,
-                         str.m.template d_get_cntrl<encodings_e>(
-                             my_details::encodings_bits));
+  std::ignore = str.make_right_then_give_has_null(offset, count);
+  if (!(replace_data_with_char(
+            0, nops, count, nullopt, str.get_alloc(),
+            replace_flags{
+                .can_choose_back = true,
+                .can_choose_front = true,
+                .no_encoding_check = true,
+                .no_allocation = no_allocate,
+                .can_change_to_ts = !no_allocate,
+                .to_is_threaded_v = !str.m.template d_get_cntrl<bool>(
+                    my_details::as_not_threaded_bit),
+                .force_ownership = true,
+                .change_alloc_v{replace_flags::change_e::always_force_change},
+                .change_threaded_v =
+                    replace_flags::change_e::always_force_change}) &&
+        [&]() noexcept {
+          m.d_set_cntrl(my_details::encodings_bits,
+                        str.m.template d_get_cntrl<encodings_e>(
+                            my_details::encodings_bits));
 
-           return true;
-         }();
+          return true;
+        }())) {
+    return false;
+  }
+  if (m.length) {
+    memmove(m.mut_begin(), str.data() + offset, count);
+  }
+  return true;
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t
@@ -295,11 +304,12 @@ basic_str_t<version_v, has_alloc_v_>::total_reset(bool keep_flags) noexcept {
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::share_init(
-    const basic_str_t &str, bool no_allocate) noexcept {
+    const basic_str_t &str, bool no_allocate, uintlen_t offset,
+    uintlen_t count) noexcept {
   if (!str.m.template d_get_cntrl<bool>(my_details::is_sharable) ||
       str.m.template d_get_cntrl<bool>(my_details::is_ownerized) ||
       m.template d_get_cntrl<bool>(my_details::is_ownerized)) {
-    return copy_assign_data(str, no_allocate);
+    return copy_assign_data(str, no_allocate, offset, count);
   }
   if (!total_reset(true)) return false;
   if (str.m.non_sso_buffer_location_ptr()) {
@@ -311,7 +321,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::share_init(
   m.begin = str.m.begin;
   m.length = str.m.length;
   m.mut_data.non_sso = str.m.mut_data.non_sso;
-  return true;
+  return as_substring(offset, count);
 }
 
 template <version_t version_v, bool has_alloc_v_>
@@ -339,8 +349,10 @@ basic_str_t<version_v, has_alloc_v_>::move_init(basic_str_t &&str) noexcept {
 
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign(
-    const basic_str_t &obj, bool no_allocate) noexcept {
-  return copy_assign_data(obj, true) || share_init(obj, no_allocate);
+    const basic_str_t &obj, bool no_allocate, uintlen_t offset,
+    uintlen_t count) noexcept {
+  return copy_assign_data(obj, true, offset, count) ||
+         share_init(obj, no_allocate, offset, count);
 }
 
 template <version_t version_v, bool has_alloc_v_>

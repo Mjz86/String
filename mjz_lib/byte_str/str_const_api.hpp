@@ -34,9 +34,10 @@ MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>
 basic_str_t<version_v, has_alloc_v_>::make_substring(
     uintlen_t byte_offset, uintlen_t byte_count,
     bool try_to_add_null) const noexcept {
-  basic_str_t<version_v, has_alloc_v_> ret{*this};
-  asserts(asserts.assume_rn,
-          ret.as_substring(byte_offset, byte_count, try_to_add_null));
+  basic_str_t<version_v, has_alloc_v_> ret{};
+  std::ignore =
+      ret.copy_assign(*this, false, byte_offset, byte_count)&&( !try_to_add_null ||
+     ret.has_null() || ret.m.add_null(true));
   return ret;
 }
 
