@@ -235,17 +235,17 @@ This paper has presented a custom rope implementation designed to address the ch
 
 While the implementation is still under development and not yet open source, I would appreciate your feedback. Also, sorry if the markdown is hard to read. This paper is located at:
 
-[https://github.com/Mjz86/String\_description/blob/main/rope\_paper.md](https://github.com/Mjz86/String_description/blob/main/rope_paper.md)
+[https://github.com/Mjz86/String/blob/main/rope\_paper.md](https://github.com/Mjz86/String/blob/main/rope_paper.md)
 
 You may give feedback in:
 
-[https://github.com/Mjz86/String\_description/issues](https://github.com/Mjz86/String_description/issues)
+[https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
 ## References and Inspirations:
 
 My continuous string:
 
-[https://github.com/Mjz86/String\_description/blob/main/README.md](https://github.com/Mjz86/String_description/blob/main/README.md)
+[https://github.com/Mjz86/String/blob/main/README.md](https://github.com/Mjz86/String/blob/main/README.md)
 
 Learn about (a,b) trees and b trees :
 
