@@ -183,9 +183,12 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     return mut_data.sso_raw_buffer_and_cntrl;
   }
   MJZ_CX_FN char* sso_buffer_location_ptr() noexcept {
-    return raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_;
+    return std::launder(raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_);
   }
   MJZ_CX_FN const char* sso_buffer_location_ptr() const noexcept {
+    return std::launder(raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_);
+  }
+  MJZ_CX_FN const char* dead_sso_buffer_location_ptr() const noexcept {
     return raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_;
   }
   MJZ_CX_FN const char* sso_cntrl_ptr() const noexcept {
@@ -251,7 +254,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
                                                mjz::get_begin_bit_index(x));
   }
   MJZ_CX_FN bool is_sso() const noexcept {
-    bool B = begin == sso_buffer_location_ptr();
+    bool B = begin == dead_sso_buffer_location_ptr();
     MJZ_IFN_CONSTEVAL {
       uint8_t cntrl{*reinterpret_cast<const uint8_t*>(sso_cntrl_ptr())};
       asserts(asserts.assume_rn, !(B && (cntrl & my_details::is_sharable)));
@@ -298,6 +301,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   MJZ_CX_FN void construct_sso_from_invalid(bool keep_flags) noexcept {
     char cntrl_old = char(get_cntrl());
     MJZ_IF_CONSTEVAL {
+      mut_data.sso_raw_buffer_and_cntrl[0] = 0;
       memset(raw_sso_buffer_location_ptr(),
              sizeof(mut_data.sso_raw_buffer_and_cntrl), '\0');
     }
@@ -322,7 +326,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
                                                  bool keep_flags) noexcept {
     construct_sso_from_invalid(keep_flags);
     if (mut_data.sso_cap < length_) return false;
-    memmove(sso_buffer_location_ptr(), begin_, length_);
+    memmove(std::launder(sso_buffer_location_ptr()), begin_, length_);
     length = length_;
     if (length_ < mut_data.sso_cap) {
       sso_buffer_location_ptr()[length_] = '\0';
@@ -472,6 +476,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   }
   MJZ_CX_FN void fast_uninitilized_constructor_to_empty_sso() noexcept {
     MJZ_IF_CONSTEVAL {
+      mut_data.sso_raw_buffer_and_cntrl[0] = 0;
       memset(raw_sso_buffer_location_ptr(),
              sizeof(mut_data.sso_raw_buffer_and_cntrl), '\0');
     }

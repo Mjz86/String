@@ -336,6 +336,7 @@ basic_str_t<version_v, has_alloc_v_>::move_init(basic_str_t &&str) noexcept {
   m.length = str.m.length;
   if (is_sso) {
     m.begin = m.sso_buffer_location_ptr();
+    m.mut_data.sso_raw_buffer_and_cntrl[0] = 0;
     memcpy(m.mut_data.sso_raw_buffer_and_cntrl,
            str.m.mut_data.sso_raw_buffer_and_cntrl,
            sizeof(m.mut_data.sso_raw_buffer_and_cntrl));
