@@ -11,7 +11,7 @@ struct wrapped_props_t {
   bool is_ownerized{};
   MJZ_CX_FN uintlen_t cap() const noexcept {
     if (sso_min_cap % sizeof(uintlen_t)) {
-      return (sso_min_cap | (1 - sizeof(uintlen_t))) + 1;
+      return (sso_min_cap | ( sizeof(uintlen_t)-1)) + 1;
     }
     return sso_min_cap;
   }
