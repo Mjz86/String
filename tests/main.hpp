@@ -1,6 +1,6 @@
 ﻿#define MJZ_WITH_iostream true
-// i forgot that !MJZ_IN_DEBUG_MODE disables MJZ_LOG_NEW_ALLOCATIONS_
-#define MJZ_IN_DEBUG_MODE true
+// i forgot that !MJZ_TEST_MODE_ disables MJZ_LOG_NEW_ALLOCATIONS_
+#define MJZ_TEST_MODE_ true
 #define MJZ_LOG_NEW_ALLOCATIONS_ true
 #define MJZ_aggregate_tuple_workaround false
 #include "../mjz_lib/allocs/bump_alloc.hpp"
