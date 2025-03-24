@@ -492,6 +492,8 @@ You may give feedback in:
 [https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
 **References and Inspirations:**
+* legacy cow vs sso in the standard ( old video):
+   [https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF](https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF)
 
 * All Rust string types explained :
     [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
