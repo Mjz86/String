@@ -480,7 +480,7 @@ while still benefiting from most of its upsides.
 
 
 **Note:**
-
+ * because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
 
 Also, sorry if the markdown is not professional; I don't have much experience
 with it.
