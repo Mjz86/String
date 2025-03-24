@@ -9,7 +9,7 @@
 namespace mjz {
 template <typename T>
 struct optional_ref_t {
-  MJZ_CONSTANT(bool)as_noexcept = true;
+  MJZ_CONSTANT(bool) as_noexcept = true;
   MJZ_CX_FN void throw_if_exceptions() const noexcept(as_noexcept) {
     if (!ptr) {
       if constexpr (!as_noexcept) {
@@ -50,8 +50,7 @@ struct optional_ref_t {
   single_object_pointer_t<T> get() const noexcept { return ptr; }
 
   template <typename U>
-  MJZ_CX_ND_FN decltype(auto) operator->*(U && arg) const
-      noexcept(as_noexcept) {
+  MJZ_CX_ND_FN decltype(auto) operator->*(U&& arg) const noexcept(as_noexcept) {
     throw_if_exceptions();
     asserts(!!ptr);
     return ptr->*std::forward<U>(arg);
@@ -71,14 +70,14 @@ struct optional_ref_t {
     reset();
     return *this;
   }
-  MJZ_CX_FN bool operator==(const optional_ref_t& opt)const noexcept {
-    return ptr == opt.ptr; 
+  MJZ_CX_FN bool operator==(const optional_ref_t& opt) const noexcept {
+    return ptr == opt.ptr;
   }
   MJZ_CX_FN optional_ref_t& operator=(const optional_ref_t& opt) noexcept {
     ptr = opt.ptr;
     return *this;
   }
-  MJZ_CX_FN optional_ref_t& operator=(  optional_ref_t&& opt) noexcept {
+  MJZ_CX_FN optional_ref_t& operator=(optional_ref_t&& opt) noexcept {
     ptr = std::exchange(opt.ptr, {});
     return *this;
   }
@@ -283,8 +282,6 @@ MJZ_DISABLE_WANINGS_END_;
 template <class... lambdas_t>
 multilambda_t(lambdas_t&&...) -> multilambda_t<lambdas_t&&...>;
 
-
-
 class success_ret_arg_t {
   template <class>
   friend class mjz_private_accessed_t;
@@ -323,10 +320,10 @@ struct typeless_function_t {
   MJZ_CX_FN void run(auto&&...) noexcept;
 };
 template <typename ret_t, typename... args_t>
-struct typeless_function_t<ret_t(args_t ...)noexcept> {
+struct typeless_function_t<ret_t(args_t...) noexcept> {
   void_struct_t* obj;
-  ret_t (*fn)(void_struct_t&, args_t ...) noexcept;
-  MJZ_CX_FN ret_t run(args_t ... args) noexcept {
+  ret_t (*fn)(void_struct_t&, args_t...) noexcept;
+  MJZ_CX_FN ret_t run(args_t... args) noexcept {
     return fn(*obj, std::forward<args_t>(args)...);
   }
 };
@@ -335,7 +332,7 @@ template <typename, typename T>
 struct function_holder_t {
   MJZ_CX_FN void operator+() noexcept;
 };
-  template <typename T, typename ret_t, typename... args_t>
+template <typename T, typename ret_t, typename... args_t>
   requires callable_c<T, ret_t(args_t...) noexcept>
 struct function_holder_t<ret_t(args_t...) noexcept, T> : void_struct_t {
   T lambda;
@@ -350,15 +347,11 @@ struct function_holder_t<ret_t(args_t...) noexcept, T> : void_struct_t {
   }
 };
 
- template <typename fn_t>
+template <typename fn_t>
 MJZ_CX_FN auto make(callable_c<fn_t> auto&& lambda) noexcept {
   return function_holder_t<fn_t, decltype(lambda)>{
-       std::forward < decltype(lambda)>(lambda)};
- }
-
-
-
-
+      std::forward<decltype(lambda)>(lambda)};
+}
 
 MJZ_DISABLE_WANINGS_END_;
 };  // namespace no_type_ns

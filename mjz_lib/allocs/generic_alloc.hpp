@@ -1,5 +1,6 @@
+#include "../threads/mutex_ref.hpp"
 #include "alloc_ref.hpp"
-#include "../threads/mutex_ref.hpp" 
+
 #ifndef MJZ_ALLOCS_generic_alloc_FILE_HPP_
 #define MJZ_ALLOCS_generic_alloc_FILE_HPP_
 
@@ -336,7 +337,6 @@ MJZ_CX_FN auto lock_gaurd_maker(bool is_threaded, char* byte_mutex_ptr,
 template <version_t version_v>
 MJZ_CONSTANT(generic_alloc_maker_t<version_v>)
 generic_alloc_maker{totally_empty_type};
-};  // namespace allocs_ns
- 
+};  // namespace mjz::allocs_ns
 
 #endif  // MJZ_ALLOCS_generic_alloc_FILE_HPP_

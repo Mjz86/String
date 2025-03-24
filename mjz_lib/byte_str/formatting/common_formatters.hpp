@@ -13,9 +13,9 @@ struct common_data_t {
   format_context_t<version_v>& ctx;
   view_t input{};
   sview_t err_view{""};
-  MJZ_CX_FN common_data_t(format_context_t<version_v>& base, view_t input_)
-   noexcept   : ctx{base}, input {
-    input_} {}
+  MJZ_CX_FN common_data_t(format_context_t<version_v>& base,
+                          view_t input_) noexcept
+      : ctx{base}, input{input_} {}
 };
 
 template <version_t version_v, typename T>

@@ -51,8 +51,7 @@ struct blk_state_t {
     uintlen_t index = search_begin_index;
     const char* bits_begin = bits_of_block_aliveness_metadata_ptr;
     auto align_the_block_at_index = [&]() noexcept {
-      for (; index < num_blocks && !is_a_good_alignment(index); index++)
-        ;
+      for (; index < num_blocks && !is_a_good_alignment(index); index++);
       ;
       return index < num_blocks;
     };
@@ -93,8 +92,7 @@ struct blk_state_t {
       index++;
       if (hasnt_block) {
         MJZ_IF_CONSTEVAL {
-          for (; index < num_blocks && !is_a_good_alignment(index); index++)
-            ;
+          for (; index < num_blocks && !is_a_good_alignment(index); index++);
           ;
         }
         else {
@@ -105,8 +103,7 @@ struct blk_state_t {
            * but this will probably just be an easy optimization considering
            * valid uses.
            */
-          for (; !is_a_good_alignment(index); index++)
-            ;
+          for (; !is_a_good_alignment(index); index++);
           ;
         }
 
@@ -336,4 +333,4 @@ struct blk_state_t {
   }
 };
 };  // namespace mjz::allocs_ns
-#endif//MJZ_ALLOCS_block_states_FILE_HPP_
+#endif  // MJZ_ALLOCS_block_states_FILE_HPP_

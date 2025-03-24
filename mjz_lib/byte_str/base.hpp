@@ -75,17 +75,16 @@ struct replace_flags_t {
     using e = ownerization_e;
     switch (ownerization_v) {
       case e::none:
-      return false;
+        return false;
       case e::always_ownerize_on:
-        return state_==true;
+        return state_ == true;
         break;
-      case e::always_ownerize_off: 
-      return state_==false;
-       break;
+      case e::always_ownerize_off:
+        return state_ == false;
+        break;
     }
     return false;
   }
-
 
   MJZ_CX_FN success_t better_front() noexcept {
     using e = buffer_placement_e;
@@ -212,9 +211,9 @@ struct replace_flags_t {
     if (exponential_rounded) {
       cap = uintlen_t(1) << log2_ceil_of_val_create(cap);
       cap -= sizeof(uintlen_t);
-    }else if (exponential_resize) { 
-        cap <<= 1; 
-        cap -= sizeof(uintlen_t);
+    } else if (exponential_resize) {
+      cap <<= 1;
+      cap -= sizeof(uintlen_t);
     }
     if (!exponential_resize) {
       cap = prefer_new_cap;
@@ -224,7 +223,7 @@ struct replace_flags_t {
     return std::max(cap, mincap);
   }
 };
- 
+
 template <version_t version_v>
 struct base_lazy_view_t;
 template <version_t version_v>
@@ -234,10 +233,10 @@ struct base_string_view_t : void_struct_t {
   uintlen_t is_static : 1;
   uintlen_t encodings : 3;
   uintlen_t len : (sizeof(uintlen_t) * 8 - 5);
-  MJZ_CX_FN static base_string_view_t make(const char* ptr_, uintlen_t len_,
-                                           encodings_e encodings_=encodings_e::ascii,
-                                           bool has_null_ = false,
-                                           bool is_static_ = false) noexcept {
+  MJZ_CX_FN static base_string_view_t make(
+      const char* ptr_, uintlen_t len_,
+      encodings_e encodings_ = encodings_e::ascii, bool has_null_ = false,
+      bool is_static_ = false) noexcept {
     base_string_view_t ret{};
     ret.ptr = ptr_;
     ret.has_null_v = has_null_;

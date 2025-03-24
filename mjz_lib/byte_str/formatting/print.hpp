@@ -8,7 +8,7 @@
 namespace mjz::bstr_ns::format_ns {
 template <version_t version_v>
 struct standard_output_it_t : file_output_it_t<version_v> {
-  MJZ_CONSTANT(uint64_t) timeout{uint16_t(-1)};
+  MJZ_CONSTANT(uint64_t) timeout { uint16_t(-1) };
   bool bad{};
   MJZ_NO_MV_NO_CPY(standard_output_it_t);
 #if MJZ_WITH_iostream

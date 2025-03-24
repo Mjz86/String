@@ -1,7 +1,8 @@
-#include "alloc_ref.hpp"
 #include "../threads/atomic_ref.hpp"
+#include "alloc_ref.hpp"
+
 #if MJZ_WITH_iostream
-#include <memory_resource> 
+#include <memory_resource>
 #else
 #define MJZ_ALLOCS_pmr_adaptor_FILE_HPP_
 #endif
@@ -51,8 +52,8 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   using alloc_info = alloc_info_t<version_v>;
   using ref_count = ref_count_t<version_v>;
   using alloc_speed = alloc_speed_t<version_v>;
-  using alloc_ref = alloc_base_ref_t<version_v>; 
-  using alloc_vtable = alloc_vtable_t<version_v>; 
+  using alloc_ref = alloc_base_ref_t<version_v>;
+  using alloc_vtable = alloc_vtable_t<version_v>;
   MJZ_NO_MV_NO_CPY(pmr_alloc_t);
 
   template <class>
@@ -63,19 +64,19 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   /*
    * the first bit is used to determine if its heap allocated or not.
    */
-  uintlen_t reference_count{}; 
+  uintlen_t reference_count{};
 
- public: 
+ public:
   MJZ_CX_FN pmr_alloc_t(std::pmr::polymorphic_allocator<char> pmr,
-                            bool fast_table = false) noexcept
+                        bool fast_table = false) noexcept
       : undelying{std::move(pmr)} {
-    this->vt_ptr = fast_table ? &vt_stack_obj : &vt_obj; 
+    this->vt_ptr = fast_table ? &vt_stack_obj : &vt_obj;
   }
   MJZ_CX_FN ~pmr_alloc_t() noexcept {
     asserts(asserts.condition_rn, 0 == reference_count,
             "the ref count must be 0 (deleted) , there is still an alive "
             "allocator reference . we must have been destructed indirectly "
-            "by now !?"); 
+            "by now !?");
   }
 
   template <class>
@@ -83,8 +84,8 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
 
  private:
   MJZ_CX_FN static bool inequals(const alloc_ref& other,
-                                 const alloc_base* This) noexcept { 
-      return As(other.get_ptr()).undelying != As(This).undelying; 
+                                 const alloc_base* This) noexcept {
+    return As(other.get_ptr()).undelying != As(This).undelying;
   }
 
   template <class>
@@ -101,11 +102,13 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     asserts(asserts.condition_rn, !!ptr);
     return static_cast<const pmr_alloc&>(*ptr);
   }
-  
-  MJZ_NCX_FN block_info obj_allocate(uintlen_t minsize, alloc_info ai) noexcept { 
-      block_info blk{};
-    MJZ_NOEXCEPT{
-        blk.ptr = reinterpret_cast<char*>(this->undelying.allocate_bytes(minsize, ai.get_alignof_z()));
+
+  MJZ_NCX_FN block_info obj_allocate(uintlen_t minsize,
+                                     alloc_info ai) noexcept {
+    block_info blk{};
+    MJZ_NOEXCEPT {
+      blk.ptr = reinterpret_cast<char*>(
+          this->undelying.allocate_bytes(minsize, ai.get_alignof_z()));
       blk.length = minsize;
     };
     return blk;
@@ -119,9 +122,8 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   }
 
  public:
-  MJZ_CX_FN static may_bool_t is_owner(const alloc_base*  ,
-                                       const block_info&  ,
-                                       alloc_info  ) noexcept { 
+  MJZ_CX_FN static may_bool_t is_owner(const alloc_base*, const block_info&,
+                                       alloc_info) noexcept {
     return may_bool_t::idk;
   }
 
@@ -144,7 +146,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   }
   MJZ_CX_FN static success_t add_ref(alloc_base* This,
                                      intlen_t delta) noexcept {
-    threads_ns:: atomic_ref_t<uintlen_t> rc{As(This).reference_count};
+    threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
     delta *= 2;
     asserts(asserts.condition_rn, delta > 0 || uintlen_t(-delta) <= rc,
             "the ref count cant be negetive!");
@@ -159,13 +161,13 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
             .load() /
         2);
   }
- 
+
   template <class>
   friend class mjz_private_accessed_t;
 
  private:
-  using blk_t_ = typename alloc_base_ref_t<version_v>::template block_info_ot<
-      pmr_alloc>;
+  using blk_t_ =
+      typename alloc_base_ref_t<version_v>::template block_info_ot<pmr_alloc>;
 
  public:
   MJZ_CX_FN static success_t destroy_obj(alloc_base* This) noexcept {
@@ -186,17 +188,17 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   template <class>
   friend class mjz_private_accessed_t;
 
- private: 
+ private:
   MJZ_CX_FN static alloc_ref static_create_obj(
-      std::pmr::polymorphic_allocator<char> pmr) noexcept { 
-      pmr_alloc* ptr{}; 
-      MJZ_NOEXCEPT { ptr = pmr.template allocate_object<pmr_alloc>(1); };
+      std::pmr::polymorphic_allocator<char> pmr) noexcept {
+    pmr_alloc* ptr{};
+    MJZ_NOEXCEPT { ptr = pmr.template allocate_object<pmr_alloc>(1); };
     if (!ptr) return {};
-    std::construct_at(ptr,pmr);
+    std::construct_at(ptr, pmr);
     ptr->reference_count = 0b11;
 
     return alloc_ref{static_cast<alloc_base*>(ptr), false};
-  } 
+  }
   MJZ_CX_FN static pmr_alloc static_create_stack_obj(
       std::pmr::polymorphic_allocator<char> pmr, bool fast_table) noexcept {
     return pmr_alloc{pmr, fast_table};
@@ -213,38 +215,32 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   template <class>
   friend class mjz_private_accessed_t;
 
- private: 
-
+ private:
   MJZ_CONSTANT(alloc_vtable)
-  vt_obj{&is_owner,    &is_equal,
-         &allocate,    &deallocate,
-         &add_ref,     &num_ref,
-         &destroy_obj,   nullptr};
+  vt_obj{&is_owner, &is_equal, &allocate,    &deallocate,
+         &add_ref,  &num_ref,  &destroy_obj, nullptr};
   MJZ_CONSTANT(alloc_vtable)
-  vt_stack_obj{&is_owner,&is_equal,
-               &allocate, &deallocate,
-               nullptr,   nullptr,
-               nullptr,    nullptr};
+  vt_stack_obj{&is_owner, &is_equal, &allocate, &deallocate,
+               nullptr,   nullptr,   nullptr,   nullptr};
 };
 
 template <version_t version_v>
 struct pmr_alloc_maker_t {
   MJZ_CE_FN
   pmr_alloc_maker_t(totally_empty_type_t) noexcept {}
-  using A_t=std::pmr::polymorphic_allocator<char>;
+  using A_t = std::pmr::polymorphic_allocator<char>;
   MJZ_NCX_FN alloc_base_ref_t<version_v> operator()(
       A_t pmr = A_t{}) const noexcept {
     return pmr_alloc_t<version_v>::static_create_obj(pmr);
-  } 
+  }
   MJZ_NCX_FN auto on_stack(A_t pmr = A_t{},
-                          bool fast_table = false) const noexcept {
-    return pmr_alloc_t<version_v>::static_create_stack_obj(pmr,
-                                fast_table);
+                           bool fast_table = false) const noexcept {
+    return pmr_alloc_t<version_v>::static_create_stack_obj(pmr, fast_table);
   };
 };
 
 template <version_t version_v>
 MJZ_CONSTANT(pmr_alloc_maker_t<version_v>)
 pmr_alloc_maker{totally_empty_type};
-};      // namespace mjz::allocs_ns
+};  // namespace mjz::allocs_ns
 #endif  // MJZ_ALLOCS_pmr_adaptor_FILE_HPP_

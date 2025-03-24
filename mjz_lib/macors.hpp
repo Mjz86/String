@@ -14,17 +14,15 @@
 /*
  * shows if we can assume an expression in an assert
  *  0 means no assumbtion
- */ 
+ */
 
- 
 #ifndef MJZ_SPIN_WITH_WAIT_
 #define MJZ_SPIN_WITH_WAIT_ false
 #endif  // !MJZ_SPIN_WITH_WAIT_
- 
 
-#ifndef MJZ_assert_TRUST_LEVEL_ 
+#ifndef MJZ_assert_TRUST_LEVEL_
 #define MJZ_assert_TRUST_LEVEL_ 4
-#endif  // !MJZ_assert_TRUST_LEVEL_ 
+#endif  // !MJZ_assert_TRUST_LEVEL_
 /*
  * shows if we can assume liklyhood of an operation.
  *  0 means no assumbtion */
@@ -33,20 +31,20 @@
 #endif  // !MJZ_LIKELYHOD_LEVEL_
 /*
  * shows the ABI version of the library
- */ 
+ */
 #ifndef MJZ_LIB_NEWEST_VERSION_
 #define MJZ_LIB_NEWEST_VERSION_ 0
 #endif  // !MJZ_LIB_NEWEST_VERSION_
 /*
  * use the msvc debug mode.
- */ 
+ */
 
 #ifndef MJZ_CONTROL_IN_DEBUG_MODE_
 #define MJZ_CONTROL_IN_DEBUG_MODE_ true
 #endif  // !MJZ_CONTROL_IN_DEBUG_MODE_
 /*
  * use the debug forcefully mode.
- */ 
+ */
 
 #ifndef MJZ_TEST_MODE_
 #define MJZ_TEST_MODE_ false
@@ -59,31 +57,30 @@
 #define MJZ_LOG_NEW_ALLOCATIONS_ false
 #endif  // !MJZ_LOG_NEW_ALLOCATIONS_
 /*
-* dosent work in gcc :( , we shoud wait till c++26 to get https://en.cppreference.com/w/cpp/language/structured_binding auto [...args] = E{};
-*/
+ * dosent work in gcc :( , we shoud wait till c++26 to get
+ * https://en.cppreference.com/w/cpp/language/structured_binding auto [...args]
+ * = E{};
+ */
 #ifndef MJZ_aggregate_tuple_workaround
 #define MJZ_aggregate_tuple_workaround false
 #endif  // !MJZ_aggregate_tuple_workaround
-
-
 
 #ifndef MJZ_KNOWN_L1_CACHE_LINE_SIZE
 #define MJZ_KNOWN_L1_CACHE_LINE_SIZE 64
 #endif  // !MJZ_KNOWN_L1_CACHE_LINE_SIZE
 
-
 #ifndef MJZ_LOG_PRINT_FAILURE_
 #define MJZ_LOG_PRINT_FAILURE_ true
 #endif  // !MJZ_LOG_PRINT_FAILURE_
-
 
 #ifndef MJZ_CATCHES_EXCEPTIONS_
 #define MJZ_CATCHES_EXCEPTIONS_ true
 #endif  // !MJZ_CATCHES_EXCEPTIONS_
 
-#include <utility>
 #include <memory>
 #include <type_traits>
+#include <utility>
+
 #ifndef _CONTAINER_DEBUG_LEVEL
 #define _CONTAINER_DEBUG_LEVEL 0
 #endif  // !_CONTAINER_DEBUG_LEVEL
@@ -92,18 +89,13 @@
   (MJZ_TEST_MODE_ ||      \
    (MJZ_CONTROL_IN_DEBUG_MODE_ && (_CONTAINER_DEBUG_LEVEL > 0)))
 
-
 #ifndef MJZ_WITH_iostream
 #define MJZ_WITH_iostream MJZ_IN_DEBUG_MODE
 #endif  // !MJZ_WITH_iostream
 
-
 #ifndef MJZ_uintlen_t_as_64_bit
 #define MJZ_uintlen_t_as_64_bit false
 #endif  // !MJZ_TRUST_LEVEL_
-
-
- 
 
 /*
  * gives curunt line number
@@ -150,8 +142,7 @@
   MJZ_AS_CPP_ATTREBUTE(deprecated(R_reason_R_))
 #define MJZ_CONSTEXPR constexpr
 // for a constexpr function atribute
-#define MJZ_USED_CXIL_FN \
-  MJZ_JUST_NOTHING() MJZ_CONSTEXPR MJZ_JUST_NOTHING()  
+#define MJZ_USED_CXIL_FN MJZ_JUST_NOTHING() MJZ_CONSTEXPR MJZ_JUST_NOTHING()
 #define MJZ_USED_NCXIL_FN MJZ_JUST_NOTHING() inline MJZ_JUST_NOTHING()
 // for a typical constexpr function atribute
 #define MJZ_CX_FN MJZ_MAYBE_UNUSED MJZ_USED_CXIL_FN
@@ -295,8 +286,7 @@
 #define MJZ_JUST_ASSUME_(X_expression_) \
   MJZ_AS_CPP_ATTREBUTE(assume(X_expression_))
 #else
-#define MJZ_JUST_ASSUME_(X_expression_) \
-  []()noexcept {}()
+#define MJZ_JUST_ASSUME_(X_expression_) []() noexcept {}()
 #endif
 #define MJZ_no_unique_address MJZ_AS_CPP_ATTREBUTE(no_unique_address)
 #define MJZ_GCC_ONLY_PRAGMA_(X) MJZ_MACRO_PRAGMA_(X)
@@ -419,11 +409,11 @@ active union member... IF the first statement is true
   MJZ_CX_FN CLASS_NAME& operator=(CLASS_NAME&&) noexcept = default; \
   MJZ_CX_FN CLASS_NAME& operator=(const CLASS_NAME&) noexcept = default;
 
-#define MJZ_UNSAFE_UNION(CLASS_NAME) \
-  MJZ_CX_FN CLASS_NAME(const CLASS_NAME&) noexcept {}                    \
+#define MJZ_UNSAFE_UNION(CLASS_NAME)                            \
+  MJZ_CX_FN CLASS_NAME(const CLASS_NAME&) noexcept {}           \
   MJZ_CX_FN CLASS_NAME& operator=(const CLASS_NAME&) noexcept { \
     return *this;                                               \
-  } \
+  }                                                             \
   MJZ_CX_FN CLASS_NAME() noexcept {}                            \
   MJZ_CX_FN ~CLASS_NAME() noexcept {}
 
@@ -482,9 +472,8 @@ active union member... IF the first statement is true
 
 #define MJZ_DISABLE_ALL_WANINGS_START_    \
   MJZ_MSVC_ONLY_PRAGMA_(warning(push, 0)) \
-  MJZ_MSVC_ONLY_PRAGMA_(                  \
-      warning(disable                     \
-              : MJZ_DISABLED_MSVC_WANINGS_ 4702 6385 26115 26110 6236 26495 6287 28020 26816))
+  MJZ_MSVC_ONLY_PRAGMA_(warning(          \
+      disable : MJZ_DISABLED_MSVC_WANINGS_ 4702 6385 26115 26110 6236 26495 6287 28020 26816))
 
 #define MJZ_DISABLE_ALL_WANINGS_END_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
 
@@ -544,25 +533,22 @@ active union member... IF the first statement is true
 namespace MJZ_NORETURN_SPECIAL_namespace_ {
 struct mjz_unreachable_t {
   MJZ_NORETURN MJZ_CX_FN void operator()(bool B_false) const noexcept {
-    MJZ_IF_CONSTEVAL { std::ignore=reinterpret_cast<const uint8_t&>("UB!!!!!! VVVVVVV"[0]); }
+    MJZ_IF_CONSTEVAL {
+      std::ignore = reinterpret_cast<const uint8_t&>("UB!!!!!! VVVVVVV"[0]);
+    }
     else {
       MJZ_JUST_ASSUME_(B_false);
 #ifdef __cpp_lib_unreachable
       ::std::unreachable();
 #else
       MJZ_JUST_ASSUME_(false);
-      while (!B_false)
-        ;
-      while (B_false)
-        ;
-      for (;;)
-        ;
+      while (!B_false);
+      while (B_false);
+      for (;;);
       ;
 #endif
     }
-    for (;;)
-      ;
-
+    for (;;);
   }
 };
 
@@ -587,7 +573,7 @@ MJZ_DISABLE_WANINGS_END_;
 
 #define MJZ_NOT_IMPLEMENTATED_HEAPER_()                                    \
   do {                                                                     \
-    MJZ_RASSUME_(                                                           \
+    MJZ_RASSUME_(                                                          \
         false,                                                             \
         "this cntrol path IS UNDEFINED  and will be optimized out and :( " \
         "\n runing this has UNDEFINED BEHAVIOUR .");                       \
@@ -713,9 +699,6 @@ MJZ_DISABLE_WANINGS_END_;
   MJZ_MSASSERT(EXP,                                                  \
                "[unexpected standard violation] bad compiler macro " \
                "definition ; " AND_MASSAGE)
-
-
-
 
 #ifndef MJZ_VERBOSE_FORMAT_ERROR
 #define MJZ_VERBOSE_FORMAT_ERROR true

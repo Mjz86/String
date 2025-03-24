@@ -165,7 +165,7 @@ template <std::integral T>
   requires(sizeof(T) <= 16)
 MJZ_CX_FN static uint8_t get_end_bit_index(T mask) noexcept {
   int16_t index{};
-  while (mask) {   
+  while (mask) {
     mask >>= 1;
     index++;
   }

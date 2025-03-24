@@ -33,7 +33,7 @@ template <char... Cs>
 MJZ_CX_FN basic_str_t<version_V_var_, true> operator""_as_astr() noexcept
   requires(!std::is_empty_v<basic_str_t<version_V_var_, true>>)
 {
-  constexpr auto str0 = str_litteral_t{operator""_cs < Cs... > ()};
+  constexpr auto str0 = str_litteral_t{operator""_cs < Cs...>()};
   basic_str_t<version_V_var_, true> ret{operator_view<str0, version_V_var_>()};
   return ret;
 }
@@ -54,7 +54,7 @@ template <char... Cs>
 MJZ_CX_FN basic_str_t<version_V_var_, false> operator""_as_astr() noexcept
   requires(!std::is_empty_v<basic_str_t<version_V_var_, false>>)
 {
-  constexpr auto str0 = str_litteral_t{operator""_cs < Cs... > ()};
+  constexpr auto str0 = str_litteral_t{operator""_cs < Cs...>()};
   basic_str_t<version_V_var_, false> ret{operator_view<str0, version_V_var_>()};
   return ret;
 }

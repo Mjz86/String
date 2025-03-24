@@ -1,6 +1,7 @@
 
-#include "basic_formatters.hpp"
 #include "../../allocs/pmr_adaptor.hpp"
+#include "basic_formatters.hpp"
+
 #if MJZ_WITH_iostream
 #include <memory_resource>
 #include <sstream>
@@ -16,7 +17,7 @@ template <version_t version_v, typename T>
 concept is_stream_formatter_c =
     requires(std::ostream& buffer, const std::remove_reference_t<T>& arg) {
       buffer << arg;
-    }; 
+    };
 template <version_t version_v, class T_>
   requires is_stream_formatter_c<version_v, T_>
 struct default_formatter_t<version_v, T_, 100> {
@@ -42,7 +43,8 @@ struct default_formatter_t<version_v, T_, 100> {
       char buff[1024]{};
       std::pmr::monotonic_buffer_resource mbr{buff, sizeof(buff), &alloc};
       std::pmr::polymorphic_allocator<char> pmr{&mbr};
-      std::basic_stringstream<char, std::char_traits<char>,std::pmr::polymorphic_allocator<char>>
+      std::basic_stringstream<char, std::char_traits<char>,
+                              std::pmr::polymorphic_allocator<char>>
           buffer{std::pmr::string{pmr}, std::ios_base::in};
 
       buffer.imbue(std::locale::classic());
@@ -51,13 +53,14 @@ struct default_formatter_t<version_v, T_, 100> {
       std::string_view view = buffer.view();
 
       view_t v = view_t::make(view.data(), view.size(), encodings_e::ascii);
-      good&=!! ctx.advance_to(
+      good &= !!ctx.advance_to(
           formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
     };
     if (good) return ctx.out();
 
     ctx.as_error(
-        "[Error]default_formatter_t<is_stream_formatter_c>: an error was thrown "
+        "[Error]default_formatter_t<is_stream_formatter_c>: an error was "
+        "thrown "
         "during output");
     return nullptr;
   };

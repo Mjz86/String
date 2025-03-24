@@ -15,6 +15,6 @@ concept mjz_jthread_can_create_c_ = requires(lambda_t lambda) {
              { std::decay_t<args_t>(std::forward<args_t>(args)) } noexcept;
            }) && ...);
 };
-MJZ_CONSTANT(uint64_t) defult_timeout = uint64_t(uint8_t(-1)); 
+MJZ_CONSTANT(uint64_t) defult_timeout = uint64_t(uint8_t(-1));
 }  // namespace mjz::threads_ns
-#endif //MJZ_THREADS_BASE_LIB_HPP_FILE_
+#endif  // MJZ_THREADS_BASE_LIB_HPP_FILE_

@@ -2,7 +2,7 @@
 #ifndef MJZ_ASSERTS_LIB_HPP_FILE_
 #define MJZ_ASSERTS_LIB_HPP_FILE_
 
-namespace mjz { 
+namespace mjz {
 struct mjz_assert_t {
   mjz_assert_t(auto) = delete;
   MJZ_CX_FN mjz_assert_t(totally_empty_type_t) noexcept {}
@@ -39,10 +39,10 @@ struct mjz_assert_t {
   MJZ_CX_FN void panic(
       MJZ_UNUSED const char* const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
-    MJZ_IFN_CONSTEVAL { 
-        #if MJZ_WITH_iostream
-        std::abort(); 
-        #endif
+    MJZ_IFN_CONSTEVAL {
+#if MJZ_WITH_iostream
+      std::abort();
+#endif
     }
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
@@ -89,7 +89,8 @@ struct mjz_assert_t {
   }
 
   MJZ_CX_FN const mjz_assert_t& operator()(
-      mjz_asserts_e mjz_assertv_e, callable_c<success_t(void)noexcept> auto&& value,
+      mjz_asserts_e mjz_assertv_e,
+      callable_c<success_t(void) noexcept> auto&& value,
       const char* str = "assert", bool consteval_only = false,
       bool can_assume = true, bool always_call = false) const noexcept {
     if (always_call) {
@@ -100,9 +101,9 @@ struct mjz_assert_t {
     }
     if (mjz_assertv_e < debug && !MJZ_IN_DEBUG_MODE) {
       if (can_assume) {
-       // warning: assumption is ignored because it contains (potential) side-effects [-Wassume]
-       // MJZ_JUST_ASSUME_(value());
-       std::ignore=0 ;
+        // warning: assumption is ignored because it contains (potential)
+        // side-effects [-Wassume] MJZ_JUST_ASSUME_(value());
+        std::ignore = 0;
       }
       return *this;
     }
@@ -134,7 +135,7 @@ struct mjz_assert_t {
     return (*this)(debug, false, str, consteval_only, false);
   }
   MJZ_CX_FN const mjz_assert_t& force_call(
-      callable_c<success_t(void)noexcept> auto&& value,
+      callable_c<success_t(void) noexcept> auto&& value,
       mjz_asserts_e mjz_assertv_e = debug, const char* str = "assert",
       bool consteval_only = false, bool can_assume = true) const noexcept {
     return (*this)(mjz_assertv_e, value(), str, consteval_only, can_assume);
@@ -147,8 +148,8 @@ struct mjz_assert_t {
   MJZ_DEPRECATED_R("confusion")
   MJZ_CX_FN void operator&() const noexcept = delete;
 };
-static_assert(std::is_empty_v<mjz_assert_t>); 
+static_assert(std::is_empty_v<mjz_assert_t>);
 MJZ_CONSTANT(mjz_assert_t) asserts{totally_empty_type};
 }  // namespace mjz
 
-#endif//MJZ_ASSERTS_LIB_HPP_FILE_
+#endif  // MJZ_ASSERTS_LIB_HPP_FILE_

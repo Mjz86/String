@@ -9,7 +9,7 @@ template <typename T>
   requires std::is_trivially_copyable_v<T>
 class cx_atomic_ref_t {
   T& ref;
-  MJZ_CONSTANT(bool) mutable_v{!std::is_const_v<T>};
+  MJZ_CONSTANT(bool) mutable_v { !std::is_const_v<T> };
   /*  struct byte_T_t {
     alignas(alignof(T)) char a[sizeof(T)];
     MJZ_CX_ND_FN std::strong_ordering operator<=>(
@@ -41,11 +41,9 @@ class cx_atomic_ref_t {
   MJZ_CX_FN void wait(
       const T Expected,
       const std::memory_order = std::memory_order::relaxed) const noexcept {
-
     asserts(
         /*std::bit_cast<byte_T_t>(Expected) != std::bit_cast<byte_T_t>(ref)*/
-        Expected!=ref,
-            "i'm waiting forever at compile time ! :( ", true);
+        Expected != ref, "i'm waiting forever at compile time ! :( ", true);
     return;
   }
 
@@ -71,7 +69,8 @@ class cx_atomic_ref_t {
     requires(mutable_v)
   {
     if (/*std::bit_cast<byte_T_t>(Expected) !=
-        std::bit_cast<byte_T_t>(ref) */ Expected != ref) {
+        std::bit_cast<byte_T_t>(ref) */
+        Expected != ref) {
       Expected = ref;
       return false;
     }
@@ -306,5 +305,5 @@ class cx_atomic_ref_t {
 };
 template <typename T>
 cx_atomic_ref_t(T) -> cx_atomic_ref_t<T>;
-};      // namespace mjz::threads_ns
+};  // namespace mjz::threads_ns
 #endif  //  MJZ_THREADS_cx_atomic_ref_LIB_HPP_FILE_

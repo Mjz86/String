@@ -44,6 +44,7 @@ struct hash_bytes_t {
     for (uintlen_t i{}; i < len; i++) buf[i] = p[i];
     return std::bit_cast<uintlen_t>(buf);
   }
+
  public:
   uintlen_t val{};
 
@@ -126,9 +127,9 @@ struct hash_bytes_t {
 
   MJZ_CX_FN hash_bytes_t(const char* ptr, uintlen_t len) noexcept
       : val(hash_bytes(ptr, len)) {}
-  template<size_t N>
+  template <size_t N>
   MJZ_CE_FN hash_bytes_t(const char (&a)[N]) noexcept
-      : val(hash_bytes(a, N-1)) {}
+      : val(hash_bytes(a, N - 1)) {}
 
   MJZ_CX_FN explicit hash_bytes_t(uintlen_t hash) noexcept : val(hash) {}
   MJZ_CX_FN hash_bytes_t(nullptr_t = nullptr) noexcept {}

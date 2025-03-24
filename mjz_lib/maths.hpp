@@ -186,12 +186,10 @@ struct big_float_t {
   MJZ_CX_FN static std::optional<big_float_t> get_big_float_from(
       T val) noexcept {
     if constexpr (std::same_as<long double, T>) {
-      return  get_big_float_from_impl_<double>(
-          double(val));
+      return get_big_float_from_impl_<double>(double(val));
     } else {
-      return   get_big_float_from_impl_<T>(val);
+      return get_big_float_from_impl_<T>(val);
     }
-  
   }
   template <std::floating_point T>
   MJZ_CX_FN static std::optional<big_float_t> get_big_float_from_impl_(
@@ -559,15 +557,15 @@ struct big_float_t {
     return std::pair<int64_t, big_float_t>(ret.m_coeffient, *this - ret);
   }
 
-  MJZ_CX_FN std::pair<int64_t, big_float_t> to_log_and_coeffient(uint64_t exp_base) const noexcept {
+  MJZ_CX_FN std::pair<int64_t, big_float_t> to_log_and_coeffient(
+      uint64_t exp_base) const noexcept {
     auto me{*this};
     if (!me.m_coeffient) return {};
     bool is_neg{me.m_coeffient < 0};
     me.m_coeffient = is_neg ? -me.m_coeffient : me.m_coeffient;
     int64_t ceil_log{};
     big_float_t fractionic_val{};
-    int64_t ceil_log2 =
-        log2_ceil_of_val_create(uint64_t(me.m_coeffient)) +
+    int64_t ceil_log2 = log2_ceil_of_val_create(uint64_t(me.m_coeffient)) +
                         int64_t(me.m_exponent);
     ceil_log = ceil_log2 / log2_of_val_create(exp_base);
     uint64_t pow = uint64_t(ceil_log < 0 ? -ceil_log : ceil_log);
@@ -597,7 +595,7 @@ struct big_float_t {
       fractionic_val = fractionic_val * expo;
       ceil_log--;
     }
-    if (is_neg ) {
+    if (is_neg) {
       fractionic_val = -fractionic_val;
     }
     return {ceil_log, fractionic_val};
@@ -626,10 +624,10 @@ template <bool B = 0>
 struct power2_helper_t {
   using maxfloat_t = double;
 
-  MJZ_CONSTANT(maxfloat_t) two{2};
-  MJZ_CONSTANT(maxfloat_t) one{1};
-  MJZ_CONSTANT(maxfloat_t) zero{0};
-  MJZ_CONSTANT(maxfloat_t) eps{DBL_EPSILON};
+  MJZ_CONSTANT(maxfloat_t) two { 2 };
+  MJZ_CONSTANT(maxfloat_t) one { 1 };
+  MJZ_CONSTANT(maxfloat_t) zero { 0 };
+  MJZ_CONSTANT(maxfloat_t) eps { DBL_EPSILON };
   MJZ_CX_FN static maxfloat_t small_exp(maxfloat_t x,
                                         uint32_t recursion_index) noexcept {
     uint64_t i_factorial{1};
@@ -677,9 +675,9 @@ struct power2_helper_t {
            (get_log2(input, recursion_index - 1) / maxfloat_t(1ULL << sz));
   }
 
-  MJZ_CONSTANT(maxfloat_t) e{2.7182818284590452353602874713527};
-  MJZ_CONSTANT(maxfloat_t) log_e_2{0.69314718055994530941723212145818};
-  MJZ_CONSTANT(maxfloat_t) log_2_e{one / log_e_2};
+  MJZ_CONSTANT(maxfloat_t) e { 2.7182818284590452353602874713527 };
+  MJZ_CONSTANT(maxfloat_t) log_e_2 { 0.69314718055994530941723212145818 };
+  MJZ_CONSTANT(maxfloat_t) log_2_e { one / log_e_2 };
   MJZ_CX_FN static maxfloat_t get_pow2(
       maxfloat_t input,
       uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {

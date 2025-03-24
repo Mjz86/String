@@ -55,16 +55,15 @@ class str_heap_manager_t {
     }
   };
   MJZ_CX_FN void init_heap() noexcept {
-    asserts(asserts.assume_rn, !!*this );
+    asserts(asserts.assume_rn, !!*this);
     mjz::memset(m.heap_data_ptr, sizeof(layout_t), 0);
     temp_layout_t layout{m};
     layout.perform_ref([](auto& ref) noexcept { ref = 1; });
   }
   MJZ_CX_FN success_t deinit_heap_and_ask() noexcept {
-    asserts(asserts.assume_rn,  !!*this);
+    asserts(asserts.assume_rn, !!*this);
     return remove_shareholder_then_check_has_no_owner();
   }
- 
 
  public:
   MJZ_NO_CPY(str_heap_manager_t);
@@ -75,7 +74,7 @@ class str_heap_manager_t {
                              bool round_up = true) noexcept {
     if (!m.alloc_ref) return false;
     if (!!*this) {
-      if (m.reduce_rc_on_manager_destruction&&!free()) {
+      if (m.reduce_rc_on_manager_destruction && !free()) {
         return false;
       }
     }
@@ -112,7 +111,7 @@ class str_heap_manager_t {
     MJZ_RELEASE {
       m.heap_data_ptr = nullptr;
       m.heap_data_size = 0;
-      m.reduce_rc_on_manager_destruction = false; 
+      m.reduce_rc_on_manager_destruction = false;
     };
     if (!deinit_heap_and_ask()) {
       return true;
@@ -180,7 +179,7 @@ class str_heap_manager_t {
                                          alignof(layout_t)};
     if (!var) return false;
     if (!m.is_threaded) {
-      return var->reference_count < 2;    
+      return var->reference_count < 2;
     }
     refcr_t ref_count{var->reference_count};
     return (ref_count) < 2;

@@ -101,10 +101,9 @@ struct basic_format_specs_t {
  private:
   template <typename T>
   MJZ_CONSTANT(bool)
-  is_numeric = partial_is_one_of_c<T, signed char,
-  unsigned char, short, unsigned short, int,
-  unsigned int, long, unsigned long, long long,
-  unsigned long long>;
+  is_numeric = partial_is_one_of_c<
+      T, signed char, unsigned char, short, unsigned short, int, unsigned int,
+      long, unsigned long, long long, unsigned long long>;
   template <typename T>
   MJZ_CONSTANT(bool)
   is_numeric_or_ptr =
@@ -139,11 +138,10 @@ struct basic_format_specs_t {
 template <typename T, version_t version_v>
 concept uses_basic_spec_c =
     !std::is_volatile_v<T> &&
-    (partial_is_one_of_c<T,  bool, char, signed char,
-      unsigned char, short, unsigned short, int,
-      unsigned int, long, unsigned long, long long,
-      unsigned long long, float, double,
-      long double,nullptr_t> ||
+    (partial_is_one_of_c<T, bool, char, signed char, unsigned char, short,
+                         unsigned short, int, unsigned int, long, unsigned long,
+                         long long, unsigned long long, float, double,
+                         long double, nullptr_t> ||
      std::is_pointer_v<std::remove_cvref_t<T>>);
 
 template <version_t version_v, uses_basic_spec_c<version_v> T>
@@ -156,10 +154,9 @@ struct default_formatter_t<version_v, T, 20> {
       const void*,
       std::conditional_t<
           (sizeof(T) <= sizeof(uintptr_t) &&
-           partial_is_one_of_c<T, signed char,
-           unsigned char, short, unsigned short, int,
-           unsigned int, long, unsigned long, long long,
-           unsigned long long>),
+           partial_is_one_of_c<T, signed char, unsigned char, short,
+                               unsigned short, int, unsigned int, long,
+                               unsigned long, long long, unsigned long long>),
           std::conditional_t<std::is_signed_v<std::remove_cvref_t<T>>, intptr_t,
                              uintptr_t>,
           T>>;
@@ -220,5 +217,5 @@ struct default_formatter_t<version_v, T, 20> {
     return ctx.out();
   };
 };
-};      // namespace mjz::bstr_ns::format_ns
+};  // namespace mjz::bstr_ns::format_ns
 #endif  // MJZ_BYTE_FORMATTING_formatters_abi_HPP_FILE_

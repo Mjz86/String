@@ -75,8 +75,7 @@ struct bucket_alloc_info_t {
     MJZ_CX_FN auto lock_gaurd(bool is_threaded) const noexcept {
       auto p = m.blk_states.bits_of_block_aliveness_metadata_ptr;
       return lock_details_ns::lock_gaurd_maker<version_v>(
-          is_threaded, p ? p - 1 : nullptr,
-                                         has_lock);
+          is_threaded, p ? p - 1 : nullptr, has_lock);
     }
     MJZ_CX_ND_FN block_info just_allocate(uintlen_t size,
                                           size_t alloc_alignment,

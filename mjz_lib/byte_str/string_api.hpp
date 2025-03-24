@@ -12,8 +12,9 @@ struct basic_str_t : void_struct_t {
   template <class>
   friend class mjz_private_accessed_t;
 
-  template <version_t  , wrapped_props_t >
+  template <version_t, wrapped_props_t>
   friend struct wrapped_string_t;
+
  public:
   using self_t = basic_str_t<version_v, has_alloc_v_>;
 
@@ -81,6 +82,7 @@ struct basic_str_t : void_struct_t {
                                      bool no_allocate = false,
                                      uintlen_t offset = 0,
                                      uintlen_t count = nops) noexcept;
+
  private:
   m_t m;
 
@@ -131,11 +133,11 @@ struct basic_str_t : void_struct_t {
    *
    */
   MJZ_CX_ND_FN
-  basic_str_t(const dont_mess_up_t &, owned_stack_buffer&& stack_buffer,
+  basic_str_t(const dont_mess_up_t &, owned_stack_buffer &&stack_buffer,
               cheap_str_info &&info, uintlen_t byte_offset = 0,
               uintlen_t byte_count = 0) noexcept;
   MJZ_CX_ND_FN
-  basic_str_t(const dont_mess_up_t &ok, owned_stack_buffer&& stack_buffer,
+  basic_str_t(const dont_mess_up_t &ok, owned_stack_buffer &&stack_buffer,
               uintlen_t byte_offset = 0, uintlen_t byte_count = 0) noexcept;
   /*
    * initilizes the string as a view
@@ -350,7 +352,7 @@ struct basic_str_t : void_struct_t {
   /*
    * returns the number of bytes the string can modify in its buffer.
    */
-  MJZ_CX_ND_FN uintlen_t capacity(bool must_owner = true)const noexcept;
+  MJZ_CX_ND_FN uintlen_t capacity(bool must_owner = true) const noexcept;
   /*
    * if cap <= capacity(force_ownership) then returns.
    * else if allocate_exact
@@ -362,7 +364,7 @@ struct basic_str_t : void_struct_t {
                               const alloc_ref &alloc = m_t::empty_alloc,
                               replace_flags flags = replace_flags{}) noexcept;
   MJZ_CX_FN success_t consider_stack(const dont_mess_up_t &,
-                                     owned_stack_buffer&& where) noexcept;
+                                     owned_stack_buffer &&where) noexcept;
   MJZ_CX_FN success_t shrink_to_fit(bool force_ownership = false) noexcept;
 
   MJZ_CX_FN success_t clear(bool force_ownership = false) noexcept;
@@ -385,10 +387,9 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN bool get_threaded() const noexcept;
   MJZ_CX_FN bool is_stacked() const noexcept {
     return !m.is_sso() &&
-           !m.template d_get_cntrl<bool>(my_details::is_sharable)&&
+           !m.template d_get_cntrl<bool>(my_details::is_sharable) &&
            !m.non_sso_buffer_location_ptr();
   }
-
 
  private:
  public:

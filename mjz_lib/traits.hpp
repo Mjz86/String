@@ -1,6 +1,8 @@
 
+#include <optional>
+
 #include "memories.hpp"
-#include<optional>
+
 #ifndef MJZ_TRAIS_LIB_HPP_FILE_
 #define MJZ_TRAIS_LIB_HPP_FILE_
 
@@ -105,12 +107,11 @@ concept is_totaly_trivial_after_init = requires(T t, const T ct) {
   requires std::is_trivially_copyable_v<T>;
   requires std::is_trivially_copy_assignable_v<T>;
   requires std::is_trivially_move_assignable_v<T>;
-  requires std::is_trivially_destructible_v<T>; 
-  { t.~T() } noexcept; 
+  requires std::is_trivially_destructible_v<T>;
+  { t.~T() } noexcept;
   { t = t } noexcept;
   { t = ct } noexcept;
 };
-
 
 template <auto integral_constant_maker_lambda>
   requires requires { integral_constant_maker_lambda(); }
@@ -137,7 +138,7 @@ struct mjz_integral_constants_t {
   MJZ_CONSTANT(size_t)
   MJZ_STATIC_tuple_len_{sizeof...(integral_constant_maker_lambdas)};
 };
- 
+
 template <typename T>
 MJZ_CX_FN T get_invalid_T_obj() noexcept {
   MJZ_UNREACHABLE();
@@ -324,32 +325,13 @@ using like_funcptr_of_t =
     typename like_funcptr_maker_helper<std::remove_cvref_t<type_t>,
                                        func_t>::type;
 
-
-
-
-
-
-
-
-
-
-
-
-
 template <typename T, typename... Ts>
 concept is_one_of_c = ((std::same_as<T, Ts>) || ...);
 template <typename T, typename... Ts>
 concept partial_is_one_of_c = ((partial_same_as<T, Ts>) || ...);
 
-
-
-
-
-
-
- 
-MJZ_CX_FN char bit_reverse_bitcast(char ch) noexcept { 
-    uint8_t ret{};
+MJZ_CX_FN char bit_reverse_bitcast(char ch) noexcept {
+  uint8_t ret{};
   for (uint8_t i{}; i < 8; i++) {
     ret |= uint8_t(uint8_t(!!(uint8_t(ch) & uint8_t(1 << i))) << (7 - i));
   }
@@ -357,7 +339,7 @@ MJZ_CX_FN char bit_reverse_bitcast(char ch) noexcept {
 }
 
 template <typename T, bool to_BE, bool do_reverse_if_NE>
-MJZ_CX_FN   std::array<char, sizeof(T)> get_XE_bitcast(T val) noexcept {
+MJZ_CX_FN std::array<char, sizeof(T)> get_XE_bitcast(T val) noexcept {
   if constexpr (SYSTEM_is_little_endian_ != to_BE) {
     return std::bit_cast<std::array<char, sizeof(T)>>(val);
   }
@@ -370,14 +352,14 @@ MJZ_CX_FN   std::array<char, sizeof(T)> get_XE_bitcast(T val) noexcept {
   return ret;
 }
 template <typename T, bool was_BE, bool do_reverse_if_NE>
-MJZ_CX_FN   T from_XE_bitcast(std::array<char, sizeof(T)> val) noexcept {
+MJZ_CX_FN T from_XE_bitcast(std::array<char, sizeof(T)> val) noexcept {
   if constexpr (SYSTEM_is_little_endian_ != was_BE) {
     return std::bit_cast<T>(val);
   }
   std::array<char, sizeof(T)> ret{};
   for (uintlen_t i{}; i < sizeof(T); i++) {
     ret[i] = do_reverse_if_NE ? bit_reverse_bitcast(val[sizeof(T) - 1 - i])
-        : val[sizeof(T) - 1 - i];
+                              : val[sizeof(T) - 1 - i];
   }
   return std::bit_cast<T>(ret);
 }
@@ -386,17 +368,19 @@ struct bit_range_t {
   uintlen_t len;
   template <is_totaly_trivial T>
   MJZ_CX_FN static std::optional<bit_range_t> get_bit_range(
-      const T strating_val, callable_c<bool(uintlen_t i) noexcept> auto&& bit_to,
-       callable_c<bool(const T&) noexcept> auto&& is_begin,
+      const T strating_val,
+      callable_c<bool(uintlen_t i) noexcept> auto&& bit_to,
+      callable_c<bool(const T&) noexcept> auto&& is_begin,
       callable_c<bool(const T&) noexcept> auto&& is_end) noexcept {
     uintlen_t numbits{sizeof(T) * 8};
     bit_range_t range{uintlen_t(-1), uintlen_t(-1)};
-    std::array<char, sizeof(T)> a_s_var{get_XE_bitcast<T, false,false>(strating_val)};
-    for (uintlen_t i{}; i < numbits/8; i++) {
+    std::array<char, sizeof(T)> a_s_var{
+        get_XE_bitcast<T, false, false>(strating_val)};
+    for (uintlen_t i{}; i < numbits / 8; i++) {
       for (uintlen_t j{}; j < 8; j++) {
         std::array<char, sizeof(T)> a_var{a_s_var};
-        a_var[i] = bit_to(8*i+j) ? char(uint8_t(1 << j)) : 0;
-        const T var = from_XE_bitcast<T, false,false>(a_var);
+        a_var[i] = bit_to(8 * i + j) ? char(uint8_t(1 << j)) : 0;
+        const T var = from_XE_bitcast<T, false, false>(a_var);
         if (is_begin(var)) {
           if (~range.i) {
             return std::nullopt;  // multiple is_begin;
@@ -414,7 +398,7 @@ struct bit_range_t {
     if (!~range.len) {
       range.len = numbits - range.i;
     }
-    if (!~range.i ) {
+    if (!~range.i) {
       return std::nullopt;  //   no is_begin ;
     }
     return range;
@@ -424,9 +408,9 @@ template <auto val>
 struct ce_val_t {
   using type = decltype(val);
   MJZ_CX_FN auto operator()() const noexcept { return val; }
-}; 
+};
 
 template <typename T>
 using total_decay_t = std::remove_cvref_t<std::decay_t<T>>;
-};      // namespace mjz
+};  // namespace mjz
 #endif  // MJZ_TRAIS_LIB_HPP_FILE_

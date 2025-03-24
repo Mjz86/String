@@ -1,6 +1,7 @@
 
-#include "basic_formatters.hpp"
 #include "../../allocs/pmr_adaptor.hpp"
+#include "basic_formatters.hpp"
+
 #ifndef __cpp_lib_format
 #define MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
 #endif
@@ -9,9 +10,11 @@
 #endif
 #ifndef MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
-#include "../string.hpp"
 #include <format>
 #include <sstream>
+
+#include "../string.hpp"
+
 namespace mjz::bstr_ns::format_ns {
 template <version_t version_v, typename T>
 concept is_std_formatter_c = requires(const std::remove_reference_t<T>& arg) {
@@ -40,8 +43,8 @@ struct default_formatter_t<version_v, T_, 90> {
     }
     replace_flags_t<version_v> rp{};
     rp.change_alloc_v = decltype(rp)::change_e::always_force_change;
-    if (!(parse_content.append_data_with_char(1,'{', ctx.allocator(), rp) &&
-        parse_content.append_data_with_range(view(0, pos + 1)))) {
+    if (!(parse_content.append_data_with_char(1, '{', ctx.allocator(), rp) &&
+          parse_content.append_data_with_range(view(0, pos + 1)))) {
       ctx.as_error(
           "[Error]default_formatter_t<is_std_formatter_c>parse:allocation "
           "failed");
@@ -57,13 +60,14 @@ struct default_formatter_t<version_v, T_, 90> {
     good &= MJZ_NOEXCEPT {
       allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()};
       char buff[1024]{};
-      std::pmr::monotonic_buffer_resource mbr{buff, sizeof(buff), &alloc  };
+      std::pmr::monotonic_buffer_resource mbr{buff, sizeof(buff), &alloc};
       std::pmr::polymorphic_allocator<char> pmr{&mbr};
       std::pmr::string buffer{pmr};
       std::string_view fmt{parse_content.data(), parse_content.length()};
       try {
-        std::vformat_to(std::back_insert_iterator(buffer), std::locale::classic(),
-                      fmt, std::make_format_args(arg));
+        std::vformat_to(std::back_insert_iterator(buffer),
+                        std::locale::classic(), fmt,
+                        std::make_format_args(arg));
       } catch (std::format_error err) {
         good = false;
         std::string_view err_view(err.what());

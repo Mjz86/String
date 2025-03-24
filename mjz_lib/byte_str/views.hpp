@@ -124,7 +124,7 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
     return ret;
   }
   MJZ_CX_ND_FN self_t operator()(uintlen_t begin_i = 0,
-                                 uintlen_t end_i = nops)const noexcept {
+                                 uintlen_t end_i = nops) const noexcept {
     return make_subview(begin_i, end_i - std::min(end_i, begin_i));
   }
   MJZ_CX_FN success_t remove_prefix(uintlen_t n) noexcept {
@@ -534,7 +534,7 @@ struct status_view_t : public static_string_view_t<version_v> {
   using sview_t::to_base_lazy_pv_fn_;
   using sview_t::to_base_view_pv_fn_;
   using sview_t::unsafe_handle;
-  MJZ_CONSTANT(sview_t) empty{nullopt};
+  MJZ_CONSTANT(sview_t) empty { nullopt };
   template <size_t N>
   MJZ_CE_FN status_view_t(const char (&str)[N],
                           encodings_e encodings_ = encodings_e::ascii) noexcept

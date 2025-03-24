@@ -15,7 +15,7 @@ struct byte_traits_t {
   using enum floating_format_e;
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(auto) npos{(uintlen_t(-1) >> 8) + 1};
+  MJZ_CONSTANT(auto) npos {(uintlen_t(-1) >> 8) + 1 };
 
   MJZ_CX_ND_FN intlen_t pv_compare(const char* rhs, const char* lhs,
                                    uintlen_t len) const noexcept {
@@ -593,7 +593,7 @@ struct byte_traits_t {
       is_neg = *ptr == '-';
       if (!len) return std::nullopt;
     }
-    auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
+    auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
       uintlen_t i{};
       while (i < len && i < N - 1 &&
              ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {

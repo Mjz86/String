@@ -40,15 +40,16 @@ struct version_t {
 
   MJZ_CE_FN explicit version_t(uint32_t newest_version_ = newest_m_version,
                                uint32_t m_ver_mod_id = 0) noexcept
-      : value(value_t{.m_ver_=(newest_version_), .m_ver_mod_id_=(m_ver_mod_id)}) {
+      : value(value_t{.m_ver_ = (newest_version_),
+                      .m_ver_mod_id_ = (m_ver_mod_id)}) {
     asserts(newest_version_ <= newest_m_version,
             "update the latest api version  var (=newest_m_version). "
             "to include this version.");
   }
   MJZ_CX_FN explicit version_t(uint32_t newest_version_, uint32_t m_ver_mod_id,
                                totally_empty_type_t) noexcept
-      : value(value_t{.m_ver_=(newest_version_), .m_ver_mod_id_=(m_ver_mod_id)}) {
-  }
+      : value(value_t{.m_ver_ = (newest_version_),
+                      .m_ver_mod_id_ = (m_ver_mod_id)}) {}
 
   MJZ_CX_FN std::partial_ordering operator<=>(version_t b) const noexcept {
     auto v = uint32_t(make().m_ver_) <=> uint32_t(b.make().m_ver_);

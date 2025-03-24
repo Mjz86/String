@@ -35,9 +35,8 @@ basic_str_t<version_v, has_alloc_v_>::make_substring(
     uintlen_t byte_offset, uintlen_t byte_count,
     bool try_to_add_null) const noexcept {
   basic_str_t<version_v, has_alloc_v_> ret{};
-  std::ignore =
-      ret.copy_assign(*this, false, byte_offset, byte_count)&&( !try_to_add_null ||
-     ret.has_null() || ret.m.add_null(true));
+  std::ignore = ret.copy_assign(*this, false, byte_offset, byte_count) &&
+                (!try_to_add_null || ret.has_null() || ret.m.add_null(true));
   return ret;
 }
 
@@ -59,7 +58,7 @@ basic_str_t<version_v, has_alloc_v_>::make_right_then_give_has_null(
     uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
   byte_offset = std::min(byte_offset, m.length);
   byte_count = std::min(byte_offset + byte_count, m.length) - byte_offset;
-  return byte_offset + byte_count == m.length&& has_null();
+  return byte_offset + byte_count == m.length && has_null();
 }
 
 template <version_t version_v, bool has_alloc_v_>
@@ -441,5 +440,5 @@ MJZ_CX_FN bool basic_str_t<version_v, has_alloc_v_>::is_error() const noexcept {
   return get_encoding() == encodings_e::err_ascii;
 }
 
-};      // namespace mjz::bstr_ns
+};  // namespace mjz::bstr_ns
 #endif  // MJZ_BYTE_STRING_string_const_ABI_LIB_HPP_FILE_

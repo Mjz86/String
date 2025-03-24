@@ -7,7 +7,7 @@ namespace mjz::threads_ns {
 template <typename T>
   requires std::is_trivially_copyable_v<T>
 class atomic_ref_t {
-  MJZ_CONSTANT(bool) mutable_v{!std::is_const_v<T>};
+  MJZ_CONSTANT(bool) mutable_v { !std::is_const_v<T> };
   atomic_ref_t& operator=(const atomic_ref_t&) = delete;
   union ref_pair_t {
     MJZ_CX_FN ref_pair_t(const ref_pair_t&) = default;
@@ -371,5 +371,5 @@ class atomic_ref_t {
 };
 template <typename T>
 atomic_ref_t(T) -> atomic_ref_t<T>;
-};      // namespace mjz::threads_ns
+};  // namespace mjz::threads_ns
 #endif  //  MJZ_THREADS_atomic_ref_LIB_HPP_FILE_

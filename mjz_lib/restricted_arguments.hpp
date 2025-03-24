@@ -1,7 +1,9 @@
 
+#include <algorithm>
+#include <ranges>
+
 #include "versions.hpp"
-#include<ranges>
-#include<algorithm>
+
 #ifndef MJZ_RES_ARGS_LIB_HPP_FILE_
 #define MJZ_RES_ARGS_LIB_HPP_FILE_
 
@@ -33,15 +35,14 @@ struct restricted_argument_t {
 template <typename T>
 struct constant_value_t {
   T val;
-  MJZ_CE_FN constant_value_t(T val_) noexcept
-      : val(std::forward<T>(val_)){  } 
+  MJZ_CE_FN constant_value_t(T val_) noexcept : val(std::forward<T>(val_)) {}
 };
-template<typename fn_t>
+template <typename fn_t>
 struct restricted_fn_argument_t {
   template <typename... Ts>
   MJZ_CE_FN restricted_fn_argument_t(Ts&&... args) noexcept {
     asserts(static_cast<bool>(fn_t{}(std::forward<Ts>(args)...)));
-  } 
+  }
 };
 namespace unsafe_ns {
 struct i_know_what_im_doing_t {
@@ -53,27 +54,27 @@ struct varify_t {
   template <uintlen_t N>
   MJZ_CX_FN varify_t(const char (&str)[N]) noexcept {
     constexpr auto&& v = "i do know that what im doing is unsafe.";
-   constexpr concatabe_hash_t<version_t{}> unsafe_password_hash{v, sizeof(v)};
-    static_assert(unsafe_password_hash.length!=0);
+    constexpr concatabe_hash_t<version_t{}> unsafe_password_hash{v, sizeof(v)};
+    static_assert(unsafe_password_hash.length != 0);
     concatabe_hash_t<version_t{}> s{str, N};
     they_know = s == unsafe_password_hash;
   }
   bool they_know{};
-  MJZ_CX_FN const i_know_what_im_doing_t* operator*( ) const noexcept {
+  MJZ_CX_FN const i_know_what_im_doing_t* operator*() const noexcept {
     return they_know ? &they_do : nullptr;
   }
 
  private:
-  MJZ_CONSTANT(i_know_what_im_doing_t) they_do{}; 
-}; 
- template < varify_t varification>
-MJZ_CX_FN  i_know_what_im_doing_t operator""_dw() noexcept
+  MJZ_CONSTANT(i_know_what_im_doing_t) they_do {};
+};
+template <varify_t varification>
+MJZ_CX_FN i_know_what_im_doing_t operator""_dw() noexcept
   requires(varification.they_know)
 {
   return **varification;
 }
 
-MJZ_CONSTANT(auto)unsafe_v= "i do know that what im doing is unsafe."_dw;
+MJZ_CONSTANT(auto) unsafe_v = "i do know that what im doing is unsafe."_dw;
 
 };  // namespace unsafe_ns
 
@@ -82,27 +83,27 @@ template <callable_anyret_c<void() noexcept> static_data_fn_t>
     { static_data_fn_t()() } noexcept;
   }
 struct static_data_t {
-  MJZ_CONSTANT(auto) val{static_data_fn_t()()};
-  MJZ_CX_FN auto& operator()() const noexcept { return val;}
+  MJZ_CONSTANT(auto) val { static_data_fn_t()() };
+  MJZ_CX_FN auto& operator()() const noexcept { return val; }
 };
 template <callable_anyret_c<void() noexcept> static_range_fn_t>
   requires requires() {
-    { static_range_fn_t()() } noexcept->std::ranges::forward_range;
+    { static_range_fn_t()() } noexcept -> std::ranges::forward_range;
   }
 struct static_range_t {
  private:
- using result_t=decltype(static_range_fn_t()());
+  using result_t = decltype(static_range_fn_t()());
   MJZ_CX_FN static auto size() noexcept {
-   return std::ranges::size(static_range_fn_t()());
+    return std::ranges::size(static_range_fn_t()());
   }
-  MJZ_CX_FN static auto get() noexcept{
-    std::array<std::ranges::range_value_t<result_t>, size()> ret{}; 
-    std::ranges::move(static_range_fn_t()(), ret.begin()); 
+  MJZ_CX_FN static auto get() noexcept {
+    std::array<std::ranges::range_value_t<result_t>, size()> ret{};
+    std::ranges::move(static_range_fn_t()(), ret.begin());
     return ret;
   }
 
  public:
-  MJZ_CONSTANT(auto) val{get()};
+  MJZ_CONSTANT(auto) val { get() };
   MJZ_CX_FN auto& operator()() const noexcept { return val; }
 };
 
@@ -126,7 +127,6 @@ struct static_range_maker_t {
 };
 MJZ_CONSTANT(static_range_maker_t) make_static_range{};
 MJZ_CONSTANT(static_data_maker_t) make_static_data{};
-
 
 }  // namespace mjz
 #endif  //  MJZ_RES_ARGS_LIB_HPP_FILE_

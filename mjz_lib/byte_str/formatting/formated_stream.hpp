@@ -44,13 +44,13 @@ MJZ_NCX_FN std::ostream& operator_shift_left(std::ostream& cout_v, T&& arg) {
 
 namespace fmt_litteral_ns {
 namespace shl_litteral_ns {
-  template <typename T>
-    requires is_streamed_c_helper_<version_t{}, T>
-  MJZ_NCX_FN std::ostream& operator<<(std::ostream& cout_v, T&& arg) {
-    return operator_shift_left<T, version_t{}>(cout_v, std::forward<T>(arg));
-  }
-}  // namespace fmt_litteral_ns
+template <typename T>
+  requires is_streamed_c_helper_<version_t{}, T>
+MJZ_NCX_FN std::ostream& operator<<(std::ostream& cout_v, T&& arg) {
+  return operator_shift_left<T, version_t{}>(cout_v, std::forward<T>(arg));
 }
+}  // namespace shl_litteral_ns
+}  // namespace fmt_litteral_ns
 }  // namespace mjz::bstr_ns::format_ns
 
 #endif  // MJZ_BYTE_FORMATTING_formated_stream_HPP_FILE_

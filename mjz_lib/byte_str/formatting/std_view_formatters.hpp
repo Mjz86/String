@@ -1,7 +1,7 @@
 
 #include "../../allocs/pmr_adaptor.hpp"
 #include "basic_formatters.hpp"
-#if MJZ_WITH_iostream 
+#if MJZ_WITH_iostream
 #include <string>
 #include <string_view>
 #else
@@ -12,7 +12,7 @@
 namespace mjz::bstr_ns::format_ns {
 template <version_t version_v, typename T>
   requires requires() {
-    { std::string_view(just_some_invalid_obj<T&&>()) };
+    { std::string_view(just_some_invalid_obj<T &&>()) };
     // to forward the span into std::basic_string_view
     requires !partial_same_as<
         decltype(std::string_view(just_some_invalid_obj<T&&>())), T>;
@@ -35,7 +35,8 @@ struct default_formatter_t<version_v, T, 30> {
 template <version_t version_v, typename T>
   requires requires() {
     requires std::is_pointer_v<std::remove_cvref_t<T>>;
-    requires partial_same_as<char,std::remove_pointer_t<std::remove_cvref_t<T>>>;
+    requires partial_same_as<char,
+                             std::remove_pointer_t<std::remove_cvref_t<T>>>;
   }
 struct default_formatter_t<version_v, T, 19> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
@@ -53,9 +54,8 @@ struct default_formatter_t<version_v, T, 19> {
   };
 };
 
-
-template <version_t version_v, partial_same_as<std::string_view>T>
-struct default_formatter_t<version_v,T, 30> {
+template <version_t version_v, partial_same_as<std::string_view> T>
+struct default_formatter_t<version_v, T, 30> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
   using view_t = base_string_view_t<version_v>;
@@ -72,7 +72,7 @@ struct default_formatter_t<version_v,T, 30> {
   MJZ_CX_FN base_out_it_t<version_v> format(
       const std::string_view& view,
       format_context_t<version_v>& ctx) const noexcept {
-    view_t v = view_t::make(view.data(), view.size(), encodings_e::ascii); 
+    view_t v = view_t::make(view.data(), view.size(), encodings_e::ascii);
     return formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx);
   };
 };

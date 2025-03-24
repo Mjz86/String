@@ -576,7 +576,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::remove_prefix(
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN uintlen_t
-basic_str_t<version_v, has_alloc_v_>::capacity(bool must_owner)const noexcept {
+basic_str_t<version_v, has_alloc_v_>::capacity(bool must_owner) const noexcept {
   return !must_owner || is_owner() ? m.get_capacity() : 0;
 }
 
@@ -604,8 +604,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::consider_stack(
   if (stack_buffer.buffer_size < length()) return true;
   memcpy(stack_buffer.buffer, data(), size());
   asserts(asserts.assume_rn,
-          total_reset(true) &&
-              m.construct_non_sso_from_invalid(
+          total_reset(true) && m.construct_non_sso_from_invalid(
                                    stack_buffer.buffer, 0, stack_buffer.buffer,
                                    stack_buffer.buffer_size, false, true));
   m.add_null(true);

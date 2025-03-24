@@ -36,12 +36,12 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   template <class T>
   MJZ_CX_FN T mptr_static_cast_pv_fn_() const noexcept {
     return static_cast<T>(this);
-  } 
-  MJZ_CX_FN static auto mptr_static_cast_pv_fn_(void_struct_t*p) noexcept {
-    return static_cast<wrapped_string_t*>(p);
+  }
+  MJZ_CX_FN static auto mptr_static_cast_pv_fn_(void_struct_t *p) noexcept {
+    return static_cast<wrapped_string_t *>(p);
   }
   MJZ_CX_FN static auto mptr_static_cast_pv_fn_(
-      const void_struct_t *p)  noexcept {
+      const void_struct_t *p) noexcept {
     return static_cast<const wrapped_string_t *>(p);
   }
 
@@ -675,15 +675,14 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     return ret;
   }
 
-  MJZ_CX_FN bool is_error() const noexcept { return get().is_error();
-  }
+  MJZ_CX_FN bool is_error() const noexcept { return get().is_error(); }
 
   template <std::integral T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_FN success_t as_integral(T val, const uint8_t raidex = 10,
                                   bool upper_case = false) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().as_integral(val, raidex,upper_case);
+    return m_str().as_integral(val, raidex, upper_case);
   }
   template <std::floating_point T>
   MJZ_CX_FN success_t as_floating(
@@ -694,7 +693,7 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     return m_str().as_floating(val, accuracacy, upper_case, floating_format,
                                point_ch);
   }
-  MJZ_CX_FN success_t append_with_insert_iter(auto && fn) noexcept {
+  MJZ_CX_FN success_t append_with_insert_iter(auto &&fn) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     return m_str().append_with_insert_iter(fn);
   }
@@ -702,19 +701,19 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   using bview = base_string_view_t<version_v>;
 
   MJZ_CX_FN bview
-      to_base_view_pv_fn_(unsafe_ns::i_know_what_im_doing_t idk) const noexcept { 
+  to_base_view_pv_fn_(unsafe_ns::i_know_what_im_doing_t idk) const noexcept {
     return m_str().to_base_view_pv_fn_(idk);
   }
   using blazy_t = base_lazy_view_t<version_v>;
   MJZ_CX_FN blazy_t
-      to_base_lazy_pv_fn_(unsafe_ns::i_know_what_im_doing_t idk) const noexcept {
+  to_base_lazy_pv_fn_(unsafe_ns::i_know_what_im_doing_t idk) const noexcept {
     return m_str().to_base_lazy_pv_fn_(idk);
   }
   MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
       unsafe_ns::i_know_what_im_doing_t idk, blazy_t v,
-                                       replace_flags rp = replace_flags {}) noexcept {
+      replace_flags rp = replace_flags{}) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().format_back_insert_append_pv_fn_(idk,v,rp);
+    return m_str().format_back_insert_append_pv_fn_(idk, v, rp);
   }
 };
 

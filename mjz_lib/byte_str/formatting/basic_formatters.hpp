@@ -476,8 +476,9 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
 
     stack.length = stack.bt.from_integral_fill(
 
-        stack.buf, stack.buf_size, reinterpret_cast<uintptr_t>(alias_t<const  void*>(arg)),
-        uppser_case, uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_)));
+        stack.buf, stack.buf_size,
+        reinterpret_cast<uintptr_t>(alias_t<const void*>(arg)), uppser_case,
+        uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_)));
     if (!stack.length) {
       ctx.as_error(
           "[Error]basic_format_specs_t::format_specs():couldnt convert to "
@@ -725,7 +726,7 @@ basic_format_specs_t<version_v>::format_fill_pv(
     return nullptr;
   } else {
     my_width = width;
-  } 
+  }
   bool output_buffer_was_used{};
   buffer_out_buf_t<version_v> output_buffer{};
   if (my_width) {
@@ -765,16 +766,16 @@ basic_format_specs_t<version_v>::format_fill_pv(
   if (!ctx.advance_to(it)) return nullptr;
   if (alignment == align_e::right || alignment == align_e::center) {
     uintlen_t rigth_delta{delta >> uint8_t(alignment == align_e::center)};
-    delta -= rigth_delta; 
-      std::ignore = it.multi_push_back(fill_char, rigth_delta, ctx.encoding());
+    delta -= rigth_delta;
+    std::ignore = it.multi_push_back(fill_char, rigth_delta, ctx.encoding());
   }
   if (output_buffer_was_used) {
     std::ignore = it.append(output_buffer.bview());
   } else {
     if (!place_stuff()) return nullptr;
   }
-  if (alignment == align_e::left || alignment == align_e::center) { 
-      std::ignore = it.multi_push_back(fill_char, delta, ctx.encoding());
+  if (alignment == align_e::left || alignment == align_e::center) {
+    std::ignore = it.multi_push_back(fill_char, delta, ctx.encoding());
   }
   if (output.flush() && actual_it) {
     return actual_it;
@@ -782,5 +783,5 @@ basic_format_specs_t<version_v>::format_fill_pv(
   return nullptr;
 }
 
-};      // namespace mjz::bstr_ns::format_ns
+};  // namespace mjz::bstr_ns::format_ns
 #endif  // MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_

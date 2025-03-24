@@ -6,8 +6,8 @@ template <std::integral T>
 class mutex_ref_t : private atomic_ref_t<T> {
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(T) one{1};
-  MJZ_CONSTANT(T) zero{0};
+  MJZ_CONSTANT(T) one { 1 };
+  MJZ_CONSTANT(T) zero { 0 };
 
  private:
   MJZ_NCX_FN bool test_and_set_m() noexcept {
@@ -110,5 +110,5 @@ class mutex_ref_t : private atomic_ref_t<T> {
     return !!this->load(std::memory_order_acquire);
   }
 };
-}  // namespace threads_ns
+}  // namespace mjz::threads_ns
 #endif  // MJZ_THREADS_mutex_ref_LIB_HPP_FILE_

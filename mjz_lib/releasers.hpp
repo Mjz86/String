@@ -11,22 +11,24 @@ struct totally_empty_type_t {};
 using nullptr_t = std::nullptr_t;
 MJZ_CONSTANT(totally_empty_type_t) totally_empty_type{};
 static_assert(std::is_empty_v<totally_empty_type_t>);
-using void_struct_t = totally_empty_type_t; 
+using void_struct_t = totally_empty_type_t;
 template <>
 class mjz_private_accessed_t<void_struct_t(void_struct_t*)> {
  public:
   template <class T>
-  MJZ_CX_FN static T mptr_static_cast(auto p) noexcept{
+  MJZ_CX_FN static T mptr_static_cast(auto p) noexcept {
     if constexpr (requires() { static_cast<T>(p); }) {
-      return static_cast<T>(p); 
-    } else if constexpr (std::same_as <std::remove_cvref_t< decltype(p) >, nullptr_t >) {
+      return static_cast<T>(p);
+    } else if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>,
+                                      nullptr_t>) {
       return nullptr;
     } else if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>,
                                       void_struct_t*>) {
-      return std::remove_pointer_t<std::remove_cvref_t<T>>::mptr_static_cast_pv_fn_(p);
+      return std::remove_pointer_t<
+          std::remove_cvref_t<T>>::mptr_static_cast_pv_fn_(p);
     } else {
       if (!p) return nullptr;
-     return p->template mptr_static_cast_pv_fn_<T>();
+      return p->template mptr_static_cast_pv_fn_<T>();
     }
   }
 
@@ -62,13 +64,14 @@ class mjz_private_accessed_t<void_struct_t(void_struct_t*)> {
   MJZ_CX_FN static decltype(auto) down_cast(const void_struct_t& ptr) noexcept {
     return *down_cast<T>(std::addressof(ptr));
   }
-}; 
-using void_struct_cast_t=mjz_private_accessed_t<void_struct_t(void_struct_t*)>;
+};
+using void_struct_cast_t =
+    mjz_private_accessed_t<void_struct_t(void_struct_t*)>;
 enum class may_bool_t : char { yes, no, idk, err };
 MJZ_CONSTANT(bool)
 SYSTEM_is_little_endian_{std::endian::little == std::endian::native};
 #if MJZ_uintlen_t_as_64_bit
-using uintlen_t =uint64_t;
+using uintlen_t = uint64_t;
 using ushortlen_t = uint32_t;
 #else
 using uintlen_t = std::conditional_t<(sizeof(uint32_t) <= sizeof(uintptr_t)),
@@ -127,7 +130,7 @@ MJZ_CX_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
 }
 MJZ_CX_ND_FN static uint8_t log2_ceil_of_val_create(
     std::integral auto val) noexcept
-  requires(std::is_unsigned_v <std::remove_cvref_t< decltype(val) >>)
+  requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
 {
   auto log2v = log2_of_val_create(val);
   return uint8_t(uint64_t(log2v) +
@@ -257,7 +260,7 @@ struct releaser_helper_t {
   MJZ_DEPRECATED_R("confusion")
   MJZ_CX_FN void operator&() const noexcept = delete;
 };
-static_assert(std::is_empty_v<releaser_helper_t<>>); 
+static_assert(std::is_empty_v<releaser_helper_t<>>);
 typedef bool success_t;
 MJZ_CONSTANT(success_t) success_v = true;
 MJZ_CONSTANT(success_t) failiure_v = false;
@@ -281,15 +284,15 @@ MJZ_CX_FN success_t run_and_block_exeptions(
     }
     else {
       MJZ_DISABLE_ALL_WANINGS_START_;
-      #if MJZ_CATCHES_EXCEPTIONS_
+#if MJZ_CATCHES_EXCEPTIONS_
       try {
         std::forward<Lmabda_t>(code)();
-      } catch (...){
+      } catch (...) {
         return false;
-      } 
-      #else 
+      }
+#else
       std::forward<Lmabda_t>(code)();
-      #endif
+#endif
       MJZ_DISABLE_ALL_WANINGS_END_;
     }
     return true;
@@ -298,7 +301,7 @@ MJZ_CX_FN success_t run_and_block_exeptions(
 template <std::same_as<void> = void>
 struct noexcept_er_helper_t {
  public:
-  MJZ_CE_FN noexcept_er_helper_t( ) noexcept {}
+  MJZ_CE_FN noexcept_er_helper_t() noexcept {}
   template <class Lmabda_t>
   MJZ_CX_FN success_t operator->*(Lmabda_t&& fn) const noexcept {
     return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
@@ -310,7 +313,7 @@ struct noexcept_er_helper_t {
   MJZ_DEPRECATED_R("confusion")
   MJZ_CX_FN void operator&() const noexcept = delete;
 };
-static_assert(std::is_empty_v<noexcept_er_helper_t<>>); 
+static_assert(std::is_empty_v<noexcept_er_helper_t<>>);
 
 #define MJZ_RELEASE_NAME_helper_0_(WHAT) releaserr_##WHAT
 #define MJZ_RELEASE_NAME_helper_1_(WHAT) MJZ_RELEASE_NAME_helper_0_(WHAT)
@@ -343,7 +346,8 @@ void g(){
 
 #define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable -> void
 
-#define MJZ_TNOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&, this ]() mutable -> void
+#define MJZ_TNOEXCEPT \
+  ::mjz::noexcept_er_helper_t<>{}->*[&, this ]() mutable -> void
 
 /*
 this is a temporary RAII object for being used for something like this:
@@ -420,7 +424,7 @@ MJZ_NCX_FN void just_do_ptr(T* arg) noexcept {
   MJZ_DISABLE_WANINGS_END_;
   MJZ_UNUSED static volatile auto p = const_cast<volatile T*>(arg);
 };
-template <typename... Ts> 
+template <typename... Ts>
 MJZ_NCX_FN void just_do(Ts&&... args) noexcept {  //-V3541 //-V2565
   MJZ_UNUSED totally_empty_type_t a[]{
       (just_do_ptr(std::addressof(args)),
@@ -483,5 +487,5 @@ class conditional_releaser_t : private T {
   MJZ_NO_DYNAMIC_ALLOCATOR(conditional_releaser_t);
 };
 
-};      // namespace mjz
+};  // namespace mjz
 #endif  // MJZ_RELEASER_LIB_HPP_FILE_

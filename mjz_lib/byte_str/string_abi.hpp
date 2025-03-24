@@ -11,7 +11,7 @@ struct wrapped_props_t {
   bool is_ownerized{};
   MJZ_CX_FN uintlen_t cap() const noexcept {
     if (sso_min_cap % sizeof(uintlen_t)) {
-      return (sso_min_cap | ( sizeof(uintlen_t)-1)) + 1;
+      return (sso_min_cap | (sizeof(uintlen_t) - 1)) + 1;
     }
     return sso_min_cap;
   }
@@ -195,10 +195,12 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     return mut_data.sso_raw_buffer_and_cntrl;
   }
   MJZ_CX_FN char* sso_buffer_location_ptr() noexcept {
-    return std::launder(raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_);
+    return std::launder(raw_sso_buffer_location_ptr() +
+                        mut_data.sso_buf_index_);
   }
   MJZ_CX_FN const char* sso_buffer_location_ptr() const noexcept {
-    return std::launder(raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_);
+    return std::launder(raw_sso_buffer_location_ptr() +
+                        mut_data.sso_buf_index_);
   }
   MJZ_CX_FN const char* dead_sso_buffer_location_ptr() const noexcept {
     return raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_;

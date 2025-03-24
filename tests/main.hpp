@@ -43,9 +43,9 @@ struct main_t {
 };
 
 MJZ_CX_FN void main_t::run() const {
-  constexpr wrapped_props_t wrapped_props{.sso_min_cap=128,
+  constexpr wrapped_props_t wrapped_props{.sso_min_cap = 128,
                                           .is_ownerized = true};
-  bool disable_cow { false};
+  bool disable_cow{false};
   wrapped_string_t<version_v, wrapped_props> result{};
   str_t s =
       "i am a big massage 0123456789abcdefghijklmnop53666666666666666666666666"_str;
@@ -60,5 +60,5 @@ MJZ_CX_FN void main_t::run() const {
   std::optional<uintlen_t> val = num.to_integral<uintlen_t>();
   format_to(result, "{}{:s}"_fmt, front_part, std::views::iota(0, 10));
   println("{} num : {} "_fmt, result, val);
-}; 
-}; // namespace used_mjz_ns
+};
+};  // namespace used_mjz_ns

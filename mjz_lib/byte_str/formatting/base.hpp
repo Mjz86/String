@@ -70,7 +70,7 @@ parse_context_t<version_v>::parse_starting_name() noexcept {
        name_len++, digit = at(name_len)) {
   }
   view_t name = remaining_format_string.make_subview(0, name_len);
-  if (  !advance_amount(name_len)) {
+  if (!advance_amount(name_len)) {
     as_error("[Error]parse_starting_name:expected an ending to name");
     return nullopt;
   }
@@ -88,7 +88,7 @@ parse_context_t<version_v>::parse_arg_index() noexcept {
     return nullopt;
   }
   auto charechter = front();
-  if (!charechter ||* charechter == '}' || *charechter == ':' ||
+  if (!charechter || *charechter == '}' || *charechter == ':' ||
       *charechter == ';') {
     return next_arg_id();
   }
@@ -105,8 +105,8 @@ parse_context_t<version_v>::parse_arg_index() noexcept {
     if (!advance_amount(1)) return nullopt;
   }
   charechter = front();
-  if ( charechter &&* charechter != '}' && *charechter != ':' &&
-          *charechter != ';') {
+  if (charechter && *charechter != '}' && *charechter != ':' &&
+      *charechter != ';') {
     as_error("[Error]parse_arg_index:expected an ending for id");
     return nullopt;
   }
@@ -196,7 +196,7 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
   if (charechter == '{') {
     return parse_context.advance_amount(1) && append_text(sview_t{"{"});
   }
-  if (!charechter ||* charechter == '}') {
+  if (!charechter || *charechter == '}') {
     // string was "{}", and we have a replacement field
     auto id = parse_context.next_arg_id();
     return id && call_argument_formatter(*id);
@@ -218,7 +218,8 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
     base_context.recursion_depth++;
     if (base_context.max_recursion_depth < base_context.recursion_depth) {
       format_context.as_error(
-          "[Error]parse_format_replacement_field:max recursion depth reached try "
+          "[Error]parse_format_replacement_field:max recursion depth reached "
+          "try "
           "reducing the nested filters");
       return false;
     }
@@ -659,11 +660,12 @@ struct formatting_object_t : void_struct_t {
                                 Ts&&... args) noexcept {
     return format_to_pv(
         iter, L_v(format_str),
-       ((typed_arg_ref_final_type_t<version_v, Ts>)to_final_type_fn<version_v, Ts>(std::forward<Ts>(args)))...);
+        ((typed_arg_ref_final_type_t<version_v, Ts>)
+             to_final_type_fn<version_v, Ts>(std::forward<Ts>(args)))...);
   }
 
  private:
-  template <class... Ts >
+  template <class... Ts>
   MJZ_CX_FN success_t vformat_to_pv(out_it_t iter, view_t format_str,
                                     Ts&&... args) noexcept {
     if constexpr ((!!sizeof...(Ts))) {
@@ -801,11 +803,11 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
     static_assert(failed, "before error-> ");
     err_vst<>::print(err_str_vst<first_part>{});
     static_assert(failed, "after error-> ");
-    err_vst<>::print(err_str_vst<second_part>{}); 
+    err_vst<>::print(err_str_vst<second_part>{});
     return false;
   }
-  #else 
-MJZ_UNUSED  failure_ft check{};
+#else
+  MJZ_UNUSED failure_ft check{};
 #endif
   return vformat_to(iter, value(), std::forward<Ts>(args)...);
 }
@@ -813,13 +815,15 @@ MJZ_UNUSED  failure_ft check{};
 namespace fmt_litteral_ns {
 
 template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L>
-struct operator_fmt_t: static_string_view_t<version_v> {
-  MJZ_CX_FN operator_fmt_t() noexcept : static_string_view_t<version_v>{bstr_ns::litteral_ns::operator_view<L, version_v>()}{}
+struct operator_fmt_t : static_string_view_t<version_v> {
+  MJZ_CX_FN operator_fmt_t() noexcept
+      : static_string_view_t<version_v>{
+            bstr_ns::litteral_ns::operator_view<L, version_v>()} {}
 };
 
 template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L>
 MJZ_CX_FN auto operator_fmt() noexcept {
-  return operator_fmt_t<version_v,L>{};
+  return operator_fmt_t<version_v, L>{};
 }
 template <bstr_ns::litteral_ns::str_litteral_t L>
 MJZ_CX_FN auto operator""_fmt() noexcept {

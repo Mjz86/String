@@ -36,16 +36,15 @@ struct easy_output_data_t {
     ret.ptr = this;
     return ret;
   };
-  MJZ_CX_ND_FN encodings_e get_encoding() const noexcept {
-    return encoding;
-  }
+  MJZ_CX_ND_FN encodings_e get_encoding() const noexcept { return encoding; }
   MJZ_CX_FN easy_output_data_t& operator=(char ch) noexcept {
     out().push_back(ch, encoding);
     return *this;
   }
-  MJZ_CX_ND_FN base_out_it_t<version_v> out( )   noexcept {
+  MJZ_CX_ND_FN base_out_it_t<version_v> out() noexcept {
     return base_out_it_t<version_v>{iter};
   }
+
  protected:
   MJZ_NO_MV_NO_CPY(easy_output_data_t);
   char buffer[1024]{};
@@ -76,7 +75,7 @@ MJZ_CX_FN easy_output_it<version_v>& easy_output_it<version_v>::operator=(
 }
 template <typename T>
 struct easy_formatter_t {
-  MJZ_CONSTANT(version_t) version_v{};
+  MJZ_CONSTANT(version_t) version_v {};
   MJZ_NO_MV_NO_CPY(easy_formatter_t);
   MJZ_CX_FN easy_formatter_t() noexcept = delete;
   MJZ_CX_FN ~easy_formatter_t() noexcept = delete;
@@ -87,23 +86,22 @@ struct easy_formatter_t {
 };
 
 template <version_t version_v, typename T, class F_t>
-concept easy_formatted_helper_c =
-    requires(F_t obj, const F_t cobj, T&& arg,
-             basic_string_view_t<version_v> format_input,
-             easy_output_it<version_v> it) {
-      { obj.~F_t() } noexcept;
-      { F_t() } noexcept;
-      { F_t(cobj) } noexcept;
-      { obj = cobj } noexcept;
-      { F_t(std::move(obj)) } noexcept;
-      { obj = std::move(obj) } noexcept;
-      {
-        obj.parse(format_input)
-      } noexcept -> std::same_as<status_view_t<version_v>>;
-      {
-        cobj.format(std::forward<T>(arg), it)
-      } noexcept -> std::same_as<status_view_t<version_v>>;
-    };
+concept easy_formatted_helper_c = requires(
+    F_t obj, const F_t cobj, T&& arg,
+    basic_string_view_t<version_v> format_input, easy_output_it<version_v> it) {
+  { obj.~F_t() } noexcept;
+  { F_t() } noexcept;
+  { F_t(cobj) } noexcept;
+  { obj = cobj } noexcept;
+  { F_t(std::move(obj)) } noexcept;
+  { obj = std::move(obj) } noexcept;
+  {
+    obj.parse(format_input)
+  } noexcept -> std::same_as<status_view_t<version_v>>;
+  {
+    cobj.format(std::forward<T>(arg), it)
+  } noexcept -> std::same_as<status_view_t<version_v>>;
+};
 template <version_t version_v, typename T>
 concept easy_formatted_c =
     easy_formatted_helper_c<version_v, const std::remove_cvref_t<T>&,

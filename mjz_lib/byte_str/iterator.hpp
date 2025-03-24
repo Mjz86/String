@@ -102,7 +102,7 @@ class iterator_t {
   MJZ_CX_ND_FN difference_type
   operator-(const iterator_t& Right) const noexcept {
     MJZ_UNUSED auto checker = check();
-    asserts(asserts.assume_rn, Right.str==str);
+    asserts(asserts.assume_rn, Right.str == str);
     return difference_type(index) - difference_type(Right.index);
   }
   MJZ_CX_ND_FN reference operator[](const difference_type Off) const noexcept {
@@ -228,8 +228,8 @@ class base_out_it_t : public void_struct_t {
         function_ptr(+[](void_struct_t& obj_ref,
                          blazy opt_view_or_reserve) noexcept -> success_t {
           return void_struct_cast_t::down_cast<T>(obj_ref)
-              .format_back_insert_append_pv_fn_(
-              unsafe_ns::unsafe_v, opt_view_or_reserve);
+              .format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
+                                                opt_view_or_reserve);
         }) {}
 
   template <base_out_it_viawble_c<version_v> T>

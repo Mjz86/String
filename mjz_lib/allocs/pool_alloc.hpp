@@ -85,8 +85,7 @@ struct pool_alloc_info_t {
    private:
     MJZ_CX_FN auto lock_gaurd(bool is_threaded, bool mut_op) const noexcept {
       return lock_details_ns::lock_gaurd_maker<version_v>(
-          is_threaded, mutex_byte(), has_lock,
-                                         !mut_op);
+          is_threaded, mutex_byte(), has_lock, !mut_op);
     }
 
    public:

@@ -1,12 +1,9 @@
-
-
-
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
 
 Less lifetime management (dangling views) while maintaining view (and value)
-semantics and performance characteristics (no copying or allocation).  And
+semantics and performance characteristics (no copying or allocation). And
 planned Unicode support.
 
 # Abstract
@@ -20,7 +17,7 @@ Many C++ programmers have worked with strings. Several have been forced to use e
 
 # Implementation Details
 
-note that in the 32bit platform,  there are two options, 
+note that in the 32bit platform, there are two options,
 one is big address space ( 56 bit) and one is small address space ( 24bit) , in the small case , the object size is 16bytes and in the large case 32bytes.
 
 The basic layout can be thought of as the following (not valid C++, but its equivalent) (total of 32 bytes in my own implementation):
@@ -32,9 +29,9 @@ struct {
   size_t  length;
   union{
     char  buffer[15];
-    struct referencal_t{// the string is a reference to something 
+    struct referencal_t{// the string is a reference to something
       char* data_block;
-      size_t capacity:56;// in actuality only 7 bytes 
+      size_t capacity:56;// in actuality only 7 bytes
     };
   };
   uint8_t  control_byte;
@@ -52,15 +49,15 @@ uint8_t  /*the negation of this is actually stored*/is_threaded:1;
 
  uint8_t is_ownerized:1;   /*this flag is not propagated by copy or share, only by move,in the non-move case,  if any side (dest or src) has this flag set to true, a memcpy and a potential allocation occurs (if sso or stack buffer is not large enough) */
  // to always disable cow and viewer for a specific string ,
- // to remove the reference_count checks, 
+ // to remove the reference_count checks,
  //controled  with  always_ownerize(bool flag_state),
- //  (is_sharable&&!is_ownerized) determines sharability 
- // both of these flags are essential and they do not correlate. 
- 
-  uint8_t has_null:1;// needed to share substrings 
-  
+ //  (is_sharable&&!is_ownerized) determines sharability
+ // both of these flags are essential and they do not correlate.
+
+  uint8_t has_null:1;// needed to share substrings
+
   uint8_t:1;//unused_for_now_
-  uint8_t  encoding:3; // we are not a bag of bytes 
+  uint8_t  encoding:3; // we are not a bag of bytes
 };
 ```
 
@@ -69,7 +66,7 @@ The encoding flags are for knowing the encoding of the stored data.
 The heap block can be thought of as:
 
 ```c++
-struct {// this is just a 8 or 16 byte aligned char array with this layout 
+struct {// this is just a 8 or 16 byte aligned char array with this layout
   size_t  reference_count;
   char heap_buffer[capacity];
 };
@@ -79,45 +76,45 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
 
 1.  **At the string view state:**
 
-    *   `begin != buffer`.
-    *   `active union member == referencal_t`.
-    *   `begin != nullptr || 0 == length`.
-    *   `data_block == nullptr`.
-    *   `capacity == 0`.
-    *   `is_owner() == false`.
-    *   `is_ownerized == false`. 
-    the view optimization is essentially a cow string with   static lifetime,  therfore its not ownerized. 
-    
+    - `begin != buffer`.
+    - `active union member == referencal_t`.
+    - `begin != nullptr || 0 == length`.
+    - `data_block == nullptr`.
+    - `capacity == 0`.
+    - `is_owner() == false`.
+    - `is_ownerized == false`.
+      the view optimization is essentially a cow string with static lifetime, therfore its not ownerized.
+
 2.  **At the SSO string state:**
 
-    *   `begin == buffer`.
-    *   `active union member == buffer`.
-    *   `capacity == 15`.
-    *   `is_owner() == true`.
-    *   `is_sharable == false`.
-    *   `has_null == (length != 15)`.
+    - `begin == buffer`.
+    - `active union member == buffer`.
+    - `capacity == 15`.
+    - `is_owner() == true`.
+    - `is_sharable == false`.
+    - `has_null == (length != 15)`.
 
 3.  **Heap string state:**
 
-    *   `begin != buffer`.
-    *   `active union member == referencal_t`.
-    *   `begin != nullptr`.
-    *   `data_block == &heap_buffer`.
-    *   `capacity != 0`.
-    *   (`capacity` is almost always bigger than 15, but no guarantees are made)
-    *   `is_owner() ==(is_ownerized ||  (reference_count < 2))`.
-    * ` !is_ownerized || reference_count < 2`.
-    *   `is_sharable == true`.
+    - `begin != buffer`.
+    - `active union member == referencal_t`.
+    - `begin != nullptr`.
+    - `data_block == &heap_buffer`.
+    - `capacity != 0`.
+    - (`capacity` is almost always bigger than 15, but no guarantees are made)
+    - `is_owner() ==(is_ownerized ||  (reference_count < 2))`.
+    - ` !is_ownerized || reference_count < 2`.
+    - `is_sharable == true`.
 
 4.  **Stack buffer string state:**
 
-    *   `begin != buffer`.
-    *   `active union member == referencal_t`.
-    *   `begin != nullptr`.
-    *   `data_block != nullptr`.
-    *   `capacity != 0`.
-    *   `is_owner() == true`.
-    *   `is_sharable == false`.
+    - `begin != buffer`.
+    - `active union member == referencal_t`.
+    - `begin != nullptr`.
+    - `data_block != nullptr`.
+    - `capacity != 0`.
+    - `is_owner() == true`.
+    - `is_sharable == false`.
 
 Also, `[begin, end)` is a continuous sub-range of
 `[heap_buffer, heap_buffer + capacity)` if and only if `heap_buffer` is not
@@ -125,15 +122,16 @@ null and alive.
 
 # Addressing COW and the Drawbacks
 
-* note , if a string is showing bottlenecks on cow, try `ownerize()` or `always_ownerize(true)` or the `ownerized_string` ( the next release). 
-* on the main string:
+- note , if a string is showing bottlenecks on cow, try `ownerize()` or `always_ownerize(true)` or the `ownerized_string` ( the next release).
+- on the main string:
   All of the iterators, the methods, and functions only give constant
   references to the data.
- * for mutatable iteration, consider the following( next release):
- the `ownerized_string` wrapper is an equivalent of `std::string` ( null termination requirement  is given via template flag to provide `c_str`).
-users can convert between these easily without any lifetime issues,
-and because its a wrapper,  it wouldn't have code bloat. 
- i think rust had a cow and non cow string as well. 
+- for mutatable iteration, consider the following( next release):
+  the `ownerized_string` wrapper is an equivalent of `std::string` ( null termination requirement is given via template flag to provide `c_str`).
+  users can convert between these easily without any lifetime issues,
+  and because its a wrapper, it wouldn't have code bloat.
+  i think rust had a cow and non cow string as well.
+
 ```c++
 struct ownerized_string /* in actuality,  this is a using statement of the real template wrapper*/{
 private:
@@ -143,8 +141,8 @@ private:
 };
 ```
 
-i dont think the null terminator is important enough for a wrapper, 
-it shouldn't be dependent upon at all , its purely legacy. 
+i dont think the null terminator is important enough for a wrapper,
+it shouldn't be dependent upon at all , its purely legacy.
 
 but , its easy enough to add another template flag for it , so why not.
 
@@ -187,27 +185,29 @@ by the implemented library.
 
 # C Interoperability
 
-* this will be significantly simpler in the next release( wrapper ),  but for the main string , this is the criticism:
+- this will be significantly simpler in the next release( wrapper ), but for the main string , this is the criticism:
 
-* there are two options,  the current one:
-The `has_null` flag is used to see if there's a null terminator. If not, we may
-add it in the `as_c_str` function (non-const function, use `.data()`,
-`.length()`, `.has_null()`, and `memcpy()` if you want a constant
-alternative). Also, calling the copy (or share) constructor and using
-`as_c_str` on the l-value you made is effectively a const alternative with the
-same overhead (if we assume that stack buffer was not used on the first part).
- also , see `to_c_str()` if you need a `const` alternative .
- * the better one is ( in the next release):
- ```c++
+- there are two options, the current one:
+  The `has_null` flag is used to see if there's a null terminator. If not, we may
+  add it in the `as_c_str` function (non-const function, use `.data()`,
+  `.length()`, `.has_null()`, and `memcpy()` if you want a constant
+  alternative). Also, calling the copy (or share) constructor and using
+  `as_c_str` on the l-value you made is effectively a const alternative with the
+  same overhead (if we assume that stack buffer was not used on the first part).
+  also , see `to_c_str()` if you need a `const` alternative .
+- the better one is ( in the next release):
+
+```c++
 struct c_string {
-//.... another using statement of the real template wrapper, 
+//.... another using statement of the real template wrapper,
 // null termination is an invariant
 private:
-  //....
-  mjz::string value;
+ //....
+ mjz::string value;
 };
 ```
- this has the `c_str` function. 
+
+this has the `c_str` function.
 
 # Features and Implementation
 
@@ -217,30 +217,30 @@ viewer. A substring function may share the underlying data if and only if `!is_o
 
 # Mutable Strings
 
-* the main string:
-The string manages its resources and can be modified using the other part of
-the object. The functions ensure correct COW semantics, and they allocate when
-necessary. Almost all equipment functionality of `std::string` can be
-supported, except the following: the value of `operator[](i)`, `at(i)`,
-`*data()`, `front()`, `back()` cannot be mutated (see the historical COW
-reference for why). `c_str()` does not exist (`as_c_str()` does, but it can
-mutate and it only gives a pointer to `const`). I cannot prove a `const`
-alternative; I do not want pointers to temporaries nor relying on `has_null`
-being true. The "as" means that it modified it to be "as" requested (that's
-what the prefix in the name means). We can also use another name, but the
-function name isn't important in the design (`add_null_c_str`).
-note that the `data()` function  will have output a null terminated `const char*` if and only if `has_null()`.
-also , if you called `as_c_str()` without failing,  you know that `has_null()` is true.
-when we have `const` `data()`, i see no need for `const` `c_str()`
-we can also provide a `to_c_str()` that returns a copy(or share)  with has_null() set to true , 
-after this , the user can call `data()` , a `const` function, to get the null terminated string, 
-and unless a non const function is applied,  the string would be null terminated. 
+- the main string:
+  The string manages its resources and can be modified using the other part of
+  the object. The functions ensure correct COW semantics, and they allocate when
+  necessary. Almost all equipment functionality of `std::string` can be
+  supported, except the following: the value of `operator[](i)`, `at(i)`,
+  `*data()`, `front()`, `back()` cannot be mutated (see the historical COW
+  reference for why). `c_str()` does not exist (`as_c_str()` does, but it can
+  mutate and it only gives a pointer to `const`). I cannot prove a `const`
+  alternative; I do not want pointers to temporaries nor relying on `has_null`
+  being true. The "as" means that it modified it to be "as" requested (that's
+  what the prefix in the name means). We can also use another name, but the
+  function name isn't important in the design (`add_null_c_str`).
+  note that the `data()` function will have output a null terminated `const char*` if and only if `has_null()`.
+  also , if you called `as_c_str()` without failing, you know that `has_null()` is true.
+  when we have `const` `data()`, i see no need for `const` `c_str()`
+  we can also provide a `to_c_str()` that returns a copy(or share) with has_null() set to true ,
+  after this , the user can call `data()` , a `const` function, to get the null terminated string,
+  and unless a non const function is applied, the string would be null terminated.
 
-* the alternative is discussed in the cow section (`ownerized_string`) ( next release).
+- the alternative is discussed in the cow section (`ownerized_string`) ( next release).
 
 # COW Overhead
 
-* can be turned off for a specific string,  or by using the (`ownerized_string`) ( next release).
+- can be turned off for a specific string, or by using the (`ownerized_string`) ( next release).
 
 Other than the destruction and construction, which may need a branch to the
 non-view path if the optimizer doesn't realize triviality, the string const
@@ -266,7 +266,7 @@ ownership.
 
 # Built-In Stack Buffer Optimization (Advanced Users Only)
 
-* use a safe wrapper of this feature for a better quality of life (`implace_string`) ( next release).
+- use a safe wrapper of this feature for a better quality of life (`implace_string`) ( next release).
 
 By using a stack buffer, you ensure that no allocation occurs as long as the
 buffer is big enough. If not, allocation may occur. The users must ensure
@@ -281,31 +281,31 @@ implementation) may need it, so it's there.
 
 # tunable sso , no code bloat, no big types:
 
- * this will be provided with the name (`implace_string`) ( next release).
-( a safe wrapper of the stack buffer )
- we may provide a safe wrapper ( the string would be a private member ,the buffer would be a private member) class that has a bigger sso buffer ,
- while also reusing all the code of the string , think of it like an implace vector ,
- this wouldn't need lifetime knowledge,  so it would be for intermediate users .
- even if they never use the unsafe stack buffer directly. 
- this is like the game industry's sso strategy,  but with minimal code bloat,
- as a bonus, you can seamlessly pass this around without lifetime issues ( the is_sharable flag disables cow for the private sso buffer, so no dangling references)
- it can be converted to other wrappers of different sizes and to the string itself .
- also , if you remember,  from the copy construction section, 
- we would de-share automatically for these strings , essentially,
- the template size argument and type incompatibility dissappears (but does its job).
+- this will be provided with the name (`implace_string`) ( next release).
+  ( a safe wrapper of the stack buffer )
+  we may provide a safe wrapper ( the string would be a private member ,the buffer would be a private member) class that has a bigger sso buffer ,
+  while also reusing all the code of the string , think of it like an implace vector ,
+  this wouldn't need lifetime knowledge, so it would be for intermediate users .
+  even if they never use the unsafe stack buffer directly.
+  this is like the game industry's sso strategy, but with minimal code bloat,
+  as a bonus, you can seamlessly pass this around without lifetime issues ( the is_sharable flag disables cow for the private sso buffer, so no dangling references)
+  it can be converted to other wrappers of different sizes and to the string itself .
+  also , if you remember, from the copy construction section,
+  we would de-share automatically for these strings , essentially,
+  the template size argument and type incompatibility dissappears (but does its job).
 
 # The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
 
-* note that the null terminator retirement makes this harder for the `c_string`, mainly  , sharing substings will break cow more with null terminator  requirements( next release).
+- note that the null terminator retirement makes this harder for the `c_string`, mainly , sharing substings will break cow more with null terminator requirements( next release).
 
 Because the begin pointer is not limited to the beginning of the buffer, we
 can use the view semantics to remove the extra character without memmove.
 
 We also have 3 mods of the first position alignment of the range:
 
-*   Central buffer  (`begin = buffer + (cap - len) / 2`)
-*   Front buffer   (`begin = buffer`)
-*   Back buffer  (`begin = buffer + cap - len`)
+- Central buffer (`begin = buffer + (cap - len) / 2`)
+- Front buffer (`begin = buffer`)
+- Back buffer (`begin = buffer + cap - len`)
 
 After that, the position may change, but we could append and prepend to the
 range without memmove in many cases if we want to.
@@ -317,20 +317,19 @@ strings.
 
 # Copy on Write Optimization
 
-* not available in (`ownerized_string`) ( next release).
+- not available in (`ownerized_string`) ( next release).
 
 Allows us to share most of the data, even sharing the substrings, reducing
 fragmentation, allocations, and improving performance.
-if the user suspected that a peice of code had false sharing ( thread contention on reference count) ,  we recommend the `ownerize()` method, 
-it should  make the string the owner of the data , note that this does mostly nothing if we are the owner .
-note that sharing  is not applied in the copy constructor or assignment if the destination  buffer ia large enough to hold the data , and is an owner , this is because we dont want to deallocate a hot buffer for no reason. 
- then we could  make the strings with the most contention,  force ownerized,using , `always_ownerize(true)` so , no one would ever change their reference count to false share,
- this effectively kills cow for things that would suffer from it.
+if the user suspected that a peice of code had false sharing ( thread contention on reference count) , we recommend the `ownerize()` method,
+it should make the string the owner of the data , note that this does mostly nothing if we are the owner .
+note that sharing is not applied in the copy constructor or assignment if the destination buffer ia large enough to hold the data , and is an owner , this is because we dont want to deallocate a hot buffer for no reason.
+then we could make the strings with the most contention, force ownerized,using , `always_ownerize(true)` so , no one would ever change their reference count to false share,
+this effectively kills cow for things that would suffer from it.
 
 # Built-In String View Optimization
 
-* not available in (`ownerized_string`) ( next release).
-
+- not available in (`ownerized_string`) ( next release).
 
 When initializing a string from a literal, no allocation is performed. For
 example, in the following case, we do not allocate, but `std::string` does:
@@ -368,7 +367,7 @@ friendly pmr-like allocator. The string would be 8 bytes more with it, but
 it's beneficial for some contexts. Everything is `noexcept` in its API, and a
 failure is a simple `nullptr` return. The Allocator object (memory resource
 like) needs to outlive the string object, its copies, and its views.
-i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested. 
+i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested.
 
 # Value Semantics
 
@@ -380,11 +379,11 @@ shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_s
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # future versions:
-in the next release,  ill provide wrappers for mutation, null termination , and tuned sso .
-i also plan to support unicode with another library component that integrates with the byte-string, 
-currently,  i want to implement the rope, 
-but these two are planned. 
 
+in the next release, ill provide wrappers for mutation, null termination , and tuned sso .
+i also plan to support unicode with another library component that integrates with the byte-string,
+currently, i want to implement the rope,
+but these two are planned.
 
 # The Rope Counterpart
 
@@ -395,26 +394,27 @@ paper in the repository for anyone interested.
 
 # the pure view counterpart ( advanced users):
 
- * similar  to string view , we need lifetime insurance with this type.
+- similar to string view , we need lifetime insurance with this type.
 
- ill briefly talk about this , as its an important part. 
- when we need a trivial view type , this is it ,
- but when we need safety and can afford 16 bytes more ,
- use the main string. 
-we  have this as the view type in the library:
- ```c++
- struct {
+ill briefly talk about this , as its an important part.
+when we need a trivial view type , this is it ,
+but when we need safety and can afford 16 bytes more ,
+use the main string.
+we have this as the view type in the library:
+
+```c++
+struct {
 size_t  length:59;
 size_t  encoding:3;
 size_t has_null:1;
 size_t  is_static:1;// equivalent to is_sharable,  but in the view world,  this is just a tag.
 const char*begin;
 };
- ```
- 
+```
 
 # Usability
-* this is a header only library, i currently support gcc and msvc and clang.
+
+- this is a header only library, i currently support gcc and msvc and clang.
 
 All of the `string_view` functionality is supported (an equivalent of it in my
 library) because we focused on being like views, we lost the ease of these two
@@ -441,28 +441,29 @@ intermediate null terminators, I think it would be a bug to require null
 termination (see the talk on Folly's string implementation), and again, we did
 put `as_c_str`, so I think there's no valid complaints.
 
- * the alternative string types are mentioned above , for when a requirement is necessary ( next release).
+- the alternative string types are mentioned above , for when a requirement is necessary ( next release).
 
 # Extensions:
-in my library,  i have a fmt like format library,  to generate these strings , 
-so , mutable iteration is not a problem for me at all, in my opinion. 
+
+in my library, i have a fmt like format library, to generate these strings ,
+so , mutable iteration is not a problem for me at all, in my opinion.
 my formatting library should also support ropes in a efficient way when they are implemented  
-( every section would be like rope sections, and if it get it right,  the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
+( every section would be like rope sections, and if it get it right, the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
 
 # where would you place this:
 
-* mutable owner:
-`std::string` vs `mjz::ownerized_string`
-* in between:
- `mjz::string`,continuous. vs ?
-( maybe rust cow string)
+- mutable owner:
+  `std::string` vs `mjz::ownerized_string`
+- in between:
+  `mjz::string`,continuous. vs ?
+  ( maybe rust cow string)
   `mjz::rope`, discontinues. vs ?
-( maybe other lazy ropes)
-* immutable viewer:
- `std::string_view` vs `mjz::string_view`
-
+  ( maybe other lazy ropes)
+- immutable viewer:
+  `std::string_view` vs `mjz::string_view`
 
 # Conclusion
+
 With the growing use of string views, there has become an opportunity to get
 the best of both worlds. We can use our strings like a string view, get value
 semantics, still not copy or allocate, and use a unified type for our strings,
@@ -473,14 +474,9 @@ the best implemented out of 5 that I made, but this provides a good way to
 minimize UB of use-after-free with using a reference-counted string view,
 while still benefiting from most of its upsides.
 
-
-
-
-
-
-
 **Note:**
- * because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
+
+- because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
 
 Also, sorry if the markdown is not professional; I don't have much experience
 with it.
@@ -492,34 +488,35 @@ You may give feedback in:
 [https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
 **References and Inspirations:**
-* legacy cow vs sso in the standard ( old video):
-   [https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF](https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF)
 
-* All Rust string types explained :
-    [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
-*   Learn about the cache:
-    [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
-*   String view usage:
-    [https://www.youtube.com/watch?v=PEvkBmuMIr8](https://www.youtube.com/watch?v=PEvkBmuMIr8)
-*   `std::basic_string`:
-    [https://en.cppreference.com/w/cpp/string/basic_string](https://en.cppreference.com/w/cpp/string/basic_string)
-*   `std::basic_string_view`:
-    [https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
-*   CppCon 2017: Barbara Geller & Ansel Sermersheim “Unicode Strings: Why the
-    Implementation Matters”:
-    [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
-*   CppCon 2016: Nicholas Ormrod “The strange details of std::string at
-    Facebook”:
-    [https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
-*   Optimizing A String Class for Computer Graphics in Cpp - Zander Majercik,
-    Morgan McGuire CppCon 22:
-    [https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
-*   CppCon 2018: Victor Ciura “Enough string_view to Hang Ourselves”:
-    [https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
-*   Postmodern immutable data structures:
-    [https://www.youtube.com/watch?v=sPhpelUfu8Q](https://www.youtube.com/watch?v=sPhpelUfu8Q)
-*   strings 1 - Why COW is ungood for std string\strings 1 - Why COW is
-    ungood for std string:
-    [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
-* lib format :
-   [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
+- legacy cow vs sso in the standard ( old video):
+  [https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF](https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF)
+
+- All Rust string types explained :
+  [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
+- Learn about the cache:
+  [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
+- String view usage:
+  [https://www.youtube.com/watch?v=PEvkBmuMIr8](https://www.youtube.com/watch?v=PEvkBmuMIr8)
+- `std::basic_string`:
+  [https://en.cppreference.com/w/cpp/string/basic_string](https://en.cppreference.com/w/cpp/string/basic_string)
+- `std::basic_string_view`:
+  [https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
+- CppCon 2017: Barbara Geller & Ansel Sermersheim “Unicode Strings: Why the
+  Implementation Matters”:
+  [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
+- CppCon 2016: Nicholas Ormrod “The strange details of std::string at
+  Facebook”:
+  [https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
+- Optimizing A String Class for Computer Graphics in Cpp - Zander Majercik,
+  Morgan McGuire CppCon 22:
+  [https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
+- CppCon 2018: Victor Ciura “Enough string_view to Hang Ourselves”:
+  [https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
+- Postmodern immutable data structures:
+  [https://www.youtube.com/watch?v=sPhpelUfu8Q](https://www.youtube.com/watch?v=sPhpelUfu8Q)
+- strings 1 - Why COW is ungood for std string\strings 1 - Why COW is
+  ungood for std string:
+  [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
+- lib format :
+  [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)

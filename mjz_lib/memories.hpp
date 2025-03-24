@@ -71,15 +71,13 @@ MJZ_CX_FN bool memory_has_overlap(const char* const a_ptr_, uintlen_t a_len,
   }
 }
 
-
-
 MJZ_CX_FN char* memcpy_forward(char* dest, const char* src,
                                uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
     return reinterpret_cast<char*>(
         ::std::memmove(reinterpret_cast<void*>(dest),
-                      reinterpret_cast<const void*>(src), len));
-  } 
+                       reinterpret_cast<const void*>(src), len));
+  }
   char* d = dest;
   const char* s = src;
   while (len--) {
@@ -94,7 +92,7 @@ MJZ_CX_FN char* memcpy_backward(char* dest, const char* src,
     return reinterpret_cast<char*>(
         ::std::memmove(reinterpret_cast<void*>(dest),
                        reinterpret_cast<const void*>(src), len));
-  } 
+  }
   char* d = dest;
   const char* s = src;
   while (len--) {
@@ -109,11 +107,11 @@ MJZ_CX_FN char* memomve_overlap(char* dest, const char* src,
     return reinterpret_cast<char*>(
         ::std::memmove(reinterpret_cast<void*>(dest),
                        reinterpret_cast<const void*>(src), len));
-  } 
+  }
   if (dest <= src) {
     return memcpy_forward(dest, src, len);
   }
-return memcpy_backward(dest, src, len);
+  return memcpy_backward(dest, src, len);
 }
 /*
 O(len) time complexity .
@@ -126,7 +124,7 @@ MJZ_CX_FN char* memcpy(char* dest, const char* src, uintlen_t len) noexcept {
         ::std::memcpy(reinterpret_cast<void*>(dest),
                       reinterpret_cast<const void*>(src), len));
   }
-  return memcpy_forward(dest, src,len);
+  return memcpy_forward(dest, src, len);
 }
 
 /*
@@ -312,8 +310,6 @@ MJZ_CX_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
   return array;
 }
 
-
-
 template <typename T, class F_t>
   requires requires(F_t&& access_at, uintlen_t i, const T& value) {
     { bool(access_at(i) <= value) } noexcept;
@@ -321,7 +317,7 @@ template <typename T, class F_t>
   }
 MJZ_CX_FN uintlen_t mjz_binary_search(const T& value, uintlen_t array_size,
                                       F_t&& access_at,
-    bool exclusive_search = false) noexcept { 
+                                      bool exclusive_search = false) noexcept {
   if (!array_size) return array_size;
   if (bool(access_at(array_size - 1) < value)) {
     return array_size;

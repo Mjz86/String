@@ -1,5 +1,7 @@
-#include "base.hpp"
 #include <atomic>
+
+#include "base.hpp"
+
 #ifndef MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
 #define MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
 namespace mjz::threads_ns {
@@ -36,33 +38,35 @@ class alignas(alignof(flag_t)) bit_mutex_t {
       return m.test_and_set(std::memory_order_acquire);
     }
   }
-  MJZ_NCX_FN void wait_m(auto& m) noexcept { 
-    #if !MJZ_SPIN_WITH_WAIT_
+  MJZ_NCX_FN void wait_m(auto& m) noexcept {
+#if !MJZ_SPIN_WITH_WAIT_
     return m.wait(true, std::memory_order_acquire);
-    #else
+#else
     if constexpr (uses_atomic_bool) {
-     while(m.load(std::memory_order_acquire));;
+      while (m.load(std::memory_order_acquire));
+      ;
     } else {
-      while(m.test(std::memory_order_acquire));;
+      while (m.test(std::memory_order_acquire));
+      ;
     }
     return;
-    #endif
+#endif
   }
   MJZ_NCX_FN void unlock_m(auto& m) noexcept {
     if constexpr (uses_atomic_bool) {
       m.store(false, std::memory_order_release);
       if (!m.load(std::memory_order_acquire) != 0) MJZ_IS_LIKELY {
-        #if !MJZ_SPIN_WITH_WAIT_
+#if !MJZ_SPIN_WITH_WAIT_
           m.notify_one();
-        #endif
+#endif
         }
 
     } else {
       m.clear(std::memory_order_release);
       if (!m.test(std::memory_order_acquire)) MJZ_IS_LIKELY {
-         #if !MJZ_SPIN_WITH_WAIT_
-          m.notify_one(); 
-          #endif
+#if !MJZ_SPIN_WITH_WAIT_
+          m.notify_one();
+#endif
         }
     }
   }
@@ -161,6 +165,5 @@ class alignas(alignof(flag_t)) bit_mutex_t {
     }(*just_get());
   }
 };
-};  // namespace threads_ns
-#endif // MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
- 
+};  // namespace mjz::threads_ns
+#endif  // MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
