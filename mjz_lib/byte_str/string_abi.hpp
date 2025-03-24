@@ -4,6 +4,18 @@
 #ifndef MJZ_BYTE_STRING_string_abi_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_string_abi_LIB_HPP_FILE_
 namespace mjz ::bstr_ns {
+struct wrapped_props_t {
+  uintlen_t sso_min_cap{};
+  bool has_alloc{};
+  bool has_null{};
+  bool is_ownerized{};
+  MJZ_CX_FN uintlen_t cap() const noexcept {
+    if (sso_min_cap % sizeof(uintlen_t)) {
+      return (sso_min_cap | (1 - sizeof(uintlen_t))) + 1;
+    }
+    return sso_min_cap;
+  }
+};
 template <version_t version_v>
 struct MJZ_DEPRECATED_R(" unneccesery alloc_ref creation ") base_str_info_t {
   allocs_ns::alloc_base_ref_t<version_v> alloc{};

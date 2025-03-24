@@ -45,9 +45,10 @@ MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>::basic_str_t(
 
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>::basic_str_t(
-    const dont_mess_up_t &, owned_stack_buffer stack_buffer,
+    const dont_mess_up_t &, owned_stack_buffer &&stack_buffer,
     cheap_str_info &&info, uintlen_t byte_offset, uintlen_t byte_count) noexcept
     : basic_str_t() {
+  MJZ_RELEASE { stack_buffer = owned_stack_buffer{}; };
   bool success{true};
   MJZ_RELEASE {
     reset_to_error_on_fail(
@@ -82,7 +83,7 @@ MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>::basic_str_t(
 
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>::basic_str_t(
-    const dont_mess_up_t &ok, owned_stack_buffer stack_buffer,
+    const dont_mess_up_t &ok, owned_stack_buffer &&stack_buffer,
     uintlen_t byte_offset, uintlen_t byte_count) noexcept
     : basic_str_t(ok, std::move(stack_buffer), cheap_str_info{}, byte_offset,
                   byte_count) {}
@@ -242,7 +243,7 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data(
     const basic_str_t &str, bool no_allocate, uintlen_t offset,
     uintlen_t count) noexcept {
-  if (&str == this) return true;
+  if (&str == this) return as_substring(offset, count);
   /* this is early check becacuse replace_data is probably not inline*/
   if (no_allocate && m.mut_data.sso_cap < str.length() &&
       (m.get_capacity() < str.length() || !m.is_owner())) {
@@ -273,7 +274,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data(
     return false;
   }
   if (m.length) {
-    memmove(m.mut_begin(), str.data() + offset, count);
+    memcpy(m.mut_begin(), str.data() + offset, count);
   }
   return true;
 }
@@ -306,6 +307,9 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::share_init(
     const basic_str_t &str, bool no_allocate, uintlen_t offset,
     uintlen_t count) noexcept {
+  if (&str == this) {
+    return as_substring(offset, count);
+  }
   if (!str.m.template d_get_cntrl<bool>(my_details::is_sharable) ||
       str.m.template d_get_cntrl<bool>(my_details::is_ownerized) ||
       m.template d_get_cntrl<bool>(my_details::is_ownerized)) {
@@ -572,7 +576,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::remove_prefix(
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN uintlen_t
-basic_str_t<version_v, has_alloc_v_>::capacity(bool must_owner) noexcept {
+basic_str_t<version_v, has_alloc_v_>::capacity(bool must_owner)const noexcept {
   return !must_owner || is_owner() ? m.get_capacity() : 0;
 }
 
@@ -593,6 +597,20 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::reserve(
          remove_suffix(delta);
 }
 
+template <version_t version_v, bool has_alloc_v_>
+MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::consider_stack(
+    const dont_mess_up_t &, owned_stack_buffer &&stack_buffer) noexcept {
+  MJZ_RELEASE { stack_buffer = owned_stack_buffer{}; };
+  if (stack_buffer.buffer_size < length()) return true;
+  memcpy(stack_buffer.buffer, data(), size());
+  asserts(asserts.assume_rn,
+          total_reset(true) &&
+              m.construct_non_sso_from_invalid(
+                                   stack_buffer.buffer, 0, stack_buffer.buffer,
+                                   stack_buffer.buffer_size, false, true));
+  m.add_null(true);
+  return true;
+}
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::shrink_to_fit(
     bool force_ownership) noexcept {
@@ -622,7 +640,7 @@ basic_str_t<version_v, has_alloc_v_>::clear(bool force_ownership) noexcept {
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::to_c_str() noexcept {
+MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::add_null() noexcept {
   if (has_null() || m.add_null(true)) return true;
   if (!replace_data_with_char(nops, 0, 1, '\0', m.get_alloc())) {
     return false;
@@ -635,7 +653,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::to_c_str() noexcept {
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN const char *basic_str_t<version_v, has_alloc_v_>::as_c_str()
     & noexcept {
-  return to_c_str() ? data() : nullptr;
+  return add_null() ? data() : nullptr;
 }
 /*
  *calculates the hash

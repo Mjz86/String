@@ -75,7 +75,7 @@ class str_heap_manager_t {
                              bool round_up = true) noexcept {
     if (!m.alloc_ref) return false;
     if (!!*this) {
-      if (!free()) {
+      if (m.reduce_rc_on_manager_destruction&&!free()) {
         return false;
       }
     }

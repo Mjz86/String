@@ -3,7 +3,7 @@
 #define MJZ_RELEASER_LIB_HPP_FILE_
 #include <array>
 #include <bit>
-
+#include <concepts>
 namespace mjz {
 template <class unique_accessor_id_t>
 class mjz_private_accessed_t {};
@@ -11,8 +11,59 @@ struct totally_empty_type_t {};
 using nullptr_t = std::nullptr_t;
 MJZ_CONSTANT(totally_empty_type_t) totally_empty_type{};
 static_assert(std::is_empty_v<totally_empty_type_t>);
-using void_struct_t = totally_empty_type_t;
+using void_struct_t = totally_empty_type_t; 
+template <>
+class mjz_private_accessed_t<void_struct_t(void_struct_t*)> {
+ public:
+  template <class T>
+  MJZ_CX_FN static T mptr_static_cast(auto p) noexcept{
+    if constexpr (requires() { static_cast<T>(p); }) {
+      return static_cast<T>(p); 
+    } else if constexpr (std::same_as <std::remove_cvref_t< decltype(p) >, nullptr_t >) {
+      return nullptr;
+    } else if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>,
+                                      void_struct_t*>) {
+      return std::remove_pointer_t<std::remove_cvref_t<T>>::mptr_static_cast_pv_fn_(p);
+    } else {
+      if (!p) return nullptr;
+     return p->template mptr_static_cast_pv_fn_<T>();
+    }
+  }
 
+  template <class T>
+  MJZ_CX_FN static auto up_cast(T* ptr) noexcept {
+    return mptr_static_cast<void_struct_t*>(ptr);
+  }
+  template <class T>
+  MJZ_CX_FN static auto up_cast(const T* ptr) noexcept {
+    return mptr_static_cast<const void_struct_t*>(ptr);
+  }
+  template <class T>
+  MJZ_CX_FN static auto down_cast(void_struct_t* ptr) noexcept {
+    return mptr_static_cast<T*>(ptr);
+  }
+  template <class T>
+  MJZ_CX_FN static auto down_cast(const void_struct_t* ptr) noexcept {
+    return mptr_static_cast<const T*>(ptr);
+  }
+  template <class T>
+  MJZ_CX_FN static decltype(auto) up_cast(T& ptr) noexcept {
+    return *up_cast(std::addressof(ptr));
+  }
+  template <class T>
+  MJZ_CX_FN static auto up_cast(const T& ptr) noexcept {
+    return *up_cast(std::addressof(ptr));
+  }
+  template <class T>
+  MJZ_CX_FN static decltype(auto) down_cast(void_struct_t& ptr) noexcept {
+    return *down_cast<T>(std::addressof(ptr));
+  }
+  template <class T>
+  MJZ_CX_FN static decltype(auto) down_cast(const void_struct_t& ptr) noexcept {
+    return *down_cast<T>(std::addressof(ptr));
+  }
+}; 
+using void_struct_cast_t=mjz_private_accessed_t<void_struct_t(void_struct_t*)>;
 enum class may_bool_t : char { yes, no, idk, err };
 MJZ_CONSTANT(bool)
 SYSTEM_is_little_endian_{std::endian::little == std::endian::native};

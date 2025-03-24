@@ -16,6 +16,7 @@
 #include "../mjz_lib/byte_str/formatting/range_formatters.hpp"
 #include "../mjz_lib/byte_str/formatting/std_view_formatters.hpp"
 #include "../mjz_lib/byte_str/string.hpp"
+#include "../mjz_lib/byte_str/wraped_string.hpp"
 namespace used_mjz_ns {
 using namespace mjz;
 using namespace bstr_ns;
@@ -42,12 +43,12 @@ struct main_t {
 };
 
 MJZ_CX_FN void main_t::run() const {
-  std::array<char, 128> buf{};
-  owned_stack_buffer_t<version_v> osb{.buffer=buf.data(),
-                                      .buffer_size=buf.size()};
-  bool disable_cow{false};
-  str_t result{unsafe_ns::unsafe_v, std::move(osb)};
-  str_t s = "i am a big massage 0123456789abcdefghijklmnop"_str;
+  constexpr wrapped_props_t wrapped_props{.sso_min_cap=128,
+                                          .is_ownerized = true};
+  bool disable_cow { false};
+  wrapped_string_t<version_v, wrapped_props> result{};
+  str_t s =
+      "i am a big massage 0123456789abcdefghijklmnop53666666666666666666666666"_str;
   if (disable_cow) {
     std::ignore = s.as_always_ownerized(true);
   }
@@ -59,5 +60,5 @@ MJZ_CX_FN void main_t::run() const {
   std::optional<uintlen_t> val = num.to_integral<uintlen_t>();
   format_to(result, "{}{:s}"_fmt, front_part, std::views::iota(0, 10));
   println("{} num : {} "_fmt, result, val);
-}
-};  // namespace used_mjz_ns
+}; 
+}; // namespace used_mjz_ns

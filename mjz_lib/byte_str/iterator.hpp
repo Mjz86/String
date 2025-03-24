@@ -1,4 +1,4 @@
-#include"../allocs/alloc_ref.hpp"
+#include "../allocs/alloc_ref.hpp"
 #include "../traits.hpp"
 #include "base.hpp"
 #include "traits.hpp"
@@ -102,6 +102,7 @@ class iterator_t {
   MJZ_CX_ND_FN difference_type
   operator-(const iterator_t& Right) const noexcept {
     MJZ_UNUSED auto checker = check();
+    asserts(asserts.assume_rn, Right.str==str);
     return difference_type(index) - difference_type(Right.index);
   }
   MJZ_CX_ND_FN reference operator[](const difference_type Off) const noexcept {
@@ -115,6 +116,7 @@ class iterator_t {
   MJZ_CX_ND_FN std::strong_ordering operator<=>(
       const iterator_t& Right) const noexcept {
     MJZ_UNUSED auto checker = check();
+    asserts(asserts.assume_rn, Right.str == str);
     return index <=> Right.index;
   }
 
@@ -183,7 +185,6 @@ template <version_t version_v>
 using mut_iterator_t = typename mut_ref_t<version_v>::iterator;
 
 };  // namespace basic_str_abi_ns_
-
 template <typename T, version_t version_v>
 concept base_out_it_viawble_c =
     requires(T obj, void_struct_t* vp,
@@ -192,7 +193,7 @@ concept base_out_it_viawble_c =
         obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
                                              opt_view_or_reserve)
       } noexcept -> std::same_as<success_t>;
-      static_cast<T*>(vp);
+      void_struct_cast_t::down_cast<T>(vp);
     };
 
 template <typename T, version_t version_v>
@@ -204,7 +205,7 @@ concept base_out_it_lazy_viawble_c =
         obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
                                              opt_view_or_reserve)
       } noexcept -> std::same_as<success_t>;
-      static_cast<T*>(vp);
+      void_struct_cast_t::down_cast<T>(vp);
     };
 template <version_t version_v>
 class base_out_it_t : public void_struct_t {
@@ -223,20 +224,21 @@ class base_out_it_t : public void_struct_t {
 
   template <base_out_it_lazy_viawble_c<version_v> T>
   MJZ_CX_FN base_out_it_t(T* actual_object, void_struct_t) noexcept
-      : obj(static_cast<void_struct_t*>(actual_object)),
+      : obj(void_struct_cast_t::up_cast(actual_object)),
         function_ptr(+[](void_struct_t& obj_ref,
                          blazy opt_view_or_reserve) noexcept -> success_t {
-          return static_cast<T&>(obj_ref).format_back_insert_append_pv_fn_(
+          return void_struct_cast_t::down_cast<T>(obj_ref)
+              .format_back_insert_append_pv_fn_(
               unsafe_ns::unsafe_v, opt_view_or_reserve);
         }) {}
 
   template <base_out_it_viawble_c<version_v> T>
     requires(!base_out_it_lazy_viawble_c<T, version_v>)
   MJZ_CX_FN base_out_it_t(T* actual_object, void_struct_t) noexcept
-      : obj(static_cast<void_struct_t*>(actual_object)),
+      : obj(void_struct_cast_t::up_cast(actual_object)),
         function_ptr(+[](void_struct_t& obj_ref,
                          blazy opt_view_or_reserve) noexcept -> success_t {
-          auto& actual_obj = static_cast<T&>(obj_ref);
+          auto& actual_obj = void_struct_cast_t::down_cast<T>(obj_ref);
           if (opt_view_or_reserve.is_invalid()) {
             return actual_obj.format_back_insert_append_pv_fn_(
                 unsafe_ns::unsafe_v,
@@ -249,7 +251,7 @@ class base_out_it_t : public void_struct_t {
                                  encodings_e(opt_view_or_reserve.encodings))) &&
                  opt_view_or_reserve.get_value(
                      [&](base_string_view_t<version_v> read_slice) noexcept
-                     -> success_t {
+                         -> success_t {
                        return actual_obj.format_back_insert_append_pv_fn_(
                            unsafe_ns::unsafe_v, read_slice);
                      });
@@ -365,7 +367,7 @@ struct out_buf_t : void_struct_t {
     return view.get_value_fn(
         view, +no_type_ns::make<lazy_reader_fnt<version_v>>(
                   [this](base_string_view_t<version_v> read_slice) noexcept
-                  -> success_t {
+                      -> success_t {
                     size_left -= read_slice.len;
                     memcpy(buf + len, read_slice.ptr, read_slice.len);
                     len += read_slice.len;
@@ -412,7 +414,7 @@ struct out_buf_it_t : void_struct_t {
       return it.format_back_insert_append_pv_fn_(idk, view) || fail();
     }
     return view.get_value([&](base_string_view_t<version_v> read_slice) noexcept
-                          -> success_t { return opt_flush(read_slice); }) ||
+                              -> success_t { return opt_flush(read_slice); }) ||
            fail();
   }
   MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
