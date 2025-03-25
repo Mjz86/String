@@ -379,7 +379,8 @@ shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_s
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # future versions:
-
+* the string wrappers are available as an exponential feature.
+  
 in the next release, ill provide wrappers for mutation, null termination , and tuned sso .
 i also plan to support unicode with another library component that integrates with the byte-string,
 currently, i want to implement the rope,
