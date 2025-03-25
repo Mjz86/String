@@ -122,7 +122,7 @@ null and alive.
 
 # Addressing COW and the Drawbacks
 
-- note , if a string is showing bottlenecks on cow, try `ownerize()` or `always_ownerize(true)` or the `ownerized_string` ( the next release).
+- note , if a string is showing bottlenecks on cow, try `ownerize()` or `always_ownerize(true)` or the `ownerized_string`.
 - on the main string:
   All of the iterators, the methods, and functions only give constant
   references to the data.
@@ -185,7 +185,7 @@ by the implemented library.
 
 # C Interoperability
 
-- this will be significantly simpler in the next release( wrapper ), but for the main string , this is the criticism:
+- this will be significantly simpler with the wrapper, but for the main string , this is the criticism:
 
 - there are two options, the current one:
   The `has_null` flag is used to see if there's a null terminator. If not, we may
@@ -195,7 +195,7 @@ by the implemented library.
   `as_c_str` on the l-value you made is effectively a const alternative with the
   same overhead (if we assume that stack buffer was not used on the first part).
   also , see `to_c_str()` if you need a `const` alternative .
-- the better one is ( in the next release):
+- the better one is :
 
 ```c++
 struct c_string {
@@ -236,11 +236,11 @@ viewer. A substring function may share the underlying data if and only if `!is_o
   after this , the user can call `data()` , a `const` function, to get the null terminated string,
   and unless a non const function is applied, the string would be null terminated.
 
-- the alternative is discussed in the cow section (`ownerized_string`) ( next release).
+- the alternative is discussed in the cow section (`ownerized_string`).
 
 # COW Overhead
 
-- can be turned off for a specific string, or by using the (`ownerized_string`) ( next release).
+- can be turned off for a specific string, or by using the (`ownerized_string`) .
 
 Other than the destruction and construction, which may need a branch to the
 non-view path if the optimizer doesn't realize triviality, the string const
@@ -266,7 +266,7 @@ ownership.
 
 # Built-In Stack Buffer Optimization (Advanced Users Only)
 
-- use a safe wrapper of this feature for a better quality of life (`implace_string`) ( next release).
+- use a safe wrapper of this feature for a better quality of life (`implace_string`) .
 
 By using a stack buffer, you ensure that no allocation occurs as long as the
 buffer is big enough. If not, allocation may occur. The users must ensure
@@ -281,7 +281,7 @@ implementation) may need it, so it's there.
 
 # tunable sso , no code bloat, no big types:
 
-- this will be provided with the name (`implace_string`) ( next release).
+- this will be provided with the name (`implace_string`) .
   ( a safe wrapper of the stack buffer )
   we may provide a safe wrapper ( the string would be a private member ,the buffer would be a private member) class that has a bigger sso buffer ,
   while also reusing all the code of the string , think of it like an implace vector ,
@@ -296,7 +296,7 @@ implementation) may need it, so it's there.
 
 # The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
 
-- note that the null terminator retirement makes this harder for the `c_string`, mainly , sharing substings will break cow more with null terminator requirements( next release).
+- note that the null terminator retirement makes this harder for the `c_string`, mainly , sharing substings will break cow more with null terminator requirements.
 
 Because the begin pointer is not limited to the beginning of the buffer, we
 can use the view semantics to remove the extra character without memmove.
@@ -317,7 +317,7 @@ strings.
 
 # Copy on Write Optimization
 
-- not available in (`ownerized_string`) ( next release).
+- not available in (`ownerized_string`) .
 
 Allows us to share most of the data, even sharing the substrings, reducing
 fragmentation, allocations, and improving performance.
@@ -329,7 +329,7 @@ this effectively kills cow for things that would suffer from it.
 
 # Built-In String View Optimization
 
-- not available in (`ownerized_string`) ( next release).
+- not available in (`ownerized_string`) .
 
 When initializing a string from a literal, no allocation is performed. For
 example, in the following case, we do not allocate, but `std::string` does:
@@ -379,12 +379,12 @@ shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_s
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # future versions:
-* the string wrappers are available as an exponential feature.
+* the string wrapper is available as an exponential feature, the wrapper  accepts  a template pram for the properties to ensure ( `sso_cap,has_null,is_ownerized`), the stack buffer with the appropriate length will be provided ( if cap is more than sso), the string would be null terminated if required,  and the string would be easily mutable if required,  the 3 different  string wrappers can be made by using a specific template pram, or a combination of them if needed ( mutable and big sso for example).
   
-in the next release, ill provide wrappers for mutation, null termination , and tuned sso .
-i also plan to support unicode with another library component that integrates with the byte-string,
+
+i plan to support unicode with another library component that integrates with the byte-string,
 currently, i want to implement the rope,
-but these two are planned.
+but this is planned.
 
 # The Rope Counterpart
 
