@@ -3,7 +3,7 @@
 #include "../byte_str/string.hpp"
 #ifndef MJZ_BYTE_STRING_wraped_string_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_wraped_string_LIB_HPP_FILE_
-namespace mjz ::bstr_ns {
+namespace mjz::bstr_ns {
 
 template <version_t version_v, wrapped_props_t props_v>
 struct wrapped_string_data_t
@@ -110,17 +110,11 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
         void_struct_cast_t::up_cast(this));
   }
   MJZ_CX_FN static success_t ensure_props(str_t &where) noexcept {
-    if constexpr (props_v.is_ownerized) {
-      if (!where.as_always_ownerized(true)) return false;
-    }
-    if constexpr (props_v.has_null) {
-      if (!where.add_null()) return false;
-    }
-    return true;
+    return where.ensure_props(props_v);
   }
   MJZ_CX_FN auto prop_guard() noexcept {
     return releaser_t{[this]() noexcept {
-      if (ensure_props(m_str())) {
+      if (init_stack(m_str()) && ensure_props(m_str())) {
         return;
       }
       // this err has to fit in sso  :( , so  data() can modify it.
@@ -131,7 +125,8 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   MJZ_CX_FN success_t init_stack(str_t &where) noexcept {
     std::optional<owned_stack_buffer_t<version_v>> msb = my_stack_buffer();
     if (!msb) return true;
-    return where.consider_stack(unsafe_ns::unsafe_v, std::move(*msb));
+    return where.may_reconsider_stack(unsafe_ns::unsafe_v, *msb,
+                                      props_v.has_null);
   }
 
  public:
@@ -164,13 +159,56 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   MJZ_CX_FN wrapped_string_t(
       const wrapped_string_data_t<version_v, version_v_src> &source_) noexcept
       : wrapped_string_t(source_.m_str()) {}
-  MJZ_CX_FN success_t move_to_dest(str_t &dest) const noexcept {
+
+  template <wrapped_props_t version_v_src>
+  MJZ_CX_FN wrapped_string_t &operator=(
+      wrapped_string_data_t<version_v, version_v_src> &&source_) noexcept {
+    MJZ_UNUSED auto gard_ = prop_guard();
+    m_str().reset_to_error_on_fail(
+        source_.move_to_dest(m_str()),
+        "[Error]wrapped_string_t::wrapped_string_t &operator=( "
+        "wrapped_string_data_t<version_v_src, version_v_src>&&):  failed "
+        "string assign");
+    return *this;
+  }
+  template <wrapped_props_t version_v_src>
+  MJZ_CX_FN wrapped_string_t &operator=(
+      const wrapped_string_data_t<version_v, version_v_src> &source_) noexcept {
+    MJZ_UNUSED auto gard_ = prop_guard();
+    m_str().reset_to_error_on_fail(
+        m_str().assign(source_.m_str()),
+        "[Error]wrapped_string_t::wrapped_string_t &operator=( "
+        "const wrapped_string_data_t<version_v_src, version_v_src>&):  failed "
+        "string assign");
+    return *this;
+  }
+
+  MJZ_CX_FN wrapped_string_t &operator=(const str_t &source_) noexcept {
+    MJZ_UNUSED auto gard_ = prop_guard();
+    m_str().reset_to_error_on_fail(m_str().assign(source_),
+                                   "[Error]wrapped_string_t::wrapped_string_t "
+                                   "&operator=(const str_t &):  failed "
+                                   "string assign");
+    return *this;
+  }
+  MJZ_CX_FN wrapped_string_t &operator=(str_t &&source_) noexcept {
+    MJZ_UNUSED auto gard_ = prop_guard();
+    m_str().reset_to_error_on_fail(init_stack(source_) &&
+                                       ensure_props(source_) &&
+                                       m_str().move_init(std::move(source_)),
+                                   "[Error]wrapped_string_t::wrapped_string_t "
+                                   "&operator=(str_t&&):  failed "
+                                   "string assign");
+    return *this;
+  }
+
+ public:
+  MJZ_CX_FN success_t move_to_dest(str_t &dest) noexcept {
     if (m_str().is_stacked()) {
       return dest.assign(m_str());
     }
     return dest.assign_move(std::move(m_str()));
   }
-
   MJZ_CX_FN operator const str_t &() const noexcept { return m_str(); }
   MJZ_CX_FN const str_t &get() const noexcept { return m_str(); }
   MJZ_CX_ND_FN const auto &get_alloc() const noexcept {
@@ -715,8 +753,26 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     MJZ_UNUSED auto gard_ = prop_guard();
     return m_str().format_back_insert_append_pv_fn_(idk, v, rp);
   }
-};
 
+#if MJZ_WITH_iostream
+
+  MJZ_NCX_FN friend std::ostream &operator<<(std::ostream &cout_v,
+                                             const wrapped_string_t &obj) {
+    return cout_v << obj.m_str();
+  }
+  MJZ_NCX_FN friend std::istream &operator>>(std::istream &cin_v,
+                                             wrapped_string_t &obj) {
+    MJZ_UNUSED auto gard_ = obj.prop_guard();
+    return cin_v >> obj.m_str();
+  }
+  MJZ_NCX_FN friend std::istream &getline(std::istream &cin_v,
+                                          wrapped_string_t &obj,
+                                          char delim = '\n') {
+    MJZ_UNUSED auto gard_ = obj.prop_guard();
+    return getline(cin_v, obj.m_str(), delim);
+  }
+#endif  // MJZ_WITH_iostream
+};
 namespace litteral_ns {
 /*
  *makes a gengeric wrapped_string_t  that views the string

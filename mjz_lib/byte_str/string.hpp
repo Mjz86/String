@@ -62,7 +62,7 @@ MJZ_CX_FN basic_str_t<version_V_var_, false> operator""_as_astr() noexcept
 };  // namespace mjz::bstr_ns
 template <mjz::version_t version_v, bool has_alloc_v_>
 struct std::hash<mjz::bstr_ns::basic_str_t<version_v, has_alloc_v_>> {
-  std::size_t operator()(const auto& s) const noexcept {
+  std::size_t operator()(const auto &s) const noexcept {
     return std::size_t(s.hash());
   }
 };

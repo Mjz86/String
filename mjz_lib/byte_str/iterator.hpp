@@ -19,11 +19,11 @@ class iterator_t {
   using iterator_category = std::random_access_iterator_tag;
   using value_type = char;
   using difference_type = intlen_t;
-  using pointer = decltype([]() { return alias_t<Str_t*>(); }()->data());
-  using reference = std::remove_pointer_t<pointer>&;
+  using pointer = decltype([]() { return alias_t<Str_t *>(); }()->data());
+  using reference = std::remove_pointer_t<pointer> &;
   MJZ_CX_FN iterator_t() noexcept = default;
   MJZ_CX_FN iterator_t(nullptr_t) noexcept : iterator_t(){};
-  MJZ_CX_FN iterator_t(Str_t& str_, uintlen_t index_ = 0) noexcept
+  MJZ_CX_FN iterator_t(Str_t &str_, uintlen_t index_ = 0) noexcept
       : str(&str_), index(index_) {}
 
  public:
@@ -38,11 +38,11 @@ class iterator_t {
     return str->get_encoding();
   }
 
-  MJZ_CX_FN Str_t* operator()() const noexcept { return str; }
+  MJZ_CX_FN Str_t *operator()() const noexcept { return str; }
 
   MJZ_CX_FN bool operator!() const noexcept { return !str; }
   MJZ_CX_FN explicit operator bool() const noexcept { return !!str; }
-  MJZ_CX_FN iterator_t& operator++() noexcept {
+  MJZ_CX_FN iterator_t &operator++() noexcept {
     MJZ_UNUSED auto checker = check();
     ++index;
     return *this;
@@ -55,7 +55,7 @@ class iterator_t {
     return Tmp;
   }
 
-  MJZ_CX_FN iterator_t& operator--() noexcept {
+  MJZ_CX_FN iterator_t &operator--() noexcept {
     MJZ_UNUSED auto checker = check();
     --index;
     return *this;
@@ -68,7 +68,7 @@ class iterator_t {
     return Tmp;
   }
 
-  MJZ_CX_FN iterator_t& operator+=(const difference_type diff) noexcept {
+  MJZ_CX_FN iterator_t &operator+=(const difference_type diff) noexcept {
     MJZ_UNUSED auto checker = check();
     index += diff;
 
@@ -87,7 +87,7 @@ class iterator_t {
     return Right;
   }
 
-  MJZ_CX_FN iterator_t& operator-=(const difference_type Off) noexcept {
+  MJZ_CX_FN iterator_t &operator-=(const difference_type Off) noexcept {
     MJZ_UNUSED auto checker = check();
     index -= Off;
 
@@ -100,7 +100,7 @@ class iterator_t {
     return Tmp;
   }
   MJZ_CX_ND_FN difference_type
-  operator-(const iterator_t& Right) const noexcept {
+  operator-(const iterator_t &Right) const noexcept {
     MJZ_UNUSED auto checker = check();
     asserts(asserts.assume_rn, Right.str == str);
     return difference_type(index) - difference_type(Right.index);
@@ -109,12 +109,12 @@ class iterator_t {
     MJZ_UNUSED auto checker = check();
     return *(*this + Off);
   }
-  MJZ_CX_ND_FN bool operator==(const iterator_t& Right) const noexcept {
+  MJZ_CX_ND_FN bool operator==(const iterator_t &Right) const noexcept {
     MJZ_UNUSED auto checker = check();
     return str == Right.str && index == Right.index;
   }
   MJZ_CX_ND_FN std::strong_ordering operator<=>(
-      const iterator_t& Right) const noexcept {
+      const iterator_t &Right) const noexcept {
     MJZ_UNUSED auto checker = check();
     asserts(asserts.assume_rn, Right.str == str);
     return index <=> Right.index;
@@ -131,7 +131,7 @@ class iterator_t {
     fn();
     return releaser_t{std::move(fn)};
   }
-  Str_t* str{};
+  Str_t *str{};
   uintlen_t index{};
 };
 
@@ -139,18 +139,18 @@ namespace basic_str_abi_ns_ {
 template <version_t version_v>
 struct mut_ref_t {
   uintlen_t len;
-  char* ptr;
+  char *ptr;
   encodings_e encodings;
-  MJZ_CX_ND_FN char* data() const noexcept { return ptr; }
+  MJZ_CX_ND_FN char *data() const noexcept { return ptr; }
   MJZ_CX_ND_FN uintlen_t length() const noexcept { return len; }
   MJZ_CX_ND_FN encodings_e get_encoding() const noexcept { return encodings; }
   using mut_iterator = iterator_t<const mut_ref_t>;
   using traits_type = byte_traits_t<version_v>;
   using value_type = char;
-  using pointer = char*;
-  using const_pointer = char*;
-  using reference = char&;
-  using const_reference = char&;
+  using pointer = char *;
+  using const_pointer = char *;
+  using reference = char &;
+  using const_reference = char &;
   using const_iterator = mut_iterator;
   using iterator = mut_iterator;
   using const_reverse_iterator = std::reverse_iterator<mut_iterator>;
@@ -187,7 +187,7 @@ using mut_iterator_t = typename mut_ref_t<version_v>::iterator;
 };  // namespace basic_str_abi_ns_
 template <typename T, version_t version_v>
 concept base_out_it_viawble_c =
-    requires(T obj, void_struct_t* vp,
+    requires(T obj, void_struct_t *vp,
              base_string_view_t<version_v> opt_view_or_reserve) {
       {
         obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
@@ -199,7 +199,7 @@ concept base_out_it_viawble_c =
 template <typename T, version_t version_v>
 concept base_out_it_lazy_viawble_c =
 
-    requires(T obj, void_struct_t* vp,
+    requires(T obj, void_struct_t *vp,
              base_lazy_view_t<version_v> opt_view_or_reserve) {
       {
         obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
@@ -212,7 +212,7 @@ class base_out_it_t : public void_struct_t {
  public:
   using bview = base_string_view_t<version_v>;
   using blazy = base_lazy_view_t<version_v>;
-  using fn_t = funcptr_of_t<success_t(void_struct_t& obj,
+  using fn_t = funcptr_of_t<success_t(void_struct_t &obj,
                                       blazy opt_view_or_reserve) noexcept>;
   using it_t = base_out_it_t;
   using iterator_category = std::output_iterator_tag;
@@ -223,9 +223,9 @@ class base_out_it_t : public void_struct_t {
   using difference_type = intptr_t;
 
   template <base_out_it_lazy_viawble_c<version_v> T>
-  MJZ_CX_FN base_out_it_t(T* actual_object, void_struct_t) noexcept
+  MJZ_CX_FN base_out_it_t(T *actual_object, void_struct_t) noexcept
       : obj(void_struct_cast_t::up_cast(actual_object)),
-        function_ptr(+[](void_struct_t& obj_ref,
+        function_ptr(+[](void_struct_t &obj_ref,
                          blazy opt_view_or_reserve) noexcept -> success_t {
           return void_struct_cast_t::down_cast<T>(obj_ref)
               .format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
@@ -234,11 +234,11 @@ class base_out_it_t : public void_struct_t {
 
   template <base_out_it_viawble_c<version_v> T>
     requires(!base_out_it_lazy_viawble_c<T, version_v>)
-  MJZ_CX_FN base_out_it_t(T* actual_object, void_struct_t) noexcept
+  MJZ_CX_FN base_out_it_t(T *actual_object, void_struct_t) noexcept
       : obj(void_struct_cast_t::up_cast(actual_object)),
-        function_ptr(+[](void_struct_t& obj_ref,
+        function_ptr(+[](void_struct_t &obj_ref,
                          blazy opt_view_or_reserve) noexcept -> success_t {
-          auto& actual_obj = void_struct_cast_t::down_cast<T>(obj_ref);
+          auto &actual_obj = void_struct_cast_t::down_cast<T>(obj_ref);
           if (opt_view_or_reserve.is_invalid()) {
             return actual_obj.format_back_insert_append_pv_fn_(
                 unsafe_ns::unsafe_v,
@@ -259,15 +259,15 @@ class base_out_it_t : public void_struct_t {
 
   template <typename T>
     requires(!partial_same_as<T, base_out_it_t>)
-  MJZ_CX_FN base_out_it_t(T& actual_object) noexcept
+  MJZ_CX_FN base_out_it_t(T &actual_object) noexcept
       : base_out_it_t(std::addressof(actual_object), void_struct_t{}) {}
   MJZ_CX_FN base_out_it_t() noexcept = default;
   MJZ_CX_FN base_out_it_t(nullptr_t) noexcept : base_out_it_t(){};
 
-  MJZ_CX_FN it_t& push_back(char val, encodings_e e) noexcept {
+  MJZ_CX_FN it_t &push_back(char val, encodings_e e) noexcept {
     return fn(bview::make(&val, 1, e));
   }
-  MJZ_CX_FN it_t& multi_push_back(char val, uintlen_t count,
+  MJZ_CX_FN it_t &multi_push_back(char val, uintlen_t count,
                                   encodings_e e) noexcept {
     blazy lazy{};
     lazy.encodings = uint8_t(e);
@@ -277,13 +277,13 @@ class base_out_it_t : public void_struct_t {
     return fn(lazy);
   }
 
-  MJZ_CX_FN it_t& reserve(uintlen_t length, encodings_e encoding) noexcept {
+  MJZ_CX_FN it_t &reserve(uintlen_t length, encodings_e encoding) noexcept {
     return fn(bview::make(nullptr, length, encoding));
   }
 
-  MJZ_CX_ND_FN it_t& operator*() noexcept { return *this; }
+  MJZ_CX_ND_FN it_t &operator*() noexcept { return *this; }
 
-  MJZ_CX_FN it_t& operator++() noexcept { return *this; }
+  MJZ_CX_FN it_t &operator++() noexcept { return *this; }
 
   MJZ_CX_FN it_t operator++(int) noexcept { return *this; }
   MJZ_CX_FN explicit operator bool() const noexcept { return !!obj; }
@@ -303,7 +303,7 @@ class base_out_it_t : public void_struct_t {
   }
 
  protected:
-  MJZ_CX_FN it_t& fn(blazy opt_view_or_reserve) noexcept {
+  MJZ_CX_FN it_t &fn(blazy opt_view_or_reserve) noexcept {
     if (!obj || !function_ptr) return *this;
     if (!opt_view_or_reserve.is_invalid() && !opt_view_or_reserve.len)
       return *this;
@@ -312,13 +312,13 @@ class base_out_it_t : public void_struct_t {
     function_ptr = nullptr;
     return *this;
   }
-  MJZ_CX_FN it_t& fn(bview opt_view_or_reserve) noexcept {
+  MJZ_CX_FN it_t &fn(bview opt_view_or_reserve) noexcept {
     return fn(opt_view_or_reserve.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v));
   }
   template <class>
   friend class mjz_private_accessed_t;
 
-  void_struct_t* obj{};
+  void_struct_t *obj{};
   fn_t function_ptr{};
 };
 
@@ -346,7 +346,7 @@ template <version_t version_v>
 struct out_buf_t : void_struct_t {
  private:
   using bview = base_string_view_t<version_v>;
-  char* buf{};
+  char *buf{};
   uintlen_t size_left{};
   uintlen_t len{};
   encodings_e encoding{};
@@ -375,7 +375,7 @@ struct out_buf_t : void_struct_t {
                   }));
   }
 
-  MJZ_CX_ND_FN const char* data() const noexcept { return this->buf; }
+  MJZ_CX_ND_FN const char *data() const noexcept { return this->buf; }
   MJZ_CX_ND_FN uintlen_t size() const noexcept { return this->len; }
   MJZ_CX_ND_FN uintlen_t length() const noexcept { return this->len; }
   MJZ_CX_ND_FN encodings_e get_encoding() const noexcept {
@@ -383,7 +383,7 @@ struct out_buf_t : void_struct_t {
   }
 
  public:
-  MJZ_CX_FN out_buf_t(char* buf_, uintlen_t size_,
+  MJZ_CX_FN out_buf_t(char *buf_, uintlen_t size_,
                       encodings_e encoding_) noexcept
       : buf{buf_}, size_left{size_}, encoding{encoding_} {}
   template <size_t N>
@@ -396,7 +396,7 @@ struct out_buf_it_t : void_struct_t {
  private:
   using bview = base_string_view_t<version_v>;
   base_out_it_t<version_v> it{};
-  char* buf{};
+  char *buf{};
   uintlen_t cap{};
   uintlen_t len{};
   encodings_e encoding{};
@@ -471,10 +471,10 @@ struct out_buf_it_t : void_struct_t {
 
  public:
   MJZ_NO_CPY(out_buf_it_t);
-  MJZ_CX_FN out_buf_it_t(out_buf_it_t&& obj) noexcept {
+  MJZ_CX_FN out_buf_it_t(out_buf_it_t &&obj) noexcept {
     *this = std::move(obj);
   }
-  MJZ_CX_FN out_buf_it_t& operator=(out_buf_it_t&& obj) noexcept {
+  MJZ_CX_FN out_buf_it_t &operator=(out_buf_it_t &&obj) noexcept {
     if (this == &obj) return *this;
     flush();
     it = std::exchange(obj.it, {});
@@ -486,7 +486,7 @@ struct out_buf_it_t : void_struct_t {
     return *this;
   }
   MJZ_CX_FN ~out_buf_it_t() noexcept { flush(); }
-  MJZ_CX_FN out_buf_it_t(base_out_it_t<version_v> out, char* buf_,
+  MJZ_CX_FN out_buf_it_t(base_out_it_t<version_v> out, char *buf_,
                          uintlen_t size_, encodings_e encoding_) noexcept
       : it{out}, buf{buf_}, cap{size_}, encoding{encoding_} {}
   template <size_t N>
@@ -568,7 +568,7 @@ template <version_t version_v>
 struct buffer_out_buf_t : void_struct_t {
   MJZ_NO_MV_NO_CPY(buffer_out_buf_t);
   allocs_ns::alloc_base_ref_t<version_v> alloc{};
-  char* buffer{};
+  char *buffer{};
   uintlen_t capacity{};
   uintlen_t length{};
   encodings_e encoding{};
@@ -594,7 +594,7 @@ struct buffer_out_buf_t : void_struct_t {
     if (opt_view_or_reserve.is_resurve()) return true;
     uintlen_t at_offset{length};
     uintlen_t offset_of_substr{};
-    char* append_begin = at_offset + buffer;
+    char *append_begin = at_offset + buffer;
     success_t succsess{true};
     MJZ_RELEASE {
       if (!succsess) return;
@@ -670,7 +670,7 @@ struct generic_base_output_it_t : void_struct_t {
                                    base_lazy_view_t<version_v> view) noexcept {
     if (!back_insert_fnp) return false;
     bool failed{false};
-    auto output_fn = [&](const char* ptr, uintlen_t len) noexcept {
+    auto output_fn = [&](const char *ptr, uintlen_t len) noexcept {
       failed |=
           !(MJZ_NOEXCEPT { failed |= !back_insert_fnp(*this, ptr, len); });
       return !failed;
@@ -713,12 +713,12 @@ struct generic_base_output_it_t : void_struct_t {
   }
 
  private:
-  using back_insert_fnp_t = success_t (*)(generic_base_output_it_t& obj,
-                                          const char* ptr, uintlen_t len);
+  using back_insert_fnp_t = success_t (*)(generic_base_output_it_t &obj,
+                                          const char *ptr, uintlen_t len);
   template <class T>
-  MJZ_CX_FN static success_t back_insert_fn(generic_base_output_it_t& obj,
-                                            const char* ptr, uintlen_t len) {
-    auto& self = static_cast<T&>(obj);
+  MJZ_CX_FN static success_t back_insert_fn(generic_base_output_it_t &obj,
+                                            const char *ptr, uintlen_t len) {
+    auto &self = static_cast<T &>(obj);
     if (ptr) {
       return self.back_insert(ptr, len);
     }
@@ -744,7 +744,7 @@ struct generic_base_output_it_t : void_struct_t {
         generic_base_output_it_t<version_v>::template back_insert_fn_v<T>;
   }
   template <class T>
-  MJZ_CX_FN static void init(T* This) noexcept {
+  MJZ_CX_FN static void init(T *This) noexcept {
     This->template init<T>();
   }
   MJZ_DEFAULTED_CLASS(generic_base_output_it_t);
@@ -756,10 +756,10 @@ struct generic_output_it_t : generic_base_output_it_t<version_v> {
   MJZ_CX_FN generic_output_it_t() noexcept {
     generic_base_output_it_t<version_v>::init(this);
   }
-  MJZ_CX_FN generic_output_it_t(T& obj) noexcept : generic_output_it_t{} {
+  MJZ_CX_FN generic_output_it_t(T &obj) noexcept : generic_output_it_t{} {
     value = &obj;
   }
-  MJZ_CX_FN success_t back_insert(const char* ptr, uintlen_t len) {
+  MJZ_CX_FN success_t back_insert(const char *ptr, uintlen_t len) {
     if (!value) return false;
     if constexpr (requires() { value->insert(value->end(), ptr, ptr + len); }) {
       value->insert(value->end(), ptr, ptr + len);
@@ -782,18 +782,18 @@ struct generic_output_it_t : generic_base_output_it_t<version_v> {
 template <version_t version_v>
 struct file_output_it_t : generic_base_output_it_t<version_v> {
 #if MJZ_WITH_iostream
-  FILE* Stream{};
+  FILE *Stream{};
 #else
-  void* Stream{};
+  void *Stream{};
 #endif
 
   MJZ_CX_FN file_output_it_t() noexcept {
     generic_base_output_it_t<version_v>::init(this);
   }
-  MJZ_CX_FN file_output_it_t(auto* ptr) noexcept : file_output_it_t() {
+  MJZ_CX_FN file_output_it_t(auto *ptr) noexcept : file_output_it_t() {
     Stream = ptr;
   }
-  MJZ_NCX_FN success_t back_insert(const char* ptr, uintlen_t len) {
+  MJZ_NCX_FN success_t back_insert(const char *ptr, uintlen_t len) {
 #if MJZ_WITH_iostream
     return len == std::fwrite(ptr, 1, std::size_t(len), Stream);
 #else
@@ -806,10 +806,10 @@ struct file_output_it_t : generic_base_output_it_t<version_v> {
 template <version_t version_v>
 struct stream_output_it_t : generic_base_output_it_t<version_v> {
   optional_ref_t<std::ostream> Stream{};
-  MJZ_NCX_FN stream_output_it_t(std::ostream& ref) noexcept : Stream{ref} {
+  MJZ_NCX_FN stream_output_it_t(std::ostream &ref) noexcept : Stream{ref} {
     generic_base_output_it_t<version_v>::init(this);
   }
-  MJZ_NCX_FN success_t back_insert(const char* ptr, uintlen_t len) {
+  MJZ_NCX_FN success_t back_insert(const char *ptr, uintlen_t len) {
     if (!Stream) return false;
     Stream->write(ptr, std::streamsize(len));
     Stream->width(0);
@@ -835,8 +835,8 @@ struct it_output_stream_t : private std::streambuf, public std::ostream {
       return traits_type::eof();
     return ch;
   }
-  MJZ_NCX_FN base_type* This() { return this; }
-  MJZ_NCX_FN streamsize xsputn(const char* ptr, streamsize count) override {
+  MJZ_NCX_FN base_type *This() { return this; }
+  MJZ_NCX_FN streamsize xsputn(const char *ptr, streamsize count) override {
     if (out.append(base_string_view_t<version_v>::make(ptr, uintlen_t(count),
                                                        encoding)))
       return count;

@@ -28,7 +28,7 @@ struct MJZ_DEPRECATED_R(" unneccesery alloc_ref creation ") base_str_info_t {
 };
 template <version_t version_v>
 struct cheap_base_str_info_t {
-  const allocs_ns::alloc_base_ref_t<version_v>* alloc_ptr{};
+  const allocs_ns::alloc_base_ref_t<version_v> *alloc_ptr{};
   uintlen_t reserve_capacity{0};
   bool is_threaded{true};
   // mostly ignored for now
@@ -49,7 +49,7 @@ template <version_t version_v>
   requires(version_v.is_LE())
 union nsso_u<version_v> {
   struct non_sso_t {
-    char* buffer_begin;
+    char *buffer_begin;
     uintlen_t buffer_capacity_and_cntrl;
   };
   char dummy_{};
@@ -70,7 +70,7 @@ template <version_t version_v>
 union nsso_u<version_v> {
   struct non_sso_t {
     uintlen_t buffer_capacity_and_cntrl;
-    char* buffer_begin;
+    char *buffer_begin;
   };
 
   char dummy_{};
@@ -112,7 +112,7 @@ struct details_t {
 
 template <version_t version_v, bool has_alloc_v_>
 struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
-  const char* begin;
+  const char *begin;
   uintlen_t length;
   using mut_data_t = basic_str_abi_ns_::nsso_u<version_v>;
   mut_data_t mut_data;
@@ -123,10 +123,10 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   MJZ_CX_FN ~m_t() noexcept = default;
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_CX_FN m_t() noexcept = delete;
-  MJZ_CX_FN m_t(m_t&& obj) noexcept = delete;
-  MJZ_CX_FN m_t(const m_t&) noexcept = delete;
-  MJZ_CX_FN m_t& operator=(m_t&&) noexcept = delete;
-  MJZ_CX_FN m_t& operator=(const m_t&) noexcept = delete;
+  MJZ_CX_FN m_t(m_t &&obj) noexcept = delete;
+  MJZ_CX_FN m_t(const m_t &) noexcept = delete;
+  MJZ_CX_FN m_t &operator=(m_t &&) noexcept = delete;
+  MJZ_CX_FN m_t &operator=(const m_t &) noexcept = delete;
 
  private:
   template <class>
@@ -156,71 +156,71 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   empty_alloc{};
   template <class = void>
     requires has_alloc_v_
-  MJZ_CX_FN const alloc_ref* get_alloc_ptr() const noexcept
+  MJZ_CX_FN const alloc_ref *get_alloc_ptr() const noexcept
 
   {
     return &this->alloc_;
   }
   template <class = void>
     requires(!has_alloc_v_)
-  MJZ_CX_FN const alloc_ref* get_alloc_ptr() const noexcept {
+  MJZ_CX_FN const alloc_ref *get_alloc_ptr() const noexcept {
     return {};
   }
-  MJZ_CX_FN const alloc_ref& get_alloc() const noexcept {
+  MJZ_CX_FN const alloc_ref &get_alloc() const noexcept {
     return get_alloc_ptr() ? *get_alloc_ptr() : empty_alloc;
   }
   template <class = void>
     requires has_alloc_v_
-  MJZ_CX_FN alloc_ref* get_alloc_ptr() noexcept {
+  MJZ_CX_FN alloc_ref *get_alloc_ptr() noexcept {
     return &this->alloc_;
   }
   template <class = void>
     requires(!has_alloc_v_)
-  MJZ_CX_FN alloc_ref* get_alloc_ptr() noexcept {
+  MJZ_CX_FN alloc_ref *get_alloc_ptr() noexcept {
     return {};
   }
   MJZ_CX_FN bool has_c_alloc() const noexcept {
     return get_alloc_ptr() && *get_alloc_ptr();
   }
-  MJZ_CX_FN char* non_sso_buffer_location_ptr() const noexcept {
+  MJZ_CX_FN char *non_sso_buffer_location_ptr() const noexcept {
     return std::launder(&mut_data.non_sso)->buffer_begin;
   }
-  MJZ_CX_FN char*& non_sso_buffer_location_ptr() noexcept {
+  MJZ_CX_FN char *&non_sso_buffer_location_ptr() noexcept {
     return std::launder(&mut_data.non_sso)->buffer_begin;
   }
-  MJZ_CX_FN const char* raw_sso_buffer_location_ptr() const noexcept {
+  MJZ_CX_FN const char *raw_sso_buffer_location_ptr() const noexcept {
     return mut_data.sso_raw_buffer_and_cntrl;
   }
-  MJZ_CX_FN char* raw_sso_buffer_location_ptr() noexcept {
+  MJZ_CX_FN char *raw_sso_buffer_location_ptr() noexcept {
     return mut_data.sso_raw_buffer_and_cntrl;
   }
-  MJZ_CX_FN char* sso_buffer_location_ptr() noexcept {
+  MJZ_CX_FN char *sso_buffer_location_ptr() noexcept {
     return std::launder(raw_sso_buffer_location_ptr() +
                         mut_data.sso_buf_index_);
   }
-  MJZ_CX_FN const char* sso_buffer_location_ptr() const noexcept {
+  MJZ_CX_FN const char *sso_buffer_location_ptr() const noexcept {
     return std::launder(raw_sso_buffer_location_ptr() +
                         mut_data.sso_buf_index_);
   }
-  MJZ_CX_FN const char* dead_sso_buffer_location_ptr() const noexcept {
+  MJZ_CX_FN const char *dead_sso_buffer_location_ptr() const noexcept {
     return raw_sso_buffer_location_ptr() + mut_data.sso_buf_index_;
   }
-  MJZ_CX_FN const char* sso_cntrl_ptr() const noexcept {
+  MJZ_CX_FN const char *sso_cntrl_ptr() const noexcept {
     return raw_sso_buffer_location_ptr() + mut_data.sso_cntrl_index_;
   }
-  MJZ_CX_FN char* sso_cntrl_ptr() noexcept {
+  MJZ_CX_FN char *sso_cntrl_ptr() noexcept {
     return raw_sso_buffer_location_ptr() + mut_data.sso_cntrl_index_;
   }
   MJZ_CONSTANT(uintlen_t)
   cntrl_in_cap_begin = mjz::get_begin_bit_index(mut_data_t::buffer_cntrl_mask_);
   MJZ_CX_FN uint8_t get_cntrl(bool is_sso_) const noexcept {
     MJZ_IFN_CONSTEVAL {
-      return *reinterpret_cast<const uint8_t*>(sso_cntrl_ptr());
+      return *reinterpret_cast<const uint8_t *>(sso_cntrl_ptr());
     }
     if (is_sso_) {
       return std::bit_cast<uint8_t>(*sso_cntrl_ptr());
     } else {
-      auto& ref{mut_data.non_sso.buffer_capacity_and_cntrl};
+      auto &ref{mut_data.non_sso.buffer_capacity_and_cntrl};
       uintlen_t same_val{ref};
       same_val >>= cntrl_in_cap_begin;
       asserts(asserts.assume_rn, [&]() noexcept {
@@ -234,14 +234,14 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   }
   MJZ_CX_FN void set_cntrl(uint8_t val, bool is_sso_) noexcept {
     MJZ_IFN_CONSTEVAL {
-      *reinterpret_cast<uint8_t*>(sso_cntrl_ptr()) = val;
+      *reinterpret_cast<uint8_t *>(sso_cntrl_ptr()) = val;
       return;
     }
     if (is_sso_) {
       *sso_cntrl_ptr() = std::bit_cast<char>(val);
       return;
     }
-    auto& ref{mut_data.non_sso.buffer_capacity_and_cntrl};
+    auto &ref{mut_data.non_sso.buffer_capacity_and_cntrl};
     uintlen_t same_val{ref};
     same_val &= mut_data.buffer_cap_mask_;
     same_val |= uintlen_t(val) << cntrl_in_cap_begin;
@@ -270,7 +270,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   MJZ_CX_FN bool is_sso() const noexcept {
     bool B = begin == dead_sso_buffer_location_ptr();
     MJZ_IFN_CONSTEVAL {
-      uint8_t cntrl{*reinterpret_cast<const uint8_t*>(sso_cntrl_ptr())};
+      uint8_t cntrl{*reinterpret_cast<const uint8_t *>(sso_cntrl_ptr())};
       asserts(asserts.assume_rn, !(B && (cntrl & my_details::is_sharable)));
     }
     else {
@@ -335,7 +335,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     *std::launder(sso_buffer_location_ptr()) = '\0';
     d_set_cntrl(true, my_details::has_null, true);
   }
-  MJZ_CX_FN success_t construct_sso_from_invalid(const char* begin_,
+  MJZ_CX_FN success_t construct_sso_from_invalid(const char *begin_,
                                                  uintlen_t length_,
                                                  bool keep_flags) noexcept {
     construct_sso_from_invalid(keep_flags);
@@ -350,12 +350,12 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     }
     return true;
   }
-  MJZ_CX_FN success_t construct_sso_from_invalid(const char* begin_,
+  MJZ_CX_FN success_t construct_sso_from_invalid(const char *begin_,
                                                  uintlen_t length_,
                                                  bool keep_flags,
-                                                 alloc_ref&& Alloc_) noexcept {
+                                                 alloc_ref &&Alloc_) noexcept {
     if (!construct_sso_from_invalid(begin_, length_, keep_flags)) return false;
-    if (alloc_ref* aptr = get_alloc_ptr()) {
+    if (alloc_ref *aptr = get_alloc_ptr()) {
       *aptr = std::move(Alloc_);
     }
     return true;
@@ -404,20 +404,20 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   MJZ_CX_FN uintlen_t get_capacity() const noexcept {
     return is_sso() ? mut_data.sso_cap : get_non_sso_capacity();
   }
-  MJZ_CX_FN const m_t& as_const() const noexcept { return *this; }
-  MJZ_CX_FN const char* buffer_location_ptr() const noexcept {
+  MJZ_CX_FN const m_t &as_const() const noexcept { return *this; }
+  MJZ_CX_FN const char *buffer_location_ptr() const noexcept {
     return (is_sso() ? sso_buffer_location_ptr()
                      : non_sso_buffer_location_ptr());
   }
-  MJZ_CX_FN const char* cbuffer_location_ptr() const noexcept {
+  MJZ_CX_FN const char *cbuffer_location_ptr() const noexcept {
     return (is_sso() ? sso_buffer_location_ptr()
                      : non_sso_buffer_location_ptr());
   }
-  MJZ_CX_FN char* buffer_location_ptr() noexcept {
+  MJZ_CX_FN char *buffer_location_ptr() noexcept {
     asserts(asserts.assume_rn, [&]() noexcept { return is_owner(); });
     return is_sso() ? sso_buffer_location_ptr() : non_sso_buffer_location_ptr();
   }
-  MJZ_CX_FN char* mut_begin() noexcept {
+  MJZ_CX_FN char *mut_begin() noexcept {
     asserts(asserts.assume_rn, !!as_const().buffer_location_ptr());
     asserts(asserts.assume_rn, [&]() noexcept { return is_owner(); });
     return buffer_location_ptr() + (begin - buffer_location_ptr());
@@ -445,13 +445,13 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
            !non_sso_buffer_location_ptr();
   }
   MJZ_CX_FN void set_non_sso_capacity(uintlen_t value) noexcept {
-    auto& ref{mut_data.non_sso.buffer_capacity_and_cntrl};
+    auto &ref{mut_data.non_sso.buffer_capacity_and_cntrl};
     asserts(asserts.assume_rn, value == (value & mut_data.buffer_cap_mask_));
     ref &= mut_data.buffer_cntrl_mask_;
     ref |= value;
   }
   MJZ_CX_FN static success_t check_buffer_correct_ness_(
-      const char* begin, uintlen_t length, char* buffer_begin,
+      const char *begin, uintlen_t length, char *buffer_begin,
       uintlen_t buffer_capacity) noexcept {
     return (buffer_capacity < mut_data_t::buffer_cap_max_) &&
            (length < mut_data_t::buffer_cap_max_) &&
@@ -462,20 +462,20 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
              length <= buffer_capacity));
   }
   MJZ_CX_FN success_t construct_non_sso_from_invalid(
-      const char* begin_, uintlen_t length_, char* buffer_begin_,
+      const char *begin_, uintlen_t length_, char *buffer_begin_,
       uintlen_t capacity_, bool is_shared_, bool keep_flags,
-      alloc_ref&& Alloc_) noexcept {
+      alloc_ref &&Alloc_) noexcept {
     if ((Alloc_ && !has_alloc_v_) ||
         !construct_non_sso_from_invalid(begin_, length_, buffer_begin_,
                                         capacity_, is_shared_, keep_flags))
       return false;
-    if (alloc_ref* aptr = get_alloc_ptr()) {
+    if (alloc_ref *aptr = get_alloc_ptr()) {
       *aptr = std::move(Alloc_);
     }
     return true;
   }
   MJZ_CX_FN success_t construct_non_sso_from_invalid(
-      const char* begin_, uintlen_t length_, char* buffer_begin_,
+      const char *begin_, uintlen_t length_, char *buffer_begin_,
       uintlen_t capacity_, bool is_shared_, bool keep_flags) noexcept {
     if (!check_buffer_correct_ness_(begin_, length_, buffer_begin_, capacity_))
       return false;
@@ -581,7 +581,7 @@ MJZ_CX_ND_FN static std::optional<T> get_as_option(
 
 template <class begin_iter_t, class end_iter_t>
 concept char_iter_pair_c =
-    requires(begin_iter_t&& begin_iter, end_iter_t&& end_iter) {
+    requires(begin_iter_t &&begin_iter, end_iter_t &&end_iter) {
       {
         get_as_option<char>(*begin_iter)
       } noexcept -> std::same_as<std::optional<char>>;
@@ -590,8 +590,8 @@ concept char_iter_pair_c =
     };
 
 template <class begin_iter_t, class end_iter_t>
-concept sizeed_char_iter_pair_c = requires(begin_iter_t&& begin_iter,
-                                           end_iter_t&& end_iter) {
+concept sizeed_char_iter_pair_c = requires(begin_iter_t &&begin_iter,
+                                           end_iter_t &&end_iter) {
   requires char_iter_pair_c<begin_iter_t, end_iter_t>;
 
   { end_iter - begin_iter } noexcept;

@@ -17,7 +17,7 @@ struct byte_traits_t {
   friend class mjz_private_accessed_t;
   MJZ_CONSTANT(auto) npos {(uintlen_t(-1) >> 8) + 1 };
 
-  MJZ_CX_ND_FN intlen_t pv_compare(const char* rhs, const char* lhs,
+  MJZ_CX_ND_FN intlen_t pv_compare(const char *rhs, const char *lhs,
                                    uintlen_t len) const noexcept {
     if (lhs == rhs) return 0;
     MJZ_IFN_CONSTEVAL { return std::memcmp(rhs, lhs, len); }
@@ -29,7 +29,7 @@ struct byte_traits_t {
     return 0;
   }
 
-  MJZ_CX_ND_FN uintlen_t pv_strlen(const char* begin) const noexcept {
+  MJZ_CX_ND_FN uintlen_t pv_strlen(const char *begin) const noexcept {
     if (!begin) return 0;
     MJZ_IFN_CONSTEVAL { return std::strlen(begin); }
     uintlen_t len = 0;
@@ -41,7 +41,7 @@ struct byte_traits_t {
     return len;
   }
 
-  MJZ_CX_ND_FN const char* pv_find(const char* begin, uintlen_t len,
+  MJZ_CX_ND_FN const char *pv_find(const char *begin, uintlen_t len,
                                    char c) const noexcept {
     for (; 0 < len; --len, ++begin) {
       if (*begin == c) {
@@ -51,18 +51,18 @@ struct byte_traits_t {
 
     return nullptr;
   }
-  MJZ_CX_ND_FN uintlen_t u_diff(const char* rhs,
-                                const char* lhs) const noexcept {
+  MJZ_CX_ND_FN uintlen_t u_diff(const char *rhs,
+                                const char *lhs) const noexcept {
     return static_cast<uintlen_t>(rhs - lhs);
   }
 
-  MJZ_CX_ND_FN bool equal(const char* lhs, uintlen_t lhs_len, const char* rhs,
+  MJZ_CX_ND_FN bool equal(const char *lhs, uintlen_t lhs_len, const char *rhs,
                           uintlen_t rhs_len) const noexcept {
     return lhs_len == rhs_len && pv_compare(lhs, rhs, lhs_len) == 0;
   }
 
-  MJZ_CX_ND_FN intlen_t compare(const char* lhs, uintlen_t lhs_len,
-                                const char* rhs,
+  MJZ_CX_ND_FN intlen_t compare(const char *lhs, uintlen_t lhs_len,
+                                const char *rhs,
                                 uintlen_t rhs_len) const noexcept {
     intlen_t ret = pv_compare(lhs, rhs, std::min(lhs_len, rhs_len));
 
@@ -78,8 +78,8 @@ struct byte_traits_t {
     return 0;
   }
 
-  MJZ_CX_ND_FN uintlen_t find(const char* hay_stack, uintlen_t hay_len,
-                              uintlen_t offset, const char* needle,
+  MJZ_CX_ND_FN uintlen_t find(const char *hay_stack, uintlen_t hay_len,
+                              uintlen_t offset, const char *needle,
                               uintlen_t needle_len) const noexcept {
     if (needle_len > hay_len || offset > hay_len - needle_len) {
       return npos;
@@ -101,7 +101,7 @@ struct byte_traits_t {
     }
   }
 
-  MJZ_CX_ND_FN uintlen_t find_ch(const char* hay_stack, uintlen_t hay_len,
+  MJZ_CX_ND_FN uintlen_t find_ch(const char *hay_stack, uintlen_t hay_len,
                                  uintlen_t offset, char c) const noexcept {
     if (offset < hay_len) {
       const auto where = pv_find(hay_stack + offset, hay_len - offset, c);
@@ -113,8 +113,8 @@ struct byte_traits_t {
     return npos;
   }
 
-  MJZ_CX_ND_FN uintlen_t rfind(const char* hay_stack, uintlen_t hay_len,
-                               uintlen_t offset, const char* needle,
+  MJZ_CX_ND_FN uintlen_t rfind(const char *hay_stack, uintlen_t hay_len,
+                               uintlen_t offset, const char *needle,
                                uintlen_t needle_len) const noexcept {
     if (needle_len == 0) {
       return std::min(offset, hay_len);
@@ -123,7 +123,7 @@ struct byte_traits_t {
     if (hay_len < needle_len) {
       return npos;
     }
-    const char* canidate = hay_stack + std::min(offset, hay_len - needle_len);
+    const char *canidate = hay_stack + std::min(offset, hay_len - needle_len);
     auto mached = [&]() noexcept {
       return *canidate == *needle &&
              pv_compare(canidate, needle, needle_len) == 0;
@@ -137,7 +137,7 @@ struct byte_traits_t {
     return mached() ? 0 : npos;
   }
 
-  MJZ_CX_ND_FN uintlen_t rfind_ch(const char* hay_stack, uintlen_t hay_len,
+  MJZ_CX_ND_FN uintlen_t rfind_ch(const char *hay_stack, uintlen_t hay_len,
                                   uintlen_t offset,
                                   const char Ch) const noexcept {
     if (hay_len == 0) {
@@ -154,8 +154,8 @@ struct byte_traits_t {
     return *canidate == Ch ? 0 : npos;  // no match
   }
 
-  MJZ_CX_ND_FN uintlen_t find_first_of(const char* hay_stack, uintlen_t hay_len,
-                                       uintlen_t offset, const char* needle,
+  MJZ_CX_ND_FN uintlen_t find_first_of(const char *hay_stack, uintlen_t hay_len,
+                                       uintlen_t offset, const char *needle,
                                        uintlen_t needle_len) const noexcept {
     if (needle_len == 0 || offset >= hay_len) {
       return npos;
@@ -171,8 +171,8 @@ struct byte_traits_t {
     return npos;
   }
 
-  MJZ_CX_ND_FN uintlen_t find_last_of(const char* hay_stack, uintlen_t hay_len,
-                                      uintlen_t offset, const char* needle,
+  MJZ_CX_ND_FN uintlen_t find_last_of(const char *hay_stack, uintlen_t hay_len,
+                                      uintlen_t offset, const char *needle,
                                       uintlen_t needle_len) const noexcept {
     if (needle_len == 0 || hay_len == 0) {
       return npos;
@@ -188,8 +188,8 @@ struct byte_traits_t {
   }
 
   MJZ_CX_ND_FN uintlen_t
-  find_first_not_of(const char* hay_stack, uintlen_t hay_len, uintlen_t offset,
-                    const char* needle, uintlen_t needle_len) const noexcept {
+  find_first_not_of(const char *hay_stack, uintlen_t hay_len, uintlen_t offset,
+                    const char *needle, uintlen_t needle_len) const noexcept {
     if (offset >= hay_len) {
       return npos;
     }
@@ -203,7 +203,7 @@ struct byte_traits_t {
     return npos;
   }
 
-  MJZ_CX_ND_FN uintlen_t find_not_ch(const char* hay_stack, uintlen_t hay_len,
+  MJZ_CX_ND_FN uintlen_t find_not_ch(const char *hay_stack, uintlen_t hay_len,
                                      uintlen_t offset,
                                      const char Ch) const noexcept {
     if (offset >= hay_len) {
@@ -220,9 +220,9 @@ struct byte_traits_t {
     return npos;
   }
 
-  MJZ_CX_ND_FN uintlen_t find_last_not_of(const char* hay_stack,
+  MJZ_CX_ND_FN uintlen_t find_last_not_of(const char *hay_stack,
                                           uintlen_t hay_len, uintlen_t offset,
-                                          const char* needle,
+                                          const char *needle,
                                           uintlen_t needle_len) const noexcept {
     if (hay_len == 0) {
       return npos;
@@ -238,7 +238,7 @@ struct byte_traits_t {
     return pv_find(needle, needle_len, *canidate) ? npos : 0;  // no match
   }
 
-  MJZ_CX_ND_FN uintlen_t rfind_not_ch(const char* hay_stack, uintlen_t hay_len,
+  MJZ_CX_ND_FN uintlen_t rfind_not_ch(const char *hay_stack, uintlen_t hay_len,
                                       uintlen_t offset, char c) const noexcept {
     if (hay_len == 0) {
       return npos;
@@ -253,15 +253,15 @@ struct byte_traits_t {
 
     return *canidate == c ? npos : 0;
   }
-  MJZ_CX_ND_FN bool starts_with(const char* lhs, uintlen_t lhs_len,
-                                const char* rhs,
+  MJZ_CX_ND_FN bool starts_with(const char *lhs, uintlen_t lhs_len,
+                                const char *rhs,
                                 uintlen_t rhs_len) const noexcept {
     if (lhs_len < rhs_len) {
       return false;
     }
     return pv_compare(lhs, rhs, rhs_len) == 0;
   }
-  MJZ_CX_ND_FN bool starts_with(const char* lhs, uintlen_t lhs_len,
+  MJZ_CX_ND_FN bool starts_with(const char *lhs, uintlen_t lhs_len,
                                 char rhs) const noexcept {
     if (lhs_len < 1) {
       return false;
@@ -269,27 +269,27 @@ struct byte_traits_t {
     return *lhs == rhs;
   }
 
-  MJZ_CX_ND_FN bool ends_with(const char* lhs, uintlen_t lhs_len,
-                              const char* rhs,
+  MJZ_CX_ND_FN bool ends_with(const char *lhs, uintlen_t lhs_len,
+                              const char *rhs,
                               uintlen_t rhs_len) const noexcept {
     if (lhs_len < rhs_len) {
       return false;
     }
     return pv_compare(lhs + (lhs_len - rhs_len), rhs, rhs_len) == 0;
   }
-  MJZ_CX_ND_FN bool ends_with(const char* lhs, uintlen_t lhs_len,
+  MJZ_CX_ND_FN bool ends_with(const char *lhs, uintlen_t lhs_len,
                               char rhs) const noexcept {
     if (lhs_len < 1) {
       return false;
     }
     return lhs[lhs_len - 1] == rhs;
   }
-  MJZ_CX_ND_FN bool contains(const char* lhs, uintlen_t lhs_len,
-                             const char* rhs,
+  MJZ_CX_ND_FN bool contains(const char *lhs, uintlen_t lhs_len,
+                             const char *rhs,
                              uintlen_t rhs_len) const noexcept {
     return find(lhs, lhs_len, 0, rhs, rhs_len) != npos;
   }
-  MJZ_CX_ND_FN bool contains(const char* lhs, uintlen_t lhs_len,
+  MJZ_CX_ND_FN bool contains(const char *lhs, uintlen_t lhs_len,
                              char rhs) const noexcept {
     return find_ch(lhs, lhs_len, 0, rhs) != npos;
   }
@@ -335,7 +335,7 @@ struct byte_traits_t {
 
   template <std::integral T>
     requires(!std::same_as<T, bool>)
-  MJZ_CX_ND_FN std::optional<T> to_integral_pv(const char* ptr, uintlen_t len,
+  MJZ_CX_ND_FN std::optional<T> to_integral_pv(const char *ptr, uintlen_t len,
                                                uint8_t raidex) const noexcept {
     if (36 < raidex || !ptr || !len || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
@@ -409,12 +409,12 @@ struct byte_traits_t {
                 decltype(defualt_is_point_fn),
             callable_c<std::optional<
                 std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
-                const char&, const uint8_t&) noexcept>
+                const char &, const uint8_t &) noexcept>
                 power_fn_t = decltype(defualt_power_fn)>
   MJZ_CX_ND_FN std::optional<T> to_real_floating_pv(
-      const char* ptr, uintlen_t len, const uint8_t raidex_,
-      is_point_fn_t&& is_point_fn = is_point_fn_t{},
-      power_fn_t&& power_fn = power_fn_t{}) const noexcept {
+      const char *ptr, uintlen_t len, const uint8_t raidex_,
+      is_point_fn_t &&is_point_fn = is_point_fn_t{},
+      power_fn_t &&power_fn = power_fn_t{}) const noexcept {
     if (36 < raidex_ || !ptr || !len || !raidex_ || is_point_fn('+', raidex_) ||
         is_point_fn('-', raidex_) || power_fn('+', raidex_) ||
         power_fn('-', raidex_))
@@ -444,7 +444,7 @@ struct byte_traits_t {
     bool neg_sientific_exponent{};
     uintlen_t exponent_base{raidex_};
     uint8_t exponent_raidex{raidex_};
-    range_t* previous_section{&sientific_coeffient_section1};
+    range_t *previous_section{&sientific_coeffient_section1};
     for (uintlen_t i{}; i < len; i++) {
       uint8_t raidex =
           &sientific_exponent == previous_section ? exponent_raidex : raidex_;
@@ -486,7 +486,7 @@ struct byte_traits_t {
     }
     using mjz_float_t = big_float_t<version_v>;
 
-    auto get_sec1_val = [=](uint8_t raidex, const char* begin,
+    auto get_sec1_val = [=](uint8_t raidex, const char *begin,
                             uintlen_t length) noexcept -> mjz_float_t {
       mjz_float_t var{};
       for (uintlen_t i{}; i < length; i++) {
@@ -497,7 +497,7 @@ struct byte_traits_t {
 
       return var;
     };
-    auto get_sec2_val = [=](uint8_t raidex, const char* begin,
+    auto get_sec2_val = [=](uint8_t raidex, const char *begin,
                             uintlen_t length) noexcept -> mjz_float_t {
       mjz_float_t var{};
       mjz_float_t r = mjz_float_t::float_from_i(1);
@@ -538,7 +538,7 @@ struct byte_traits_t {
     if (!opt) {
       return std::nullopt;
     }
-    auto&& [power, idk] = *opt;
+    auto &&[power, idk] = *opt;
     if (mjz_float_t::float_from(.5) < idk) {
       if (power >= int64_t(uint64_t(-1) >> 2)) return std::nullopt;
       power++;
@@ -562,16 +562,16 @@ struct byte_traits_t {
     return coeffient.template to_float<T>(false);
   }
 
-  template <
-      std::floating_point T,
-      callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-          decltype(defualt_is_point_fn),
-      callable_c<std::optional<uintlen_t>(const char&, const uint8_t&) noexcept>
-          power_fn_t = decltype(defualt_power_fn)>
+  template <std::floating_point T,
+            callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
+                decltype(defualt_is_point_fn),
+            callable_c<std::optional<uintlen_t>(const char &,
+                                                const uint8_t &) noexcept>
+                power_fn_t = decltype(defualt_power_fn)>
   MJZ_CX_ND_FN std::optional<T> to_floating_pv(
-      const char* ptr, uintlen_t len, const uint8_t raidex,
-      is_point_fn_t&& is_point_fn = is_point_fn_t{},
-      power_fn_t&& power_fn = power_fn_t{}) const noexcept {
+      const char *ptr, uintlen_t len, const uint8_t raidex,
+      is_point_fn_t &&is_point_fn = is_point_fn_t{},
+      power_fn_t &&power_fn = power_fn_t{}) const noexcept {
     if (ascii_to_num(std::min(std::min('N', 'A'), std::min('I', 'F'))) <
         raidex) {
       return std::nullopt;  // ambigous , NAN or INF could be a valid number!
@@ -637,7 +637,7 @@ struct byte_traits_t {
   template <std::integral T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN std::optional<uintlen_t> from_integral_fill_backwards(
-      char* buf, uintlen_t len, T val_rg_, bool upper_case,
+      char *buf, uintlen_t len, T val_rg_, bool upper_case,
       const uint8_t raidex) const noexcept {
     if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
@@ -678,7 +678,7 @@ struct byte_traits_t {
   template <std::integral T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN std::optional<uintlen_t> from_integral_fill(
-      char* buf, uintlen_t len, T val_rg_, bool upper_case,
+      char *buf, uintlen_t len, T val_rg_, bool upper_case,
       const uint8_t raidex) const noexcept {
     if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
@@ -749,7 +749,7 @@ struct byte_traits_t {
 
   template <std::floating_point T>
   MJZ_CX_FN std::optional<uintlen_t> from_float_fill_sientific(
-      char* const f_buf, const uintlen_t f_len, T f_val,
+      char *const f_buf, const uintlen_t f_len, T f_val,
       MJZ_MAYBE_UNUSED const uint8_t f_accuracacy,
       MJZ_MAYBE_UNUSED bool upper_case, const uint8_t raidex,
       MJZ_MAYBE_UNUSED uint8_t exp_base, MJZ_MAYBE_UNUSED char point_ch = '.',
@@ -757,7 +757,7 @@ struct byte_traits_t {
     if (36 < raidex || !f_buf || !f_len || exp_base < 2 || raidex < 2 ||
         point_ch == '+' || point_ch == '-')
       return std::nullopt;
-    char* buf{f_buf};
+    char *buf{f_buf};
     MJZ_MAYBE_UNUSED uintlen_t accuracacy{f_accuracacy};
     uintlen_t len{f_len};
 
@@ -831,7 +831,7 @@ struct byte_traits_t {
     auto [ceil_log, fractionic_val] = value.to_log_and_coeffient(exp_base);
     std::optional<std::pair<int64_t, mjz_float_t>> int_and_float =
         fractionic_val.to_integral_and_fraction();
-    auto&& [Int_, Float_] = *int_and_float;
+    auto &&[Int_, Float_] = *int_and_float;
     auto len_diff = from_integral_fill(buf, len, Int_, upper_case, raidex);
     if (!len_diff) return std::nullopt;
     len -= *len_diff;
@@ -859,7 +859,7 @@ struct byte_traits_t {
          accuracacy--, limit_num(), fractionic_val = fractionic_val * r) {
       int_and_float = fractionic_val.to_integral_and_fraction();
       if (!int_and_float) return nullopt;
-      auto&& [front_decimal, left_decimal] = *int_and_float;
+      auto &&[front_decimal, left_decimal] = *int_and_float;
       fractionic_val = left_decimal;
       auto v = num_to_ascii(uint8_t(front_decimal), upper_case);
       if (!v) {
@@ -887,14 +887,14 @@ struct byte_traits_t {
 
   template <std::floating_point T>
   MJZ_CX_FN std::optional<uintlen_t> from_float_fill_fixed(
-      char* const f_buf, const uintlen_t f_len, T f_val,
+      char *const f_buf, const uintlen_t f_len, T f_val,
       MJZ_MAYBE_UNUSED const uintlen_t f_accuracacy,
       MJZ_MAYBE_UNUSED bool upper_case, const uint8_t raidex, uint8_t exp_base,
       char point_ch = '.') const noexcept {
     if (36 < raidex || !f_buf || !f_len || exp_base < 2 || raidex < 2 ||
         point_ch == '+' || point_ch == '-')
       return std::nullopt;
-    char* buf{f_buf};
+    char *buf{f_buf};
     MJZ_MAYBE_UNUSED uintlen_t accuracacy{f_accuracacy};
     uintlen_t len{f_len};
 
@@ -992,11 +992,11 @@ struct byte_traits_t {
         len -= 1;
         buf += 1;
       }
-      auto&& [Int_val, Float_val] = *int_and_float_;
+      auto &&[Int_val, Float_val] = *int_and_float_;
       Float_ = Float_val;
       Int_ = Int_val;
     } else {
-      auto&& [Int_val, Float_val] = *int_and_float;
+      auto &&[Int_val, Float_val] = *int_and_float;
       Float_ = Float_val;
       Int_ = Int_val;
     }
@@ -1024,7 +1024,7 @@ struct byte_traits_t {
          accuracacy--, limit_num(), value = value * r) {
       int_and_float = value.to_integral_and_fraction();
       if (!int_and_float) return nullopt;
-      auto&& [front_decimal, left_decimal] = *int_and_float;
+      auto &&[front_decimal, left_decimal] = *int_and_float;
       value = left_decimal;
       auto v = num_to_ascii(uint8_t(front_decimal), upper_case);
       if (!v) {
@@ -1043,11 +1043,11 @@ struct byte_traits_t {
 
   template <std::floating_point T>
   MJZ_CX_FN std::optional<uintlen_t> from_float_fill_hex(
-      char* const f_buf, const uintlen_t f_len, T f_val, bool upper_case,
+      char *const f_buf, const uintlen_t f_len, T f_val, bool upper_case,
       char point_ch = '.', bool add_0x = true) const noexcept {
     if (!f_buf || !f_len || point_ch == '+' || point_ch == '-')
       return std::nullopt;
-    char* buf{f_buf};
+    char *buf{f_buf};
     uintlen_t len{f_len};
     using mjz_float_t = big_float_t<version_v>;
     auto opt_ = mjz_float_t::template float_from<T>(f_val, false);
@@ -1111,7 +1111,7 @@ struct byte_traits_t {
 
   template <std::floating_point T>
   MJZ_CX_FN std::optional<uintlen_t> from_float_format_fill(
-      char* const f_buf, const uintlen_t f_len, T f_val,
+      char *const f_buf, const uintlen_t f_len, T f_val,
       const uintlen_t f_accuracacy = 6, bool upper_case = true,
       floating_format_e floating_format = floating_format_e::general,
       char point_ch = '.', bool add_prefix = true) const noexcept {
@@ -1155,12 +1155,12 @@ struct byte_traits_t {
                 decltype(defualt_is_point_fn),
             callable_c<std::optional<
                 std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
-                const char&, const uint8_t&) noexcept>
+                const char &, const uint8_t &) noexcept>
                 power_fn_t = decltype(defualt_power_fn)>
   MJZ_CX_ND_FN std::optional<T> to_real_floating(
-      const char* ptr, uintlen_t len,
-      is_point_fn_t&& is_point_fn = is_point_fn_t{},
-      power_fn_t&& power_fn = power_fn_t{}) const noexcept {
+      const char *ptr, uintlen_t len,
+      is_point_fn_t &&is_point_fn = is_point_fn_t{},
+      power_fn_t &&power_fn = power_fn_t{}) const noexcept {
     uint8_t raidex_{10};
 
     bool is_neg{};
@@ -1194,16 +1194,16 @@ struct byte_traits_t {
     return ret;
   }
 
-  template <
-      std::floating_point T,
-      callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-          decltype(defualt_is_point_fn),
-      callable_c<std::optional<uintlen_t>(const char&, const uint8_t&) noexcept>
-          power_fn_t = decltype(defualt_power_fn)>
+  template <std::floating_point T,
+            callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
+                decltype(defualt_is_point_fn),
+            callable_c<std::optional<uintlen_t>(const char &,
+                                                const uint8_t &) noexcept>
+                power_fn_t = decltype(defualt_power_fn)>
   MJZ_CX_ND_FN std::optional<T> to_floating(
-      const char* ptr, uintlen_t len,
-      is_point_fn_t&& is_point_fn = is_point_fn_t{},
-      power_fn_t&& power_fn = power_fn_t{}) const noexcept {
+      const char *ptr, uintlen_t len,
+      is_point_fn_t &&is_point_fn = is_point_fn_t{},
+      power_fn_t &&power_fn = power_fn_t{}) const noexcept {
     uint8_t raidex_{10};
     bool is_neg{};
     while (len && *ptr == ' ') {
@@ -1239,7 +1239,7 @@ struct byte_traits_t {
   template <std::integral T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN std::optional<T> to_integral(
-      const char* ptr, uintlen_t len, uint8_t raidex_ = 0) const noexcept {
+      const char *ptr, uintlen_t len, uint8_t raidex_ = 0) const noexcept {
     bool is_neg{};
     auto do_ret = [&](std::optional<T> ret) noexcept -> std::optional<T> {
       if constexpr (std::signed_integral<T>) {

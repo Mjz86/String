@@ -228,13 +228,13 @@ template <version_t version_v>
 struct base_lazy_view_t;
 template <version_t version_v>
 struct base_string_view_t : void_struct_t {
-  const char* ptr;
+  const char *ptr;
   uintlen_t has_null_v : 1;
   uintlen_t is_static : 1;
   uintlen_t encodings : 3;
   uintlen_t len : (sizeof(uintlen_t) * 8 - 5);
   MJZ_CX_FN static base_string_view_t make(
-      const char* ptr_, uintlen_t len_,
+      const char *ptr_, uintlen_t len_,
       encodings_e encodings_ = encodings_e::ascii, bool has_null_ = false,
       bool is_static_ = false) noexcept {
     base_string_view_t ret{};
@@ -269,9 +269,9 @@ template <version_t version_v>
 struct base_lazy_view_t;
 template <version_t version_v>
 struct base_lazy_view_data_t {
-  success_t (*get_value_fnp)(const base_lazy_view_t<version_v>& self,
+  success_t (*get_value_fnp)(const base_lazy_view_t<version_v> &self,
                              lazy_reader_fn<version_v> reader) noexcept;
-  const void_struct_t* obj;
+  const void_struct_t *obj;
 };
 template <version_t version_v>
 struct base_lazy_view_t : void_struct_t {
@@ -357,7 +357,7 @@ struct base_lazy_view_t : void_struct_t {
   }
 
   MJZ_CX_FN success_t get_value(
-      callable_c<lazy_reader_fnt<version_v>> auto&& reader) const noexcept {
+      callable_c<lazy_reader_fnt<version_v>> auto &&reader) const noexcept {
     return get_value_fn_pv_(
         +no_type_ns::make<lazy_reader_fnt<version_v>>(reader));
   }

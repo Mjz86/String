@@ -93,8 +93,8 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN m_t &unsafe_handle(
       const dont_mess_up_t &,
       const dont_mess_up_t &) noexcept; /*
-                                         *gets the internal data without
-                                         *permission
+                                         *gets the internal data
+                                         *without permission
                                          */
   MJZ_CX_FN const m_t &unsafe_handle(const dont_mess_up_t &,
                                      const dont_mess_up_t &) const noexcept;
@@ -142,13 +142,13 @@ struct basic_str_t : void_struct_t {
   /*
    * initilizes the string as a view
    */
-  MJZ_CX_ND_FN basic_str_t(
-      const dont_mess_up_t &,
-      generic_string_view
-          view) noexcept; /*
-                           * reserves space if appropreate then copies, if not
-                           * initilizes the string as a view
-                           */
+  MJZ_CX_ND_FN
+  basic_str_t(const dont_mess_up_t &,
+              generic_string_view
+                  view) noexcept; /*
+                                   * reserves space if appropreate then copies,
+                                   * if not initilizes the string as a view
+                                   */
   MJZ_CX_ND_FN basic_str_t(const dont_mess_up_t &, generic_string_view view,
                            cheap_str_info &&info) noexcept;
   /*
@@ -365,6 +365,16 @@ struct basic_str_t : void_struct_t {
                               replace_flags flags = replace_flags{}) noexcept;
   MJZ_CX_FN success_t consider_stack(const dont_mess_up_t &,
                                      owned_stack_buffer &&where) noexcept;
+
+  MJZ_CX_FN success_t may_reconsider_stack(const dont_mess_up_t &idk,
+                                           owned_stack_buffer &where,
+                                           bool consider_null_) noexcept {
+    if ((where.buffer_size < length() + uintlen_t(consider_null_)) ||
+        (is_stacked() && m.buffer_location_ptr() == where.buffer) ||
+        (where.buffer_size < capacity(true)))
+      return true;
+    return consider_stack(idk, std::move(where));
+  }
   MJZ_CX_FN success_t shrink_to_fit(bool force_ownership = false) noexcept;
 
   MJZ_CX_FN success_t clear(bool force_ownership = false) noexcept;
@@ -388,7 +398,7 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN bool is_stacked() const noexcept {
     return !m.is_sso() &&
            !m.template d_get_cntrl<bool>(my_details::is_sharable) &&
-           !m.non_sso_buffer_location_ptr();
+           m.non_sso_buffer_location_ptr();
   }
 
  private:
@@ -610,6 +620,15 @@ struct basic_str_t : void_struct_t {
   template <std::floating_point T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN std::optional<T> to_floating() const noexcept;
+  MJZ_CX_FN success_t ensure_props(wrapped_props_t props_v) noexcept {
+    if (props_v.is_ownerized) {
+      if (!as_always_ownerized(true)) return false;
+    }
+    if (props_v.has_null) {
+      if (!add_null()) return false;
+    }
+    return true;
+  }
 
  public:
   MJZ_CX_FN success_t append_data_temp(basic_str_t &&str) noexcept;

@@ -1309,7 +1309,6 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
   }
 }
 
-
 MJZ_COMMENT(R"RAW(
   vprint(" if constexpr (false){{return false;}}"_view);
   for (uintlen_t i{1}; i <= 32; i++) {
@@ -1328,253 +1327,257 @@ MJZ_COMMENT(R"RAW(
 
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <size_t n, typename type>
-concept get_sized_helper_c = requires(){
-    requires []() {
-  if constexpr (false) {
-    return false;
-  } else if constexpr (n == 0x1) {
-    return requires() { []() { auto&& [p0] = get_invalid_T_obj<type>(); }; };
-    ;
-  } else if constexpr (n == 0x2) {
-    return requires() {
-      []() { auto&& [p0, p1] = get_invalid_T_obj<type>(); };
-    };
-    ;
-  } else if constexpr (n == 0x3) {
-    return requires() {
-      []() { auto&& [p0, p1, p2] = get_invalid_T_obj<type>(); };
-    };
-    ;
-  } else if constexpr (n == 0x4) {
-    return requires() {
-      []() { auto&& [p0, p1, p2, p3] = get_invalid_T_obj<type>(); };
-    };
-    ;
-  } else if constexpr (n == 0x5) {
-    return requires() {
-      []() { auto&& [p0, p1, p2, p3, p4] = get_invalid_T_obj<type>(); };
-    };
-    ;
-  } else if constexpr (n == 0x6) {
-    return requires() {
-      []() { auto&& [p0, p1, p2, p3, p4, p5] = get_invalid_T_obj<type>(); };
-    };
-    ;
-  } else if constexpr (n == 0x7) {
-    return requires() {
-      []() { auto&& [p0, p1, p2, p3, p4, p5, p6] = get_invalid_T_obj<type>(); };
-    };
-    ;
-  } else if constexpr (n == 0x8) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7] = get_invalid_T_obj<type>();
+concept get_sized_helper_c = requires() {
+  requires[]() {
+    if constexpr (false) {
+      return false;
+    } else if constexpr (n == 0x1) {
+      return requires() { []() { auto&& [p0] = get_invalid_T_obj<type>(); }; };
+      ;
+    } else if constexpr (n == 0x2) {
+      return requires() {
+        []() { auto&& [p0, p1] = get_invalid_T_obj<type>(); };
       };
-    };
-    ;
-  } else if constexpr (n == 0x9) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x3) {
+      return requires() {
+        []() { auto&& [p0, p1, p2] = get_invalid_T_obj<type>(); };
       };
-    };
-    ;
-  } else if constexpr (n == 0xa) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x4) {
+      return requires() {
+        []() { auto&& [p0, p1, p2, p3] = get_invalid_T_obj<type>(); };
       };
-    };
-    ;
-  } else if constexpr (n == 0xb) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x5) {
+      return requires() {
+        []() { auto&& [p0, p1, p2, p3, p4] = get_invalid_T_obj<type>(); };
       };
-    };
-    ;
-  } else if constexpr (n == 0xc) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x6) {
+      return requires() {
+        []() { auto&& [p0, p1, p2, p3, p4, p5] = get_invalid_T_obj<type>(); };
       };
-    };
-    ;
-  } else if constexpr (n == 0xd) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x7) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0xe) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x8) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0xf) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x9) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x10) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
-                pf] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0xa) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x11) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0xb) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x12) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0xc) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x13) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0xd) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x14) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0xe) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x15) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0xf) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x16) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x10) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x17) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x11) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x18) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x12) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x19) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x13) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x1a) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x14) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x1b) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x15) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x1c) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a, p1b] =
-            get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x16) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15] = get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x1d) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a, p1b,
-                p1c] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x17) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x1e) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a, p1b, p1c,
-                p1d] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x18) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x1f) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a, p1b, p1c,
-                p1d, p1e] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x19) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else if constexpr (n == 0x20) {
-    return requires() {
-      []() {
-        auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe, pf,
-                p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a, p1b, p1c,
-                p1d, p1e, p1f] = get_invalid_T_obj<type>();
+      ;
+    } else if constexpr (n == 0x1a) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19] =
+              get_invalid_T_obj<type>();
+        };
       };
-    };
-    ;
-  } else {
-    return false;
-  }
+      ;
+    } else if constexpr (n == 0x1b) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a] =
+              get_invalid_T_obj<type>();
+        };
+      };
+      ;
+    } else if constexpr (n == 0x1c) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
+                  p1b] = get_invalid_T_obj<type>();
+        };
+      };
+      ;
+    } else if constexpr (n == 0x1d) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
+                  p1b, p1c] = get_invalid_T_obj<type>();
+        };
+      };
+      ;
+    } else if constexpr (n == 0x1e) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
+                  p1b, p1c, p1d] = get_invalid_T_obj<type>();
+        };
+      };
+      ;
+    } else if constexpr (n == 0x1f) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
+                  p1b, p1c, p1d, p1e] = get_invalid_T_obj<type>();
+        };
+      };
+      ;
+    } else if constexpr (n == 0x20) {
+      return requires() {
+        []() {
+          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+                  pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
+                  p1b, p1c, p1d, p1e, p1f] = get_invalid_T_obj<type>();
+        };
+      };
+      ;
+    } else {
+      return false;
+    }
   }
   ();
 };
@@ -1670,7 +1673,7 @@ concept aggregate_cs =
 
 template <typename type, size_t... i>
   requires aggregate_cs<type, i...>
-void aggregate_fn(type&&, std::index_sequence<i...>){};
+void aggregate_fn(type&&, std::index_sequence<i...>) {};
 template <typename aggregate_t, std::size_t count>
 concept aggregate_c = requires() {
   aggregate_fn(get_invalid_T_obj<aggregate_t>(),

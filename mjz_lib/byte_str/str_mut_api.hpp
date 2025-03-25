@@ -1318,10 +1318,9 @@ MJZ_NCX_FN std::istream &operator>>(std::istream &cin_v,
 
       // reserve ,got a character, add it to string
       success &=
-          obj.reserve(
-              obj.length() + 1, uintlen_t(cin_base.width()), obj.get_alloc(),
-              typename basic_str_t<version_v, has_alloc_v_>::replace_flags{
-                  .exponential_resize = true}) &&
+          obj.reserve(obj.length() + 1, uintlen_t(cin_base.width()),
+                      obj.get_alloc(),
+                      replace_flags_t<version_v>{.exponential_resize = true}) &&
           obj.push_back(traits::to_char_type(meta));
       if (!success) break;
       has_changed = true;
@@ -1386,10 +1385,9 @@ MJZ_NCX_FN std::istream &getline(std::istream &cin_v,
       }
       // reserve ,got a character, add it to string
       success &=
-          obj.reserve(
-              obj.length() + 1, uintlen_t(cin_base.width()), obj.get_alloc(),
-              typename basic_str_t<version_v, has_alloc_v_>::replace_flags{
-                  .exponential_resize = true}) &&
+          obj.reserve(obj.length() + 1, uintlen_t(cin_base.width()),
+                      obj.get_alloc(),
+                      replace_flags_t<version_v>{.exponential_resize = true}) &&
           obj.push_back(traits::to_char_type(meta));
 
       if (!success) break;
