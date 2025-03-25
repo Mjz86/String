@@ -126,7 +126,7 @@ null and alive.
 - on the main string:
   All of the iterators, the methods, and functions only give constant
   references to the data.
-- for mutatable iteration, consider the following( next release):
+- for mutatable iteration, consider the following:
   the `ownerized_string` wrapper is an equivalent of `std::string` ( null termination requirement is given via template flag to provide `c_str`).
   users can convert between these easily without any lifetime issues,
   and because its a wrapper, it wouldn't have code bloat.
@@ -442,7 +442,16 @@ intermediate null terminators, I think it would be a bug to require null
 termination (see the talk on Folly's string implementation), and again, we did
 put `as_c_str`, so I think there's no valid complaints.
 
-- the alternative string types are mentioned above , for when a requirement is necessary ( next release).
+- the alternative string types are mentioned above , for when a requirement is necessary.
+
+* how i think of this :
+the main string is more of a constant string type like a name of an object , or a key into a map, 
+but when someone wants to change a string,  they need a mutable type ,
+and  for changing a string , someone can use a ownerized string with a relevant buffer size ( for example 96 bytes , make a 128 byte string wrapper) ,
+and when the modifications are all performed,  the string would be turned back into the main string for storage .
+also , no one says this is how to use it ,
+someone may  make a vector of these 128byte strings because they expect  many different strings with sizes mostly less than 96.
+for example , the mutatable big sso string could be used as a buffer for user input,  then different parts may be stored in different strings and ect .
 
 # Extensions:
 
