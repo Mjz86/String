@@ -262,7 +262,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     return set_cntrl(cntrl, is_sso_);
   }
   template <typename T>
-  MJZ_CX_FN std::remove_cvref_t<T> d_get_cntrl(bool is_sso_,
+  MJZ_CX_FN  std::remove_cvref_t<T> d_get_cntrl(bool is_sso_,
                                                const uint8_t x) const noexcept {
     return static_cast<std::remove_cvref_t<T>>((x & get_cntrl(is_sso_)) >>
                                                mjz::get_begin_bit_index(x));
@@ -453,13 +453,15 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   MJZ_CX_FN static success_t check_buffer_correct_ness_(
       const char *begin, uintlen_t length, char *buffer_begin,
       uintlen_t buffer_capacity) noexcept {
-    return (buffer_capacity < mut_data_t::buffer_cap_max_) &&
+    // consistency , assert should never fail!
+    asserts(asserts.assume_rn,(buffer_capacity < mut_data_t::buffer_cap_max_) &&
            (length < mut_data_t::buffer_cap_max_) &&
            (buffer_begin || !buffer_capacity) && (begin || !length) &&
            (!begin || !buffer_begin ||
             (buffer_begin <= begin &&
              begin + length <= buffer_begin + buffer_capacity &&
-             length <= buffer_capacity));
+                  length <= buffer_capacity)));
+    return true;
   }
   MJZ_CX_FN success_t construct_non_sso_from_invalid(
       const char *begin_, uintlen_t length_, char *buffer_begin_,
@@ -509,8 +511,9 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
       return true;
     }
     MJZ_RELEASE { construct_non_sso_from_invalid_fast_keep(); };
-
-    return non_sso_my_heap_manager_no_own().free();
+    // consistency , free should never fail!
+    asserts(asserts.assume_rn, non_sso_my_heap_manager_no_own().free());
+    return true;
   }
   MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
     return str_heap_manager(

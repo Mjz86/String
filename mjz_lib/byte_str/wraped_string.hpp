@@ -63,7 +63,7 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   using const_iterator = iterator_t<const wrapped_string_t>;
   using iterator = iterator_t<wrapped_string_t>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-  using reverse_iterator = const_reverse_iterator;
+  using reverse_iterator = std::reverse_iterator<iterator>;
   using size_type = uintlen_t;
   using difference_type = intlen_t;
 
