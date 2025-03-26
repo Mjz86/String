@@ -379,8 +379,8 @@ shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_s
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # future versions:
-* the string wrapper is available as an exponential feature, the wrapper  accepts  a template pram for the properties to ensure ( `sso_cap,has_null,is_ownerized`), the stack buffer with the appropriate length will be provided ( if cap is more than sso), the string would be null terminated if required,  and the string would be easily mutable if required,  the 3 different  string wrappers can be made by using a specific template pram, or a combination of them if needed ( mutable and big sso for example).
-  
+
+- the string wrapper is available as an exponential feature, the wrapper accepts a template pram for the properties to ensure ( `sso_cap,has_null,is_ownerized`), the stack buffer with the appropriate length will be provided ( if cap is more than sso), the string would be null terminated if required, and the string would be easily mutable if required, the 3 different string wrappers can be made by using a specific template pram, or a combination of them if needed ( mutable and big sso for example).
 
 i plan to support unicode with another library component that integrates with the byte-string,
 currently, i want to implement the rope,
@@ -445,13 +445,13 @@ put `as_c_str`, so I think there's no valid complaints.
 - the alternative string types are mentioned above , for when a requirement is necessary.
 
 * how i think of this :
-the main string is more of a constant string type like a name of an object , or a key into a map, 
-but when someone wants to change a string,  they need a mutable type ,
-and  for changing a string , someone can use a ownerized string with a relevant buffer size ( for example 96 bytes , make a 128 byte string wrapper) ,
-and when the modifications are all performed,  the string would be turned back into the main string for storage .
-also , no one says this is how to use it ,
-someone may  make a vector of these 128byte strings because they expect  many different strings with sizes mostly less than 96.
-for example , the mutatable big sso string could be used as a buffer for user input,  then different parts may be stored in different strings and ect .
+  the main string is more of a constant string type like a name of an object , or a key into a map,
+  but when someone wants to change a string, they need a mutable type ,
+  and for changing a string , someone can use a ownerized string with a relevant buffer size ( for example 96 bytes , make a 128 byte string wrapper) ,
+  and when the modifications are all performed, the string would be turned back into the main string for storage .
+  also , no one says this is how to use it ,
+  someone may make a vector of these 128byte strings because they expect many different strings with sizes mostly less than 96.
+  for example , the mutatable big sso string could be used as a buffer for user input, then different parts may be stored in different strings and ect .
 
 # Extensions:
 

@@ -9,7 +9,6 @@ MJZ_DISABLE_ALL_WANINGS_START_;
 MJZ_DISABLE_ALL_WANINGS_END_;
 namespace mjz {
 
-
 template <version_t version_v = version_t{}>
 struct big_float_t {
   template <class>
