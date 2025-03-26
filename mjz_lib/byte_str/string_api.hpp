@@ -418,6 +418,7 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_ND_FN success_t
   as_ownerized(const alloc_ref &val_alloc = m_t::empty_alloc,
                replace_flags rep_flags = replace_flags{}) noexcept {
+    if (is_owner()) return true;
     rep_flags.force_ownership = true;
     return replace_data_with_char(0, 0, 0, nullopt, val_alloc, rep_flags);
   }
@@ -426,6 +427,9 @@ struct basic_str_t : void_struct_t {
       replace_flags rep_flags = replace_flags{}) noexcept {
     if (!flag_state_) {
       m.d_set_cntrl(my_details::is_ownerized, false);
+      return true;
+    }
+    if (m.template d_get_cntrl<bool>(my_details::is_ownerized)) {
       return true;
     }
     rep_flags.ownerization_v =
@@ -621,11 +625,11 @@ struct basic_str_t : void_struct_t {
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN std::optional<T> to_floating() const noexcept;
   MJZ_CX_FN success_t ensure_props(wrapped_props_t props_v) noexcept {
-    if (props_v.is_ownerized) {
-      if (!as_always_ownerized(true)) return false;
-    }
     if (props_v.has_null) {
       if (!add_null()) return false;
+    }
+    if (props_v.is_ownerized) {
+      if (!as_always_ownerized(true)) return false;
     }
     return true;
   }
