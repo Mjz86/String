@@ -9,58 +9,6 @@ MJZ_DISABLE_ALL_WANINGS_START_;
 MJZ_DISABLE_ALL_WANINGS_END_;
 namespace mjz {
 
-template <version_t version_v = version_t{}>
-struct Uint128_t : void_struct_t {
-  uint32_t parts[4];
-  MJZ_CX_FN Uint128_t() noexcept = default;
-  MJZ_CX_FN Uint128_t(uint64_t val) noexcept {
-    parts[0] = val & uint64_t(uint32_t(-1));
-    parts[1] = val >> 32;
-  };
-  MJZ_CX_FN std::optional<uint64_t> get64() const noexcept {
-    if (parts[3] || parts[2]) return nullopt;
-    return (uint64_t(parts[1]) << 32) | parts[0];
-  };
-  MJZ_CX_FN Uint128_t get_add(Uint128_t other,
-                              bool* carry = nullptr) const noexcept {
-    uint64_t result[4]{};
-    bool carry_{};
-    if (!carry) carry = &carry_;
-    for (uintlen_t i{}; i < 4; i++) {
-      result[i] = uint64_t(carry) + parts[i] + other.parts[i];
-      *carry = !!(result[i] >> 32);
-    }
-    for (uintlen_t i{}; i < 4; i++) {
-      other.parts[i] = uint32_t(result[i]);
-    }
-    return other;
-  };
-  MJZ_CX_FN Uint128_t get_not() const noexcept {
-    Uint128_t ret{*this};
-    for (uintlen_t i{}; i < 4; i++) {
-      ret.parts[i] = ~ret.parts[i];
-    }
-    return ret;
-  }
-  MJZ_CX_FN Uint128_t get_and(Uint128_t other) const noexcept {
-    for (uintlen_t i{}; i < 4; i++) {
-      other.parts[i] = parts[i] & other.parts[i];
-    }
-    return other;
-  }
-  MJZ_CX_FN Uint128_t get_or(Uint128_t other) const noexcept {
-    for (uintlen_t i{}; i < 4; i++) {
-      other.parts[i] = parts[i] | other.parts[i];
-    }
-    return other;
-  }
-  MJZ_CX_FN Uint128_t get_xor(Uint128_t other) const noexcept {
-    for (uintlen_t i{}; i < 4; i++) {
-      other.parts[i] = parts[i] ^ other.parts[i];
-    }
-    return other;
-  }
-};
 
 template <version_t version_v = version_t{}>
 struct big_float_t {
@@ -154,7 +102,7 @@ struct big_float_t {
   }
   template <std::floating_point T>
   MJZ_CX_FN static std::optional<bool> set_exponent_get_normaity(
-      MJZ_MAYBE_UNUSED T& val, int64_t exp) noexcept {
+      MJZ_MAYBE_UNUSED T &val, int64_t exp) noexcept {
     constexpr std::optional<bit_range_t> exp_range =
         get_exponent_bit_range<T>();
     if constexpr (!exp_range) {
@@ -275,7 +223,7 @@ struct big_float_t {
       uint64_t i{coeffient_range->i + ip};
       uint8_t bit = uint8_t(uint8_t(1) << (i % 8));
       bool bit_on = !!(uint64_t(m_coeffient) & (uint64_t(1) << (ip)));
-      char& c = a[uintptr_t(i / 8)];
+      char &c = a[uintptr_t(i / 8)];
       c &= ~bit;
       c |= char(bit_on ? bit : uint8_t());
     }
@@ -316,7 +264,7 @@ struct big_float_t {
                                                   big_float_t rhs) noexcept {
     if (!lhs.m_coeffient) return rhs;
     if (!rhs.m_coeffient) return lhs;
-    auto f = [](big_float_t& hs) noexcept {
+    auto f = [](big_float_t &hs) noexcept {
       bool is_neg{};
       if (hs.m_coeffient < 0) {
         is_neg = true;
@@ -508,7 +456,7 @@ struct big_float_t {
   }
 
   MJZ_CX_FN std::strong_ordering operator<=>(
-      const big_float_t& lhs) const noexcept {
+      const big_float_t &lhs) const noexcept {
     auto r = add(*this, -lhs);
     return r->m_coeffient <=> int64_t(0);
   }
@@ -517,7 +465,7 @@ struct big_float_t {
     return (!!rhs && !!lhs) ? (*rhs == *lhs) : nullopt;
   }
 
-  MJZ_CX_FN bool operator==(const big_float_t& lhs) const noexcept {
+  MJZ_CX_FN bool operator==(const big_float_t &lhs) const noexcept {
     auto r = add(*this, -lhs);
     return r->m_coeffient == int64_t(0);
   }
@@ -537,7 +485,7 @@ struct big_float_t {
       is_negative = true;
       ret.m_coeffient = -ret.m_coeffient;
     }
-    int64_t& exponent = ret.m_exponent;
+    int64_t &exponent = ret.m_exponent;
     constexpr uint64_t sign_bit = ~(uint64_t(-1) >> 1);
     uint64_t integral_coeffient{uint64_t(ret.m_coeffient)};
     while (!(integral_coeffient & sign_bit) && integral_coeffient && exponent) {
@@ -788,104 +736,6 @@ template <std::floating_point f_t>
 MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
   return f_t(x);
 }
-
-template <typename T>
-struct quaternion_t {
-  MJZ_COMMENT(1) T w;
-  MJZ_COMMENT(i) T x;
-  MJZ_COMMENT(j) T y;
-  MJZ_COMMENT(k) T z;
-  MJZ_CX_FN quaternion_t operator+(const quaternion_t& q2) const noexcept {
-    const quaternion_t& q1 = *this;
-    return quaternion_t(q1.w + q2.w, q1.x + q2.x, q1.y + q2.y, q1.z + q2.z);
-  }
-  MJZ_CX_FN quaternion_t operator-(const quaternion_t& q2) const noexcept {
-    const quaternion_t& q1 = *this;
-    return quaternion_t(q1.w - q2.w, q1.x - q2.x, q1.y - q2.y, q1.z - q2.z);
-  }
-  MJZ_CX_FN quaternion_t& operator+=(const quaternion_t& q2) noexcept {
-    return *this = *this + q2;
-  }
-  MJZ_CX_FN quaternion_t& operator-=(const quaternion_t& q2) noexcept {
-    return *this = *this - q2;
-  }
-  MJZ_CX_FN quaternion_t& operator*=(const quaternion_t& q2) noexcept {
-    return *this = *this * q2;
-  }
-  MJZ_CX_FN quaternion_t& operator/=(const quaternion_t& q2) noexcept {
-    return *this = *this / q2;
-  }
-
-  MJZ_CX_FN quaternion_t& operator*=(const T& scale) noexcept {
-    return *this = *this * scale;
-  }
-  MJZ_CX_FN quaternion_t operator*(const T& scale) const noexcept {
-    return {w * scale, x * scale, y * scale, z * scale};
-  }
-  MJZ_CX_FN quaternion_t operator*(const quaternion_t& q) const noexcept {
-    const T& w1 = w;
-    const T& x1 = x;
-    const T& y1 = y;
-    const T& z1 = z;
-    const T& w2 = q.w;
-    const T& x2 = q.x;
-    const T& y2 = q.y;
-    const T& z2 = q.z;
-    return {.w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2,
-            .x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
-            .y = w1 * y2 + y1 * w2 + z1 * x2 - x1 * z2,
-            .z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2};
-  }
-
-  MJZ_CX_FN quaternion_t conjugate() const noexcept { return {w, -x, -y, -z}; }
-  MJZ_CX_FN T normSq() const noexcept { return w * w + x * x + y * y + z * z; }
-  MJZ_CX_FN T norm() const noexcept { return mjz_sqrt(normSq()); }
-
-  MJZ_CX_FN quaternion_t& normalize() noexcept {
-    const T iLen = mjz_make_number<T>(1.) / norm();
-    w *= iLen;
-    x *= iLen;
-    y *= iLen;
-    z *= iLen;
-    return *this;
-  }
-  MJZ_CX_FN quaternion_t
-  rotate_pure_vector(const quaternion_t& pure_vector) const noexcept {
-    // t = 2q x v
-    asserts(asserts.pre_condition,
-            [&]() -> bool { return pure_vector.w == mjz_make_number<T>(0.); });
-    quaternion_t ret{pure_vector};
-    auto& [vw_, vx, vy, vz]{ret};
-    constexpr T two = mjz_make_number<T>(2.);
-    const T tx = two * (y * vz - z * vy);
-    const T ty = two * (z * vx - x * vz);
-    const T tz = two * (x * vy - y * vx);
-    // v + w t + q x t
-    vx = vx + w * tx + y * tz - z * ty;
-    vy = vy + w * ty + z * tx - x * tz;
-    vz = vz + w * tz + x * ty - y * tx;
-    return ret;
-  }
-  MJZ_CX_FN quaternion_t dot(const quaternion_t& q) const noexcept {
-    return w * q.w + x * q.x + y * q.y + z * q.z;
-  }
-  MJZ_CX_FN static quaternion_t make_fromAxisAngle(const T x, const T y,
-                                                   const T z,
-                                                   const T angle) noexcept {
-    quaternion_t ret{};
-
-    const T halfAngle = angle * mjz_make_number<T>(0.5);
-    const T sin_2 = mjz_sin(halfAngle);
-    const T cos_2 = mjz_cos(halfAngle);
-    const T sin_norm = sin_2 / mjz_sqrt(x * x + y * y + z * z);
-    ret.w = cos_2;
-    ret.x = x * sin_norm;
-    ret.y = y * sin_norm;
-    ret.z = z * sin_norm;
-
-    return ret;
-  }
-};
 
 }  // namespace mjz
 #endif  // MJZ_MATHS_LIB_HPP_FILE_
