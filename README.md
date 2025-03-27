@@ -464,6 +464,7 @@ while still benefiting from most of its upsides.
 
 - because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
 my two compilers in how.txt:
+
 `clang version 20.1.0`
 
 `g++.exe (Rev3, Built by MSYS2 project) 13.2.0`
