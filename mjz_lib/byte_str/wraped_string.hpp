@@ -7,7 +7,7 @@ namespace mjz::bstr_ns {
 
 template <version_t version_v, wrapped_props_t props_v>
 struct wrapped_string_data_t
-    : public basic_str_t<version_v, props_v.has_alloc> {
+    : protected basic_str_t<version_v, props_v.has_alloc> {
  private:
   template <class>
   friend class mjz_private_accessed_t;
@@ -18,7 +18,7 @@ template <version_t version_v, wrapped_props_t props_v>
              props_v.sso_min_cap);
   }
 struct wrapped_string_data_t<version_v, props_v>
-    : public basic_str_t<version_v, props_v.has_alloc> {
+    : protected basic_str_t<version_v, props_v.has_alloc> {
  protected:
   template <class>
   friend class mjz_private_accessed_t;
@@ -44,6 +44,7 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
       const void_struct_t *p) noexcept {
     return static_cast<const wrapped_string_t *>(p);
   }
+  using wrapped_string_t_unique_tag_ = void;
 
  private:
   template <class>
@@ -136,80 +137,140 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
         init_stack(m_str()) && ensure_props(m_str()),
         "[Error]wrapped_string_t::wrapped_string_t():  failed string init");
   }
-  MJZ_CX_FN wrapped_string_t(str_t source_) noexcept {
+
+
+
+  MJZ_CX_FN wrapped_string_t(str_t&& source_,
+                             void_struct_t ) noexcept {
+    m_str() = std::move(source_);
     MJZ_UNUSED auto gard_ = prop_guard();
-    m_str().reset_to_error_on_fail(init_stack(source_) &&
-                                       ensure_props(source_) &&
-                                       m_str().move_init(std::move(source_)),
+    m_str().reset_to_error_on_fail(init_stack(m_str()) && ensure_props(m_str()),
                                    "[Error]wrapped_string_t::wrapped_string_t("
-                                   "str_t):  failed string init");
+                                   "str_t&&):  failed string init");
   }
-  template <wrapped_props_t version_v_src>
-  MJZ_CX_FN wrapped_string_t(
-      wrapped_string_data_t<version_v, version_v_src> &&source_) noexcept
+  MJZ_CX_FN wrapped_string_t(const str_t& source_, void_struct_t) noexcept {
+    m_str() = source_;
+    MJZ_UNUSED auto gard_ = prop_guard();
+    m_str().reset_to_error_on_fail(init_stack(m_str()) && ensure_props(m_str()),
+                                   "[Error]wrapped_string_t::wrapped_string_t("
+                                   "const str_t&):  failed string init");
+  }
+  template <class U>
+  MJZ_CX_FN wrapped_string_t(U &&arg) noexcept
+      : wrapped_string_t(std::forward<U>(arg), totally_empty_type) {}
+  MJZ_CX_FN wrapped_string_t(wrapped_string_t &&arg) noexcept
+      : wrapped_string_t(std::forward<wrapped_string_t>(arg),
+                         totally_empty_type) {}
+  MJZ_CX_FN wrapped_string_t(const wrapped_string_t &arg) noexcept
+      : wrapped_string_t(std::forward<const wrapped_string_t&>(arg),
+                         totally_empty_type) {}
+
+  template <class U>
+  MJZ_CX_FN wrapped_string_t(U &&source_,void_struct_t) noexcept
+    requires requires() {
+      requires std::same_as<U, std::remove_cvref_t<U>>;
+      typename U::wrapped_string_t_unique_tag_;
+    }
       : wrapped_string_t() {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
-        source_.move_to_dest(m_str()) && ensure_props(m_str()),
+        std::move(source_).move_to_dest(m_str()) && ensure_props(m_str()),
         "[Error]wrapped_string_t::wrapped_string_t( "
         "wrapped_string_data_t<version_v_src, version_v_src>&&):  failed "
         "string init");
   }
-  template <wrapped_props_t version_v_src>
-  MJZ_CX_FN wrapped_string_t(
-      const wrapped_string_data_t<version_v, version_v_src> &source_) noexcept
-      : wrapped_string_t(source_.m_str()) {}
+  template <class U>
+  MJZ_CX_FN wrapped_string_t(U &&source_,
+                             void_struct_t ) noexcept
+    requires requires() {
+      requires std::same_as<U, std::remove_reference_t<U>&>;
+      typename std::remove_cvref_t<U>::wrapped_string_t_unique_tag_;
+    }
+      : wrapped_string_t() {
+    MJZ_UNUSED auto gard_ = prop_guard();
+    m_str().reset_to_error_on_fail(
+        m_str().assign(source_.m_str()),
+        "[Error]wrapped_string_t::wrapped_string_t( "
+        "const wrapped_string_data_t<version_v_src, version_v_src>&):  failed "
+        "string construct"); 
+  }
 
   template <wrapped_props_t version_v_src>
-  MJZ_CX_FN wrapped_string_t &operator=(
+  MJZ_CX_FN wrapped_string_t &operator_assign(
       wrapped_string_data_t<version_v, version_v_src> &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         source_.move_to_dest(m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t &operator=( "
+        "[Error]wrapped_string_t::wrapped_string_t &operator_assign( "
         "wrapped_string_data_t<version_v_src, version_v_src>&&):  failed "
         "string assign");
     return *this;
   }
   template <wrapped_props_t version_v_src>
-  MJZ_CX_FN wrapped_string_t &operator=(
+  MJZ_CX_FN wrapped_string_t &operator_assign(
       const wrapped_string_data_t<version_v, version_v_src> &source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         m_str().assign(source_.m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t &operator=( "
+        "[Error]wrapped_string_t::wrapped_string_t &operator_assign( "
         "const wrapped_string_data_t<version_v_src, version_v_src>&):  failed "
         "string assign");
     return *this;
   }
 
-  MJZ_CX_FN wrapped_string_t &operator=(const str_t &source_) noexcept {
+  MJZ_CX_FN wrapped_string_t &operator_assign(const str_t &source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(m_str().assign(source_),
                                    "[Error]wrapped_string_t::wrapped_string_t "
-                                   "&operator=(const str_t &):  failed "
+                                   "&operator_assign(const str_t &):  failed "
                                    "string assign");
     return *this;
   }
-  MJZ_CX_FN wrapped_string_t &operator=(str_t &&source_) noexcept {
+  MJZ_CX_FN wrapped_string_t &operator_assign(str_t &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(init_stack(source_) &&
                                        ensure_props(source_) &&
                                        m_str().move_init(std::move(source_)),
                                    "[Error]wrapped_string_t::wrapped_string_t "
-                                   "&operator=(str_t&&):  failed "
+                                   "&operator_assign(str_t&&):  failed "
                                    "string assign");
     return *this;
   }
+  template <class U>
+  MJZ_CX_FN wrapped_string_t &operator=(U &&source_) noexcept {
+    return operator_assign(std::forward<U>(source_));
+  } 
+  MJZ_CX_FN wrapped_string_t &operator=(wrapped_string_t &&source_) noexcept {
+    return operator_assign(std::forward<wrapped_string_t>(source_));
+  }
+  MJZ_CX_FN wrapped_string_t &operator=(
+      const wrapped_string_t &source_) noexcept {
+    return operator_assign(std::forward<const wrapped_string_t&>(source_));
+  }
+
+  MJZ_CX_FN ~wrapped_string_t() noexcept {
+    /*msvc had issues with defaults*/
+    std::ignore = 0;
+  }
 
  public:
-  MJZ_CX_FN success_t move_to_dest(str_t &dest) noexcept {
+  MJZ_CX_FN success_t move_to_dest(str_t &dest) && noexcept {
+    MJZ_UNUSED auto gard_ = prop_guard();
     if (m_str().is_stacked()) {
       return dest.assign(m_str());
     }
     return dest.assign_move(std::move(m_str()));
   }
-  MJZ_CX_FN operator const str_t &() const noexcept { return m_str(); }
+  MJZ_DEPRECATED_R("use get")
+  MJZ_CX_FN operator str_t() const noexcept = delete;
+  MJZ_DEPRECATED_R("use get")
+  MJZ_CX_FN operator str_t &&() const noexcept = delete;
+  MJZ_DEPRECATED_R("use get")
+  MJZ_CX_FN operator str_t &() const noexcept = delete;
+  MJZ_DEPRECATED_R("use get")
+  MJZ_CX_FN operator const str_t &&() const noexcept = delete;
+  MJZ_DEPRECATED_R("use get")
+  MJZ_CX_FN operator const str_t &() const noexcept = delete;
   MJZ_CX_FN const str_t &get() const noexcept { return m_str(); }
   MJZ_CX_ND_FN const auto &get_alloc() const noexcept {
     return get().get_alloc();
