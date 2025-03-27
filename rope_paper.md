@@ -66,13 +66,15 @@ struct alignas(64) elem {
 // Similar to std::any, but the vtable includes a subrange iteration
 // function that calls a slice view functor and an allocator reference
 // alongside the "void*".  Effectively:
-// `void iterate ( const Lazy&obj, std::function<void( string_view slice)> callback);`
+// `void iterate ( const Lazy&obj, std::function<void( size_t real_offset,size_t real_length,string_view slice)> callback);`
 // A trick with an empty base class `void_struct_t` emulates `void*`
 struct Lazy {
-  size_t length;
-  size_t offset;
-  lazy_Vtable *vtable;
-  union lazy_storage; // Size of max(64-32,16)
+ //size_t length;// can be derived by index_of_end information.
+  size_t offset;// only stored , added to the virtual offset to get the real_offset
+ struct lazy_info {
+lazy_Vtable *vtable;
+  union lazy_storage; // Size of max(64-24,16)
+  };
 };
 
 struct root {
