@@ -117,7 +117,7 @@ struct {// this is just a 8 or 16 byte aligned char array with this layout
     - `is_sharable == false`.
 
 Also, `[begin, end)` is a continuous sub-range of
-`[heap_buffer, heap_buffer + capacity)` if and only if `heap_buffer` is not
+`[data_block, data_block + capacity)` if and only if `data_block` is not
 null and alive.
 
 # Addressing COW and the Drawbacks
