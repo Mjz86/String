@@ -434,7 +434,9 @@ struct basic_str_t : void_struct_t {
     }
     rep_flags.ownerization_v =
         replace_flags::ownerization_e::always_ownerize_on;
-    return replace_data_with_char(0, 0, 0, nullopt, val_alloc, rep_flags);
+    if (! as_ownerized( val_alloc, rep_flags))return false;
+    m.d_set_cntrl(my_details::is_ownerized, true);
+    return true;
   }
   template <class R_t>
     requires std::ranges::sized_range<R_t> && std::ranges::forward_range<R_t>
