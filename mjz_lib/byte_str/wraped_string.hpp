@@ -47,6 +47,8 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   using wrapped_string_t_unique_tag_ = void;
 
  private:
+  template <version_t , wrapped_props_t >
+  friend struct wrapped_string_t;
   template <class>
   friend class mjz_private_accessed_t;
   MJZ_CONSTANT(bool)
@@ -195,9 +197,12 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
         "string construct"); 
   }
 
-  template <wrapped_props_t version_v_src>
-  MJZ_CX_FN wrapped_string_t &operator_assign(
-      wrapped_string_data_t<version_v, version_v_src> &&source_) noexcept {
+  template <class U>
+    requires requires() {
+      requires std::same_as<U, std::remove_cvref_t<U>>;
+      typename U::wrapped_string_t_unique_tag_;
+    }
+  MJZ_CX_FN wrapped_string_t &operator_assign(U &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         source_.move_to_dest(m_str()),
@@ -206,9 +211,12 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
         "string assign");
     return *this;
   }
-  template <wrapped_props_t version_v_src>
-  MJZ_CX_FN wrapped_string_t &operator_assign(
-      const wrapped_string_data_t<version_v, version_v_src> &source_) noexcept {
+  template <class U>
+    requires requires() {
+      requires std::same_as<U, std::remove_reference_t<U> &>||std::is_const_v<U>;
+      typename std::remove_cvref_t<U>::wrapped_string_t_unique_tag_;
+    }
+  MJZ_CX_FN wrapped_string_t &operator_assign(U &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         m_str().assign(source_.m_str()),
