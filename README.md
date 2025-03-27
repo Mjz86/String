@@ -3,7 +3,7 @@
 **tl;dr:**
 
 Less lifetime management (dangling views) while maintaining view (and value)
-semantics and performance characteristics (no copying or allocation). And
+semantics and performance characteristics (no copying or allocation), also , the wrappers allow for tuning the sso size to any desired size , and all of them are compatible with each other. And
 planned Unicode support.
 
 # Abstract
@@ -380,7 +380,8 @@ does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # future versions:
 
-- the string wrapper is available as an exponential feature, the wrapper accepts a template pram for the properties to ensure ( `sso_cap,has_null,is_ownerized`), the stack buffer with the appropriate length will be provided ( if cap is more than sso), the string would be null terminated if required, and the string would be easily mutable if required, the 3 different string wrappers can be made by using a specific template pram, or a combination of them if needed ( mutable and big sso for example).
+- the string wrapper is available as an exponential feature, the wrapper accepts a template pram for the properties to ensure ( `sso_cap,has_null,is_ownerized`), the stack buffer with the appropriate length will be provided ( if cap is more than sso), the string would be null terminated if required, and the string would be easily mutable if required, the 3 different string wrappers can be made by using a specific template pram, or a combination of them if needed ( mutable and big sso for example),
+`ownerized_string` is that wrapper with `is_ownerized=true`, `c_string` is that wrapper with `has_null=true` , and `implace_string<N>` is that wrapper with  `sso_cap=N` , also , this way , the traits can be combined,  for example an owned implace string with size of 1024, note that the size of the `implace_string<N>` object is around 32+N ( for 15<N, N mod 8 being zero).
 
 i plan to support unicode with another library component that integrates with the byte-string,
 currently, i want to implement the rope,
