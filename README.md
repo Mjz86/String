@@ -184,18 +184,7 @@ which are not `constexpr` anyways). A `constexpr` friendly allocator is provided
 by the implemented library.
 
 # C Interoperability
-
-- this will be significantly simpler with the wrapper, but for the main string , this is the criticism:
-
-- there are two options, the current one:
-  The `has_null` flag is used to see if there's a null terminator. If not, we may
-  add it in the `as_c_str` function (non-const function, use `.data()`,
-  `.length()`, `.has_null()`, and `memcpy()` if you want a constant
-  alternative). Also, calling the copy (or share) constructor and using
-  `as_c_str` on the l-value you made is effectively a const alternative with the
-  same overhead (if we assume that stack buffer was not used on the first part).
-  also , see `to_c_str()` if you need a `const` alternative .
-- the better one is :
+use the `c_string` wrapper for null terminated strings.
 
 ```c++
 struct c_string {
@@ -231,12 +220,10 @@ viewer. A substring function may share the underlying data if and only if `!is_o
   function name isn't important in the design (`add_null_c_str`).
   note that the `data()` function will have output a null terminated `const char*` if and only if `has_null()`.
   also , if you called `as_c_str()` without failing, you know that `has_null()` is true.
-  when we have `const` `data()`, i see no need for `const` `c_str()`
-  we can also provide a `to_c_str()` that returns a copy(or share) with has_null() set to true ,
-  after this , the user can call `data()` , a `const` function, to get the null terminated string,
-  and unless a non const function is applied, the string would be null terminated.
-
-- the alternative is discussed in the cow section (`ownerized_string`).
+  
+ -for null terminated strings , we recommend the `c_string` wrapper.
+  
+- for mutatable strings we recommend `ownerized_string` wrapper .
 
 # COW Overhead
 
@@ -429,21 +416,9 @@ consider mine being encoding aware).
 Any algorithm for a continuous string is usable and implemented (with regard
 to its encoding; ASCII is like the standard C implementation).
 
-As I said, we know that this is an implementation to be in-between of view and
-string, so this is an acceptable tradeoff. If you want to complain about
-mutable iteration, I don't think you needed a viewing type in the first place,
-and do you think the operation that you want to do can use the proxy? It's
-just 2 move operations and a reference count check if you owned it before, and
-if not, you would have copied anyways. After than that, you get a `char*` as
-your iterator type with all of the normal string functionality (potentially
-null terminated if requested). If you want to complain about null terminators,
-I think you either need to be comfortable with C APIs (explicit work with
-`memcpy`) or rethink your design. When the standard string is allowed to have
-intermediate null terminators, I think it would be a bug to require null
-termination (see the talk on Folly's string implementation), and again, we did
-put `as_c_str`, so I think there's no valid complaints.
+the mutatable iteration and null terminator requirements are for the wrappers ,
+usually its better to  use the wrappers when needed on the fly , and use the main string ( or `implace_string` if beneficial) for storage or passing around. 
 
-- the alternative string types are mentioned above , for when a requirement is necessary.
 
 * how i think of this :
   the main string is more of a constant string type like a name of an object , or a key into a map,
