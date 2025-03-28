@@ -827,10 +827,11 @@ struct byte_traits_t {
         value = value + one_over_cof;
       }
     }
-
-    auto [ceil_log, fractionic_val] = value.to_log_and_coeffient(exp_base);
+    auto sb1_ = value.to_log_and_coeffient(exp_base);
+    //https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
+    auto &&[ceil_log_0_, fractionic_val_0_] = sb1_; 
     std::optional<std::pair<int64_t, mjz_float_t>> int_and_float =
-        fractionic_val.to_integral_and_fraction();
+        fractionic_val_0_.to_integral_and_fraction();
     auto &&[Int_, Float_] = *int_and_float;
     auto len_diff = from_integral_fill(buf, len, Int_, upper_case, raidex);
     if (!len_diff) return std::nullopt;
@@ -838,6 +839,7 @@ struct byte_traits_t {
     buf += *len_diff;
     if (!len) return std::nullopt;
     auto limit_num = [&]() noexcept {
+      auto&& [ceil_log, fractionic_val] = sb1_; 
       int64_t max_log2 =
           log2_ceil_of_val_create(uint64_t(fractionic_val.m_coeffient)) +
           fractionic_val.m_exponent;
@@ -846,6 +848,7 @@ struct byte_traits_t {
         fractionic_val.m_coeffient = 0;
       }
     };
+    auto &&[ceil_log, fractionic_val] = sb1_; 
     fractionic_val = Float_;
     limit_num();
     if (accuracacy && fractionic_val.m_coeffient) {
