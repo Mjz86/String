@@ -8,16 +8,19 @@ template <typename T>
   requires std::is_trivially_copyable_v<T>
 class atomic_ref_t {
   MJZ_CONSTANT(bool) mutable_v { !std::is_const_v<T> };
-  atomic_ref_t& operator=(const atomic_ref_t&) = delete;
+  atomic_ref_t &operator=(const atomic_ref_t &) = delete;
   union ref_pair_t {
-    MJZ_CX_FN ref_pair_t(const ref_pair_t&) = default;
-    ref_pair_t& operator=(const ref_pair_t&) = delete;
-    std::atomic_ref<T> a_ref;
+    MJZ_CX_FN ref_pair_t(const ref_pair_t &) = default;
+    ref_pair_t &operator=(const ref_pair_t &) = delete;
+    char dummmy{}; 
+    using a_ref_t= std::atomic_ref<T>;
+    T* a_ref;
     cx_atomic_ref_t<T> cx_ref;
-    MJZ_CX_FN ref_pair_t(T& obj) noexcept {
+    MJZ_CX_FN ref_pair_t() noexcept {}
+    MJZ_CX_FN ref_pair_t(T &obj) noexcept {
       MJZ_IF_CONSTEVAL { std::construct_at(&cx_ref, obj); }
       else {
-        std::construct_at(&a_ref, obj);
+        std::construct_at(&a_ref, &obj);
       }
     }
     MJZ_CX_FN ~ref_pair_t() noexcept {
@@ -27,41 +30,41 @@ class atomic_ref_t {
       }
     }
     template <typename Self_t, class Lmabda_t>
-    MJZ_CX_FN static auto perform(Self_t&& Self, Lmabda_t&& Lmabda) noexcept {
+    MJZ_CX_FN static auto perform(Self_t &&Self, Lmabda_t &&Lmabda) noexcept {
       static_assert(
           callable_anyret_c<Lmabda_t,
-                            void(decltype(ref_pair_t::cx_ref)&) noexcept> &&
-          callable_anyret_c<Lmabda_t,
-                            void(decltype(ref_pair_t::a_ref)&) noexcept> &&
+                            void(decltype(ref_pair_t::cx_ref) &) noexcept> &&
+          callable_anyret_c<Lmabda_t, void(a_ref_t &) noexcept> &&
           partial_same_as<Self_t, ref_pair_t>);
       MJZ_IF_CONSTEVAL { return Lmabda(std::forward<Self_t>(Self).cx_ref); }
       else {
-        return Lmabda(std::forward<Self_t>(Self).a_ref);
+        a_ref_t a_ref_{*std::forward<Self_t>(Self).a_ref};
+        return Lmabda(a_ref_);
       }
     }
   };
-  ref_pair_t m;
+  ref_pair_t m{};
   template <class L_t>
-  MJZ_CX_FN auto perform(L_t&& Lmabda) const noexcept {
+  MJZ_CX_FN auto perform(L_t &&Lmabda) const noexcept {
     return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
   }
   template <class L_t>
-  MJZ_CX_FN auto perform(L_t&& Lmabda) noexcept {
+  MJZ_CX_FN auto perform(L_t &&Lmabda) noexcept {
     return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
   }
   template <class L_t>
-  MJZ_CX_FN auto perform(L_t&& Lmabda) const volatile noexcept {
+  MJZ_CX_FN auto perform(L_t &&Lmabda) const volatile noexcept {
     return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
   }
   template <class L_t>
-  MJZ_CX_FN auto perform(L_t&& Lmabda) volatile noexcept {
+  MJZ_CX_FN auto perform(L_t &&Lmabda) volatile noexcept {
     return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
   }
 
  public:
-  MJZ_CX_FN explicit atomic_ref_t(T& obj) noexcept : m(obj) {}
+  MJZ_CX_FN explicit atomic_ref_t(T &obj) noexcept : m(obj) {}
 
-  MJZ_CX_FN atomic_ref_t(const atomic_ref_t&) noexcept = default;
+  MJZ_CX_FN atomic_ref_t(const atomic_ref_t &) noexcept = default;
   MJZ_CONSTANT(bool)
   is_always_lock_free = std::atomic_ref<T>::is_always_lock_free;
   MJZ_CONSTANT(size_t)
@@ -69,7 +72,7 @@ class atomic_ref_t {
 
   MJZ_CX_ND_FN bool is_lock_free() const noexcept {
     return perform(
-        [&](auto&& ref) noexcept -> bool { return ref.is_lock_free(); });
+        [&](auto &&ref) noexcept -> bool { return ref.is_lock_free(); });
   }
 
   MJZ_CX_FN void store(
@@ -78,23 +81,23 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> void { return ref.store(obj, mo); });
+        [&](auto &&ref) noexcept -> void { return ref.store(obj, mo); });
   }
   MJZ_CX_ND_FN T
   load(const std::memory_order mo = std::memory_order_seq_cst) const noexcept {
-    return perform([&](auto&& ref) noexcept -> T { return ref.load(mo); });
+    return perform([&](auto &&ref) noexcept -> T { return ref.load(mo); });
   }
   MJZ_CX_FN void wait(
       const T Expected,
       const std::memory_order mo = std::memory_order_seq_cst) const noexcept {
     return perform(
-        [&](auto&& ref) noexcept -> void { return ref.wait(Expected, mo); });
+        [&](auto &&ref) noexcept -> void { return ref.wait(Expected, mo); });
   }
 
   MJZ_CX_FN T operator=(const T obj) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref = obj; });
+    return perform([&](auto &&ref) noexcept -> T { return ref = obj; });
   }
 
   MJZ_CX_ND_FN T exchange(
@@ -103,60 +106,60 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.exchange(value, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.exchange(value, mo); });
   }
 
   MJZ_CX_ND_FN success_t compare_exchange_weak(
-      T& Expected, const T Desired,
+      T &Expected, const T Desired,
       const std::memory_order mo = std::memory_order_seq_cst) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> success_t {
+    return perform([&](auto &&ref) noexcept -> success_t {
       return ref.compare_exchange_weak(Expected, Desired, mo);
     });
   }
 
   MJZ_CX_ND_FN success_t compare_exchange_strong(
-      T& Expected, const T Desired,
+      T &Expected, const T Desired,
       const std::memory_order mo = std::memory_order_seq_cst) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> success_t {
+    return perform([&](auto &&ref) noexcept -> success_t {
       return ref.compare_exchange_strong(Expected, Desired, mo);
     });
   }
   MJZ_CX_ND_FN success_t compare_exchange_weak(
-      T& Expected, const T Desired, const std::memory_order success,
+      T &Expected, const T Desired, const std::memory_order success,
       const std::memory_order failure) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> success_t {
+    return perform([&](auto &&ref) noexcept -> success_t {
       return ref.compare_exchange_weak(Expected, Desired, success, failure);
     });
   }
 
   MJZ_CX_ND_FN success_t compare_exchange_strong(
-      T& Expected, const T Desired, const std::memory_order success,
+      T &Expected, const T Desired, const std::memory_order success,
       const std::memory_order failure) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> success_t {
+    return perform([&](auto &&ref) noexcept -> success_t {
       return ref.compare_exchange_strong(Expected, Desired, success, failure);
     });
   }
 
   MJZ_CX_FN operator T() const noexcept {
-    return perform([&](auto&& ref) noexcept -> T { return T(ref); });
+    return perform([&](auto &&ref) noexcept -> T { return T(ref); });
   }
 
   MJZ_CX_FN void notify_one() const noexcept {
     return perform(
-        [&](auto&& ref) noexcept -> void { return ref.notify_one(); });
+        [&](auto &&ref) noexcept -> void { return ref.notify_one(); });
   }
 
   MJZ_CX_FN void notify_all() const noexcept {
     return perform(
-        [&](auto&& ref) noexcept -> void { return ref.notify_all(); });
+        [&](auto &&ref) noexcept -> void { return ref.notify_all(); });
   }
 
   MJZ_CX_FN
@@ -165,7 +168,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_add(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_add(Operand, mo); });
   }
 
   MJZ_CX_FN T fetch_and(
@@ -174,7 +177,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_and(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_and(Operand, mo); });
   }
   MJZ_CX_FN
   T fetch_or(const T Operand, const std::memory_order mo =
@@ -182,7 +185,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_or(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_or(Operand, mo); });
   }
   MJZ_CX_FN
   T fetch_xor(const T Operand, const std::memory_order mo =
@@ -190,31 +193,31 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_xor(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_xor(Operand, mo); });
   }
   MJZ_CX_FN
   T operator++(int) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref++; });
+    return perform([&](auto &&ref) noexcept -> T { return ref++; });
   }
   MJZ_CX_FN
   T operator++() const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ++ref; });
+    return perform([&](auto &&ref) noexcept -> T { return ++ref; });
   }
   MJZ_CX_FN
   T operator--(int) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref--; });
+    return perform([&](auto &&ref) noexcept -> T { return ref--; });
   }
   MJZ_CX_FN
   T operator--() const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return --ref; });
+    return perform([&](auto &&ref) noexcept -> T { return --ref; });
   }
   using difference_type = T;
 
@@ -224,7 +227,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_add(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_add(Operand, mo); });
   }
 
   MJZ_CX_FN
@@ -233,7 +236,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_sub(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_sub(Operand, mo); });
   }
   MJZ_CX_FN
   T fetch_sub(const T Operand,
@@ -242,14 +245,14 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_sub(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_sub(Operand, mo); });
   }
   MJZ_CX_FN
   T fetch_and(const T Operand) const volatile noexcept
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_and(Operand); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_and(Operand); });
   }
   MJZ_CX_FN
   T fetch_and(const T Operand,
@@ -258,7 +261,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_and(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_and(Operand, mo); });
   }
 
   MJZ_CX_FN
@@ -268,7 +271,7 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_or(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_or(Operand, mo); });
   }
   MJZ_CX_FN
   T fetch_xor(const T Operand,
@@ -277,96 +280,96 @@ class atomic_ref_t {
     requires(mutable_v)
   {
     return perform(
-        [&](auto&& ref) noexcept -> T { return ref.fetch_xor(Operand, mo); });
+        [&](auto &&ref) noexcept -> T { return ref.fetch_xor(Operand, mo); });
   }
   MJZ_CX_FN
   T operator++(int) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref++; });
+    return perform([&](auto &&ref) noexcept -> T { return ref++; });
   }
   MJZ_CX_FN
   T operator++() const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ++ref; });
+    return perform([&](auto &&ref) noexcept -> T { return ++ref; });
   }
   MJZ_CX_FN
   T operator--(int) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref--; });
+    return perform([&](auto &&ref) noexcept -> T { return ref--; });
   }
   MJZ_CX_FN
 
   T operator--() const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return --ref; });
+    return perform([&](auto &&ref) noexcept -> T { return --ref; });
   }
   MJZ_CX_FN
   T operator+=(const T Operand) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref += Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref += Operand; });
   }
   MJZ_CX_FN
 
   T operator+=(const T Operand) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref += Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref += Operand; });
   }
   MJZ_CX_FN
 
   T operator-=(const T Operand) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref -= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref -= Operand; });
   }
   MJZ_CX_FN
 
   T operator-=(const T Operand) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref -= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref -= Operand; });
   }
   MJZ_CX_FN
   T operator&=(const T Operand) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref &= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref &= Operand; });
   }
   MJZ_CX_FN
   T operator&=(const T Operand) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref &= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref &= Operand; });
   }
   MJZ_CX_FN
   T operator|=(const T Operand) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref |= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref |= Operand; });
   }
   MJZ_CX_FN
 
   T operator|=(const T Operand) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref |= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref |= Operand; });
   }
   MJZ_CX_FN
   T operator^=(const T Operand) const noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref ^= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref ^= Operand; });
   }
   MJZ_CX_FN
   T operator^=(const T Operand) const volatile noexcept
     requires(mutable_v)
   {
-    return perform([&](auto&& ref) noexcept -> T { return ref ^= Operand; });
+    return perform([&](auto &&ref) noexcept -> T { return ref ^= Operand; });
   }
 };
 template <typename T>
