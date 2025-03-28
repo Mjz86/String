@@ -603,9 +603,10 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::consider_stack(
   MJZ_RELEASE { stack_buffer = owned_stack_buffer{}; };
   if (stack_buffer.buffer_size < length()) return true;
   memcpy(stack_buffer.buffer, data(), size());
+  auto len_ = size();
   asserts(asserts.assume_rn,
           total_reset(true) && m.construct_non_sso_from_invalid(
-                                   stack_buffer.buffer, 0, stack_buffer.buffer,
+                               stack_buffer.buffer, len_, stack_buffer.buffer,
                                    stack_buffer.buffer_size, false, true));
   m.add_null(true);
   return true;
