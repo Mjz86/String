@@ -465,10 +465,20 @@ while still benefiting from most of its upsides.
 - because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
 my two compilers in how.txt:
 
+Win11:
 `clang version 20.1.0`
 
 `g++.exe (Rev3, Built by MSYS2 project) 13.2.0`
 
+`Microsoft (R) C/C++ Optimizing Compiler Version 19.43.34809 for x86`
+
+
+Linux-subsys:
+
+ `clang++ version 20.1.1 (https://github.com/llvm/llvm-project 424c2d9b7e4de40d0804dd374721e6411c27d1d1)`
+ 
+ `g++ (Debian 12.2.0-14) 12.2.0`
+ 
 Also, sorry if the markdown is not professional; I don't have much experience
 with it.
 
