@@ -9,6 +9,7 @@ MJZ_DISABLE_ALL_WANINGS_START_;
 MJZ_DISABLE_ALL_WANINGS_END_;
 namespace mjz {
 
+
 template <version_t version_v = version_t{}>
 struct big_float_t {
   template <class>
@@ -272,9 +273,12 @@ struct big_float_t {
       hs.normalize<61>();
       return std::tuple(is_neg, uint64_t(hs.m_coeffient), hs.m_exponent);
     };
-    auto [r_ng, r_ce, r_xp] = f(rhs);
-    auto [l_ng, l_ce, l_xp] = f(lhs);
+    //https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
+    auto sb1_ = f(rhs);
+    auto sb2_ = f(lhs);
     auto fn = [&]() noexcept {
+      auto &&[r_ng, r_ce, r_xp] = sb1_;
+      auto &&[l_ng, l_ce, l_xp] = sb2_; 
       int64_t delta = l_xp - r_xp;
       if (delta < 64) {
         r_ce >>= delta;
@@ -288,6 +292,8 @@ struct big_float_t {
       ret.m_exponent = int64_t(l_xp);
       return ret;
     };
+    auto &&[r_ng, r_ce, r_xp] = sb1_;
+    auto &&[l_ng, l_ce, l_xp] = sb2_; 
     if (r_xp < l_xp) {
       return fn();
     }
