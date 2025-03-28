@@ -262,13 +262,17 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     return set_cntrl(cntrl, is_sso_);
   }
   template <typename T>
-  MJZ_CX_FN std::remove_cvref_t<T> d_get_cntrl(bool is_sso_,
+  MJZ_CX_FN  std::remove_cvref_t<T> d_get_cntrl(bool is_sso_,
                                                const uint8_t x) const noexcept {
     return static_cast<std::remove_cvref_t<T>>((x & get_cntrl(is_sso_)) >>
                                                mjz::get_begin_bit_index(x));
   }
   MJZ_CX_FN bool is_sso() const noexcept {
-    bool B = begin == dead_sso_buffer_location_ptr();
+   // Debian clang version 19.1.4(1 ~deb12u1) bug( beacuse my clang version 20.1.0 works ):
+// note: comparison of addresses of literals has unspecified value
+ // ^ the inner object address is never same as litteral , it may be same bug as https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074  or https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86369
+   bool B =
+       (const void *)(begin) == (const void *)(dead_sso_buffer_location_ptr());
     MJZ_IFN_CONSTEVAL {
       uint8_t cntrl{*reinterpret_cast<const uint8_t *>(sso_cntrl_ptr())};
       asserts(asserts.assume_rn, !(B && (cntrl & my_details::is_sharable)));
@@ -454,13 +458,12 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
       const char *begin, uintlen_t length, char *buffer_begin,
       uintlen_t buffer_capacity) noexcept {
     // consistency , assert should never fail!
-    asserts(asserts.assume_rn,
-            (buffer_capacity < mut_data_t::buffer_cap_max_) &&
-                (length < mut_data_t::buffer_cap_max_) &&
-                (buffer_begin || !buffer_capacity) && (begin || !length) &&
-                (!begin || !buffer_begin ||
-                 (buffer_begin <= begin &&
-                  begin + length <= buffer_begin + buffer_capacity &&
+    asserts(asserts.assume_rn,(buffer_capacity < mut_data_t::buffer_cap_max_) &&
+           (length < mut_data_t::buffer_cap_max_) &&
+           (buffer_begin || !buffer_capacity) && (begin || !length) &&
+           (!begin || !buffer_begin ||
+            (buffer_begin <= begin &&
+             begin + length <= buffer_begin + buffer_capacity &&
                   length <= buffer_capacity)));
     return true;
   }
