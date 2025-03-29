@@ -460,7 +460,7 @@ the best implemented out of 5 that I made, but this provides a good way to
 minimize UB of use-after-free with using a reference-counted string view,
 while still benefiting from most of its upsides.
 
-**Note:**
+### Note+context:
 
 - because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
 my two compilers in how.txt:
@@ -481,6 +481,10 @@ Linux-subsys:
  
 Also, sorry if the markdown is not professional; I don't have much experience
 with it.
+
+also , I'm pretty sure that more than 90% of that code is written by my own hands, 
+none of that code is from ai ,and this style that you see and may hate (lots of macros,  lots of useless  parameters, code that doesn't give warning but is "awful",noexcept everything,  constexpr everything at all cost , complex code with wired control flow that might as well had `goto` if it wasn't constexpr), is *my* style,  and frankly I love it, also , as a side note,  I'm burnt-out as a 17yo , this is my hobby, I just wanted to share what I'm doing with a community, if all I get is roast for my coding style,  that wouldn't help much with my depression nor burnout , and it wouldn't help either , because I don't want to change this style.
+thanks either way for reading.
 
 This paper is located at:
 [https://github.com/Mjz86/String/blob/main/README.md](https://github.com/Mjz86/String/blob/main/README.md)
