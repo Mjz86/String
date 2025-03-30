@@ -1,335 +1,525 @@
-# Considering Fragmentation: A Custom Rope Implementation
+# Reconsidering COW, a Modern C++20 String Implementation
 
-## Abstract:
+**tl;dr:**
 
-This paper presents a custom rope data structure based on a semi-immutable string and a lazy generator. It aims to reduce fragmentation while maintaining sufficient memory efficiency. The rope is designed to be fully usable in a `constexpr` context, although not generally as a `constexpr` variable. (For simplicity, this paper primarily discusses 64-bit little-endian architectures, but the concepts are applicable to others.)
+Less lifetime management (dangling views) while maintaining view (and value)
+semantics and performance characteristics (no copying or allocation), also , the wrappers allow for tuning the sso size to any desired size , and all of them are compatible with each other. And
+planned Unicode support.
 
-## Introduction:
+# Abstract
 
-While ropes may not be a common tool for most developers, they are essential in specific applications. This paper documents the design and considerations behind my rope implementation, even though it's still a work in progress. The goal is to provide a useful reference.
+This paper presents a custom string class designed for memory efficiency.
+The paper is mainly focused on the 64-bit little-endian implementation, but other platforms also have equivalent functionality. The string class provides a way to store various encodings in different string types. It's allocator-aware and uses SSO and COW features while adding others with minimal overhead. The class is as `constexpr` friendly as the standard string, mostly comparable to the GCC implementation.
 
-## Implementation Details:
+# Introduction
 
-The following conceptual code illustrates the core ideas. It's simplified for clarity:
+Many C++ programmers have worked with strings. Several have been forced to use either immutable value semantics with views or reference semantics and allocations for mutable strings. This string class bridges these, providing an owning tagged string view as its storage.
+
+# Implementation Details
+
+note that in the 32bit platform, there are two options,
+one is big address space ( 56 bit) and one is small address space ( 24bit) , in the small case , the object size is 16bytes and in the large case 32bytes.
+
+The basic layout can be thought of as the following (not valid C++, but its equivalent) (total of 32 bytes in my own implementation):
 
 ```c++
-// To avoid trashing cache lines, each node has a padded base that holds
-// the reference count.  Since it's padded anyway, redundant members
-// are added for convenience during destruction.
-struct alignas(std::hardware_destructive_interference_size)
-node_shared_cache {
-  size_t reference_count;
-// redundant members,  can be derived from node_ref 
-  std::span<elem> elems;
-  size_t length;
-  allocator my_alloc;
-  bool is_threaded;
-  bool is_sso;
-};
-
-struct node : node_shared_cache {
-  union {
-    elem children[B];
-    //  B×64 bytes
-    //  For B=15, the node's SSO segment would be 960 bytes.
-    //  Rope slice progression: root(48) -> slice(56) -> node(960) -> more.
-    //  The maximum m would be approximately n/28, and the minimum would be 1.
-    //  'm' depends only on the number of operations, not 'n', so fragmentation is generally low.
-    char sso_buffer[sizeof(children)];
+struct {
+  (allocator reference as empty base);
+  const char* begin_ptr;
+  size_t  length;
+  union{
+    char  buffer[15];
+    struct referencal_t{// the string is a reference to something
+      char* data_block;
+      size_t capacity:56;// in actuality only 7 bytes
+    };
   };
-};
-
-struct node_ref {
-  node *object;
-  // size_t  offset;  Easier substringing could be achieved with an offset, but it's
-  // avoided due to potential fragmentation.
-  size_t length;
-  size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
-  size_t tree_height; // Helps in the concatenation algorithm to identify the
-                     // tree depth at which concatenation should occur.
-  allocator node_alloc;
-  bool is_threaded;
-  bool is_sso;
-};
-
-// This struct is not padded because the SSO buffer is the largest member.
-struct alignas(64) elem {
-  size_t index_of_end : 62; // SSO length can be calculated using this and the previous index.
-  size_t type : 2;
-  union {
-    char sso_buffer[56];
-    mjz::string string;
-    Lazy lazy;
-    node_ref node_ref;
-  };
-};
-
-// Similar to std::any, but the vtable includes a subrange iteration
-// function that calls a slice view functor and an allocator reference
-// alongside the "void*".  Effectively:
-// `void iterate ( const Lazy&obj, std::function<void( size_t real_offset,size_t real_length,string_view slice)> callback);`
-// A trick with an empty base class `void_struct_t` emulates `void*`
-struct Lazy {
- //size_t length;// can be derived by index_of_end information.
-  size_t offset;// only stored , added to the virtual offset to get the real_offset
- struct lazy_info {
-lazy_Vtable *vtable;
-  union lazy_storage; // Size of max(64-24,16)
-  };
-};
-
-struct root {
-  allocator alloc;
-  size_t encoding : 3;
-  size_t is_threaded : 1;
-  size_t type : 2;
-  size_t length : 58;
-  union {
-    char sso_buffer[48];
-    mjz::string leaf;
-    Lazy lazy;
-    node_ref node_ref;
-  };
+  uint8_t  control_byte;
 };
 ```
 
-# thread-safety:
-the thread-safety grantees of the whole tree is achieved when all the nodes are using thread-safe allocators ( the `is_threaded` property is more of an indicator for the thread-safety of the allocator resource , if all of them are true , then the rope is thread-safe on all const operations ,but if mutation operations are involved,  then synchronization would be necessary.)
-the most notable example of why thread-safety is important in the rope is for asynchronous file reads and writes, 
-a  rope that  is written to the file asynchronously.
-and , the partial copy of the rope can still be modified in another thread.
+The control byte can be thought of as:
 
-* effectively:
+```c++
+struct {
+uint8_t  /*the negation of this is actually stored*/is_threaded:1;
 
- a single rope object ( having  same address ) should not be modified in parallel.
+  uint8_t  is_sharable:1;// this  indicates  that we are in a heap or litteral view , vs , sso or stack buffer or copying view.
+
+
+ uint8_t is_ownerized:1;   /*this flag is not propagated by copy or share, only by move,in the non-move case,  if any side (dest or src) has this flag set to true, a memcpy and a potential allocation occurs (if sso or stack buffer is not large enough) */
+ // to always disable cow and viewer for a specific string ,
+ // to remove the reference_count checks,
+ //controled  with  always_ownerize(bool flag_state),
+ //  (is_sharable&&!is_ownerized) determines sharability
+ // both of these flags are essential and they do not correlate.
+
+  uint8_t has_null:1;// needed to share substrings
+
+  uint8_t:1;//unused_for_now_
+  uint8_t  encoding:3; // we are not a bag of bytes
+};
+```
+
+The encoding flags are for knowing the encoding of the stored data.
+
+The heap block can be thought of as:
+
+```c++
+struct {// this is just a 8 or 16 byte aligned char array with this layout
+  size_t  reference_count;
+  char heap_buffer[capacity];
+};
+```
+
+# Invariants
+
+1.  **At the string view state:**
+
+    - `begin != buffer`.
+    - `active union member == referencal_t`.
+    - `begin != nullptr || 0 == length`.
+    - `data_block == nullptr`.
+    - `capacity == 0`.
+    - `is_owner() == false`.
+    - `is_ownerized == false`.
+      the view optimization is essentially a cow string with static lifetime, therfore its not ownerized.
+
+2.  **At the SSO string state:**
+
+    - `begin == buffer`.
+    - `active union member == buffer`.
+    - `capacity == 15`.
+    - `is_owner() == true`.
+    - `is_sharable == false`.
+    - `has_null == (length != 15)`.
+
+3.  **Heap string state:**
+
+    - `begin != buffer`.
+    - `active union member == referencal_t`.
+    - `begin != nullptr`.
+    - `data_block == &heap_buffer`.
+    - `capacity != 0`.
+    - (`capacity` is almost always bigger than 15, but no guarantees are made)
+    - `is_owner() ==(is_ownerized ||  (reference_count < 2))`.
+    - ` !is_ownerized || reference_count < 2`.
+    - `is_sharable == true`.
+
+4.  **Stack buffer string state:**
+
+    - `begin != buffer`.
+    - `active union member == referencal_t`.
+    - `begin != nullptr`.
+    - `data_block != nullptr`.
+    - `capacity != 0`.
+    - `is_owner() == true`.
+    - `is_sharable == false`.
+
+Also, `[begin, end)` is a continuous sub-range of
+`[data_block, data_block + capacity)` if and only if `data_block` is not
+null and alive.
+
+# Addressing COW and the Drawbacks
+
+- note , if a string is showing bottlenecks on cow, try `ownerize()` or `always_ownerize(true)` or the `ownerized_string`.
+- on the main string:
+  All of the iterators, the methods, and functions only give constant
+  references to the data.
+- for mutatable iteration, consider the following:
+  the `ownerized_string` wrapper is an equivalent of `std::string` ( null termination requirement is given via template flag to provide `c_str`).
+  users can convert between these easily without any lifetime issues,
+  and because its a wrapper, it wouldn't have code bloat.
+  i think rust had a cow and non cow string as well.
+
+```c++
+struct ownerized_string /* in actuality,  this is a using statement of the real template wrapper*/{
+private:
+  //....
+  mjz::string value;// is_ownerized being true is an invariant.
+  // the standard string interface can be used( other than c_str )
+};
+```
+
+i dont think the null terminator is important enough for a wrapper,
+it shouldn't be dependent upon at all , its purely legacy.
+
+but , its easy enough to add another template flag for it , so why not.
+
+# How to do This Without My Help
+
+The string design presented may be complex for readers to implement on their
+own, but they can make it easily if they don't care about the object size or
+indirections and allocation strategy (I needed the object size to be small,
+but if not):
+
+```c++
+struct simpler_version{
+  std::variant <std::shared_ptr<std::string> // cow
+                ,std::array<char,sizeof(std::string)>         // sso
+                ,std::span<char>             // stack buffer
+                > data;
+  std::string_view view;
+  encodings_t encoding;
+  bool has_null;
+  bool is_ownerized;
+  // functionality....
+};
+```
+
+# Thread-Safety (Opt-Out)
+
+The string ensures to use atomic operations if `is_threaded` is true. For a
+brief summary, the thread-safety grantees are similar to a `shared_ptr` of a
+`std::string` if the flag is true.
+
+# Constexpr Compatibility
+
+The `reference_count` variable is stored as 8 bytes and is bitcasted (no
+thread-safety in `constexpr` mode because of obvious reasons). Only the static
+string view can be stored as a static constant expression value, but the
+string is fully functional in a `constexpr` context. No `reinterpret_cast` is
+used (the only time we do use it is for the thread-safe atomic operations
+which are not `constexpr` anyways). A `constexpr` friendly allocator is provided
+by the implemented library.
+
+# C Interoperability
+use the `c_string` wrapper for null terminated strings.
+
+```c++
+struct c_string {
+//.... another using statement of the real template wrapper,
+// null termination is an invariant
+private:
+ //....
+ mjz::string value;
+};
+```
+
+this has the `c_str` function.
+
+# Features and Implementation
+
+The built-in string viewer and shared substrings: the string is accessed via
+the begin and length pair, they provide the minimal functionality of a string
+viewer. A substring function may share the underlying data if and only if `!is_ownerized&&is_sharable`.
+
+# Mutable Strings
+
+- the main string:
+  The string manages its resources and can be modified using the other part of
+  the object. The functions ensure correct COW semantics, and they allocate when
+  necessary. Almost all equipment functionality of `std::string` can be
+  supported, except the following: the value of `operator[](i)`, `at(i)`,
+  `*data()`, `front()`, `back()` cannot be mutated (see the historical COW
+  reference for why). `c_str()` does not exist (`as_c_str()` does, but it can
+  mutate and it only gives a pointer to `const`). I cannot prove a `const`
+  alternative; I do not want pointers to temporaries nor relying on `has_null`
+  being true. The "as" means that it modified it to be "as" requested (that's
+  what the prefix in the name means). We can also use another name, but the
+  function name isn't important in the design (`add_null_c_str`).
+  note that the `data()` function will have output a null terminated `const char*` if and only if `has_null()`.
+  also , if you called `as_c_str()` without failing, you know that `has_null()` is true.
+  
+ -for null terminated strings , we recommend the `c_string` wrapper.
+  
+- for mutatable strings we recommend `ownerized_string` wrapper .
+
+# COW Overhead
+
+- can be turned off for a specific string, or by using the (`ownerized_string`) .
+
+Other than the destruction and construction, which may need a branch to the
+non-view path if the optimizer doesn't realize triviality, the string const
+overhead is similar to a view, which is minimal. We can easily make a view
+out of this, no branching required. Actually, I had my previous string layout
+with an SSO size of 31, but the downside was a branch in the const view path. I
+discarded that and made all of the view information accessible without
+branching. The only time where the overhead is felt is in modification of the
+string content. I tried my best to get the modification function as efficient
+as possible, but in these worse cases, I can't do much else: the string was
+cold, the reference count was cold or has false sharing (contention when
+modification trashes the cache line) (heap strings), the data was cold, the
+data needed deallocating or reallocation.
+
+But at last, any function that is marked const doesn't even think about the
+storage location or strategy nor lifetime; it's as if it was a view all along.
+
+And the ones that are not marked const are the ones who need to know about
+other stuff. Also, there are some functions that are not const
+(`remove_suffix` or `prefix`, `as_substring`) that only address the SSO part
+and treat the other parts as views; these don't even need to know about COW nor
+ownership.
+
+# Built-In Stack Buffer Optimization (Advanced Users Only)
+
+- use a safe wrapper of this feature for a better quality of life (`implace_string`) .
+
+By using a stack buffer, you ensure that no allocation occurs as long as the
+buffer is big enough. If not, allocation may occur. The users must ensure
+that the buffer outlives the string object and the objects that it moved to or
+a view that it was converted to, but unlike the Allocators, they don't need to
+guarantee outliving a copy of it. Notice that copies are allowed to outlive
+the buffer; this is because COW doesn't apply to stack buffers because of
+obvious reasons. Also, this is not checked; it's raw performance of a span of
+chars, and most users won't ever need such performance (lifetimes are hard;
+this is discouraged), but some places (in the internals of my rope
+implementation) may need it, so it's there.
+
+# tunable sso , no code bloat, no big types:
+
+- this will be provided with the name (`implace_string`) .
+  ( a safe wrapper of the stack buffer )
+  we may provide a safe wrapper ( the string would be a private member ,the buffer would be a private member) class that has a bigger sso buffer ,
+  while also reusing all the code of the string , think of it like an implace vector ,
+  this wouldn't need lifetime knowledge, so it would be for intermediate users .
+  even if they never use the unsafe stack buffer directly.
+  this is like the game industry's sso strategy, but with minimal code bloat,
+  as a bonus, you can seamlessly pass this around without lifetime issues ( the is_sharable flag disables cow for the private sso buffer, so no dangling references)
+  it can be converted to other wrappers of different sizes and to the string itself .
+  also , if you remember, from the copy construction section,
+  we would de-share automatically for these strings , essentially,
+  the template size argument and type incompatibility dissappears (but does its job).
+
+# The Optimizations of Remove Prefix/Suffix, Push Back, Pop Back, Push Front and Pop Front
+
+- note that the null terminator retirement makes this harder for the `c_string`, mainly , sharing substings will break cow more with null terminator requirements.
+
+Because the begin pointer is not limited to the beginning of the buffer, we
+can use the view semantics to remove the extra character without memmove.
+
+We also have 3 mods of the first position alignment of the range:
+
+- Central buffer (`begin = buffer + (cap - len) / 2`)
+- Front buffer (`begin = buffer`)
+- Back buffer (`begin = buffer + cap - len`)
+
+After that, the position may change, but we could append and prepend to the
+range without memmove in many cases if we want to.
+
+# Small String Optimization
+
+The 15 bytes of SSO capacity allows us to not allocate anything for small
+strings.
+
+# Copy on Write Optimization
+
+- not available in (`ownerized_string`) .
+
+Allows us to share most of the data, even sharing the substrings, reducing
+fragmentation, allocations, and improving performance.
+if the user suspected that a peice of code had false sharing ( thread contention on reference count) , we recommend the `ownerize()` method,
+it should make the string the owner of the data , note that this does mostly nothing if we are the owner .
+note that sharing is not applied in the copy constructor or assignment if the destination buffer ia large enough to hold the data , and is an owner , this is because we dont want to deallocate a hot buffer for no reason.
+then we could make the strings with the most contention, force ownerized,using , `always_ownerize(true)` so , no one would ever change their reference count to false share,
+this effectively kills cow for things that would suffer from it.
+
+# Built-In String View Optimization
+
+- not available in (`ownerized_string`) .
+
+When initializing a string from a literal, no allocation is performed. For
+example, in the following case, we do not allocate, but `std::string` does:
+
+```c++
+void fn(std::string str);
+void mjz_fn(mjz::string str);
+
+fn("im too long too fit in sso ............"s);
+mjz_fn("im too long too fit in sso ............"_str);
+```
+
+# Unicode Support
+
+While I haven't made that part in the library, we can easily support Unicode
+or any other encoding just by using one of the 8 states of encoding flags (if
+they were too small, we could use 1 bits ( `unused_for_now_` ) to add
+support for 16 separate encodings, but I don't see any reason for supporting
+more than 8 encodings at the same time). Strings with different encodings
+may not interact; if they do, that's an error and will throw if you allow it.
+
+# Exception Safety
+
+In my library, almost everything is `noexcept`. I mainly wanted everything to be
+testable in `constexpr` mode; therefore, I added a custom error encoding for
+making the string an error value. But, if anyone wants exceptions, that's easy
+to do with a wrapper (or a different class, but I currently really like
+`noexcept`, so I won't do that for now).
+
+# Allocators (Advanced Users Only)
+
+While a generic implementation could allow any allocators, because of the
+amount of templates in it, I made my library with an optional `constexpr`
+friendly pmr-like allocator. The string would be 8 bytes more with it, but
+it's beneficial for some contexts. Everything is `noexcept` in its API, and a
+failure is a simple `nullptr` return. The Allocator object (memory resource
+like) needs to outlive the string object, its copies, and its views.
+i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested.
+
+# Value Semantics
+
+The string is a value type. In my library, all of the move and copy functions
+are implemented and are `noexcept`. There's also a third one for const r-values,
+but I won't touch on that implementation detail because this is more of a
+nice-to-have thing. But as a summary, move moves everything. Share (const r-value)
+shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_sharable&&!is_ownerized)`. Copy
+does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
+
+# future versions:
+
+- the string wrapper is available as an experimental feature, the wrapper accepts a template pram for the properties to ensure ( `sso_cap,has_null,is_ownerized`), the stack buffer with the appropriate length will be provided ( if cap is more than sso), the string would be null terminated if required, and the string would be easily mutable if required, the 3 different string wrappers can be made by using a specific template pram, or a combination of them if needed ( mutable and big sso for example),
+`ownerized_string` is that wrapper with `is_ownerized=true`, `c_string` is that wrapper with `has_null=true` , and `implace_string<N>` is that wrapper with  `sso_cap=N` , also , this way , the traits can be combined,  for example an owned implace string with size of 1024, note that the size of the `implace_string<N>` object is around 32+N ( for 15<N, N mod 8 being zero).
+
+i plan to support unicode with another library component that integrates with the byte-string,
+currently, i want to implement the rope,
+but this is planned.
+
+# The Rope Counterpart
+
+I'm currently designing a semi-immutable post-modern COW and SSO-optimized rope
+class based on an (a,b)-tree of slices of this string and its lazy
+counterpart, but I haven't still implemented it in the library. It's the ajason
+paper in the repository for anyone interested.
+
+# the pure view counterpart ( advanced users):
+
+- similar to string view , we need lifetime insurance with this type.
+
+ill briefly talk about this , as its an important part.
+when we need a trivial view type , this is it ,
+but when we need safety and can afford 16 bytes more ,
+use the main string.
+we have this as the view type in the library:
+
+```c++
+struct {
+size_t  length:59;
+size_t  encoding:3;
+size_t has_null:1;
+size_t  is_static:1;// equivalent to is_sharable,  but in the view world,  this is just a tag.
+const char*begin;
+};
+```
+
+# Usability
+
+- this is a header only library, i currently support gcc and msvc and clang.
+
+All of the `string_view` functionality is supported (an equivalent of it in my
+library) because we focused on being like views, we lost the ease of these two
+functionalities: mutable iteration + null terminated. We do almost the same
+thing for views (`std::string` is like the proxy object I talked about) (the
+string view has no `c_str` method), but other than the above, we have
+equivalent functionality for `std::string` (by equivalent, I mean if you don't
+consider mine being encoding aware).
+
+Any algorithm for a continuous string is usable and implemented (with regard
+to its encoding; ASCII is like the standard C implementation).
+
+the mutatable iteration and null terminator requirements are for the wrappers ,
+usually its better to  use the wrappers when needed on the fly , and use the main string ( or `implace_string` if beneficial) for storage or passing around. 
+
+
+* how i think of this :
+  the main string is more of a constant string type like a name of an object , or a key into a map,
+  but when someone wants to change a string, they need a mutable type ,
+  and for changing a string , someone can use a ownerized string with a relevant buffer size ( for example 96 bytes , make a 128 byte string wrapper) ,
+  and when the modifications are all performed, the string would be turned back into the main string for storage .
+  also , no one says this is how to use it ,
+  someone may make a vector of these 128byte strings because they expect many different strings with sizes mostly less than 96.
+  for example , the mutatable big sso string could be used as a buffer for user input, then different parts may be stored in different strings and ect .
+
+# Extensions:
+
+in my library, i have a fmt like format library, to generate these strings ,
+so , mutable iteration is not a problem for me at all, in my opinion.
+my formatting library should also support ropes in a efficient way when they are implemented  
+( every section would be like rope sections, and if it get it right, the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
+
+# where would you place this:
+
+- mutable owner:
+  `std::string` vs `mjz::ownerized_string`
+- in between:
+  `mjz::string`,continuous. vs ?
+  ( maybe rust cow string)
+  `mjz::rope`, discontinues. vs ?
+  ( maybe other lazy ropes)
+- immutable viewer:
+  `std::string_view` vs `mjz::string_view`
+
+# Conclusion
+
+With the growing use of string views, there has become an opportunity to get
+the best of both worlds. We can use our strings like a string view, get value
+semantics, still not copy or allocate, and use a unified type for our strings,
+making using the string as a mutable reference easier and reducing the
+overhead for functions who need to change the string in certain areas but not
+the others. While there's some inherent complexity in this method, this was
+the best implemented out of 5 that I made, but this provides a good way to
+minimize UB of use-after-free with using a reference-counted string view,
+while still benefiting from most of its upsides.
+
+### Note+context:
+
+- because I use msvc as my ide+compiler , i may miss some things about other compilers , so , i'll appreciate if someone points that out.
+my two compilers in how.txt:
+
+Win11:
+`clang version 20.1.0`
+
+`g++.exe (Rev3, Built by MSYS2 project) 13.2.0`
+
+`Microsoft (R) C/C++ Optimizing Compiler Version 19.43.34809 for x86`
+
+
+Linux-subsys:
+
+ `clang++ version 20.1.1 (https://github.com/llvm/llvm-project 424c2d9b7e4de40d0804dd374721e6411c27d1d1)`
  
- any constant rope object can be used on any threads  if the thread-safety flags are all true.
+ `g++ (Debian 12.2.0-14) 12.2.0`
  
-a single rope object cannot be both modified and read from.
- 
-but two distinct rope objects (having different addresses) can , if the thread-safety flags in both of them are all true.
+Also, sorry if the markdown is not professional; I don't have much experience
+with it.
 
-## Fragmentation:
 
-The degree of fragmentation in the rope is influenced by the randomness of user access patterns. If a user modifies a position `i`, and another modification occurs at `j` within a distance of at least 56, then `i` and `j` likely reside in the same block. Initially, the rope has minimal fragmentation (m < 2). Even if the rope is initialized with a gigabyte of data, extensive modifications across almost the entire dataset would be required to reach the worst-case fragmentation of m = n/28. This is a demanding task, even for continuous arrays. Rope users are unlikely to modify an entire gigabyte. However, `for_range` can reduce fragmentation back to 1. Furthermore, `for_range` can be used to reduce fragmentation of a specific range before iteration, creating a continuous slice without modifying the data directly.
 
-## Invariants:
-
-The index of the string end serves as the key to the tree structure. All (a,b)-tree invariants must hold. Additionally, the following optimization invariants are enforced:
-
-- If two adjacent non sso children have a combined size smaller than the SSO buffer, they must be combined into a single SSO leaf.
-- If there is only one leaf, the tree height is 0, and no node exists.
-- Leaves (except SSO leaves and the root inline leaf) cannot be directly modified (i.e., characters cannot be changed or appended via direct buffer access). However, substring operations are permitted.
-
-## definition of substring and concatenate:
-
-- note that a node copy is just sharing it , its O(1).
-- note : if at any point two ajason children or a node had less size than its corresponding sso , we collapse them O(B)+O(iteration(B))+O(1+)=O(B+)=O(1+).
-
-### node destroy definition :
-
-we ( either unsharing or dealocating) the unused children O(1+).
-
-### substring:
-
-- case of no length: destroy the whole rope , set to sso.
-- case of a leaf : we know that sharing substings is O(1) , an SSO memmove is O(B)=O(1) , a lazy substring is a copy of generator and offset and length change O(1)+O(gen-cpy)=O(1) because generators should be cheap to copy.
-- case of a node:
-  we search for the new begin and end pair , and we find the range of children that the substring needs. O(logB)=O(1).
-  - if there was only one child left , we correct our offset, we make that child the new root and destroy the old root and do a substring on the new root O(h-1 +).
-  - if there was more :
-    we ownerize the current node O(1)( either a reference check or an unshare-destroy copy).
-    we destroy each unused node O(1+).
-    we reposition the nodes and their keys ( the indexes may need to change) O(B)=O(1).
-    we ownerize the first and last child O(1).( if these children's length is not changed, we do not ownerize).
-    we make sure that the first and last child have more than A children ( not A itself) ( merge or steal , or collapse to root) O(1).
-    we do a a substring on the first and last children with the right index adjustment( if the length is unchanged we do nothing ) O(h-1).
-
-### concatenation of two nodes O(new_h):
-
-rhs=right hand side.
-lhs=left hand side.
-ohs= opposite hand side.
-chs=current hand side.
-
-- case of two roots with same hight:
-  merge these (hight may increase). O(1).
-- else:
-  choose the taller rope as chs.
-  make sure chs has less nodes than B ( maybe by split and increasing the hight ) and ownerize it O(B)=O(1).
-  lets call the ohs child of chs , C.
-- if ohs has same hight as C :
-  we insert ohs at the position of C child of chs O(B)=O(1).
-- else ( we know it has less hight):
-  make sure C has less nodes than B ( by split ) and ownerise it O(B)=O(1).
-  we concatenate C( C is going to change ) with ohs in the correct order. O(new_h-1).
-
-## Results of Said Properties:
-
-String operations can be performed using substringing, concatenation, and creation. This rope implementation achieves the property that its big O complexity is independent of the string length for operations other than iterating.
-
-- `h` is the height of the tree. This represents the number of levels from the root to a leaf. Since it's a balanced (a,b)-tree, h is O(log_a(m)).
-- `m` is the number of slices in the rope. This is _not_ the same as the number of characters. The design prioritizes keeping 'm' much smaller than 'n'.
-- `n` is the number of characters in the rope.
-- `k` is the iteration length/number of chunks iterated over.
-
-Given the string constraints, the height `h` is typically bounded by a small constant (e.g., 50), and in practice, `h` is often less than 4. Therefore, O(h) ≈ O(1).
-
-The (+) indicates the amortized cost of deallocating unused tree segments, with a worst-case cost of O(m). However, this cost is paid during allocation.
-
-Approximate Time Complexity for various operations:
-
-- Construction:
-
-  - From empty: O(1) (Create a root node with an empty SSO string.)
-  - From copy: O(1) (Shallow copy of the tree structure, thanks to COW.)
-  - From generator: O(1) (Wrap the generator in a root node. The generation process is lazy.)
-  - From `mjz::string`: O(1) (Wrap the string in a root node; sharing is O(1).)
-
-- Destruction: O(1+) (Amortized constant time). Most of the time, destruction is just decrementing reference counts. But, occasionally, we need to reclaim memory.
-
-- Concatenation: O(h) ≈ O(1) (Rebalancing the tree after joining two ropes. Because h is almost constant)
-
-- Substring: O(h+) ≈ O(1+) (Mostly constant time due to the balanced tree and amortized rebalancing. We are basically finding the start and end slices and decrementing unused ones )
-
-- Insertion/Deletion of a Rope Segment: O(h1 + h2 +) ≈ O(1+) (Similar to concatenation, mostly constant time to find the insertion point)
-
-- Indexing (Accessing a Character by Index): O(h) ≈ O(1) (Walking down the tree to find the correct slice). This is a logarithmic operation but h is a relatively small constant.
-
-- Iteration: (Important note: ALL iterators are `const` due to COW limitations in my string. But I have `for_range` and other functions to allow mutations, similar to how my `mjz::string` works.)
-
-  - Simple Iterators (index and object): O(h×k) ≈ O(k) These iterators are lightweight but less efficient because they need to traverse the tree for each character. But in reality, h is constant.
-  - Specialized Iterators (for `std::ranges`): O(h+k) They cache the nearby area `[i, i+h*g)` (G is an optional parameter for iteration creation and g is a value that is G unless bounds are not enough, the default value for G would be a  template pram) (if in bounds, if not, the storage is shrinked or shifted ). The previous cached index `i` is stored to compare and see if the current index is in the cache. If not, the cache is updated. If the iteration is smooth, then we save many lazy calls and cache misses, because the cache size is a multiple  of h , if we do a smooth iteration with a optional g value,  the number of access would be `k*c/(g*h)` ( c is a semi-constant  factor determining the randomness of access)  which if we multiply with `O(h)` for single access  , it would be `O(h*k*c/(g*h))=O((c/g)*k)=O(k)`
-
-- `for_each_slice` (Function called for each slice - doesn't change the rope): O(k+h) .
-
-- `for_range` (Mutable Reference - CAN change the rope): O(h+k) time, Memory O(k). This is the important one for in-place modifications. It create a continuous `mjz` string and apply the function, then it inserts the new string to the list of strings.
-
-  More explanation: This makes each of the characters go first to a continuous `mjz` string buffer with reserved size of k, then calls the function, then inserts that buffer into the appropriate position, potentially reducing fragmentation for free. This also allows the API to provide a continuous mutable string to the function, improving its performance and user experience. Use with caution: if you have a one-gigabyte file and use this on all of it, you need 2 gigabytes of memory in the middle of the function (buffer + rope), but the end result would be a more continuous rope, reducing fragmentation. It's a trade-off. However, this isn't usually a problem because users would typically only modify small sections (= small k). Also, a continuous mutable string is easier to work with, and the user can read and modify batches together into a nice continuous chuck, while being easy to use and arguably faster over the long run. This also reduces fragmentation after the operation has completed, therefore, it's both a user-friendly and cache-friendly thing.
-
-## Benefits and Trade-offs:
-
-### Benefits:
-
-- **Reduced Fragmentation:** Node combining and copy-on-write strategies help minimize memory fragmentation, especially with frequent modifications to large strings. In most cases, the hot sections are SSO buffers, which simplify mutations.
-
-- **Memory Efficiency:** Copy-on-write semantics and small string optimization reduce memory consumption by sharing data and avoiding unnecessary copies.
-
-- **Efficient Substring / concatenate  Operations:** Substring operations are efficient because they create a new rope that shares the underlying data with the original rope. The main string shares substrings, which enables more efficient substringing for the rope too. the concatenations are often just  insertions of a tree head into another tree or sub tree as a node .
-
-- **Lazy Evaluation:** Lazy generators defer the cost of string generation, improving performance when the string data is not immediately needed.
-
-- **`constexpr`-Friendly Design:** The implementation aims to be `constexpr`-friendly, enabling compile-time string manipulation where possible. Custom allocators support this goal.
-
-- **Future Unicode Support:** Support will follow when the main string implementation supports Unicode.
-
-### Trade-offs:
-
-- **Constant-Time Overhead:** There is constant-time overhead associated with accessing and manipulating the rope due to tree traversal and COW management.
-
-- **Mutable Iteration Limitations:** The COW implementation makes mutable iteration complex, but `for_range` addresses this.
-
-## Usability:
-
-A good approach for implementing undo/redo functionality is to maintain a vector of ropes.
-Each modification can be stored as a new rope at the end of the vector.
-Thanks to COW, this is manageable.  
-For synchronization in file operations, a COW copy of a rope can be passed to be written to a file, or a lazily evaluated immutable view can be obtained for a constant file.
-Data can be generated on-the-fly. For example,
-if the value is hard to compute (e.g., decoding a message encrypted with AES),
-a generator with a mutex and a mutable sub-rope initialized with an internal generator as storage can be used.
-The sub-rope is materialized using `for_crange` (basically `for_range` but provides a constant reference rather than a mutable one, which is more efficient in some cases and also reduces fragmentation) every time a subrange is needed.  
-This ensures that the algorithm only runs once per block, saving many decodings.
-The rope API is designed to be similar to the main string API, without assuming continuous representations.
-The rope does not need to be a tree for small strings.  
-In fact, it cannot be a tree for those. As per the invariants, a rope with a size less than B×64 (e.g., 960) must have at most one sso leaf,
-guaranteeing a single sso node allocation for such small ropes .
-Also, for all strings below the 48-byte threshold, the rope collapses to the inline SSO.
-so , B is more than just a fanout, the bigger the B , the more continuous and eager the rope.
-this means , that for example, a one gigabyte file, may have some very hot , 960 (B×64) byte chunks that it works with to edit text ( note that when we own the node , theres no thread contention on it , because we are the only thread that owns it) , and the other parts would probably be some multi megabyte lazy fragments.
-
-## Conclusion
-
-This paper has presented a custom rope implementation designed to address the challenges of manipulating large strings efficiently. By combining a balanced (a,b)-tree, copy-on-write semantics, small string optimization, and lazy evaluation, this implementation aims to minimize memory fragmentation, reduce memory consumption, and provide efficient substring operations.
-
-## Note
-
-While the implementation is still under development and not yet open source, I would appreciate your feedback. Also, sorry if the markdown is hard to read. This paper is located at:
-
-[https://github.com/Mjz86/String/blob/main/rope_paper.md](https://github.com/Mjz86/String/blob/main/rope_paper.md)
-
-You may give feedback in:
-
-[https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
-
-## References and Inspirations:
-
-My continuous string:
-
+This paper is located at:
 [https://github.com/Mjz86/String/blob/main/README.md](https://github.com/Mjz86/String/blob/main/README.md)
 
-Learn about (a,b) trees and b trees :
+You may give feedback in:
+[https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
-[https://youtube.com/watch?v=lifFgyB77zc&si=IPNlqVVdr0nU-n_G](https://youtube.com/watch?v=lifFgyB77zc&si=IPNlqVVdr0nU-n_G)
+**References and Inspirations:**
 
-[https://www.youtube.com/watch?v=K1a2Bk8NrYQ](https://www.youtube.com/watch?v=K1a2Bk8NrYQ)
+- legacy cow vs sso in the standard ( old video):
+  [https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF](https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF)
 
-Learn about the cache:
-
-[https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
-
-Lazy evaluation |Ruby Conference 2007 Ropes： An Alternative to Ruby's Strings by Eric Ivancich :
-
-[https://www.youtube.com/watch?v=5Xt6qN269Uo](https://www.youtube.com/watch?v=5Xt6qN269Uo)
-
-Amortized analysis:
-
-[https://www.youtube.com/watch?v=3MpzavN3Mco](https://www.youtube.com/watch?v=3MpzavN3Mco)
-
-Rope data structure |strings:
-
-[https://www.youtube.com/watch?v=NinWEPPrkDQ](https://www.youtube.com/watch?v=NinWEPPrkDQ)
-
-[https://en.m.wikipedia.org/wiki/Rope\_(data_structure)](<https://en.m.wikipedia.org/wiki/Rope_(data_structure)>)
-
-[https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf](https://www.cs.tufts.edu/comp/150FP/archive/hans-boehm/ropes.pdf)
-
-Standard any:
-
-[https://en.cppreference.com/w/cpp/utility/any](https://en.cppreference.com/w/cpp/utility/any)
-
-String view usage:
-
-[https://www.youtube.com/watch?v=PEvkBmuMIr8](https://www.youtube.com/watch?v=PEvkBmuMIr8)
-
-std::basic_string:
-
-[https://en.cppreference.com/w/cpp/string/basic_string](https://en.cppreference.com/w/cpp/string/basic_string)
-
-std::basic_string_view:
-
-[https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
-
-CppCon 2017： Barbara Geller & Ansel Sermersheim “Unicode Strings： Why the Implementation Matters” :
-
-[https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
-
-CppCon 2016： Nicholas Ormrod “The strange details of std：：string at Facebook＂ :
-
-[https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
-
-Optimizing A String Class for Computer Graphics in Cpp - Zander Majercik, Morgan McGuire CppCon 22 :
-
-[https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
-
-CppCon 2018： Victor Ciura “Enough string_view to Hang Ourselves” :
-
-[https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
-
-Postmodern immutable data structures :
-
-[https://www.youtube.com/watch?v=sPhpelUfu8Q](https://www.youtube.com/watch?v=sPhpelUfu8Q)
- 
-strings 1 - Why COW is ungood for std string\strings 1 - Why COW is ungood for std string :
-
-[https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
+- All Rust string types explained :
+  [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
+- Learn about the cache:
+  [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
+- String view usage:
+  [https://www.youtube.com/watch?v=PEvkBmuMIr8](https://www.youtube.com/watch?v=PEvkBmuMIr8)
+- `std::basic_string`:
+  [https://en.cppreference.com/w/cpp/string/basic_string](https://en.cppreference.com/w/cpp/string/basic_string)
+- `std::basic_string_view`:
+  [https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
+- CppCon 2017: Barbara Geller & Ansel Sermersheim “Unicode Strings: Why the
+  Implementation Matters”:
+  [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
+- CppCon 2016: Nicholas Ormrod “The strange details of std::string at
+  Facebook”:
+  [https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
+- Optimizing A String Class for Computer Graphics in Cpp - Zander Majercik,
+  Morgan McGuire CppCon 22:
+  [https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
+- CppCon 2018: Victor Ciura “Enough string_view to Hang Ourselves”:
+  [https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
+- Postmodern immutable data structures:
+  [https://www.youtube.com/watch?v=sPhpelUfu8Q](https://www.youtube.com/watch?v=sPhpelUfu8Q)
+- strings 1 - Why COW is ungood for std string\strings 1 - Why COW is
+  ungood for std string:
+  [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
+- lib format :
+  [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
