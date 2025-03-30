@@ -44,7 +44,7 @@ struct node_ref {
   // avoided due to potential fragmentation.
   size_t length;
   size_t elem_count;
-  size_t tree_hight; // Helps in the concatenation algorithm to identify the
+  size_t tree_height; // Helps in the concatenation algorithm to identify the
                      // tree depth at which concatenation should occur.
   allocator node_alloc;
   bool is_threaded;
@@ -91,6 +91,18 @@ struct root {
   };
 };
 ```
+
+# thread-safety:
+the thread-safety grantees of the whole tree is achieved when all the nodes are using thread-safe allocators ( the `is_threaded` property is more of an indicator for the thread-safety of the allocator resource , if all of them are true , then the rope is thread-safe on all const operations ,but if mutation operations are involved,  then synchronization would be necessary.)
+the most notable example of why thread-safety is important in the rope is for asynchronous file reads and writes, 
+a  rope that  is written to the file asynchronously.
+and , the partial copy of the rope can still be modified in another thread.
+
+* effectively:
+
+ a single rope object ( having  same address ) should not be modified in parallel.
+ 
+but two distinct rope objects (having different addresses) can , if the thread-safety flags in both of them are all true.
 
 ## Fragmentation:
 
@@ -139,7 +151,7 @@ chs=current hand side.
   merge these (hight may increase). O(1).
 - else:
   choose the taller rope as chs.
-  make sure chs has less nodes than B ( maybe by split and increasing the hight ) and ownerise it O(B)=O(1).
+  make sure chs has less nodes than B ( maybe by split and increasing the hight ) and ownerize it O(B)=O(1).
   lets call the ohs child of chs , C.
 - if ohs has same hight as C :
   we insert ohs at the position of C child of chs O(B)=O(1).
@@ -312,7 +324,7 @@ CppCon 2018： Victor Ciura “Enough string_view to Hang Ourselves” :
 Postmodern immutable data structures :
 
 [https://www.youtube.com/watch?v=sPhpelUfu8Q](https://www.youtube.com/watch?v=sPhpelUfu8Q)
-
+ 
 strings 1 - Why COW is ungood for std string\strings 1 - Why COW is ungood for std string :
 
 [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
