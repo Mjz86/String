@@ -19,6 +19,7 @@ The following conceptual code illustrates the core ideas. It's simplified for cl
 struct alignas(std::hardware_destructive_interference_size)
 node_shared_cache {
   size_t reference_count;
+// redundant members,  can be derived from node_ref 
   std::span<elem> elems;
   size_t length;
   allocator my_alloc;
@@ -43,7 +44,7 @@ struct node_ref {
   // size_t  offset;  Easier substringing could be achieved with an offset, but it's
   // avoided due to potential fragmentation.
   size_t length;
-  size_t elem_count;
+  size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
   size_t tree_height; // Helps in the concatenation algorithm to identify the
                      // tree depth at which concatenation should occur.
   allocator node_alloc;
@@ -101,6 +102,10 @@ and , the partial copy of the rope can still be modified in another thread.
 * effectively:
 
  a single rope object ( having  same address ) should not be modified in parallel.
+ 
+ any constant rope object can be used on any threads  if the thread-safety flags are all true.
+ 
+a single rope object cannot be both modified and read from.
  
 but two distinct rope objects (having different addresses) can , if the thread-safety flags in both of them are all true.
 
