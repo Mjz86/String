@@ -215,7 +215,7 @@ Approximate Time Complexity for various operations:
 
 - **Memory Efficiency:** Copy-on-write semantics and small string optimization reduce memory consumption by sharing data and avoiding unnecessary copies.
 
-- **Efficient Substring Operations:** Substring operations are efficient because they create a new rope that shares the underlying data with the original rope. The main string shares substrings, which enables more efficient substringing for the rope too.
+- **Efficient Substring / concatenate  Operations:** Substring operations are efficient because they create a new rope that shares the underlying data with the original rope. The main string shares substrings, which enables more efficient substringing for the rope too. the concatenations are often just  insertions of a tree head into another tree or sub tree as a node .
 
 - **Lazy Evaluation:** Lazy generators defer the cost of string generation, improving performance when the string data is not immediately needed.
 
