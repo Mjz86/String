@@ -14,7 +14,7 @@ concept std_tuple_like_c = requires() {
 namespace aggregate_ns_ {
 struct filler_t {
   template <typename type>
-  MJZ_CX_FN operator type&&();
+  MJZ_CX_FN operator type &&();
 };
 /*we sadly cant do a generalized one in c++20
  * https://en.cppreference.com/w/cpp/language/structured_binding
@@ -40,18 +40,18 @@ MJZ_COMMENT(R"RAW(
     vprintln("else {{return ;}}"_view); )RAW");
 
 template <std::size_t i, size_t n, typename type>
-constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
+constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type &&value) noexcept {
   if constexpr (false) {
     return;
   } else if constexpr (n == 0x1) {
-    MJZ_MAYBE_UNUSED auto&& [p0] = std::forward<type>(value);
+    MJZ_MAYBE_UNUSED auto &&[p0] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
     } else {
       return;
     }
   } else if constexpr (n == 0x2) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1] = std::forward<type>(value);
+    MJZ_MAYBE_UNUSED auto &&[p0, p1] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
     } else if constexpr (i == 0x1) {
@@ -60,7 +60,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x3) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2] = std::forward<type>(value);
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
     } else if constexpr (i == 0x1) {
@@ -71,7 +71,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x4) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3] = std::forward<type>(value);
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
     } else if constexpr (i == 0x1) {
@@ -84,7 +84,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x5) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4] = std::forward<type>(value);
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
     } else if constexpr (i == 0x1) {
@@ -99,7 +99,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x6) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -117,7 +117,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x7) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -137,7 +137,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x8) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -159,7 +159,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x9) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -183,7 +183,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0xa) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -209,7 +209,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0xb) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -237,7 +237,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0xc) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb] =
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb] =
         std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -267,7 +267,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0xd) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb,
                              pc] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -299,7 +299,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0xe) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -333,7 +333,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0xf) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -369,7 +369,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x10) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -407,7 +407,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x11) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -447,7 +447,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x12) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11] = std::forward<type>(value);
     if constexpr (i == 0) {
       return (p0);
@@ -489,7 +489,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x13) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12] =
         std::forward<type>(value);
     if constexpr (i == 0) {
@@ -534,7 +534,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x14) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13] =
         std::forward<type>(value);
     if constexpr (i == 0) {
@@ -581,7 +581,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x15) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14] =
         std::forward<type>(value);
     if constexpr (i == 0) {
@@ -630,7 +630,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x16) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15] =
         std::forward<type>(value);
     if constexpr (i == 0) {
@@ -681,7 +681,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x17) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16] =
         std::forward<type>(value);
     if constexpr (i == 0) {
@@ -734,7 +734,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x18) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16,
                              p17] = std::forward<type>(value);
     if constexpr (i == 0) {
@@ -789,7 +789,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x19) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18] = std::forward<type>(value);
     if constexpr (i == 0) {
@@ -846,7 +846,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x1a) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19] = std::forward<type>(value);
     if constexpr (i == 0) {
@@ -905,7 +905,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x1b) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19, p1a] = std::forward<type>(value);
     if constexpr (i == 0) {
@@ -966,7 +966,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x1c) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19, p1a, p1b] = std::forward<type>(value);
     if constexpr (i == 0) {
@@ -1029,7 +1029,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x1d) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19, p1a, p1b, p1c] =
         std::forward<type>(value);
@@ -1095,7 +1095,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x1e) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19, p1a, p1b, p1c, p1d] =
         std::forward<type>(value);
@@ -1163,7 +1163,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x1f) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19, p1a, p1b, p1c, p1d, p1e] =
         std::forward<type>(value);
@@ -1233,7 +1233,7 @@ constexpr decltype(auto) get_sized(MJZ_MAYBE_UNUSED type&& value) noexcept {
       return;
     }
   } else if constexpr (n == 0x20) {
-    MJZ_MAYBE_UNUSED auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
+    MJZ_MAYBE_UNUSED auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc,
                              pd, pe, pf, p10, p11, p12, p13, p14, p15, p16, p17,
                              p18, p19, p1a, p1b, p1c, p1d, p1e, p1f] =
         std::forward<type>(value);
@@ -1332,51 +1332,51 @@ concept get_sized_helper_c = requires() {
     if constexpr (false) {
       return false;
     } else if constexpr (n == 0x1) {
-      return requires() { []() { auto&& [p0] = get_invalid_T_obj<type>(); }; };
+      return requires() { []() { auto &&[p0] = get_invalid_T_obj<type>(); }; };
       ;
     } else if constexpr (n == 0x2) {
       return requires() {
-        []() { auto&& [p0, p1] = get_invalid_T_obj<type>(); };
+        []() { auto &&[p0, p1] = get_invalid_T_obj<type>(); };
       };
       ;
     } else if constexpr (n == 0x3) {
       return requires() {
-        []() { auto&& [p0, p1, p2] = get_invalid_T_obj<type>(); };
+        []() { auto &&[p0, p1, p2] = get_invalid_T_obj<type>(); };
       };
       ;
     } else if constexpr (n == 0x4) {
       return requires() {
-        []() { auto&& [p0, p1, p2, p3] = get_invalid_T_obj<type>(); };
+        []() { auto &&[p0, p1, p2, p3] = get_invalid_T_obj<type>(); };
       };
       ;
     } else if constexpr (n == 0x5) {
       return requires() {
-        []() { auto&& [p0, p1, p2, p3, p4] = get_invalid_T_obj<type>(); };
+        []() { auto &&[p0, p1, p2, p3, p4] = get_invalid_T_obj<type>(); };
       };
       ;
     } else if constexpr (n == 0x6) {
       return requires() {
-        []() { auto&& [p0, p1, p2, p3, p4, p5] = get_invalid_T_obj<type>(); };
+        []() { auto &&[p0, p1, p2, p3, p4, p5] = get_invalid_T_obj<type>(); };
       };
       ;
     } else if constexpr (n == 0x7) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6] = get_invalid_T_obj<type>();
+          auto &&[p0, p1, p2, p3, p4, p5, p6] = get_invalid_T_obj<type>();
         };
       };
       ;
     } else if constexpr (n == 0x8) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7] = get_invalid_T_obj<type>();
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7] = get_invalid_T_obj<type>();
         };
       };
       ;
     } else if constexpr (n == 0x9) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1384,7 +1384,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0xa) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1392,7 +1392,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0xb) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1400,7 +1400,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0xc) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1408,7 +1408,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0xd) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1416,7 +1416,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0xe) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1424,7 +1424,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0xf) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe] =
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe] =
               get_invalid_T_obj<type>();
         };
       };
@@ -1432,7 +1432,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x10) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf] = get_invalid_T_obj<type>();
         };
       };
@@ -1440,7 +1440,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x11) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10] = get_invalid_T_obj<type>();
         };
       };
@@ -1448,7 +1448,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x12) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11] = get_invalid_T_obj<type>();
         };
       };
@@ -1456,7 +1456,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x13) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12] = get_invalid_T_obj<type>();
         };
       };
@@ -1464,7 +1464,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x14) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13] = get_invalid_T_obj<type>();
         };
       };
@@ -1472,7 +1472,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x15) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14] = get_invalid_T_obj<type>();
         };
       };
@@ -1480,7 +1480,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x16) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15] = get_invalid_T_obj<type>();
         };
       };
@@ -1488,7 +1488,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x17) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16] =
               get_invalid_T_obj<type>();
         };
@@ -1497,7 +1497,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x18) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17] =
               get_invalid_T_obj<type>();
         };
@@ -1506,7 +1506,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x19) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18] =
               get_invalid_T_obj<type>();
         };
@@ -1515,7 +1515,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x1a) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19] =
               get_invalid_T_obj<type>();
         };
@@ -1524,7 +1524,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x1b) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a] =
               get_invalid_T_obj<type>();
         };
@@ -1533,7 +1533,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x1c) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
                   p1b] = get_invalid_T_obj<type>();
         };
@@ -1542,7 +1542,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x1d) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
                   p1b, p1c] = get_invalid_T_obj<type>();
         };
@@ -1551,7 +1551,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x1e) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
                   p1b, p1c, p1d] = get_invalid_T_obj<type>();
         };
@@ -1560,7 +1560,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x1f) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
                   p1b, p1c, p1d, p1e] = get_invalid_T_obj<type>();
         };
@@ -1569,7 +1569,7 @@ concept get_sized_helper_c = requires() {
     } else if constexpr (n == 0x20) {
       return requires() {
         []() {
-          auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
+          auto &&[p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, pa, pb, pc, pd, pe,
                   pf, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p1a,
                   p1b, p1c, p1d, p1e, p1f] = get_invalid_T_obj<type>();
         };
@@ -1594,7 +1594,7 @@ MJZ_COMMENT(R"RAW(
   vprintln("else {{return ;}}"_view); )RAW");
 
 template <std::size_t i, typename type>
-constexpr decltype(auto) get(MJZ_MAYBE_UNUSED type&& value) noexcept {
+constexpr decltype(auto) get(MJZ_MAYBE_UNUSED type &&value) noexcept {
   if constexpr (false) {
     return;
   } else if constexpr (get_sized_c<i, 1, type>) {
@@ -1673,7 +1673,7 @@ concept aggregate_cs =
 
 template <typename type, size_t... i>
   requires aggregate_cs<type, i...>
-void aggregate_fn(type&&, std::index_sequence<i...>) {};
+void aggregate_fn(type &&, std::index_sequence<i...>) {};
 template <typename aggregate_t, std::size_t count>
 concept aggregate_c = requires() {
   aggregate_fn(get_invalid_T_obj<aggregate_t>(),
@@ -1742,7 +1742,7 @@ MJZ_CONSTANT(size_t)
 tuple_size_v = tuple_size<T>::value;
 
 template <std::size_t Index, std_tuple_like_c T>
-MJZ_CX_FN decltype(auto) get(T&& obj) {
+MJZ_CX_FN decltype(auto) get(T &&obj) {
   return std::get<Index>(std::forward<T>(obj));
 }
 
@@ -1756,7 +1756,7 @@ struct tuple_size<T>
     : std::integral_constant<size_t,
                              aggregate_ns_::aggregate_size_t<T>::size()> {};
 template <std::size_t Index, is_small_aggregate_c T>
-MJZ_CX_FN decltype(auto) get(T&& obj) noexcept {
+MJZ_CX_FN decltype(auto) get(T &&obj) noexcept {
   return aggregate_ns_::get<Index, T>(std::forward<T>(obj));
 }
 #endif  // MJZ_aggregate_tuple_workaround

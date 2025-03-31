@@ -45,6 +45,8 @@ struct alloc_t<version_v, true> {
 };
 template <version_t version_v>
 union nsso_u;
+ 
+
 template <version_t version_v>
   requires(version_v.is_LE())
 union nsso_u<version_v> {
@@ -52,6 +54,7 @@ union nsso_u<version_v> {
     char *buffer_begin;
     uintlen_t buffer_capacity_and_cntrl;
   };
+ 
   char dummy_{};
   non_sso_t non_sso;
   char sso_raw_buffer_and_cntrl[sizeof(non_sso_t)];
@@ -62,6 +65,16 @@ union nsso_u<version_v> {
   MJZ_CONSTANT(uintlen_t) buffer_cntrl_index_ { sizeof(uintlen_t) - 1 };
   MJZ_CONSTANT(uintlen_t) sso_cntrl_index_ { sizeof(non_sso_t) - 1 };
   MJZ_CONSTANT(uintlen_t) sso_buf_index_ { 0 };
+  struct msvc_control_debug_visualizer_t_obj_ {
+    char sso_buf[sso_cap];
+    uint8_t encodings_bits : 3;
+    uint8_t : 1;
+    uint8_t has_null : 1;
+    uint8_t is_ownerized : 1;
+    uint8_t is_sharable : 1;
+    uint8_t as_not_threaded_bit : 1;
+  } sso_view_;
+  static_assert(sizeof(sso_view_) == sso_cap + 1);
   MJZ_DISABLE_ALL_WANINGS_START_;
 };
 MJZ_DISABLE_ALL_WANINGS_END_;
@@ -84,6 +97,16 @@ union nsso_u<version_v> {
   MJZ_CONSTANT(uintlen_t) sso_buf_index_ { 1 };
   MJZ_CONSTANT(uintlen_t)
   buffer_cntrl_index_{0};
+  struct msvc_control_debug_visualizer_t_obj_ {
+    uint8_t as_not_threaded_bit : 1;
+    uint8_t is_sharable : 1;
+    uint8_t is_ownerized : 1;
+    uint8_t has_null : 1;
+    uint8_t : 1;
+    uint8_t encodings_bits : 3;
+    char sso_buf[sso_cap];
+  } sso_view_;
+  static_assert(sizeof(sso_view_) == sso_cap + 1);
 
   MJZ_DISABLE_ALL_WANINGS_START_;
 };
@@ -521,13 +544,11 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   }
   MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
     return str_heap_manager(
-        get_alloc(), !d_get_cntrl<bool>(my_details::as_not_threaded_bit), false,
+        get_alloc(), !d_get_cntrl<bool>(my_details::as_not_threaded_bit),
+        d_get_cntrl<bool>(my_details::is_ownerized), false,
         false, mut_data.non_sso.buffer_begin, get_non_sso_capacity());
   }
-  MJZ_CX_FN str_heap_manager new_heap_manager() const noexcept {
-    return str_heap_manager(
-        get_alloc(), !d_get_cntrl<bool>(my_details::as_not_threaded_bit));
-  }
+
 
   MJZ_CX_FN success_t deconstruct_non_sso_to_invalid() noexcept {
     if (!deallocate_non_sso()) return false;

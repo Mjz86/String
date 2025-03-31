@@ -12,18 +12,17 @@ struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     return ctx.begin();
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      const auto&, format_context_t<version_v>& ctx) const noexcept {
+      const auto &, format_context_t<version_v> &ctx) const noexcept {
     return ctx.out();
   };
 };
 template <version_t version_v, partial_same_as<std::nullopt_t> T>
 struct default_formatter_t<version_v, T, 20>
     : formatter_type_t<version_v, void_struct_t> {};
-
 template <version_t version_v, typename>
 MJZ_CONSTANT(uintlen_t)
 basic_format_specs_conversion_buffer_size_v{1024};
@@ -34,8 +33,8 @@ struct basic_format_specs_format_fn_obj_t {
   std::optional<uintlen_t> length{};
   uintlen_t offset{};
   uintlen_t buf_size{};
-  char* buf_arr{};
-  char* buf{};
+  char *buf_arr{};
+  char *buf{};
   bool is_string{};
   bool add_preffix{};
   bool check_neg{};
@@ -89,14 +88,14 @@ struct basic_format_specs_t {
   // may change on encoding suppport, particularly
   char fill_char{' '};
 
-  MJZ_CX_FN success_t in_range(format_context_t<version_v>& cntx,
-                               auto&& v) const noexcept;
-  MJZ_CX_FN success_t parse_align(parse_context_t<version_v>& cntx) noexcept;
-  MJZ_CX_FN success_t parse_type(parse_context_t<version_v>& cntx) noexcept;
-  MJZ_CX_FN success_t parse_width(parse_context_t<version_v>& cntx) noexcept;
+  MJZ_CX_FN success_t in_range(format_context_t<version_v> &cntx,
+                               auto &&v) const noexcept;
+  MJZ_CX_FN success_t parse_align(parse_context_t<version_v> &cntx) noexcept;
+  MJZ_CX_FN success_t parse_type(parse_context_t<version_v> &cntx) noexcept;
+  MJZ_CX_FN success_t parse_width(parse_context_t<version_v> &cntx) noexcept;
 
   MJZ_CX_FN success_t
-  parse_precision(parse_context_t<version_v>& cntx) noexcept;
+  parse_precision(parse_context_t<version_v> &cntx) noexcept;
 
  private:
   template <typename T>
@@ -116,24 +115,24 @@ struct basic_format_specs_t {
   using sview_t = static_string_view_t<version_v>;
 
  public:
-  MJZ_CX_FN success_t parse_specs(parse_context_t<version_v>& cntx) noexcept;
+  MJZ_CX_FN success_t parse_specs(parse_context_t<version_v> &cntx) noexcept;
   template <typename T>
-  MJZ_CX_FN success_t check_specs(parse_context_t<version_v>& cntx) noexcept;
+  MJZ_CX_FN success_t check_specs(parse_context_t<version_v> &cntx) noexcept;
   template <typename T>
-  MJZ_CX_FN success_t format_specs(T&& arg,
-                                   format_context_t<version_v>& ctx) noexcept;
+  MJZ_CX_FN success_t format_specs(T &&arg,
+                                   format_context_t<version_v> &ctx) noexcept;
   template <typename>
   MJZ_CX_FN base_out_it_t<version_v> format_fill(
-      auto&& fill_up, format_context_t<version_v>& ctx) const noexcept;
+      auto &&fill_up, format_context_t<version_v> &ctx) const noexcept;
 
  private:
   MJZ_CX_FN base_out_it_t<version_v> format_fill_pv(
-      success_t (*)(void_struct_t&) noexcept, void_struct_t&, char* buffer,
-      uintlen_t buffer_size, format_context_t<version_v>& ctx) const noexcept;
-  MJZ_CX_FN success_t format_specs_finish(format_context_t<version_v>& cntx,
-                                          format_fn_obj&) noexcept;
-  MJZ_CX_FN success_t format_specs_start(format_context_t<version_v>& cntx,
-                                         format_fn_obj&) noexcept;
+      success_t (*)(void_struct_t &) noexcept, void_struct_t &, char *buffer,
+      uintlen_t buffer_size, format_context_t<version_v> &ctx) const noexcept;
+  MJZ_CX_FN success_t format_specs_finish(format_context_t<version_v> &cntx,
+                                          format_fn_obj &) noexcept;
+  MJZ_CX_FN success_t format_specs_start(format_context_t<version_v> &cntx,
+                                         format_fn_obj &) noexcept;
 };
 template <typename T, version_t version_v>
 concept uses_basic_spec_c =
@@ -151,7 +150,7 @@ struct default_formatter_t<version_v, T, 20> {
   using decay_optimize_to_t = std::conditional_t<
       std::is_pointer_v<std::remove_cvref_t<T>> ||
           partial_same_as<nullptr_t, T>,
-      const void*,
+      const void *,
       std::conditional_t<
           (sizeof(T) <= sizeof(uintptr_t) &&
            partial_is_one_of_c<T, signed char, unsigned char, short,
@@ -162,30 +161,30 @@ struct default_formatter_t<version_v, T, 20> {
           T>>;
   basic_format_specs_t<version_v> data{};
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     if (!data.parse_specs(ctx)) return nullptr;
     if (!data.template check_specs<std::remove_cvref_t<T>>(ctx)) return nullptr;
     return ctx.begin();
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
       std::remove_cvref_t<T> arg,
-      format_context_t<version_v>& ctx) const noexcept {
+      format_context_t<version_v> &ctx) const noexcept {
     if (!basic_format_specs_t<version_v>(data)
-             .template format_specs<const std::remove_cvref_t<T>&>(arg, ctx))
+             .template format_specs<const std::remove_cvref_t<T> &>(arg, ctx))
       return nullptr;
     return ctx.out();
   };
 };
 
 template <version_t version_v, class T>
-concept mjz_str_c = requires(const T& obj) {
+concept mjz_str_c = requires(const T &obj) {
   {
     obj.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)
   } noexcept -> std::same_as<base_lazy_view_t<version_v>>;
 };
 template <version_t version_v>
 struct base_string_view_arg_t : base_lazy_view_t<version_v> {
-  MJZ_CX_FN base_string_view_arg_t(auto&& view) noexcept
+  MJZ_CX_FN base_string_view_arg_t(auto &&view) noexcept
       : base_lazy_view_t<version_v>{
             view.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)} {}
 
@@ -203,14 +202,14 @@ struct default_formatter_t<version_v, T, 20> {
   using decay_optimize_to_t = base_string_view_arg_t<version_v>;
   basic_format_specs_t<version_v> data{};
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     if (!data.parse_specs(ctx)) return nullptr;
     if (!data.template check_specs<base_lazy_view_t<version_v>>(ctx))
       return nullptr;
     return ctx.begin();
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      auto&& arg, format_context_t<version_v>& ctx) const noexcept {
+      auto &&arg, format_context_t<version_v> &ctx) const noexcept {
     if (!basic_format_specs_t<version_v>(data).format_specs(
             base_lazy_view_t<version_v>(decay_optimize_to_t(arg)), ctx))
       return nullptr;

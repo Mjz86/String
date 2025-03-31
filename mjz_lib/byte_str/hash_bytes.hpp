@@ -41,7 +41,7 @@ struct hash_bytes_t {
       const char *p, uint8_t len = sizeof(uintlen_t)) noexcept {
     asserts(asserts.assume_rn, len <= sizeof(uintlen_t));
     std::array<char, sizeof(uintlen_t)> buf{};
-    for (uintlen_t i{}; i < len; i++) buf[i] = p[i];
+    for (uintlen_t i{}; i < len; i++) buf[(size_t)i] = p[(size_t)i];
     return std::bit_cast<uintlen_t>(buf);
   }
 

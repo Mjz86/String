@@ -384,48 +384,48 @@ active union member... IF the first statement is true
 #define MJZ_RPRECONDITION_(ASSUMBTION_EXPRESION_, reason_of_such_assumbtion) \
   MJZ_PRECONDITION_(ASSUMBTION_EXPRESION_)
 
-#define MJZ_NO_MV(CLASS_NAME)        \
-  CLASS_NAME(CLASS_NAME&&) = delete; \
-  CLASS_NAME& operator=(CLASS_NAME&&) = delete;
-#define MJZ_NO_CPY(CLASS_NAME)            \
-  CLASS_NAME(const CLASS_NAME&) = delete; \
-  CLASS_NAME& operator=(const CLASS_NAME&) = delete;
+#define MJZ_NO_MV(CLASS_NAME)         \
+  CLASS_NAME(CLASS_NAME &&) = delete; \
+  CLASS_NAME &operator=(CLASS_NAME &&) = delete;
+#define MJZ_NO_CPY(CLASS_NAME)             \
+  CLASS_NAME(const CLASS_NAME &) = delete; \
+  CLASS_NAME &operator=(const CLASS_NAME &) = delete;
 
-#define MJZ_NO_MV_NO_CPY(CLASS_NAME)            \
-  CLASS_NAME(CLASS_NAME&&) = delete;            \
-  CLASS_NAME(const CLASS_NAME&) = delete;       \
-  CLASS_NAME& operator=(CLASS_NAME&&) = delete; \
-  CLASS_NAME(CLASS_NAME&) = delete;             \
-  CLASS_NAME& operator=(CLASS_NAME&) = delete;  \
-  CLASS_NAME& operator=(const CLASS_NAME&) = delete;
+#define MJZ_NO_MV_NO_CPY(CLASS_NAME)             \
+  CLASS_NAME(CLASS_NAME &&) = delete;            \
+  CLASS_NAME(const CLASS_NAME &) = delete;       \
+  CLASS_NAME &operator=(CLASS_NAME &&) = delete; \
+  CLASS_NAME(CLASS_NAME &) = delete;             \
+  CLASS_NAME &operator=(CLASS_NAME &) = delete;  \
+  CLASS_NAME &operator=(const CLASS_NAME &) = delete;
 
-#define MJZ_DEFAULTED_CLASS(CLASS_NAME)                             \
-  MJZ_CX_FN CLASS_NAME() noexcept = default;                        \
-  MJZ_CX_FN ~CLASS_NAME() noexcept = default;                       \
-  MJZ_CX_FN CLASS_NAME(CLASS_NAME&) noexcept = default;             \
-  MJZ_CX_FN CLASS_NAME(CLASS_NAME&&) noexcept = default;            \
-  MJZ_CX_FN CLASS_NAME(const CLASS_NAME&) noexcept = default;       \
-  MJZ_CX_FN CLASS_NAME& operator=(CLASS_NAME&) noexcept = default;  \
-  MJZ_CX_FN CLASS_NAME& operator=(CLASS_NAME&&) noexcept = default; \
-  MJZ_CX_FN CLASS_NAME& operator=(const CLASS_NAME&) noexcept = default;
+#define MJZ_DEFAULTED_CLASS(CLASS_NAME)                              \
+  MJZ_CX_FN CLASS_NAME() noexcept = default;                         \
+  MJZ_CX_FN ~CLASS_NAME() noexcept = default;                        \
+  MJZ_CX_FN CLASS_NAME(CLASS_NAME &) noexcept = default;             \
+  MJZ_CX_FN CLASS_NAME(CLASS_NAME &&) noexcept = default;            \
+  MJZ_CX_FN CLASS_NAME(const CLASS_NAME &) noexcept = default;       \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &) noexcept = default;  \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&) noexcept = default; \
+  MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept = default;
 
-#define MJZ_UNSAFE_UNION(CLASS_NAME)                            \
-  MJZ_CX_FN CLASS_NAME(const CLASS_NAME&) noexcept {}           \
-  MJZ_CX_FN CLASS_NAME& operator=(const CLASS_NAME&) noexcept { \
-    return *this;                                               \
-  }                                                             \
-  MJZ_CX_FN CLASS_NAME() noexcept {}                            \
+#define MJZ_UNSAFE_UNION(CLASS_NAME)                             \
+  MJZ_CX_FN CLASS_NAME(const CLASS_NAME &) noexcept {}           \
+  MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept { \
+    return *this;                                                \
+  }                                                              \
+  MJZ_CX_FN CLASS_NAME() noexcept {}                             \
   MJZ_CX_FN ~CLASS_NAME() noexcept {}
 
-#define MJZ_STATIC_CLASS(CLASS_NAME)                               \
-  MJZ_CX_FN CLASS_NAME() noexcept = delete;                        \
-  MJZ_CX_FN ~CLASS_NAME() noexcept = delete;                       \
-  MJZ_CX_FN CLASS_NAME(CLASS_NAME&) noexcept = delete;             \
-  MJZ_CX_FN CLASS_NAME(CLASS_NAME&&) noexcept = delete;            \
-  MJZ_CX_FN CLASS_NAME(const CLASS_NAME&) noexcept = delete;       \
-  MJZ_CX_FN CLASS_NAME& operator=(CLASS_NAME&) noexcept = delete;  \
-  MJZ_CX_FN CLASS_NAME& operator=(CLASS_NAME&&) noexcept = delete; \
-  MJZ_CX_FN CLASS_NAME& operator=(const CLASS_NAME&) noexcept = delete;
+#define MJZ_STATIC_CLASS(CLASS_NAME)                                \
+  MJZ_CX_FN CLASS_NAME() noexcept = delete;                         \
+  MJZ_CX_FN ~CLASS_NAME() noexcept = delete;                        \
+  MJZ_CX_FN CLASS_NAME(CLASS_NAME &) noexcept = delete;             \
+  MJZ_CX_FN CLASS_NAME(CLASS_NAME &&) noexcept = delete;            \
+  MJZ_CX_FN CLASS_NAME(const CLASS_NAME &) noexcept = delete;       \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &) noexcept = delete;  \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&) noexcept = delete; \
+  MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept = delete;
 
 #define MJZ_NO_MV_NO_CPY_DC(CLASS_NAME) \
   MJZ_CX_FN CLASS_NAME() = default;     \
@@ -534,7 +534,7 @@ namespace MJZ_NORETURN_SPECIAL_namespace_ {
 struct mjz_unreachable_t {
   MJZ_NORETURN MJZ_CX_FN void operator()(bool B_false) const noexcept {
     MJZ_IF_CONSTEVAL {
-      std::ignore = reinterpret_cast<const uint8_t&>("UB!!!!!! VVVVVVV"[0]);
+      std::ignore = reinterpret_cast<const uint8_t &>("UB!!!!!! VVVVVVV"[0]);
     }
     else {
       MJZ_JUST_ASSUME_(B_false);
@@ -611,13 +611,13 @@ MJZ_DISABLE_WANINGS_END_;
 
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
 #define MJZ_ASSUME_ALIGNESVNN_GET(PTR_, alignof_Ptr_)          \
-  ([](auto* ptr_just_ptr_) noexcept {                          \
+  ([](auto *ptr_just_ptr_) noexcept {                          \
     MJZ_ASSUME_(ptr_just_ptr_ != nullptr);                     \
     return ::std::assume_aligned<alignof_Ptr_>(ptr_just_ptr_); \
   }(PTR_))
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
 #define MJZ_ASSUME_ALIGNESVNN_GET_C(PTR_, alignof_Ptr_)       \
-  ([&](auto* ptr_just_ptr_) noexcept {                        \
+  ([&](auto *ptr_just_ptr_) noexcept {                        \
     MJZ_ASSUME_(ptr_just_ptr_ != nullptr);                    \
     return ptr_just_ptr_; /* no dynamic assume was provided*/ \
   }(PTR_))
@@ -651,45 +651,45 @@ MJZ_DISABLE_WANINGS_END_;
               static_cast<bool>(THEN_STATEMENT_))
 
 #define MJZ_NO_DYNAMIC_ALLOCATOR(T_TYPE_T_)                                    \
-  void operator delete(void* ptr) noexcept = delete;                           \
-  void operator delete[](void* ptr) noexcept = delete;                         \
-  void operator delete(void* ptr, std::align_val_t al) noexcept = delete;      \
-  void operator delete[](void* ptr, std::align_val_t al) noexcept = delete;    \
-  void operator delete(void* ptr, std::size_t sz) = delete;                    \
-  void operator delete[](void* ptr, std::size_t sz) noexcept = delete;         \
-  void operator delete(void* ptr, std::size_t sz,                              \
+  void operator delete(void *ptr) noexcept = delete;                           \
+  void operator delete[](void *ptr) noexcept = delete;                         \
+  void operator delete(void *ptr, std::align_val_t al) noexcept = delete;      \
+  void operator delete[](void *ptr, std::align_val_t al) noexcept = delete;    \
+  void operator delete(void *ptr, std::size_t sz) = delete;                    \
+  void operator delete[](void *ptr, std::size_t sz) noexcept = delete;         \
+  void operator delete(void *ptr, std::size_t sz,                              \
                        std::align_val_t al) noexcept = delete;                 \
-  void operator delete[](void* ptr, std::size_t sz, std::align_val_t al) =     \
+  void operator delete[](void *ptr, std::size_t sz, std::align_val_t al) =     \
       delete;                                                                  \
-  void operator delete(void* ptr, const std::nothrow_t& tag) noexcept =        \
+  void operator delete(void *ptr, const std::nothrow_t &tag) noexcept =        \
       delete;                                                                  \
-  void operator delete[](void* ptr, const std::nothrow_t& tag) noexcept =      \
+  void operator delete[](void *ptr, const std::nothrow_t &tag) noexcept =      \
       delete;                                                                  \
-  void operator delete(void* ptr, std::align_val_t al,                         \
-                       const std::nothrow_t& tag) noexcept = delete;           \
-  void operator delete[](void* ptr, std::align_val_t al,                       \
-                         const std::nothrow_t& tag) noexcept = delete;         \
-  void operator delete(void* ptr, void* place) noexcept = delete;              \
-  void operator delete[](void* ptr, void* place) noexcept = delete;            \
-  void operator delete(T_TYPE_T_* ptr, std::destroying_delete_t) = delete;     \
-  void operator delete(T_TYPE_T_* ptr, std::destroying_delete_t,               \
+  void operator delete(void *ptr, std::align_val_t al,                         \
+                       const std::nothrow_t &tag) noexcept = delete;           \
+  void operator delete[](void *ptr, std::align_val_t al,                       \
+                         const std::nothrow_t &tag) noexcept = delete;         \
+  void operator delete(void *ptr, void *place) noexcept = delete;              \
+  void operator delete[](void *ptr, void *place) noexcept = delete;            \
+  void operator delete(T_TYPE_T_ *ptr, std::destroying_delete_t) = delete;     \
+  void operator delete(T_TYPE_T_ *ptr, std::destroying_delete_t,               \
                        std::align_val_t al) = delete;                          \
-  void operator delete(T_TYPE_T_* ptr, std::destroying_delete_t,               \
+  void operator delete(T_TYPE_T_ *ptr, std::destroying_delete_t,               \
                        std::size_t sz) = delete;                               \
-  void operator delete(T_TYPE_T_* ptr, std::destroying_delete_t,               \
+  void operator delete(T_TYPE_T_ *ptr, std::destroying_delete_t,               \
                        std::size_t sz, std::align_val_t al) = delete;          \
-  void* operator new(std::size_t count) = delete;                              \
-  void* operator new[](std::size_t count) = delete;                            \
-  void* operator new(std::size_t count, std::align_val_t al) = delete;         \
-  void* operator new[](std::size_t count, std::align_val_t al) = delete;       \
-  void* operator new(std::size_t count, const std::nothrow_t& tag) = delete;   \
-  void* operator new[](std::size_t count, const std::nothrow_t& tag) = delete; \
-  void* operator new(std::size_t count, std::align_val_t al,                   \
-                     const std::nothrow_t&) = delete;                          \
-  void* operator new[](std::size_t count, std::align_val_t al,                 \
-                       const std::nothrow_t&) = delete;                        \
-  void* operator new(std::size_t count, void* ptr) = delete;                   \
-  void* operator new[](std::size_t count, void* ptr) = delete
+  void *operator new(std::size_t count) = delete;                              \
+  void *operator new[](std::size_t count) = delete;                            \
+  void *operator new(std::size_t count, std::align_val_t al) = delete;         \
+  void *operator new[](std::size_t count, std::align_val_t al) = delete;       \
+  void *operator new(std::size_t count, const std::nothrow_t &tag) = delete;   \
+  void *operator new[](std::size_t count, const std::nothrow_t &tag) = delete; \
+  void *operator new(std::size_t count, std::align_val_t al,                   \
+                     const std::nothrow_t &) = delete;                         \
+  void *operator new[](std::size_t count, std::align_val_t al,                 \
+                       const std::nothrow_t &) = delete;                       \
+  void *operator new(std::size_t count, void *ptr) = delete;                   \
+  void *operator new[](std::size_t count, void *ptr) = delete
 
 #define MJZ_BAD_COMPILER(EXP) \
   MJZ_MSASSERT(               \

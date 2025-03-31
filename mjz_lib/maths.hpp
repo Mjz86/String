@@ -169,8 +169,8 @@ struct big_float_t {
     if (normal_mantisa) {
       ret.m_coeffient |= int64_t(uint64_t(1) << ip);
     }
-    bool is_neg{
-        !!(a[sign_bit->i / 8] & uint8_t(uint8_t(1) << (sign_bit->i % 8)))};
+    bool is_neg{!!(a[(size_t)(sign_bit->i / 8)] &
+                   uint8_t(uint8_t(1) << (sign_bit->i % 8)))};
     if (is_neg) ret.m_coeffient = -ret.m_coeffient;
     return ret;
   }

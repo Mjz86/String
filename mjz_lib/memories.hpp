@@ -19,14 +19,14 @@ diffrence is due to constexpr's pointer comparason limitation.
 IF THIS FUNCTION GIVES AN ERROR IN CONSTEXPR GCC < 12 :
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074
 */
-MJZ_CX_FN bool memory_has_overlap(const char* const a_ptr_, uintlen_t a_len,
-                                  const char* const b_ptr_,
+MJZ_CX_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
+                                  const char *const b_ptr_,
                                   uintlen_t b_len) noexcept {
   MJZ_IF_CONSTEVAL {
     if (b_len && a_len) {
-      const char* a_ptr{a_ptr_};
+      const char *a_ptr{a_ptr_};
       for (uintlen_t i{1}; i < a_len; a_ptr++, i++) {  //-V2528
-        const char* b_ptr{b_ptr_};
+        const char *b_ptr{b_ptr_};
         for (uintlen_t j{1}; j < b_len; b_ptr++, j++) {  //-V2528
           if (b_ptr == a_ptr) {
             return true;
@@ -34,31 +34,31 @@ MJZ_CX_FN bool memory_has_overlap(const char* const a_ptr_, uintlen_t a_len,
         }
       }
     } else if (!a_len) {
-      const char* const a_ptr{a_ptr_};
-      const char* b_ptr{b_ptr_};
+      const char *const a_ptr{a_ptr_};
+      const char *b_ptr{b_ptr_};
       for (uintlen_t j{1}; j < b_len; b_ptr++, j++) {  //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
       }
     } else if (!b_len) {
-      const char* a_ptr{a_ptr_};
-      const char* const b_ptr{b_ptr_};
+      const char *a_ptr{a_ptr_};
+      const char *const b_ptr{b_ptr_};
       for (uintlen_t j{1}; j < a_len; a_ptr++, j++) {  //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
       }
     } else {
-      const char* const a_ptr{a_ptr_};
-      const char* const b_ptr{b_ptr_};
+      const char *const a_ptr{a_ptr_};
+      const char *const b_ptr{b_ptr_};
       return b_ptr == a_ptr;
     }
     return false;
   }
   else {
-    const char* const a_ptr{a_ptr_};
-    const char* const b_ptr{b_ptr_};
+    const char *const a_ptr{a_ptr_};
+    const char *const b_ptr{b_ptr_};
     auto b_end = b_ptr + b_len;
     auto a_end = a_ptr + a_len;
     bool a_beg_is_in_b = (b_ptr <= a_ptr) && (a_ptr < b_end);
@@ -71,42 +71,42 @@ MJZ_CX_FN bool memory_has_overlap(const char* const a_ptr_, uintlen_t a_len,
   }
 }
 
-MJZ_CX_FN char* memcpy_forward(char* dest, const char* src,
+MJZ_CX_FN char *memcpy_forward(char *dest, const char *src,
                                uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char*>(
-        ::std::memmove(reinterpret_cast<void*>(dest),
-                       reinterpret_cast<const void*>(src), len));
+    return reinterpret_cast<char *>(
+        ::std::memmove(reinterpret_cast<void *>(dest),
+                       reinterpret_cast<const void *>(src), size_t(len)));
   }
-  char* d = dest;
-  const char* s = src;
+  char *d = dest;
+  const char *s = src;
   while (len--) {
     *d++ = *s++;
   }
   return dest;
 }
 
-MJZ_CX_FN char* memcpy_backward(char* dest, const char* src,
+MJZ_CX_FN char *memcpy_backward(char *dest, const char *src,
                                 uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char*>(
-        ::std::memmove(reinterpret_cast<void*>(dest),
-                       reinterpret_cast<const void*>(src), len));
+    return reinterpret_cast<char *>(
+        ::std::memmove(reinterpret_cast<void *>(dest),
+                       reinterpret_cast<const void *>(src), size_t(len)));
   }
-  char* d = dest;
-  const char* s = src;
+  char *d = dest;
+  const char *s = src;
   while (len--) {
     d[len] = s[len];
   }
   return dest;
 }
 
-MJZ_CX_FN char* memomve_overlap(char* dest, const char* src,
+MJZ_CX_FN char *memomve_overlap(char *dest, const char *src,
                                 uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char*>(
-        ::std::memmove(reinterpret_cast<void*>(dest),
-                       reinterpret_cast<const void*>(src), len));
+    return reinterpret_cast<char *>(
+        ::std::memmove(reinterpret_cast<void *>(dest),
+                       reinterpret_cast<const void *>(src), size_t(len)));
   }
   if (dest <= src) {
     return memcpy_forward(dest, src, len);
@@ -118,11 +118,11 @@ O(len) time complexity .
 NOTE:
 use memmove for potentialy overlaping memory.
 */
-MJZ_CX_FN char* memcpy(char* dest, const char* src, uintlen_t len) noexcept {
+MJZ_CX_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char*>(
-        ::std::memcpy(reinterpret_cast<void*>(dest),
-                      reinterpret_cast<const void*>(src), len));
+    return reinterpret_cast<char *>(
+        ::std::memcpy(reinterpret_cast<void *>(dest),
+                      reinterpret_cast<const void *>(src), size_t(len)));
   }
   return memcpy_forward(dest, src, len);
 }
@@ -132,9 +132,9 @@ O(len) time complexity .
 NOTE:
 use memmove for potentialy overlaping memory.
 */
-MJZ_CX_FN char* memcpy_swap(char* dest, char* src, uintlen_t len) noexcept {
-  char* d = dest;
-  char* s = src;
+MJZ_CX_FN char *memcpy_swap(char *dest, char *src, uintlen_t len) noexcept {
+  char *d = dest;
+  char *s = src;
   while (len--) {
     std::swap(*d++, *s++);
   }
@@ -146,15 +146,15 @@ O(len^2)  time complexity in compile-time.
 NOTE:
 diffrence is due to constexpr's pointer comparason limitation.
 */
-MJZ_CX_FN char* memmove(char* const dest, const char* const src,
+MJZ_CX_FN char *memmove(char *const dest, const char *const src,
                         const uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char*>(
-        ::std::memmove(reinterpret_cast<void*>(dest),
-                       reinterpret_cast<const void*>(src), len));
+    return reinterpret_cast<char *>(
+        ::std::memmove(reinterpret_cast<void *>(dest),
+                       reinterpret_cast<const void *>(src), size_t(len)));
   }
-  const char* from = src;
-  char* to = dest;
+  const char *from = src;
+  char *to = dest;
   if (from == to || len == 0) {
     return dest;
   }
@@ -195,10 +195,10 @@ O(len^2)  time complexity in compile-time.
 NOTE:
 diffrence is due to constexpr's pointer comparason limitation.
 */
-MJZ_CX_FN char* memmove_swap(char* const dest, char* const src,
+MJZ_CX_FN char *memmove_swap(char *const dest, char *const src,
                              const uintlen_t len) noexcept {
-  char* from = src;
-  char* to = dest;
+  char *from = src;
+  char *to = dest;
   if (from == to || len == 0) {
     return dest;
   }
@@ -235,7 +235,7 @@ MJZ_CX_FN char* memmove_swap(char* const dest, char* const src,
 template <typename T>
 MJZ_CX_FN static auto mjz_memset_lambda_createor(T val) noexcept {
   return [val = std::move(val)](
-             T& c, MJZ_UNUSED uintlen_t& i,
+             T &c, MJZ_UNUSED uintlen_t &i,
              MJZ_UNUSED const uintlen_t len) constexpr noexcept -> success_t {
     c = val;
     return 1;
@@ -245,9 +245,9 @@ MJZ_CX_FN static auto mjz_memset_deafult_zero_lambda =
     mjz_memset_lambda_createor<char>(0);
 
 template <typename T, class Lambda_t>
-MJZ_CX_FN T* mjz_mem_iterate(T* dest, const uintlen_t len,
-                             Lambda_t&& lambda) noexcept
-  requires requires(uintlen_t& i, T* ptr) {
+MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
+                             Lambda_t &&lambda) noexcept
+  requires requires(uintlen_t &i, T *ptr) {
     {
       std::forward<Lambda_t>(lambda)(ptr[i], i, len)
     } noexcept -> std::convertible_to<success_t>;
@@ -260,10 +260,10 @@ MJZ_CX_FN T* mjz_mem_iterate(T* dest, const uintlen_t len,
   }
   return dest;
 }
-MJZ_CX_FN char* memset(char* ptr, uintlen_t len, char val) noexcept {
+MJZ_CX_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
   MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char*>(
-        ::std::memset(reinterpret_cast<void*>(ptr), val, len));
+    return reinterpret_cast<char *>(
+        ::std::memset(reinterpret_cast<void *>(ptr), val, size_t(len)));
   }
   for (uintlen_t i{}; i < len; i++) {
     ptr[i] = val;
@@ -311,12 +311,12 @@ MJZ_CX_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
 }
 
 template <typename T, class F_t>
-  requires requires(F_t&& access_at, uintlen_t i, const T& value) {
+  requires requires(F_t &&access_at, uintlen_t i, const T &value) {
     { bool(access_at(i) <= value) } noexcept;
     { bool(access_at(i) < value) } noexcept;
   }
-MJZ_CX_FN uintlen_t mjz_binary_search(const T& value, uintlen_t array_size,
-                                      F_t&& access_at,
+MJZ_CX_FN uintlen_t mjz_binary_search(const T &value, uintlen_t array_size,
+                                      F_t &&access_at,
                                       bool exclusive_search = false) noexcept {
   if (!array_size) return array_size;
   if (bool(access_at(array_size - 1) < value)) {

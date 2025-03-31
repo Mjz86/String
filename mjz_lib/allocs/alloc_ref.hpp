@@ -55,37 +55,37 @@ struct alloc_info_t {
   }
   MJZ_CX_FN
 
-  alloc_info_t& make_threaded() noexcept {
+  alloc_info_t &make_threaded() noexcept {
     is_thread_safe = true;
     return *this;
   }
   MJZ_CX_FN
 
-  alloc_info_t& make_allocate_exactly_minsize() noexcept {
+  alloc_info_t &make_allocate_exactly_minsize() noexcept {
     allocate_exactly_minsize = true;
     return *this;
   }
 
   MJZ_CX_FN
 
-  alloc_info_t& make_non_threaded() noexcept {
+  alloc_info_t &make_non_threaded() noexcept {
     is_thread_safe = false;
     return *this;
   }
   MJZ_CX_FN
 
-  alloc_info_t& set_alignof_z(size_t aval) noexcept {
+  alloc_info_t &set_alignof_z(size_t aval) noexcept {
     log2_of_align_val = log2_of_align_val_create_z(aval);
     return *this;
   }
   MJZ_CX_FN
 
-  alloc_info_t& set_alignof(std::align_val_t aval) noexcept {
+  alloc_info_t &set_alignof(std::align_val_t aval) noexcept {
     set_alignof_z(size_t(aval));
     return *this;
   }
   MJZ_CX_FN
-  alloc_info_t& set_as_nodes() noexcept {
+  alloc_info_t &set_as_nodes() noexcept {
     is_one_of_many_nodes = true;
     return *this;
   }
@@ -111,7 +111,7 @@ struct ref_count_t {
 };
 template <version_t v, typename T = char>
 struct block_info_t {
-  T* ptr;
+  T *ptr;
   uintlen_t length;
 };
 enum class complex_alloc_relations_e : char {
@@ -148,32 +148,32 @@ struct alignas(cache_fast_align_v) alloc_vtable_t {
     using F_t = like_funcptr_of_t<func_t, alloc_base>;
 
     using is_owner =
-        F_t<may_bool_t(const block_info&, alloc_info) const noexcept>;
-    using is_equal = F_t<alloc_relations_e(const alloc_ref&) const noexcept>;
+        F_t<may_bool_t(const block_info &, alloc_info) const noexcept>;
+    using is_equal = F_t<alloc_relations_e(const alloc_ref &) const noexcept>;
     using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
-    using deallocate = F_t<success_t(block_info&&, alloc_info) noexcept>;
+    using deallocate = F_t<success_t(block_info &&, alloc_info) noexcept>;
     using add_ref = F_t<success_t(intlen_t) noexcept>;
     using num_ref = F_t<ref_count() const noexcept>;
     using destroy_obj = F_t<success_t() noexcept>;
     using handle =
-        F_t<const void_struct_t*(const void_struct_t*) const noexcept>;
+        F_t<const void_struct_t *(const void_struct_t *) const noexcept>;
 
     template <class>
     friend class mjz_private_accessed_t;
 
    private:  // not useful rn.
     using compare =
-        F_t<complex_alloc_relations_e(const alloc_ref&) const noexcept>;
+        F_t<complex_alloc_relations_e(const alloc_ref &) const noexcept>;
     using can_destroy_obj = F_t<bool() const noexcept>;
     using speed_of = F_t<alloc_speed(uintlen_t, alloc_info) const noexcept>;
     using releaser_all = F_t<success_t() noexcept>;
     using num_sub_alloc = F_t<ref_count() const noexcept>;
-    using add_sub_alloc = F_t<success_t(const alloc_ref&) noexcept>;
-    using has_sub_alloc = F_t<may_bool_t(const alloc_ref&) const noexcept>;
-    using remove_sub_alloc = F_t<success_t(const alloc_ref&) noexcept>;
+    using add_sub_alloc = F_t<success_t(const alloc_ref &) noexcept>;
+    using has_sub_alloc = F_t<may_bool_t(const alloc_ref &) const noexcept>;
+    using remove_sub_alloc = F_t<success_t(const alloc_ref &) noexcept>;
     using has_super_alloc = F_t<may_bool_t() const noexcept>;
-    using add_super_alloc = F_t<success_t(const alloc_ref&) noexcept>;
-    using is_super_alloc = F_t<may_bool_t(const alloc_ref&) const noexcept>;
+    using add_super_alloc = F_t<success_t(const alloc_ref &) noexcept>;
+    using is_super_alloc = F_t<may_bool_t(const alloc_ref &) const noexcept>;
     using get_super_alloc = F_t<alloc_ref() const noexcept>;
     using remove_super_alloc = F_t<success_t() noexcept>;
     using could_use_super_alloc = F_t<bool() const noexcept>;
@@ -215,7 +215,7 @@ struct alignas(cache_fast_align_v) alloc_vtable_t {
 
 template <version_t version_v>
 struct alloc_base_t : void_struct_t {
-  const alloc_vtable_t<version_v>* vt_ptr{};
+  const alloc_vtable_t<version_v> *vt_ptr{};
 };
 
 template <version_t version_v>
@@ -230,20 +230,20 @@ class alloc_base_ref_t {
   using ref_count = ref_count_t<version_v>;
   using alloc_speed = alloc_speed_t<version_v>;
   using alloc_ref = alloc_base_ref_t<version_v>;
-  alignas(sizeof(uintlen_t)) alloc_base* ref{};
+  alignas(sizeof(uintlen_t)) alloc_base *ref{};
   template <typename... Ts>
-  MJZ_CX_FN auto run(auto&& fn, Ts&&... args) const noexcept {
+  MJZ_CX_FN auto run(auto &&fn, Ts &&...args) const noexcept {
     return fn(get_ptr(), std::forward<Ts>(args)...);
   }
 
  public:
-  MJZ_CX_FN const alloc_vtable_t<version_v>& get_vtbl() const noexcept {
+  MJZ_CX_FN const alloc_vtable_t<version_v> &get_vtbl() const noexcept {
     asserts(asserts.assume_rn, !!this->ref);
     asserts(asserts.assume_rn, !!get_ref().vt_ptr);
     return *get_ref().vt_ptr;
   }
-  MJZ_CX_FN alloc_base* get_ptr() const noexcept { return this->ref; }
-  MJZ_CX_FN alloc_base& get_ref() const noexcept {
+  MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
+  MJZ_CX_FN alloc_base &get_ref() const noexcept {
     asserts(asserts.assume_rn, !!this->ref);
     return *this->ref;
   }
@@ -261,7 +261,7 @@ class alloc_base_ref_t {
   friend class mjz_private_accessed_t;
 
  private:
-  MJZ_CX_FN void copy_init(const alloc_base_ref_t& other) noexcept {
+  MJZ_CX_FN void copy_init(const alloc_base_ref_t &other) noexcept {
     if (!other.ref) return;
     if (!other.add_ref()) return;
     this->ref = other.ref;
@@ -270,11 +270,11 @@ class alloc_base_ref_t {
  public:
   MJZ_CX_ND_FN alloc_base_ref_t() noexcept = default;
   MJZ_CX_ND_FN alloc_base_ref_t(nullptr_t) noexcept : ref{} {};
-  MJZ_CX_ND_FN alloc_base_ref_t(const alloc_base_ref_t& other) noexcept
+  MJZ_CX_ND_FN alloc_base_ref_t(const alloc_base_ref_t &other) noexcept
       : ref{} {
     copy_init(other);
   }
-  MJZ_CX_FN alloc_base_ref_t(alloc_base_ref_t&& other) noexcept
+  MJZ_CX_FN alloc_base_ref_t(alloc_base_ref_t &&other) noexcept
       : ref{std::move(other).to_raw(false)} {}
 
   MJZ_CX_FN
@@ -283,14 +283,14 @@ class alloc_base_ref_t {
       : ref{raw_ptr} {
     if (add_ref_count) add_ref();
   }
-  MJZ_CX_FN alloc_base_ref_t& operator=(
-      const alloc_base_ref_t& other) noexcept {
+  MJZ_CX_FN alloc_base_ref_t &operator=(
+      const alloc_base_ref_t &other) noexcept {
     if (ref == other.ref) return *this;
     reset();
     copy_init(other);
     return *this;
   }
-  MJZ_CX_FN alloc_base_ref_t& operator=(alloc_base_ref_t&& other) noexcept {
+  MJZ_CX_FN alloc_base_ref_t &operator=(alloc_base_ref_t &&other) noexcept {
     if (ref == other.ref) return *this;
     reset();
     this->ref = std::exchange(other.ref, nullptr);
@@ -346,18 +346,18 @@ class alloc_base_ref_t {
     return (*this)().to_raw(false);
   }
   MJZ_CX_FN
-  may_bool_t is_owner_of_bytes(const block_info& blk,
+  may_bool_t is_owner_of_bytes(const block_info &blk,
                                alloc_info ai) const noexcept {
     if (!this->ref || !get_vtbl().is_owner) return may_bool_t::idk;
     return run(get_vtbl().is_owner, blk, ai);
   }
   MJZ_CX_FN
-  alloc_relations_e is_equal(const alloc_ref& ar) const noexcept {
+  alloc_relations_e is_equal(const alloc_ref &ar) const noexcept {
     if (this->ref == ar.ref) return alloc_relations_e::equal;
     if (!this->ref || !get_vtbl().is_equal) return alloc_relations_e::none;
     return run(get_vtbl().is_equal, ar);
   }
-  MJZ_CX_FN bool operator==(const alloc_ref& ar) const noexcept {
+  MJZ_CX_FN bool operator==(const alloc_ref &ar) const noexcept {
     return is_equal(ar) == alloc_relations_e::equal;
   }
 
@@ -369,7 +369,7 @@ class alloc_base_ref_t {
     auto align_val = ai.get_alignof();
     uintlen_t size = minsize;
     MJZ_IFN_CONSTEVAL {
-      void* ptr = ::operator new(size, align_val, std::nothrow);
+      void *ptr = ::operator new((size_t)size, align_val, std::nothrow);
       MJZ_RELEASE {
         if (!ptr) return;
         ::operator delete(ptr, align_val, std::nothrow);
@@ -378,13 +378,13 @@ class alloc_base_ref_t {
       mjz_debug_cout::println("[new:", size, "]");
 #endif
       if (!ptr) return {};
-      return {new (std::exchange(ptr, nullptr)) char[size], size};
+      return {new (std::exchange(ptr, nullptr)) char[(size_t)size], size};
     }
     if (static_cast<size_t>(align_val) > default_new_align_z) return {};
-    return {new char[size], size};
+    return {new char[(size_t)size], size};
   }
   MJZ_CX_FN
-  success_t deallocate_bytes(block_info&& blk, alloc_info ai) const noexcept {
+  success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
     if (!blk.ptr) return !blk.length;
     if (this->ref && (get_vtbl().allocate && get_vtbl().deallocate))
       return run(get_vtbl().deallocate, std::move(blk), ai);
@@ -401,7 +401,7 @@ class alloc_base_ref_t {
     return true;
   }
   MJZ_CX_FN
-  const void_struct_t* handle(const void_struct_t* input) const noexcept {
+  const void_struct_t *handle(const void_struct_t *input) const noexcept {
     if (!this->ref || !get_vtbl().handle) return nullptr;
     return run(get_vtbl().handle, input);
   }
@@ -411,21 +411,23 @@ class alloc_base_ref_t {
   MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate(
       uintlen_t count, alloc_info strategy) const noexcept {
     strategy = preapare_strategy<T>(strategy);
-    MJZ_IF_CONSTEVAL { return {std::allocator<T>().allocate(count), count}; }
-    block_info blk = allocate_bytes(count * sizeof(T), strategy);
+    MJZ_IF_CONSTEVAL {
+      return {std::allocator<T>().allocate((size_t)count), count};
+    }
+    block_info blk = allocate_bytes((size_t)count * sizeof(T), strategy);
     if (!blk.ptr) {
       return {};
     }
     asserts(asserts.believe_rn, blk.length == count * sizeof(T) && blk.ptr);
-    return {reinterpret_cast<T*>(blk.ptr), count};
+    return {reinterpret_cast<T *>(blk.ptr), count};
   }
   template <typename T>
   MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate_helper_(
-      uintlen_t count, alloc_info strategy, const T* const) const noexcept {
+      uintlen_t count, alloc_info strategy, const T *const) const noexcept {
     return allocate<T>(count, strategy);
   }
   template <typename T>
-  MJZ_CX_FN success_t deallocate(block_info_ot<T>&& blk,
+  MJZ_CX_FN success_t deallocate(block_info_ot<T> &&blk,
                                  alloc_info strategy) const noexcept {
     strategy = preapare_strategy<T>(strategy);
 
@@ -434,19 +436,19 @@ class alloc_base_ref_t {
       blk.length = 0;
     };
     MJZ_IF_CONSTEVAL {
-      std::allocator<T>().deallocate(blk.ptr, blk.length);
+      std::allocator<T>().deallocate(blk.ptr, (size_t)blk.length);
       return true;
     }
     return deallocate_bytes(
-        block_info{reinterpret_cast<char*>(blk.ptr), blk.length * sizeof(T)},
+        block_info{reinterpret_cast<char *>(blk.ptr), blk.length * sizeof(T)},
         strategy);
   }
   template <typename T>
-  MJZ_CX_FN may_bool_t is_owner(const block_info_ot<T>& block,
+  MJZ_CX_FN may_bool_t is_owner(const block_info_ot<T> &block,
                                 alloc_info strategy) const noexcept {
     strategy = preapare_strategy<T>(strategy);
     MJZ_IF_CONSTEVAL { return may_bool_t::idk; }
-    return is_owner_of_bytes(block_info{reinterpret_cast<char*>(block.ptr),
+    return is_owner_of_bytes(block_info{reinterpret_cast<char *>(block.ptr),
                                         block.length * sizeof(T)},
                              strategy);
   }
@@ -465,7 +467,7 @@ class alloc_base_ref_t {
   };
 
   template <typename T>
-  MJZ_CX_FN T* allocate_singular_uninit(bool thread_safe,
+  MJZ_CX_FN T *allocate_singular_uninit(bool thread_safe,
                                         bool is_node) const noexcept {
     block_info_t<version_v, T> blk =
         allocate<T>(1, alloc_sigular_info_v<T>(thread_safe, is_node));
@@ -474,7 +476,7 @@ class alloc_base_ref_t {
     return blk.ptr;
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_singular_uninit(T* ptr, bool thread_safe,
+  MJZ_CX_FN void deallocate_singular_uninit(T *ptr, bool thread_safe,
                                             bool is_node) const noexcept {
     if (!ptr) return;
     block_info_t<version_v, T> blk{};
@@ -485,7 +487,7 @@ class alloc_base_ref_t {
                           alloc_sigular_info_v<T>(thread_safe, is_node)));
   }
   template <typename T>
-  MJZ_CX_FN T* allocate_plural_uninit(uintlen_t count,
+  MJZ_CX_FN T *allocate_plural_uninit(uintlen_t count,
                                       bool thread_safe) const noexcept {
     block_info_t<version_v, T> blk =
         allocate<T>(count, alloc_sigular_info_v<T>(thread_safe, false));
@@ -494,7 +496,7 @@ class alloc_base_ref_t {
     return blk.ptr;
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_plural_uninit(T* ptr, uintlen_t count,
+  MJZ_CX_FN void deallocate_plural_uninit(T *ptr, uintlen_t count,
                                           bool thread_safe) const noexcept {
     if (!ptr) return;
     block_info_t<version_v, T> blk{};
@@ -506,16 +508,16 @@ class alloc_base_ref_t {
   }
 
   template <typename T>
-  MJZ_CX_FN void deallocate_singular(T* ptr, bool thread_safe,
+  MJZ_CX_FN void deallocate_singular(T *ptr, bool thread_safe,
                                      bool is_node) const noexcept {
     if (!ptr) return;
     std::destroy_at(ptr);
     deallocate_singular_uninit<T>(ptr, thread_safe, is_node);
   }
   template <typename T, typename... Ts>
-  MJZ_CX_FN T* allocate_singular(bool thread_safe, bool is_node,
-                                 Ts&&... args) const noexcept {
-    T* ptr = allocate_singular_uninit<T>(thread_safe, is_node);
+  MJZ_CX_FN T *allocate_singular(bool thread_safe, bool is_node,
+                                 Ts &&...args) const noexcept {
+    T *ptr = allocate_singular_uninit<T>(thread_safe, is_node);
     if (!ptr) return ptr;
     if constexpr (requires() {
                     {
@@ -533,16 +535,16 @@ class alloc_base_ref_t {
     }
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_plural(T* ptr, uintlen_t count,
+  MJZ_CX_FN void deallocate_plural(T *ptr, uintlen_t count,
                                    bool thread_safe) const noexcept {
     if (!ptr) return;
     std::destroy_n(ptr, count);
     deallocate_plural_uninit<T>(ptr, count, thread_safe);
   }
   template <typename T, typename... Ts>
-  MJZ_CX_FN T* allocate_plural(uintlen_t count, bool thread_safe,
-                               Ts&&... args) const noexcept {
-    T* ptr = allocate_plural_uninit<T>(count, thread_safe);
+  MJZ_CX_FN T *allocate_plural(uintlen_t count, bool thread_safe,
+                               Ts &&...args) const noexcept {
+    T *ptr = allocate_plural_uninit<T>(count, thread_safe);
     if (!ptr) return ptr;
     uintlen_t i{};
     if constexpr (requires() {
@@ -567,38 +569,38 @@ class alloc_base_ref_t {
   }
 
   template <typename T>
-  MJZ_CX_FN T* allocate_node_uninit(bool thread_safe) const noexcept {
+  MJZ_CX_FN T *allocate_node_uninit(bool thread_safe) const noexcept {
     return allocate_singular_uninit<T>(thread_safe, true);
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_node_uninit(T* ptr,
+  MJZ_CX_FN void deallocate_node_uninit(T *ptr,
                                         bool thread_safe) const noexcept {
     deallocate_singular_uninit<T>(ptr, thread_safe, true);
   }
   template <typename T>
-  MJZ_CX_FN T* allocate_obj_uninit(bool thread_safe) const noexcept {
+  MJZ_CX_FN T *allocate_obj_uninit(bool thread_safe) const noexcept {
     return allocate_singular_uninit<T>(thread_safe, false);
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_obj_uninit(T* ptr,
+  MJZ_CX_FN void deallocate_obj_uninit(T *ptr,
                                        bool thread_safe) const noexcept {
     deallocate_singular_uninit<T>(ptr, thread_safe, false);
   }
 
   template <typename T, typename... Ts>
-  MJZ_CX_FN T* allocate_node(bool thread_safe, Ts&&... args) const noexcept {
+  MJZ_CX_FN T *allocate_node(bool thread_safe, Ts &&...args) const noexcept {
     return allocate_singular<T>(thread_safe, true, std::forward<Ts>(args)...);
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_node(T* ptr, bool thread_safe) const noexcept {
+  MJZ_CX_FN void deallocate_node(T *ptr, bool thread_safe) const noexcept {
     deallocate_singular<T>(ptr, thread_safe, true);
   }
   template <typename T, typename... Ts>
-  MJZ_CX_FN T* allocate_obj(bool thread_safe, Ts&&... args) const noexcept {
+  MJZ_CX_FN T *allocate_obj(bool thread_safe, Ts &&...args) const noexcept {
     return allocate_singular<T>(thread_safe, false, std::forward<Ts>(args)...);
   }
   template <typename T>
-  MJZ_CX_FN void deallocate_obj(T* ptr, bool thread_safe) const noexcept {
+  MJZ_CX_FN void deallocate_obj(T *ptr, bool thread_safe) const noexcept {
     deallocate_singular<T>(ptr, thread_safe, false);
   }
 

@@ -206,7 +206,7 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
   charechter = parse_context.front();
   std::optional<sub_out_iter_t<version_v>> outer_sub_out_it{};
   std::optional<sub_out_iter_t<version_v>> inner_sub_out_it{};
-  auto& actual_out = format_context.output_it;
+  auto &actual_out = format_context.output_it;
   // this is the output iterator before all of the optional wrapping takes
   // place.
   out_it_t actual_out_buf = actual_out;
@@ -218,8 +218,8 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
     base_context.recursion_depth++;
     if (base_context.max_recursion_depth < base_context.recursion_depth) {
       format_context.as_error(
-          "[Error]parse_format_replacement_field:max recursion depth reached "
-          "try "
+          "[Error]parse_format_replacement_field:max "
+          "recursion depth reached try "
           "reducing the nested filters");
       return false;
     }
@@ -289,8 +289,8 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
   for (auto charechter = parse_context.front(); output && charechter;
        charechter = parse_context.front()) {
     view_t remains = parse_context.remaining_format_string;
-    const char* ptr = remains.data();
-    const char* end = remains.data() + remains.length();
+    const char *ptr = remains.data();
+    const char *end = remains.data() + remains.length();
     for (;;) {
       if (ptr == end || *ptr == '{' || *ptr == '}') break;
       ptr++;
@@ -325,7 +325,7 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
 
 template <version_t version_v>
 MJZ_CX_FN success_t parse_and_format_data_t<version_v>::parse_formating_filter(
-    bool& has_filter) noexcept {
+    bool &has_filter) noexcept {
   if (parse_context.encoding() != encodings_e::ascii) {
     format_context.as_error(
         "[Error]parse_formating_filter:only ascii is suppoerted!(note "
@@ -334,13 +334,14 @@ MJZ_CX_FN success_t parse_and_format_data_t<version_v>::parse_formating_filter(
     return false;
   }
 
-  out_it_t& /*the  ref is intentional, we want propgation of output iterators */
-      output = format_context.output_it;
+  out_it_t
+      & /*the  ref is intentional, we want propgation of output iterators */
+          output = format_context.output_it;
   for (auto charechter = parse_context.front(); output && charechter;
        charechter = parse_context.front()) {
     view_t remains = parse_context.remaining_format_string;
-    const char* ptr = remains.data();
-    const char* end = remains.data() + remains.length();
+    const char *ptr = remains.data();
+    const char *end = remains.data() + remains.length();
     for (;;) {
       if (ptr == end || *ptr == '{' || *ptr == '}' || *ptr == '[' ||
           *ptr == ']' || *ptr == ':')
@@ -649,7 +650,7 @@ struct formatting_object_t : void_struct_t {
 
   template <typename... Ts>
   MJZ_CX_FN success_t vformat_to(out_it_t iter, view_t format_str,
-                                 Ts&&... args) noexcept {
+                                 Ts &&...args) noexcept {
     return vformat_to_pv(
         iter, format_str,
         to_final_type_fn<version_v, Ts>(std::forward<Ts>(args))...);
@@ -657,7 +658,7 @@ struct formatting_object_t : void_struct_t {
 
   template <typename L_v, typename... Ts>
   MJZ_CX_FN success_t format_to(out_it_t iter, L_v format_str,
-                                Ts&&... args) noexcept {
+                                Ts &&...args) noexcept {
     return format_to_pv(
         iter, L_v(format_str),
         ((typed_arg_ref_final_type_t<version_v, Ts>)
@@ -667,7 +668,7 @@ struct formatting_object_t : void_struct_t {
  private:
   template <class... Ts>
   MJZ_CX_FN success_t vformat_to_pv(out_it_t iter, view_t format_str,
-                                    Ts&&... args) noexcept {
+                                    Ts &&...args) noexcept {
     if constexpr ((!!sizeof...(Ts))) {
       MJZ_IF_CONSTEVAL {
         basic_cx_format_args_t<version_v, Ts...> buf{std::forward<Ts>(args)...};
@@ -701,7 +702,7 @@ struct formatting_object_t : void_struct_t {
   }
 
   template <typename L_v, is_formatted_c<version_v>... Ts>
-  MJZ_CX_FN success_t format_to_pv(out_it_t iter, L_v, Ts&&... args) noexcept;
+  MJZ_CX_FN success_t format_to_pv(out_it_t iter, L_v, Ts &&...args) noexcept;
   MJZ_CX_FN success_t run_format() noexcept {
     return context_data.parse_formating_string();
   }
@@ -725,7 +726,7 @@ struct cx_parser_t : public formatting_object_t<version_v> {
       : formatting_object_t<version_v>{} {
     if constexpr (sizeof...(Ts)) {
       basic_format_args_t<version_v, sizeof...(Ts)> buf{
-          basic_format_args_parse_tag{}, alias_t<void (*)(Ts&&...)>{}};
+          basic_format_args_parse_tag{}, alias_t<void (*)(Ts &&...)>{}};
       base_context.number_of_args = buf.count_args;
       base_context.parse_and_format_fn_of_args =
           buf.parse_and_format_fn_of_args;
@@ -753,7 +754,7 @@ struct cx_parser_t : public formatting_object_t<version_v> {
 template <version_t version_v>
 template <typename L_v, is_formatted_c<version_v>... Ts>
 MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
-    out_it_t iter, L_v value, Ts&&... args) noexcept {
+    out_it_t iter, L_v value, Ts &&...args) noexcept {
   static_assert(
       requires() {
         { view_t(L_v()()) } noexcept;
@@ -793,9 +794,9 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
       memcpy(ret.data(), view_t(L_v()()).data(), failure_t{}().first);
       return ret;
     };
-    constexpr auto& first_part = static_data_t<decltype(first_part_fn)>{}();
-    constexpr auto& second_part = static_data_t<decltype(second_part_fn)>{}();
-    constexpr auto& error_part = static_data_t<decltype(error_part_fn)>{}();
+    constexpr auto &first_part = static_data_t<decltype(first_part_fn)>{}();
+    constexpr auto &second_part = static_data_t<decltype(second_part_fn)>{}();
+    constexpr auto &error_part = static_data_t<decltype(error_part_fn)>{}();
     static_assert(failed, "error masaage-> ");
     err_vst<>::print(err_str_vst<error_part>{});
     static_assert(failed, "at index -> ");

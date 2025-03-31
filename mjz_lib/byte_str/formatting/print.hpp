@@ -13,13 +13,13 @@ struct standard_output_it_t : file_output_it_t<version_v> {
   MJZ_NO_MV_NO_CPY(standard_output_it_t);
 #if MJZ_WITH_iostream
 
-  threads_ns::bit_mutex_t<>& output_muext() noexcept {
+  threads_ns::bit_mutex_t<> &output_muext() noexcept {
     static threads_ns::bit_mutex_t<> mutex{};
     return mutex;
   }
-  MJZ_CX_FN standard_output_it_t(bool&& p = bool{}) noexcept
+  MJZ_CX_FN standard_output_it_t(bool &&p = bool{}) noexcept
       : standard_output_it_t(p) {}
-  MJZ_CX_FN standard_output_it_t(bool& status) noexcept {
+  MJZ_CX_FN standard_output_it_t(bool &status) noexcept {
     MJZ_IF_CONSTEVAL {
       bad = true;
       status = false;
@@ -32,7 +32,7 @@ struct standard_output_it_t : file_output_it_t<version_v> {
       this->Stream = stdout;
     }
   }
-  MJZ_CX_FN standard_output_it_t(FILE* Stream_)
+  MJZ_CX_FN standard_output_it_t(FILE *Stream_)
       : standard_output_it_t{true, Stream_} {}
   MJZ_CX_FN ~standard_output_it_t() noexcept {
     if (!bad) {
@@ -41,9 +41,9 @@ struct standard_output_it_t : file_output_it_t<version_v> {
   }
 
 #else
-  MJZ_CX_FN standard_output_it_t(void* Stream_) noexcept {}
-  MJZ_CX_FN standard_output_it_t(const bool& p = bool{},
-                                 void* Stream_ = nullptr) noexcept {}
+  MJZ_CX_FN standard_output_it_t(void *Stream_) noexcept {}
+  MJZ_CX_FN standard_output_it_t(const bool &p = bool{},
+                                 void *Stream_ = nullptr) noexcept {}
 #endif
 };
 template <version_t version_v>
@@ -57,7 +57,7 @@ struct print_t {
   MJZ_CX_FN static status_view_t<version_v> generic_format_to(
       meta_data_t meta_data_, base_out_it_t<version_v> out,
       no_type_ns::typeless_function_t<
-          success_t(formatting_object_t<version_v>&,
+          success_t(formatting_object_t<version_v> &,
                     base_out_it_t<version_v> out_it) noexcept>
           format_fn) noexcept {
     formatting_object_t<version_v> obj{};
@@ -98,12 +98,12 @@ struct print_t {
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> format_to(
       meta_data_t meta_data_, base_out_it_t<version_v> out, auto fmt,
-      Ts&&... args) noexcept {
+      Ts &&...args) noexcept {
     return generic_format_to(
         meta_data_, out,
-        +no_type_ns::make<success_t(formatting_object_t<version_v>&,
+        +no_type_ns::make<success_t(formatting_object_t<version_v> &,
                                     base_out_it_t<version_v> out_it) noexcept>(
-            [&](formatting_object_t<version_v>& obj,
+            [&](formatting_object_t<version_v> &obj,
                 base_out_it_t<version_v> out_it) noexcept -> success_t {
               return obj.format_to(out_it, fmt, std::forward<Ts>(args)...);
             }));
@@ -111,65 +111,65 @@ struct print_t {
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vformat_to(
       meta_data_t meta_data_, base_out_it_t<version_v> out,
-      basic_string_view_t<version_v> fmt, Ts&&... args) noexcept {
+      basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     return generic_format_to(
         meta_data_, out,
-        +no_type_ns::make<success_t(formatting_object_t<version_v>&,
+        +no_type_ns::make<success_t(formatting_object_t<version_v> &,
                                     base_out_it_t<version_v> out_it) noexcept>(
-            [&](formatting_object_t<version_v>& obj,
+            [&](formatting_object_t<version_v> &obj,
                 base_out_it_t<version_v> out_it) noexcept -> success_t {
               return obj.format_to(out_it, fmt, std::forward<Ts>(args)...);
             }));
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> format_to(
-      base_out_it_t<version_v> out, auto fmt, Ts&&... args) noexcept {
+      base_out_it_t<version_v> out, auto fmt, Ts &&...args) noexcept {
     return format_to(meta_data_t{}, out, fmt, std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vformat_to(
       base_out_it_t<version_v> out, basic_string_view_t<version_v> fmt,
-      Ts&&... args) noexcept {
+      Ts &&...args) noexcept {
     return vformat_to(meta_data_t{}, out, fmt, std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vformatln_to(
       base_out_it_t<version_v> out, basic_string_view_t<version_v> fmt,
-      Ts&&... args) noexcept {
+      Ts &&...args) noexcept {
     return vformat_to(meta_data_t{true, nullptr}, out, fmt,
                       std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> formatln_to(
-      base_out_it_t<version_v> out, auto fmt, Ts&&... args) noexcept {
+      base_out_it_t<version_v> out, auto fmt, Ts &&...args) noexcept {
     return format_to(meta_data_t{true, nullptr}, out, fmt,
                      std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> format_to(
       alloc_ref alloc, base_out_it_t<version_v> out, auto fmt,
-      Ts&&... args) noexcept {
+      Ts &&...args) noexcept {
     return format_to(meta_data_t{false, alloc}, out, fmt,
                      std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vformat_to(
       alloc_ref alloc, base_out_it_t<version_v> out,
-      basic_string_view_t<version_v> fmt, Ts&&... args) noexcept {
+      basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     return vformat_to(meta_data_t{false, alloc}, out, fmt,
                       std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vformatln_to(
       alloc_ref alloc, base_out_it_t<version_v> out,
-      basic_string_view_t<version_v> fmt, Ts&&... args) noexcept {
+      basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     return vformat_to(meta_data_t{true, alloc}, out, fmt,
                       std::forward<Ts>(args)...);
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> formatln_to(
       alloc_ref alloc, base_out_it_t<version_v> out, auto fmt,
-      Ts&&... args) noexcept {
+      Ts &&...args) noexcept {
     return format_to(meta_data_t{true, alloc}, out, fmt,
                      std::forward<Ts>(args)...);
   }
@@ -179,7 +179,7 @@ struct print_t {
   output_timeout{static_string_view_t<version_v>{"[Error]:output timeout"}};
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vprint(
-      basic_string_view_t<version_v> fmt, Ts&&... args) noexcept {
+      basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
     if (!good) return output_timeout;
@@ -187,7 +187,7 @@ struct print_t {
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> print(auto fmt,
-                                                  Ts&&... args) noexcept {
+                                                  Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
     if (!good) return output_timeout;
@@ -196,7 +196,7 @@ struct print_t {
 
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> vprintln(
-      basic_string_view_t<version_v> fmt, Ts&&... args) noexcept {
+      basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
     if (!good) return output_timeout;
@@ -204,7 +204,7 @@ struct print_t {
   }
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> println(auto fmt,
-                                                    Ts&&... args) noexcept {
+                                                    Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
     if (!good) return output_timeout;
@@ -215,73 +215,73 @@ struct print_t {
 namespace print_ns {
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto vprint(basic_string_view_t<version_v> fmt,
-                             Ts&&... args) noexcept {
+                             Ts &&...args) noexcept {
   return print_t<version_v>::vprint(fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto print(auto fmt, Ts&&... args) noexcept {
+MJZ_CX_FN static auto print(auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::print(
       fmt, std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto vprintln(basic_string_view_t<version_v> fmt,
-                               Ts&&... args) noexcept {
+                               Ts &&...args) noexcept {
   return print_t<version_v>::vprintln(fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto println(auto fmt, Ts&&... args) noexcept {
+MJZ_CX_FN static auto println(auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::println(
       fmt, std::forward<Ts>(args)...);
 }
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformat_to(auto& out, basic_string_view_t<version_v> fmt,
-                                 Ts&&... args) noexcept {
+MJZ_CX_FN static auto vformat_to(auto &out, basic_string_view_t<version_v> fmt,
+                                 Ts &&...args) noexcept {
   return print_t<version_v>::vformat_to(out, fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto format_to(auto& out, auto fmt, Ts&&... args) noexcept {
+MJZ_CX_FN static auto format_to(auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::format_to(
       out, fmt, std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformatln_to(auto& out,
+MJZ_CX_FN static auto vformatln_to(auto &out,
                                    basic_string_view_t<version_v> fmt,
-                                   Ts&&... args) noexcept {
+                                   Ts &&...args) noexcept {
   return print_t<version_v>::vformat_to(out, fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto formatln_to(auto& out, auto fmt, Ts&&... args) noexcept {
+MJZ_CX_FN static auto formatln_to(auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::formatln_to(
       out, fmt, std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto vformat_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                                 auto& out, basic_string_view_t<version_v> fmt,
-                                 Ts&&... args) noexcept {
+                                 auto &out, basic_string_view_t<version_v> fmt,
+                                 Ts &&...args) noexcept {
   return print_t<version_v>::vformat_to(alloc, out, fmt,
                                         std::forward<Ts>(args)...);
 }
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto format_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                                auto& out, auto fmt, Ts&&... args) noexcept {
+                                auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<version_v>::format_to(alloc, out, fmt,
                                        std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto vformatln_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                                   auto& out,
+                                   auto &out,
                                    basic_string_view_t<version_v> fmt,
-                                   Ts&&... args) noexcept {
+                                   Ts &&...args) noexcept {
   return print_t<version_v>::vformat_to(alloc, out, fmt,
                                         std::forward<Ts>(args)...);
 }
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto formatln_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                                  auto& out, auto fmt, Ts&&... args) noexcept {
+                                  auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<version_v>::formatln_to(alloc, out, fmt,
                                          std::forward<Ts>(args)...);
 }

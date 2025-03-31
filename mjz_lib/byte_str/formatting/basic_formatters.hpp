@@ -10,7 +10,7 @@ namespace mjz ::bstr_ns::format_ns {
 
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_align(
-    parse_context_t<version_v>& cntx) noexcept {
+    parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_align():only ascii is "
@@ -71,7 +71,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_align(
 }
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_type(
-    parse_context_t<version_v>& cntx) noexcept {
+    parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_type():only ascii is "
@@ -157,7 +157,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_type(
 template <version_t version_v>
 template <typename T_t>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::in_range(
-    format_context_t<version_v>& cntx, T_t&& v) const noexcept {
+    format_context_t<version_v> &cntx, T_t &&v) const noexcept {
   using T = std::remove_cvref_t<T_t>;
   if ((uint8_t(type) & uint8_t(type_e::type_mask_)) !=
       uint8_t(type_e::auto_char)) {
@@ -175,7 +175,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::in_range(
 }
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_width(
-    parse_context_t<version_v>& cntx) noexcept {
+    parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_width():only ascii is "
@@ -222,7 +222,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_width(
 }
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
-    parse_context_t<version_v>& cntx) noexcept {
+    parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_precision():only ascii is "
@@ -272,7 +272,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
 
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_specs(
-    parse_context_t<version_v>& cntx) noexcept {
+    parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_specs():only ascii is "
@@ -322,7 +322,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_specs(
 template <version_t version_v>
 template <typename T>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::check_specs(
-    parse_context_t<version_v>& cntx) noexcept {
+    parse_context_t<version_v> &cntx) noexcept {
   bool need_numeric_argument{};
   bool numeric_or_pointer_argument{};
   bool need_persitioned_argument{};
@@ -437,7 +437,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::check_specs(
 template <version_t version_v>
 template <typename T_t>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
-    T_t&& arg, format_context_t<version_v>& ctx) noexcept {
+    T_t &&arg, format_context_t<version_v> &ctx) noexcept {
   using T = std::remove_cvref_t<T_t>;
   using bview = base_lazy_view_t<version_v>;
   if (!this->in_range(ctx, arg)) {
@@ -477,7 +477,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
     stack.length = stack.bt.from_integral_fill(
 
         stack.buf, stack.buf_size,
-        reinterpret_cast<uintptr_t>(alias_t<const void*>(arg)), uppser_case,
+        reinterpret_cast<uintptr_t>(alias_t<const void *>(arg)), uppser_case,
         uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_)));
     if (!stack.length) {
       ctx.as_error(
@@ -563,11 +563,11 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
 
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
-    format_context_t<version_v>& ctx, format_fn_obj& stack) noexcept {
+    format_context_t<version_v> &ctx, format_fn_obj &stack) noexcept {
   using bcview = base_string_view_t<version_v>;
   stack.add_preffix &= alt;
   stack.length = stack.length ? *stack.length : 0;
-  const char* numeric_begin{stack.buf};
+  const char *numeric_begin{stack.buf};
   if (*stack.length) {
     bool is_neg{};
     auto raidex = uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_));
@@ -598,8 +598,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     *stack.length += stack.offset - (stack.buf - stack.buf_arr);
   }
 
-  char* empty_part_end{stack.buf_arr + stack.buf_size};
-  char* empty_part_begin{stack.buf + *stack.length};
+  char *empty_part_end{stack.buf_arr + stack.buf_size};
+  char *empty_part_begin{stack.buf + *stack.length};
   base_out_it_t<version_v> actual_it = ctx.out();
   out_buf_it_t<version_v> output{actual_it, empty_part_begin,
                                  uintlen_t(empty_part_end - empty_part_begin),
@@ -652,7 +652,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
 
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_start(
-    format_context_t<version_v>& ctx, format_fn_obj& stack) noexcept {
+    format_context_t<version_v> &ctx, format_fn_obj &stack) noexcept {
   stack.offset = 3;
   stack.buf_size -= stack.offset;
   stack.buf = stack.buf_arr + 3;
@@ -692,11 +692,11 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_start(
 template <version_t version_v>
 template <typename T>
 MJZ_CX_FN base_out_it_t<version_v> basic_format_specs_t<version_v>::format_fill(
-    auto&& place_stuff, format_context_t<version_v>& ctx) const noexcept {
+    auto &&place_stuff, format_context_t<version_v> &ctx) const noexcept {
   struct Place_t : void_struct_t {
-    std::remove_reference_t<decltype(place_stuff)>* function{};
-    MJZ_CX_FN static success_t place_fn(void_struct_t& obj) noexcept {
-      return (*static_cast<Place_t&>(obj).function)();
+    std::remove_reference_t<decltype(place_stuff)> *function{};
+    MJZ_CX_FN static success_t place_fn(void_struct_t &obj) noexcept {
+      return (*static_cast<Place_t &>(obj).function)();
     }
     MJZ_CX_FN Place_t(decltype(function) ptr) noexcept : function(ptr) {}
   };
@@ -708,9 +708,9 @@ MJZ_CX_FN base_out_it_t<version_v> basic_format_specs_t<version_v>::format_fill(
 template <version_t version_v>
 MJZ_CX_FN base_out_it_t<version_v>
 basic_format_specs_t<version_v>::format_fill_pv(
-    success_t (*place_fn)(void_struct_t&) noexcept, void_struct_t& place_obj,
-    char* buffer, uintlen_t buffer_size,
-    format_context_t<version_v>& ctx) const noexcept {
+    success_t (*place_fn)(void_struct_t &) noexcept, void_struct_t &place_obj,
+    char *buffer, uintlen_t buffer_size,
+    format_context_t<version_v> &ctx) const noexcept {
   auto place_stuff = [&]() noexcept { return place_fn(place_obj); };
   auto real_output = ctx.out();
   MJZ_RELEASE {

@@ -23,6 +23,7 @@ class str_heap_manager_t {
     single_object_pointer_t<const alloc_base_ref> alloc_ref;
     bool is_threaded{};
     bool reduce_rc_on_manager_destruction{};
+    bool is_owenrized{};
     char *heap_data_ptr{};
     uintlen_t heap_data_size{};
   } m;
@@ -41,13 +42,15 @@ class str_heap_manager_t {
     char_storage_as_temp_t<layout_t> var;
     refcr_t refcr;
     bool is_threaded;
+    bool is_owenrized;
     MJZ_CX_FN temp_layout_t(m_t &m) noexcept
         : var{m.heap_data_ptr, sizeof(layout_t), alignof(layout_t)},
           refcr{var->reference_count},
-          is_threaded{m.is_threaded} {}
+          is_threaded{m.is_threaded},
+          is_owenrized{m.is_owenrized} {}
     template <class Lmabda_t>
     MJZ_CX_FN auto perform_ref(Lmabda_t &&Lmabda) noexcept {
-      if (is_threaded) {
+      if (is_threaded && !is_owenrized) {
         return Lmabda(refcr);
       } else {
         return Lmabda(var->reference_count);
@@ -166,11 +169,13 @@ class str_heap_manager_t {
 
   MJZ_CX_FN success_t remove_shareholder() noexcept {
     if (!*this) return false;
+    asserts(asserts.assume_rn, !m.is_owenrized);
     temp_layout_t{m}.perform_ref([](auto &ref) noexcept { --ref; });
     return true;
   }
   MJZ_CX_FN success_t add_shareholder() noexcept {
     if (!*this) return false;
+    asserts(asserts.assume_rn, !m.is_owenrized);
     temp_layout_t{m}.perform_ref([](auto &ref) noexcept { ++ref; });
     return true;
   }
@@ -178,6 +183,7 @@ class str_heap_manager_t {
     char_storage_as_temp_t<layout_t> var{m.heap_data_ptr, sizeof(layout_t),
                                          alignof(layout_t)};
     if (!var) return false;
+    if (m.is_owenrized) return true;
     if (!m.is_threaded) {
       return var->reference_count < 2;
     }
@@ -186,6 +192,7 @@ class str_heap_manager_t {
   }
   MJZ_CX_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
     if (!*this) return false;
+    if (m.is_owenrized) return true;
     /*
      * if this is zero, then we know we where the last person.
      */
@@ -193,20 +200,21 @@ class str_heap_manager_t {
                [](auto &ref) noexcept -> uintlen_t { return --ref; }) < 1;
   }
 
-  MJZ_CX_FN str_heap_manager_t(const alloc_base_ref &alloc,
-                               bool is_threaded_) noexcept
-      : m{&alloc, is_threaded_, true} {}
   MJZ_CX_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
-                               uintlen_t min_size) noexcept
-      : str_heap_manager_t{alloc, is_threaded_} {
+                               bool is_owenrized_) noexcept
+      : m{&alloc, is_threaded_, true, is_owenrized_} {}
+  MJZ_CX_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
+                               bool is_owenrized_, uintlen_t min_size) noexcept
+      : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
     malloc(min_size);
   }
   MJZ_CX_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
+                               bool is_owenrized_,
                                bool add_rc_on_manager_construction,
                                bool reduce_rc_on_manager_destruction,
                                char *heap_begin,
                                uintlen_t capacity = 0) noexcept
-      : str_heap_manager_t{alloc, is_threaded_} {
+      : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
     if (!heap_begin || !capacity) return;
     m.heap_data_ptr =
         std::assume_aligned<alignof(layout_t)>(heap_begin - sizeof(layout_t));

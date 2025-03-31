@@ -604,10 +604,11 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::consider_stack(
   if (stack_buffer.buffer_size < length()) return true;
   memcpy(stack_buffer.buffer, data(), size());
   auto len_ = size();
-  asserts(asserts.assume_rn,
-          total_reset(true) && m.construct_non_sso_from_invalid(
+  asserts(
+      asserts.assume_rn,
+      total_reset(true) && m.construct_non_sso_from_invalid(
                                stack_buffer.buffer, len_, stack_buffer.buffer,
-                                   stack_buffer.buffer_size, false, true));
+                               stack_buffer.buffer_size, false, true));
   m.add_null(true);
   return true;
 }
@@ -668,6 +669,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
     rep_flags.force_ownership = true;
   }
   success_t ret = [&]() noexcept {
+    uintlen_t null_overhead{uintlen_t(!rep_flags.dont_add_null)};
     std::ignore = make_right_then_give_has_null(offset, byte_count);
     if (max_size() < length_of_val) return false;
     const intlen_t delta{intlen_t(length_of_val) - intlen_t(byte_count)};
@@ -684,7 +686,9 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
           choose_other_alloc ? val_alloc : get_alloc(),
           choose_other_threaded
               ? rep_flags.to_is_threaded_v
-              : !m.template d_get_cntrl<bool>(my_details::as_not_threaded_bit)};
+              : !m.template d_get_cntrl<bool>(my_details::as_not_threaded_bit),
+          rep_flags.new_always_ownerize(
+              m.template d_get_cntrl<bool>(my_details::is_ownerized))};
       bool choose_failed{};
       MJZ_RELEASE {
         if (choose_failed) return;
@@ -729,7 +733,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
               m.construct_non_sso_from_invalid(new_begin, new_len, new_buf,
                                                new_cap, true, true));
       std::ignore = hm.steal_heap_begin(false);
-      m.add_null(false);
+      asserts(asserts.assume_rn, m.add_null(false) || rep_flags.dont_add_null);
       return true;
     };
     if (m.get_alloc_ptr() && val_alloc != m.get_alloc() &&
@@ -743,7 +747,8 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
     }
     bool choose_alloc_route = rep_flags.force_another_buffer;
     bool can_choose_alloc_route =
-        (new_len <= m.mut_data.sso_cap) || !rep_flags.no_allocation;
+        (new_len + null_overhead <= m.mut_data.sso_cap) ||
+        !rep_flags.no_allocation;
     if (!m.is_heap()) {
       if (choose_other_alloc) {
         auto *p = m.get_alloc_ptr();
@@ -756,7 +761,8 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
     } else {
       choose_alloc_route |= choose_other_threaded || choose_other_alloc;
     }
-    choose_alloc_route |= choose_alloc_route || m.get_capacity() < new_len;
+    choose_alloc_route |=
+        choose_alloc_route || m.get_capacity() < null_overhead + new_len;
     if (!can_choose_alloc_route && choose_alloc_route) return false;
     if (!rep_flags.force_ownership && !choose_alloc_route &&
         length_of_val == 0 && byte_count == 0)
@@ -773,15 +779,19 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
     }
     uintlen_t front_delta = uintlen_t(m.begin - m.buffer_location_ptr());
     uintlen_t back_delta = m.get_capacity() - m.length - front_delta;
-    bool choose_front = rep_flags.can_choose_front && !m.is_sso() &&
-                        delta <= intlen_t(front_delta);
-    bool choose_back =
-        rep_flags.can_choose_back && delta <= intlen_t(back_delta);
+    bool null_has_room = !null_overhead || back_delta;
+    if (back_delta) back_delta -= null_overhead;
+    bool choose_front = null_has_room && rep_flags.can_choose_front &&
+                        !m.is_sso() && delta <= intlen_t(front_delta);
+    bool choose_back = null_has_room && rep_flags.can_choose_back &&
+                       delta <= intlen_t(back_delta);
     char *mut_begin = m.mut_begin();
     MJZ_RELEASE {
       m.begin = mut_begin;
       m.length = new_len;
-      if (!rep_flags.dont_add_null || !choose_front) {
+      if (!rep_flags.dont_add_null) {
+        asserts(asserts.assume_rn, m.add_null(false));
+      } else if (!choose_front) {
         m.add_null(false);
       } else {
         m.d_set_cntrl(my_details::has_null, false);

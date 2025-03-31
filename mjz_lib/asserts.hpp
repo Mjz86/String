@@ -8,8 +8,8 @@ struct mjz_assert_t {
   MJZ_CX_FN mjz_assert_t(totally_empty_type_t) noexcept {}
   MJZ_CX_FN void operator=(auto) const noexcept = delete;
 
-  MJZ_CX_FN const mjz_assert_t& operator()(
-      success_t value, const char* str = "assert",
+  MJZ_CX_FN const mjz_assert_t &operator()(
+      success_t value, const char *str = "assert",
       bool consteval_only = false) const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
     if (consteval_only || !MJZ_IN_DEBUG_MODE) {
@@ -29,7 +29,7 @@ struct mjz_assert_t {
 
   MJZ_NORETURN
   MJZ_CX_FN void unreachable(
-      MJZ_UNUSED const char* const str = "assert") const noexcept {
+      MJZ_UNUSED const char *const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
@@ -37,7 +37,7 @@ struct mjz_assert_t {
 
   MJZ_NORETURN
   MJZ_CX_FN void panic(
-      MJZ_UNUSED const char* const str = "assert") const noexcept {
+      MJZ_UNUSED const char *const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_IFN_CONSTEVAL {
 #if MJZ_WITH_iostream
@@ -50,21 +50,21 @@ struct mjz_assert_t {
 
   MJZ_NORETURN
   MJZ_CX_FN void not_implemented_yet(
-      MJZ_UNUSED const char* const str = "assert") const noexcept {
+      MJZ_UNUSED const char *const str = "assert") const noexcept {
     panic(str);
   }
 
   MJZ_NORETURN
-  MJZ_CX_FN void not_implemented_yet_v(auto&&...) const noexcept { panic(); }
+  MJZ_CX_FN void not_implemented_yet_v(auto &&...) const noexcept { panic(); }
 
-  MJZ_CX_FN const mjz_assert_t& ignore_v(auto&&...) const noexcept {
+  MJZ_CX_FN const mjz_assert_t &ignore_v(auto &&...) const noexcept {
     return *this;
   }
 
-  MJZ_CX_FN const mjz_assert_t& not_optimal(auto&&...) const noexcept {
+  MJZ_CX_FN const mjz_assert_t &not_optimal(auto &&...) const noexcept {
     return *this;
   }
-  MJZ_CX_FN const mjz_assert_t& as_consteval(success_t value) const noexcept {
+  MJZ_CX_FN const mjz_assert_t &as_consteval(success_t value) const noexcept {
     (*this)(value, "assert", true);
     return *this;
   }
@@ -78,20 +78,20 @@ struct mjz_assert_t {
     pretend_rn = MJZ_TRUST_LEVEL_OF_PRETEND_,
     debug = MJZ_assert_TRUST_LEVEL_,
   };
-  MJZ_CX_FN const mjz_assert_t& operator[](
+  MJZ_CX_FN const mjz_assert_t &operator[](
       mjz_asserts_e mjz_asserts_v) const noexcept {
     return (*this)(
         mjz_asserts_v, [&]() noexcept { return false; }, "assertion", false,
         false);
   }
-  MJZ_CX_FN const mjz_assert_t& operator|(bool B) const noexcept {
+  MJZ_CX_FN const mjz_assert_t &operator|(bool B) const noexcept {
     return (*this)(B);
   }
 
-  MJZ_CX_FN const mjz_assert_t& operator()(
+  MJZ_CX_FN const mjz_assert_t &operator()(
       mjz_asserts_e mjz_assertv_e,
-      callable_c<success_t(void) noexcept> auto&& value,
-      const char* str = "assert", bool consteval_only = false,
+      callable_c<success_t(void) noexcept> auto &&value,
+      const char *str = "assert", bool consteval_only = false,
       bool can_assume = true, bool always_call = false) const noexcept {
     if (always_call) {
       return force_call(value, mjz_assertv_e, str, consteval_only, can_assume);
@@ -112,8 +112,8 @@ struct mjz_assert_t {
     }
     return *this;
   }
-  MJZ_CX_FN const mjz_assert_t& operator()(
-      mjz_asserts_e mjz_assertv_e, bool value, const char* str = "assert",
+  MJZ_CX_FN const mjz_assert_t &operator()(
+      mjz_asserts_e mjz_assertv_e, bool value, const char *str = "assert",
       bool consteval_only = false, bool can_assume = true) const noexcept {
     if (consteval_only) {
       MJZ_IFN_CONSTEVAL { return *this; }
@@ -130,13 +130,13 @@ struct mjz_assert_t {
     }
     return *this;
   }
-  MJZ_CX_FN const mjz_assert_t& debug_only(
-      const char* str = "assert", bool consteval_only = false) const noexcept {
+  MJZ_CX_FN const mjz_assert_t &debug_only(
+      const char *str = "assert", bool consteval_only = false) const noexcept {
     return (*this)(debug, false, str, consteval_only, false);
   }
-  MJZ_CX_FN const mjz_assert_t& force_call(
-      callable_c<success_t(void) noexcept> auto&& value,
-      mjz_asserts_e mjz_assertv_e = debug, const char* str = "assert",
+  MJZ_CX_FN const mjz_assert_t &force_call(
+      callable_c<success_t(void) noexcept> auto &&value,
+      mjz_asserts_e mjz_assertv_e = debug, const char *str = "assert",
       bool consteval_only = false, bool can_assume = true) const noexcept {
     return (*this)(mjz_assertv_e, value(), str, consteval_only, can_assume);
   }

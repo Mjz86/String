@@ -85,7 +85,20 @@ struct replace_flags_t {
     }
     return false;
   }
-
+  MJZ_CX_FN bool new_always_ownerize(bool old_flag) const noexcept {
+    using e = ownerization_e;
+    switch (ownerization_v) {
+      case e::none:
+        return old_flag;
+      case e::always_ownerize_on:
+        return true;
+        break;
+      case e::always_ownerize_off:
+        return  false;
+        break;
+    }
+    return old_flag;
+  }
   MJZ_CX_FN success_t better_front() noexcept {
     using e = buffer_placement_e;
     if (buffer_placement_v == e::relaxed) {
@@ -205,7 +218,8 @@ struct replace_flags_t {
            could_change_threaded(already_has_alloc);
   }
 
-  MJZ_CX_FN uintlen_t new_cap_calc(const uintlen_t mincap) const noexcept {
+  MJZ_CX_FN uintlen_t new_cap_calc( uintlen_t mincap) const noexcept {
+    mincap += uintlen_t(!dont_add_null);
     uintlen_t cap{mincap};
 
     if (exponential_rounded) {

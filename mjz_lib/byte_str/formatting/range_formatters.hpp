@@ -30,14 +30,14 @@ struct default_formatter_t<version_v, T_, 60> {
   using sview = static_string_view_t<version_v>;
   using view = basic_string_view_t<version_v>;
   template <std::size_t I>
-  using CVT_pv = const std::remove_reference_t<mjz::tuple_element_t<I, T>&>&;
+  using CVT_pv = const std::remove_reference_t<mjz::tuple_element_t<I, T> &> &;
   template <std::size_t I>
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv<I>>(
       get_invalid_T_obj<CVT_pv<I>>()));
   template <std::size_t... I>
   MJZ_CX_FN auto static F_t_fn(std::index_sequence<I...>) noexcept
       -> std::tuple<typename format_context_t<
-          version_v>::template formatter_type<decayed_t<I>>...>* {
+          version_v>::template formatter_type<decayed_t<I>>...> * {
     return nullptr;
   }
 
@@ -56,8 +56,8 @@ struct default_formatter_t<version_v, T_, 60> {
   bool is_m{};
 
   template <std::size_t I_v>
-  MJZ_CX_FN auto inner_loop_fn(auto&& fn_v, uintlen_t& len,
-                               success_t& result) const -> bool {
+  MJZ_CX_FN auto inner_loop_fn(auto &&fn_v, uintlen_t &len,
+                               success_t &result) const -> bool {
     if (I_v < slice_index) {
       return true;
     }
@@ -71,21 +71,21 @@ struct default_formatter_t<version_v, T_, 60> {
   }
 
   template <std::size_t... I>
-  MJZ_CX_FN success_t on_types_Is(auto&& fn_v,
+  MJZ_CX_FN success_t on_types_Is(auto &&fn_v,
                                   std::index_sequence<I...>) const {
     success_t result{true};
     uintlen_t len{};
     MJZ_UNUSED bool b = (inner_loop_fn<I>(fn_v, len, result) && ...);
     return result;
   }
-  MJZ_CX_FN success_t on_types(auto&& fn_v) const noexcept {
+  MJZ_CX_FN success_t on_types(auto &&fn_v) const noexcept {
     success_t ret{};
     MJZ_NOEXCEPT { ret = on_types_Is(fn_v, IS_t{}); };
     return ret;
   }
 
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     if (ctx.encoding() != encodings_e::ascii) {
       ctx.as_error(
           "[Error]default_formatter_t::parse(tuple,auto):"
@@ -178,14 +178,14 @@ struct default_formatter_t<version_v, T_, 60> {
     return ctx.begin();
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      const T& arg, format_context_t<version_v>& ctx) const noexcept {
+      const T &arg, format_context_t<version_v> &ctx) const noexcept {
     return partial_spec.template format_fill<T>(
         [&]() noexcept {
           bool not_first{false};
           auto it = ctx.out();
           it.append(open_braket.unsafe_handle());
           if (!on_types([&]<std::size_t I>() {
-                const auto& val = mjz::get<I>(arg);
+                const auto &val = mjz::get<I>(arg);
                 if (not_first) {
                   it.append(separator.unsafe_handle());
                 }
@@ -212,7 +212,7 @@ struct default_formatter_t<version_v, T, 50> {
     *std::ranges::begin(obj);
     std::ranges::begin(obj) == std::ranges::end(obj);
   }, const T_range, T_range>;
-  using CRT_range = CT_range&;
+  using CRT_range = CT_range &;
   MJZ_CONSTANT(bool)
   no_perfect_forwarding_v = std::is_const_v<CT_range>;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
@@ -220,7 +220,7 @@ struct default_formatter_t<version_v, T, 50> {
   using view = basic_string_view_t<version_v>;
   using value_t =
       decltype(*std::ranges::begin(just_some_invalid_obj<CRT_range>()));
-  using CVT_pv = const std::remove_reference_t<value_t>&;
+  using CVT_pv = const std::remove_reference_t<value_t> &;
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv>(
       get_invalid_T_obj<CVT_pv>()));
   using F_t =
@@ -236,7 +236,7 @@ struct default_formatter_t<version_v, T, 50> {
   basic_format_specs_t<version_v> partial_spec{};
 
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     if (ctx.encoding() != encodings_e::ascii) {
       ctx.as_error(
           "[Error]default_formatter_t::parse(std::ranges::forward_range,auto):"
@@ -306,9 +306,9 @@ struct default_formatter_t<version_v, T, 50> {
     return formatter.parse(ctx);
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      auto&& arg, format_context_t<version_v>& ctx) const noexcept {
+      auto &&arg, format_context_t<version_v> &ctx) const noexcept {
     auto may_throw = [&]() noexcept(false) {
-      const auto& f = formatter;
+      const auto &f = formatter;
       auto beg = std::ranges::begin(arg);
       auto end = std::ranges::end(arg);
       bool not_first{false};
@@ -375,8 +375,8 @@ template <version_t version_v, typename T>
   requires requires() {
     { std::span(just_some_invalid_obj<T &&>()) } noexcept;
     // to forward the span into std::ranges::forward_range
-    requires !partial_same_as<decltype(std::span(just_some_invalid_obj<T&&>())),
-                              T>;
+    requires !partial_same_as<
+        decltype(std::span(just_some_invalid_obj<T &&>())), T>;
   }
 struct default_formatter_t<version_v, T, 40> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
@@ -384,13 +384,13 @@ struct default_formatter_t<version_v, T, 40> {
   // this is an empty forwarding implementation
   using decay_optimize_to_t =
       std::span<std::remove_reference_t<typename decltype(std::span(
-          just_some_invalid_obj<T&&>()))::reference>>;
+          just_some_invalid_obj<T &&>()))::reference>>;
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>&) noexcept {
+      parse_context_t<version_v> &) noexcept {
     return nullptr;
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      T&&, format_context_t<version_v>&) const noexcept {
+      T &&, format_context_t<version_v> &) const noexcept {
     return nullptr;
   };
 };

@@ -15,7 +15,7 @@ namespace mjz::bstr_ns::format_ns {
 
 template <version_t version_v, typename T>
 concept is_stream_formatter_c =
-    requires(std::ostream& buffer, const std::remove_reference_t<T>& arg) {
+    requires(std::ostream &buffer, const std::remove_reference_t<T> &arg) {
       buffer << arg;
     };
 template <version_t version_v, class T_>
@@ -24,19 +24,19 @@ struct default_formatter_t<version_v, T_, 100> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
   using view_t = base_string_view_t<version_v>;
-  using CVT_pv = const view_t&;
+  using CVT_pv = const view_t &;
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv>(
       get_invalid_T_obj<CVT_pv>()));
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      const std::remove_reference_t<T_>& arg,
-      format_context_t<version_v>& ctx) const noexcept {
+      const std::remove_reference_t<T_> &arg,
+      format_context_t<version_v> &ctx) const noexcept {
     bool good{true};
     good &= MJZ_NOEXCEPT {
       allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()};
@@ -59,8 +59,8 @@ struct default_formatter_t<version_v, T_, 100> {
     if (good) return ctx.out();
 
     ctx.as_error(
-        "[Error]default_formatter_t<is_stream_formatter_c>: an error was "
-        "thrown "
+        "[Error]default_formatter_t<is_stream_formatter_c>: an error "
+        "was thrown "
         "during output");
     return nullptr;
   };

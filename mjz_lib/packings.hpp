@@ -16,22 +16,22 @@ struct unaligned_holder_t {
   T unaligned_data;
 
  public:
-  MJZ_CX_FN T* assume_aligned_ptr() & noexcept {
+  MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
     return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
-  MJZ_CX_FN const T* assume_aligned_ptr() const& noexcept {
+  MJZ_CX_FN const T *assume_aligned_ptr() const & noexcept {
     return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
-  MJZ_CX_FN const T&& assume_aligned() const&& noexcept {
+  MJZ_CX_FN const T &&assume_aligned() const && noexcept {
     return std::move(*assume_aligned_ptr());
   }
-  MJZ_CX_FN T&& assume_aligned() && noexcept {
+  MJZ_CX_FN T &&assume_aligned() && noexcept {
     return std::move(*assume_aligned_ptr());
   }
-  MJZ_CX_FN const T& assume_aligned() const& noexcept {
+  MJZ_CX_FN const T &assume_aligned() const & noexcept {
     return *assume_aligned_ptr();
   }
-  MJZ_CX_FN T& assume_aligned() & noexcept { return *assume_aligned_ptr(); }
+  MJZ_CX_FN T &assume_aligned() & noexcept { return *assume_aligned_ptr(); }
   MJZ_CX_FN T create_aligned() noexcept
     requires requires(T obj) {
       { std::bit_cast<T>(obj) } noexcept -> std::same_as<T>;
@@ -41,12 +41,12 @@ struct unaligned_holder_t {
   }
 
   // abbreviation, careful
-  MJZ_CX_FN const T& AA() const& noexcept { return assume_aligned(); }
-  MJZ_CX_FN const T&& AA() const&& noexcept { return assume_aligned(); }
-  MJZ_CX_FN T&& AA() && noexcept { return assume_aligned(); }
-  MJZ_CX_FN T& AA() & noexcept { return assume_aligned(); }
-  MJZ_CX_FN T* AAP() & noexcept { return assume_aligned_ptr(); }
-  MJZ_CX_FN const T* AAP() const& noexcept { return assume_aligned_ptr(); }
+  MJZ_CX_FN const T &AA() const & noexcept { return assume_aligned(); }
+  MJZ_CX_FN const T &&AA() const && noexcept { return assume_aligned(); }
+  MJZ_CX_FN T &&AA() && noexcept { return assume_aligned(); }
+  MJZ_CX_FN T &AA() & noexcept { return assume_aligned(); }
+  MJZ_CX_FN T *AAP() & noexcept { return assume_aligned_ptr(); }
+  MJZ_CX_FN const T *AAP() const & noexcept { return assume_aligned_ptr(); }
 };
 
 template <typename T, size_t minsize_>
@@ -61,33 +61,33 @@ union unaligned_optional_holder_t {
   T unaligned_data;
 
  public:
-  MJZ_CX_FN T* assume_aligned_dead_ptr() & noexcept {
+  MJZ_CX_FN T *assume_aligned_dead_ptr() & noexcept {
     return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
-  MJZ_CX_FN const T* assume_aligned_dead_ptr() const& noexcept {
+  MJZ_CX_FN const T *assume_aligned_dead_ptr() const & noexcept {
     return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
-  MJZ_CX_FN T* assume_aligned_dead_ptr() && noexcept = delete;
-  MJZ_CX_FN const T* assume_aligned_dead_ptr() const&& noexcept = delete;
+  MJZ_CX_FN T *assume_aligned_dead_ptr() && noexcept = delete;
+  MJZ_CX_FN const T *assume_aligned_dead_ptr() const && noexcept = delete;
 
-  MJZ_CX_FN T* assume_aligned_ptr() & noexcept {
+  MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
     return std::assume_aligned<alignof(T)>(
         std::launder(std::addressof(unaligned_data)));
   }
-  MJZ_CX_FN const T* assume_aligned_ptr() const& noexcept {
+  MJZ_CX_FN const T *assume_aligned_ptr() const & noexcept {
     return std::assume_aligned<alignof(T)>(
         std::launder(std::addressof(unaligned_data)));
   }
-  MJZ_CX_FN const T&& assume_aligned() const&& noexcept {
+  MJZ_CX_FN const T &&assume_aligned() const && noexcept {
     return std::move(*assume_aligned_ptr());
   }
-  MJZ_CX_FN T&& assume_aligned() && noexcept {
+  MJZ_CX_FN T &&assume_aligned() && noexcept {
     return std::move(*assume_aligned_ptr());
   }
-  MJZ_CX_FN const T& assume_aligned() const& noexcept {
+  MJZ_CX_FN const T &assume_aligned() const & noexcept {
     return *assume_aligned_ptr();
   }
-  MJZ_CX_FN T& assume_aligned() & noexcept { return *assume_aligned_ptr(); }
+  MJZ_CX_FN T &assume_aligned() & noexcept { return *assume_aligned_ptr(); }
   MJZ_CX_FN T create_aligned() noexcept
     requires requires(T obj) {
       { std::bit_cast<T>(obj) } noexcept -> std::same_as<T>;
@@ -97,14 +97,14 @@ union unaligned_optional_holder_t {
   }
 
   // abbreviation, careful
-  MJZ_CX_FN const T& AA() const& noexcept { return assume_aligned(); }
-  MJZ_CX_FN const T&& AA() const&& noexcept {
+  MJZ_CX_FN const T &AA() const & noexcept { return assume_aligned(); }
+  MJZ_CX_FN const T &&AA() const && noexcept {
     return std::move(assume_aligned());
   }
-  MJZ_CX_FN T&& AA() && noexcept { return std::move(assume_aligned()); }
-  MJZ_CX_FN T& AA() & noexcept { return assume_aligned(); }
-  MJZ_CX_FN T* AAP() & noexcept { return assume_aligned_ptr(); }
-  MJZ_CX_FN const T* AAP() const& noexcept { return assume_aligned_ptr(); }
+  MJZ_CX_FN T &&AA() && noexcept { return std::move(assume_aligned()); }
+  MJZ_CX_FN T &AA() & noexcept { return assume_aligned(); }
+  MJZ_CX_FN T *AAP() & noexcept { return assume_aligned_ptr(); }
+  MJZ_CX_FN const T *AAP() const & noexcept { return assume_aligned_ptr(); }
 };
 MJZ_PACKING_END_NAW_;
 
@@ -120,14 +120,14 @@ MJZ_BAD_COMPILER(sizeof(int32_t) == 4);   //-V112
 MJZ_BAD_COMPILER(sizeof(uint64_t) == 8);
 MJZ_BAD_COMPILER(sizeof(int64_t) == 8);
 MJZ_BAD_COMPILER(sizeof(uintptr_t) % 2 == 0);
-MJZ_BAD_COMPILER(sizeof(void*) == sizeof(char*));
-MJZ_BAD_COMPILER(sizeof(void*) == sizeof(uintptr_t));
+MJZ_BAD_COMPILER(sizeof(void *) == sizeof(char *));
+MJZ_BAD_COMPILER(sizeof(void *) == sizeof(uintptr_t));
 MJZ_BAD_COMPILER(sizeof(ptrdiff_t) == sizeof(uintptr_t));
 MJZ_BAD_COMPILER(sizeof(intptr_t) == sizeof(uintptr_t));
 MJZ_BAD_COMPILER(std::endian::little == std::endian::native ||
                  std::endian::native == std::endian::big);
 MJZ_SASSERT(4 <= sizeof(uintlen_t));
-MJZ_SASSERT(alignof(void*) <= alignof(uintlen_t));
+MJZ_SASSERT(alignof(void *) <= alignof(uintlen_t));
 MJZ_BAD_MCOMPILER(alignof(char) == 1 && sizeof(char) == 1,
                   " we use char as one byte and as storage ");
 struct padding_test_packed_t_ {
@@ -175,7 +175,7 @@ template <std::integral T>
   requires(sizeof(T) <= 16)
 MJZ_CX_FN static uint8_t get_begin_bit_index(T mask) noexcept {
   int16_t index{(sizeof(T) * 8) - 1};
-  while (static_cast<bool>(static_cast<T&>(mask <<= 1))) {  //-V2561
+  while (static_cast<bool>(static_cast<T &>(mask <<= 1))) {  //-V2561
     index--;
   }
   return static_cast<uint8_t>(index);
@@ -207,11 +207,11 @@ struct bit_rotate_t {
                                    bit_rotate_t r) noexcept {
     return rotate_right(x, r.amount);
   }
-  MJZ_CX_FN friend auto& operator<<=(std::integral auto& x,
+  MJZ_CX_FN friend auto &operator<<=(std::integral auto &x,
                                      bit_rotate_t r) noexcept {
     return x = rotate_left(x, r.amount);
   }
-  MJZ_CX_FN friend auto& operator>>=(std::integral auto& x,
+  MJZ_CX_FN friend auto &operator>>=(std::integral auto &x,
                                      bit_rotate_t r) noexcept {
     return x = rotate_right(x, r.amount);
   }

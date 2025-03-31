@@ -88,7 +88,7 @@ struct concatabe_hash_t {
     hash = uintlen_t(uint8_t(c));
     length = 1;
   }
-  MJZ_CX_ND_FN concatabe_hash_t(const char* ptr, uintlen_t len) noexcept {
+  MJZ_CX_ND_FN concatabe_hash_t(const char *ptr, uintlen_t len) noexcept {
     if ((!ptr && len)) return;
     for (uintlen_t i{}; i < len; i++) {
       hash ^= uintlen_t(uint8_t(ptr[i])) << bit_rotate_t(i);
@@ -96,7 +96,7 @@ struct concatabe_hash_t {
     length = len;
   }
   MJZ_CX_ND_FN concatabe_hash_t friend operator+(
-      const concatabe_hash_t& rhs, const concatabe_hash_t& lhs) noexcept {
+      const concatabe_hash_t &rhs, const concatabe_hash_t &lhs) noexcept {
     concatabe_hash_t ret{};
     ret.length = rhs.length + lhs.length;
     bit_rotate_t lhs_beg_shift{rhs.length};
@@ -107,7 +107,7 @@ struct concatabe_hash_t {
    *note , a hash of rhs must have lhs at its end to negate it.
    */
   MJZ_CX_ND_FN concatabe_hash_t friend operator-(
-      const concatabe_hash_t& rhs, const concatabe_hash_t& lhs) noexcept {
+      const concatabe_hash_t &rhs, const concatabe_hash_t &lhs) noexcept {
     concatabe_hash_t ret{};
     if (rhs.length < lhs.length) return ret;
     ret.length = rhs.length - lhs.length;
@@ -115,12 +115,12 @@ struct concatabe_hash_t {
     ret.hash = rhs.hash ^ (lhs.hash << lhs_beg_shift);
     return ret;
   }
-  MJZ_CX_ND_FN concatabe_hash_t& operator+=(
-      const concatabe_hash_t& lhs) noexcept {
+  MJZ_CX_ND_FN concatabe_hash_t &operator+=(
+      const concatabe_hash_t &lhs) noexcept {
     return *this = *this + lhs;
   }
-  MJZ_CX_FN bool friend operator==(const concatabe_hash_t& rhs,
-                                   const concatabe_hash_t& lhs) noexcept {
+  MJZ_CX_FN bool friend operator==(const concatabe_hash_t &rhs,
+                                   const concatabe_hash_t &lhs) noexcept {
     return rhs.hash == lhs.hash && rhs.length == lhs.length;
   }
 };

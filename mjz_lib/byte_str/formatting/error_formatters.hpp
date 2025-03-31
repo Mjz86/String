@@ -18,21 +18,21 @@ template <version_t version_v, class T>
 struct default_formatter_t<version_v, T, 30> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  using decay_optimize_to_t = const std::exception&;
+  using decay_optimize_to_t = const std::exception &;
   using view_t = base_string_view_t<version_v>;
-  using CVT_pv = const view_t&;
+  using CVT_pv = const view_t &;
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv>(
       get_invalid_T_obj<CVT_pv>()));
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
-      const std::exception& err,
-      format_context_t<version_v>& ctx) const noexcept {
+      const std::exception &err,
+      format_context_t<version_v> &ctx) const noexcept {
     bool ret{};
     MJZ_NOEXCEPT {
       std::string_view view{err.what()};
@@ -50,19 +50,19 @@ struct default_formatter_t<version_v, T, 30> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
   using view_t = base_string_view_t<version_v>;
-  using CVT_pv = const view_t&;
+  using CVT_pv = const view_t &;
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv>(
       get_invalid_T_obj<CVT_pv>()));
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v>& ctx) noexcept {
+      parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
   MJZ_NCX_FN base_out_it_t<version_v> format(
-      const std::error_code& err,
-      format_context_t<version_v>& ctx) const noexcept {
+      const std::error_code &err,
+      format_context_t<version_v> &ctx) const noexcept {
     bool ret{};
     MJZ_NOEXCEPT {
       auto view{err.message()};

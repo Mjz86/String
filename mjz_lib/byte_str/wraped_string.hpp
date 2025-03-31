@@ -257,8 +257,12 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   }
 
   MJZ_CX_FN ~wrapped_string_t() noexcept {
-    /*msvc had issues with defaults*/
-    std::ignore = 0;
+    asserts(asserts.assume_rn, (!props_v.is_ownerized || get().is_owner()) &&
+                                   (!props_v.has_null || get().has_null()));
+    if constexpr (props_v.is_ownerized) {
+        // reassures the compiler
+      m_str().m.d_set_cntrl(my_details::is_ownerized, true);
+    }
   }
 
  public:

@@ -38,8 +38,10 @@ class atomic_ref_t {
           partial_same_as<Self_t, ref_pair_t>);
       MJZ_IF_CONSTEVAL { return Lmabda(std::forward<Self_t>(Self).cx_ref); }
       else {
-        a_ref_t a_ref_{*std::forward<Self_t>(Self).a_ref};
-        return Lmabda(a_ref_);
+        return [&]() noexcept{
+          a_ref_t a_ref_{*std::forward<Self_t>(Self).a_ref};
+          return Lmabda(a_ref_);
+        }();
       }
     }
   };

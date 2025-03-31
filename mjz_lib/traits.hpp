@@ -15,12 +15,12 @@ concept noexcept_destructable_c = requires(T obj) {
 };
 
 template <class T, typename... Ts>
-concept noexcept_constructable_c = requires(Ts&&... args) {
+concept noexcept_constructable_c = requires(Ts &&...args) {
   { T(std::forward<Ts>(args)...) } noexcept;
 };
 template <class T, typename U>
-concept noexcept_assignment_c = requires(T obj, U&& arg) {
-  { obj = std::forward<U>(arg) } noexcept -> std::convertible_to<T&>;
+concept noexcept_assignment_c = requires(T obj, U &&arg) {
+  { obj = std::forward<U>(arg) } noexcept -> std::convertible_to<T &>;
 };
 template <class T, typename... Ts>
 concept noexcept_de_or_con_structable_c =
@@ -29,17 +29,17 @@ concept noexcept_de_or_con_structable_c =
 template <class T, typename Allocator_ptr_t>
 concept noexcept_de_or_con_structable_or_mv_or_cpy_assignment_c = requires() {
   requires noexcept_de_or_con_structable_c<T>;
-  requires noexcept_de_or_con_structable_c<T, const T&>;
-  requires noexcept_de_or_con_structable_c<T, T&&>;
+  requires noexcept_de_or_con_structable_c<T, const T &>;
+  requires noexcept_de_or_con_structable_c<T, T &&>;
   requires noexcept_de_or_con_structable_c<T, Allocator_ptr_t>;
-  requires noexcept_de_or_con_structable_c<T, const T&, Allocator_ptr_t>;
-  requires noexcept_de_or_con_structable_c<T, T&&, Allocator_ptr_t>;
-  requires noexcept_assignment_c<T, const T&>;
-  requires noexcept_assignment_c<T, T&&>;
+  requires noexcept_de_or_con_structable_c<T, const T &, Allocator_ptr_t>;
+  requires noexcept_de_or_con_structable_c<T, T &&, Allocator_ptr_t>;
+  requires noexcept_assignment_c<T, const T &>;
+  requires noexcept_assignment_c<T, T &&>;
 };
 /* we use this approach(const T*) because it dose not allow r-values */
 template <typename T>
-using lvalue_const_no_null_ptr_t = const T* const;
+using lvalue_const_no_null_ptr_t = const T *const;
 template <typename T, typename U, typename... Us>
 concept is_totaly_trivial_sub_subs = requires(T t) {
   requires std::is_trivial_v<T>;
@@ -67,19 +67,20 @@ template <typename T, typename... Us>
 concept is_totaly_trivial_subs = requires(T t) {
   requires is_totaly_trivial_sub_subs<T, T, Us...>;
   requires is_totaly_trivial_sub_subs<T, const T, Us...>;
-  requires is_totaly_trivial_sub_subs<T, std::remove_cvref_t<T>&, Us...>;
-  requires is_totaly_trivial_sub_subs<T, std::remove_cvref_t<T>&&, Us...>;
-  requires is_totaly_trivial_sub_subs<T, const std::remove_cvref_t<T>&, Us...>;
-  requires is_totaly_trivial_sub_subs<T, const std::remove_cvref_t<T>&&, Us...>;
+  requires is_totaly_trivial_sub_subs<T, std::remove_cvref_t<T> &, Us...>;
+  requires is_totaly_trivial_sub_subs<T, std::remove_cvref_t<T> &&, Us...>;
+  requires is_totaly_trivial_sub_subs<T, const std::remove_cvref_t<T> &, Us...>;
+  requires is_totaly_trivial_sub_subs<T, const std::remove_cvref_t<T> &&,
+                                      Us...>;
 };
 template <typename T, typename... Us>
 concept is_totaly_trivial_sub = requires(T t) {
   requires is_totaly_trivial_sub_sub<T, T>;
   requires is_totaly_trivial_sub_sub<T, const T>;
-  requires is_totaly_trivial_sub_sub<T, std::remove_cvref_t<T>&>;
-  requires is_totaly_trivial_sub_sub<T, std::remove_cvref_t<T>&&>;
-  requires is_totaly_trivial_sub_sub<T, const std::remove_cvref_t<T>&>;
-  requires is_totaly_trivial_sub_sub<T, const std::remove_cvref_t<T>&&>;
+  requires is_totaly_trivial_sub_sub<T, std::remove_cvref_t<T> &>;
+  requires is_totaly_trivial_sub_sub<T, std::remove_cvref_t<T> &&>;
+  requires is_totaly_trivial_sub_sub<T, const std::remove_cvref_t<T> &>;
+  requires is_totaly_trivial_sub_sub<T, const std::remove_cvref_t<T> &&>;
 };
 template <typename T, typename... Us>
 concept is_totaly_trivials = requires(T t, const T ct) {
@@ -119,8 +120,8 @@ struct mjz_integral_constant_t {
   MJZ_CONSTANT(auto) value = integral_constant_maker_lambda();
   using value_type = decltype(value);
   using type = mjz_integral_constant_t;  // using injected-class-name
-  MJZ_CX_FN operator value_type&() const noexcept { return value; }
-  MJZ_CX_FN value_type& operator()() const noexcept { return value; }
+  MJZ_CX_FN operator value_type &() const noexcept { return value; }
+  MJZ_CX_FN value_type &operator()() const noexcept { return value; }
 };
 template <auto... integral_constant_maker_lambdas>
 struct mjz_integral_constants_t {
@@ -132,7 +133,7 @@ struct mjz_integral_constants_t {
   using value_type = decltype(type_at<i>{}());
   using type = mjz_integral_constants_t;
   template <uintlen_t i>
-  MJZ_CX_FN static auto& get() noexcept {
+  MJZ_CX_FN static auto &get() noexcept {
     return type_at<i>{}();
   }
   MJZ_CONSTANT(size_t)
@@ -156,13 +157,13 @@ using make_inheritable_or_empty_t =
 
 template <typename T>
 struct lvalue_const_ref_t {
-  const T& obj;
-  MJZ_CX_FN lvalue_const_ref_t(no_null_t<const T* const> That) noexcept
+  const T &obj;
+  MJZ_CX_FN lvalue_const_ref_t(no_null_t<const T *const> That) noexcept
       : obj(*That) {}
-  MJZ_CX_FN lvalue_const_ref_t(const T& That) noexcept : obj(That) {}
-  MJZ_CX_FN lvalue_const_ref_t(T& That) noexcept : obj(That) {}
-  MJZ_CX_FN lvalue_const_ref_t(const T&& That) noexcept = delete;
-  MJZ_CX_FN lvalue_const_ref_t(T&& That) noexcept = delete;
+  MJZ_CX_FN lvalue_const_ref_t(const T &That) noexcept : obj(That) {}
+  MJZ_CX_FN lvalue_const_ref_t(T &That) noexcept : obj(That) {}
+  MJZ_CX_FN lvalue_const_ref_t(const T &&That) noexcept = delete;
+  MJZ_CX_FN lvalue_const_ref_t(T &&That) noexcept = delete;
 };
 template <typename T, typename FN_t, bool strict_return_v>
 struct is_callable_helper : std::false_type {};
@@ -205,9 +206,9 @@ struct is_callable_anyret_helper<fn_t, ret_t(args_t...) noexcept>
     : is_callable_helper<
           fn_t,
           decltype(std::forward<fn_t>(
-              *reinterpret_cast<std::remove_reference_t<fn_t>*>(0))(
+              *reinterpret_cast<std::remove_reference_t<fn_t> *>(0))(
               std::forward<args_t>(
-                  *reinterpret_cast<std::remove_reference_t<args_t>*>(0))...))(
+                  *reinterpret_cast<std::remove_reference_t<args_t> *>(0))...))(
               args_t...) noexcept,
           false> {};
 
@@ -289,19 +290,19 @@ struct like_funcptr_maker_helper;
 
 template <class the_class, typename ret_t, typename... args_t>
 struct like_funcptr_maker_helper<the_class, ret_t(args_t...)> {
-  using type = ret_t (*)(the_class*, args_t...);
+  using type = ret_t (*)(the_class *, args_t...);
 };
 template <class the_class, typename ret_t, typename... args_t>
 struct like_funcptr_maker_helper<the_class, ret_t(args_t...) const> {
-  using type = ret_t (*)(const the_class*, args_t...);
+  using type = ret_t (*)(const the_class *, args_t...);
 };
 template <class the_class, typename ret_t, typename... args_t>
 struct like_funcptr_maker_helper<the_class, ret_t(args_t...) noexcept> {
-  using type = ret_t (*)(the_class*, args_t...) noexcept;
+  using type = ret_t (*)(the_class *, args_t...) noexcept;
 };
 template <class the_class, typename ret_t, typename... args_t>
 struct like_funcptr_maker_helper<the_class, ret_t(args_t...) const noexcept> {
-  using type = ret_t (*)(const the_class*, args_t...) noexcept;
+  using type = ret_t (*)(const the_class *, args_t...) noexcept;
 };
 template <typename ret_t, typename... args_t>
 struct like_funcptr_maker_helper<void, ret_t(args_t...)> {
@@ -346,8 +347,9 @@ MJZ_CX_FN std::array<char, sizeof(T)> get_XE_bitcast(T val) noexcept {
   auto r_ret = std::bit_cast<std::array<char, sizeof(T)>>(val);
   std::array<char, sizeof(T)> ret{};
   for (uintlen_t i{}; i < sizeof(T); i++) {
-    ret[i] = do_reverse_if_NE ? bit_reverse_bitcast(r_ret[sizeof(T) - 1 - i])
-                              : r_ret[sizeof(T) - 1 - i];
+    ret[(size_t)i] = do_reverse_if_NE
+                         ? bit_reverse_bitcast(r_ret[(size_t)(sizeof(T) - 1 - i)])
+            : r_ret[(size_t)(sizeof(T) - 1 - i)];
   }
   return ret;
 }
@@ -358,8 +360,9 @@ MJZ_CX_FN T from_XE_bitcast(std::array<char, sizeof(T)> val) noexcept {
   }
   std::array<char, sizeof(T)> ret{};
   for (uintlen_t i{}; i < sizeof(T); i++) {
-    ret[i] = do_reverse_if_NE ? bit_reverse_bitcast(val[sizeof(T) - 1 - i])
-                              : val[sizeof(T) - 1 - i];
+    ret[(size_t)i] = do_reverse_if_NE
+                         ? bit_reverse_bitcast(val[(size_t)(sizeof(T) - 1 - i)])
+                         : val[(size_t)(sizeof(T) - 1 - i)];
   }
   return std::bit_cast<T>(ret);
 }
@@ -369,9 +372,9 @@ struct bit_range_t {
   template <is_totaly_trivial T>
   MJZ_CX_FN static std::optional<bit_range_t> get_bit_range(
       const T strating_val,
-      callable_c<bool(uintlen_t i) noexcept> auto&& bit_to,
-      callable_c<bool(const T&) noexcept> auto&& is_begin,
-      callable_c<bool(const T&) noexcept> auto&& is_end) noexcept {
+      callable_c<bool(uintlen_t i) noexcept> auto &&bit_to,
+      callable_c<bool(const T &) noexcept> auto &&is_begin,
+      callable_c<bool(const T &) noexcept> auto &&is_end) noexcept {
     uintlen_t numbits{sizeof(T) * 8};
     bit_range_t range{uintlen_t(-1), uintlen_t(-1)};
     std::array<char, sizeof(T)> a_s_var{
@@ -379,7 +382,7 @@ struct bit_range_t {
     for (uintlen_t i{}; i < numbits / 8; i++) {
       for (uintlen_t j{}; j < 8; j++) {
         std::array<char, sizeof(T)> a_var{a_s_var};
-        a_var[i] = bit_to(8 * i + j) ? char(uint8_t(1 << j)) : 0;
+        a_var[(size_t)i] = bit_to(8 * i + j) ? char(uint8_t(1 << j)) : 0;
         const T var = from_XE_bitcast<T, false, false>(a_var);
         if (is_begin(var)) {
           if (~range.i) {
