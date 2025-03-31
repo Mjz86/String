@@ -26,7 +26,9 @@ struct wrapped_string_data_t<version_v, props_v>
   sso_cap_v_{props_v.cap()};
   std::array<char, sso_cap_v_> m_stack_buffer_{};
 };
-
+/* 
+* still not optimal , many functions , especially the constructors need optimization for better inlining 
+*/
 template <version_t version_v, wrapped_props_t props_v>
 struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   template <class T>

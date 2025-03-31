@@ -14,7 +14,8 @@ template <str_litteral_t L, version_t vr, bool has_alloc>
 MJZ_CE_FN basic_str_t<vr, has_alloc> operator_str() noexcept
   requires(!std::is_empty_v<basic_str_t<vr, has_alloc>>)
 {
-  return basic_str_t<vr, has_alloc>(operator_view<L, vr>());
+  constexpr auto ret= basic_str_t<vr, has_alloc>(operator_view<L, vr>());
+  return ret;
 };
 /*
  *specialized operator for newest version
@@ -26,7 +27,8 @@ template <str_litteral_t L>
 MJZ_CX_FN basic_str_t<version_V_var_, true> operator""_astr() noexcept
   requires(!std::is_empty_v<basic_str_t<version_V_var_, true>>)
 {
-  basic_str_t<version_V_var_, true> ret{operator_view<L, version_V_var_>()};
+  constexpr basic_str_t<version_V_var_, true> ret{
+      operator_view<L, version_V_var_>()};
   return ret;
 }
 template <char... Cs>
@@ -34,7 +36,8 @@ MJZ_CX_FN basic_str_t<version_V_var_, true> operator""_as_astr() noexcept
   requires(!std::is_empty_v<basic_str_t<version_V_var_, true>>)
 {
   constexpr auto str0 = str_litteral_t{operator""_cs < Cs...>()};
-  basic_str_t<version_V_var_, true> ret{operator_view<str0, version_V_var_>()};
+  constexpr basic_str_t<version_V_var_, true> ret{
+      operator_view<str0, version_V_var_>()};
   return ret;
 }
 /*
@@ -47,7 +50,7 @@ template <str_litteral_t L>
 MJZ_CX_FN basic_str_t<version_V_var_, false> operator""_str() noexcept
   requires(!std::is_empty_v<basic_str_t<version_V_var_, false>>)
 {
-  basic_str_t<version_V_var_, false> ret{operator_view<L, version_V_var_>()};
+ constexpr basic_str_t<version_V_var_, false> ret{operator_view<L, version_V_var_>()};
   return ret;
 }
 template <char... Cs>
@@ -55,7 +58,8 @@ MJZ_CX_FN basic_str_t<version_V_var_, false> operator""_as_astr() noexcept
   requires(!std::is_empty_v<basic_str_t<version_V_var_, false>>)
 {
   constexpr auto str0 = str_litteral_t{operator""_cs < Cs...>()};
-  basic_str_t<version_V_var_, false> ret{operator_view<str0, version_V_var_>()};
+  constexpr basic_str_t<version_V_var_, false> ret{
+      operator_view<str0, version_V_var_>()};
   return ret;
 }
 };  // namespace litteral_ns

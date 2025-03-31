@@ -37,7 +37,7 @@ namespace mjz {
 template <version_t>
 struct hash_bytes_t {
  private:
-  MJZ_CX_FN static uintlen_t load_bytes(
+  MJZ_IL_CX_FN static uintlen_t load_bytes(
       const char *p, uint8_t len = sizeof(uintlen_t)) noexcept {
     asserts(asserts.assume_rn, len <= sizeof(uintlen_t));
     std::array<char, sizeof(uintlen_t)> buf{};
