@@ -353,7 +353,8 @@ amount of templates in it, I made my library with an optional `constexpr`
 friendly pmr-like allocator. The string would be 8 bytes more with it, but
 it's beneficial for some contexts. Everything is `noexcept` in its API, and a
 failure is a simple `nullptr` return. The Allocator object (memory resource
-like) needs to outlive the string object, its copies, and its views.
+like) needs to outlive the string object, its copies, and its views,
+i have a safe way of providing such allocators (  the Allocators are refrence counted, which is opt-out, but the benefit is that if a allocator is destroyed in debug mode,  the assertion ensure that no polymorphic refrences are alive , if not , the debug will crash on assertion,  this is better than a security vulnerability,  but , the reference counting is opt out if the user suspected overhead with doing a reference counted allocator).
 i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested.
 
 # Value Semantics
