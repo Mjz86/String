@@ -18,27 +18,27 @@ class alignas(alignof(flag_t)) bit_mutex_t {
   alignas(alignof(flag_t)) char buffer[sizeof(flag_t)]{};
 
   MJZ_NO_MV_NO_CPY(bit_mutex_t);
-  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline flag_t* just_get() noexcept {
-    return reinterpret_cast<flag_t*>(this);
+  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline flag_t *just_get() noexcept {
+    return reinterpret_cast<flag_t *>(this);
   }
-  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline flag_t* get() noexcept {
+  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline flag_t *get() noexcept {
     return std::launder(just_get());
   }
-  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t* just_get()
+  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t *just_get()
       const noexcept {
-    return reinterpret_cast<const flag_t*>(this);
+    return reinterpret_cast<const flag_t *>(this);
   }
-  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t* get() const noexcept {
+  MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t *get() const noexcept {
     return std::launder(just_get());
   }
-  MJZ_NCX_FN bool test_and_set_m(auto& m) noexcept {
+  MJZ_NCX_FN bool test_and_set_m(auto &m) noexcept {
     if constexpr (uses_atomic_bool) {
       return m.exchange(true, std::memory_order_acquire) != 0;
     } else {
       return m.test_and_set(std::memory_order_acquire);
     }
   }
-  MJZ_NCX_FN void wait_m(auto& m) noexcept {
+  MJZ_NCX_FN void wait_m(auto &m) noexcept {
 #if !MJZ_SPIN_WITH_WAIT_
     return m.wait(true, std::memory_order_acquire);
 #else
@@ -52,7 +52,7 @@ class alignas(alignof(flag_t)) bit_mutex_t {
     return;
 #endif
   }
-  MJZ_NCX_FN void unlock_m(auto& m) noexcept {
+  MJZ_NCX_FN void unlock_m(auto &m) noexcept {
     if constexpr (uses_atomic_bool) {
       m.store(false, std::memory_order_release);
       if (!m.load(std::memory_order_acquire) != 0) MJZ_IS_LIKELY {
@@ -75,7 +75,7 @@ class alignas(alignof(flag_t)) bit_mutex_t {
   success_t try_lock_ncx(const bool need_to_wait,
                          uint64_t timeout_count) noexcept {
     MJZ_IF_CONSTEVAL { return true; }
-    auto& m = *get();
+    auto &m = *get();
     uint64_t i{};
     while (i < timeout_count && test_and_set_m(m)) {
       i++;
@@ -156,7 +156,7 @@ class alignas(alignof(flag_t)) bit_mutex_t {
   MJZ_CX_ND_FN
   explicit operator bool() const noexcept {
     MJZ_IF_CONSTEVAL { return !!buffer[0]; }
-    return [&](auto&& m) noexcept {
+    return [&](auto &&m) noexcept {
       if constexpr (uses_atomic_bool) {
         return m.load(std::memory_order_acquire);
       } else {

@@ -13,11 +13,11 @@ struct stack_alloc_t {
   using alloc_ref = alloc_base_ref_t<version_v>;
   using heap_block_t = block_info;
   using strategy_t = alloc_info;
-  char* buffer;
+  char *buffer;
   uintlen_t size;
   uintlen_t align;
   struct m_t {
-    char* stack_buffer_ptr{};
+    char *stack_buffer_ptr{};
     uintlen_t stack_buffer_align{};
     uintlen_t stack_buffer_len{};
     uintlen_t index_of_last_end{};
@@ -33,22 +33,22 @@ struct stack_alloc_t {
       return lock_details_ns::lock_gaurd_maker<version_v>(
           is_threaded, mutex_byte(), has_lock);
     }
-    MJZ_CX_FN char* mutex_byte() const noexcept
+    MJZ_CX_FN char *mutex_byte() const noexcept
       requires(has_lock)
     {
       return m.stack_buffer_ptr ? m.stack_buffer_ptr + m.stack_buffer_len : 0;
     }
 
-    MJZ_CX_ND_FN friend bool operator==(const obj_t& a,
-                                        const obj_t& b) noexcept = delete;
+    MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
+                                        const obj_t &b) noexcept = delete;
 
    public:
-    MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
-                               strategy_t) const& noexcept {
+    MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
+                               strategy_t) const & noexcept {
       return mjz::memory_has_overlap(blk.ptr, blk.length, m.stack_buffer_ptr,
                                      m.stack_buffer_len);
     }
-    MJZ_CX_ND_FN success_t deallocate(heap_block_t&&, strategy_t) & noexcept {
+    MJZ_CX_ND_FN success_t deallocate(heap_block_t &&, strategy_t) & noexcept {
       return true;
     }
     MJZ_CX_ND_FN heap_block_t allocate(uintlen_t minsize,

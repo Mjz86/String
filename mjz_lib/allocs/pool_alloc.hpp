@@ -18,34 +18,34 @@ struct pool_alloc_info_t {
   MJZ_CONSTANT(auto) pow_of_2 = blk_state::pow_of_2;
   struct this_align_val_t {
     bool right_val{};
-    MJZ_CX_ND_FN this_align_val_t(auto&& var) noexcept {
+    MJZ_CX_ND_FN this_align_val_t(auto &&var) noexcept {
       right_val = (pow_of_2(N - 1) <= uintlen_t(var));
     }
     MJZ_CX_FN operator bool() const noexcept { return right_val; }
   };
   struct m_t {
     blk_state my_block_manager{};
-    char* data_buffer{};
+    char *data_buffer{};
   };
   struct init_temp_blk_state {
     MJZ_NO_MV_NO_CPY(init_temp_blk_state);
-    MJZ_CX_ND_FN init_temp_blk_state(bucket_t& bucket_,
+    MJZ_CX_ND_FN init_temp_blk_state(bucket_t &bucket_,
                                      std::array<m_t, N> array,
                                      uintlen_t i) noexcept
         : bucket(bucket_) {
-      auto& data = bucket.unsafe_get_handle();
+      auto &data = bucket.unsafe_get_handle();
       data.blk_size = pow_of_2(i);
       data.data_buffer = array[i].data_buffer;
       data.log2_align = i;
       data.blk_states = array[i].my_block_manager;
     }
-    bucket_t& bucket;
+    bucket_t &bucket;
     MJZ_CX_FN ~init_temp_blk_state() noexcept {
       bucket.unsafe_get_handle() =
           std::remove_cvref_t<decltype(bucket.unsafe_get_handle())>{};
     }
   };
-  char* data_ptr{};
+  char *data_ptr{};
   uintlen_t byte_count{};
   this_align_val_t this_aligns{};
   struct obj_t {
@@ -54,7 +54,7 @@ struct pool_alloc_info_t {
 
    private:
     template <uintlen_t i>
-    MJZ_CX_FN static auto assume_aligned(char* ptr) noexcept -> char* {
+    MJZ_CX_FN static auto assume_aligned(char *ptr) noexcept -> char * {
       if constexpr (i >= N || i == 0) {
         return ptr;
       } else {
@@ -62,16 +62,16 @@ struct pool_alloc_info_t {
       }
     };
     template <uintlen_t I>
-    MJZ_CX_FN static auto assume_aligned_helper(char* ptr, uintlen_t i) noexcept
-        -> char* {
+    MJZ_CX_FN static auto assume_aligned_helper(char *ptr, uintlen_t i) noexcept
+        -> char * {
       if (i == I || I == 0) {
         return assume_aligned<I>(ptr);
       }
       return assume_aligned_helper<std::max<uintlen_t>(I, 1) - 1>(ptr, i);
     };
 
-    MJZ_CX_FN static auto assume_aligned(char* ptr, uintlen_t i) noexcept
-        -> char* {
+    MJZ_CX_FN static auto assume_aligned(char *ptr, uintlen_t i) noexcept
+        -> char * {
       return assume_aligned_helper<N - 1>(ptr, i);
     };
 
@@ -107,15 +107,15 @@ struct pool_alloc_info_t {
       auto block_counts =
           blk_state::template calculate_block_count_for_each_container<N>(
               a.byte_count);
-      char* usable_data_ptr{a.data_ptr};
-      char* usable_data_ptr_from_end{a.data_ptr + a.byte_count +
+      char *usable_data_ptr{a.data_ptr};
+      char *usable_data_ptr_from_end{a.data_ptr + a.byte_count +
                                      uintlen_t(has_lock)};
       for (uintlen_t i_{}; i_ < N; i_++) {
         uintlen_t i{N - i_ - 1};
         if (!block_counts[i]) continue;
-        auto& data_obj = this->bucket_data_s[i];
+        auto &data_obj = this->bucket_data_s[i];
         data_obj.data_buffer = assume_aligned(usable_data_ptr, i);
-        blk_state& bm = data_obj.my_block_manager;
+        blk_state &bm = data_obj.my_block_manager;
         bm.num_blocks = block_counts[i];
         usable_data_ptr_from_end -= bm.container_metadata_size(block_counts[i]);
         bm.bits_of_block_aliveness_metadata_ptr = usable_data_ptr_from_end;
@@ -133,7 +133,7 @@ struct pool_alloc_info_t {
     friend class mjz_private_accessed_t;
 
    private:
-    MJZ_CX_FN char* mutex_byte() const noexcept
+    MJZ_CX_FN char *mutex_byte() const noexcept
       requires(has_lock)
     {
       return this->bucket_data_s[0].data_buffer
@@ -143,8 +143,8 @@ struct pool_alloc_info_t {
                  : nullptr;
     }
     MJZ_CX_FN success_t
-    run_loop(callable_c<success_t(uintlen_t i) noexcept> auto&& in_the_loop,
-             alloc_info& s, uintlen_t size, bool in_allocate,
+    run_loop(callable_c<success_t(uintlen_t i) noexcept> auto &&in_the_loop,
+             alloc_info &s, uintlen_t size, bool in_allocate,
              bool mut_op) const noexcept {
       bool is_thread_safe = s.is_thread_safe;
       s.is_thread_safe = 0;
@@ -176,11 +176,11 @@ struct pool_alloc_info_t {
     friend class mjz_private_accessed_t;
 
    private:
-    MJZ_CX_ND_FN friend bool operator==(const obj_t& a,
-                                        const obj_t& b) noexcept = delete;
+    MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
+                                        const obj_t &b) noexcept = delete;
 
    public:
-    MJZ_CX_ND_FN bool is_owner(const block_info& blk,
+    MJZ_CX_ND_FN bool is_owner(const block_info &blk,
                                alloc_info s) const noexcept {
       return run_loop(
           [&](uintlen_t i) noexcept {
@@ -194,7 +194,7 @@ struct pool_alloc_info_t {
           s, blk.length, false, false);
     }
 
-    MJZ_CX_ND_FN success_t deallocate(block_info&& blk, alloc_info s) noexcept {
+    MJZ_CX_ND_FN success_t deallocate(block_info &&blk, alloc_info s) noexcept {
       return run_loop(
           [&](uintlen_t i) noexcept {
             bucket_t bucket{bucket_info_t{}};

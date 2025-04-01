@@ -8,7 +8,7 @@ namespace mjz::threads_ns {
 template <typename T>
   requires std::is_trivially_copyable_v<T>
 class cx_atomic_ref_t {
-  T& ref;
+  T &ref;
   MJZ_CONSTANT(bool) mutable_v { !std::is_const_v<T> };
   /*  struct byte_T_t {
     alignas(alignof(T)) char a[sizeof(T)];
@@ -17,10 +17,10 @@ class cx_atomic_ref_t {
   };*/
 
  public:
-  MJZ_CX_FN explicit cx_atomic_ref_t(T& obj) noexcept : ref(obj) {}
+  MJZ_CX_FN explicit cx_atomic_ref_t(T &obj) noexcept : ref(obj) {}
 
-  MJZ_CX_FN cx_atomic_ref_t(const cx_atomic_ref_t&) noexcept = default;
-  MJZ_CX_FN cx_atomic_ref_t& operator=(const cx_atomic_ref_t&) = delete;
+  MJZ_CX_FN cx_atomic_ref_t(const cx_atomic_ref_t &) noexcept = default;
+  MJZ_CX_FN cx_atomic_ref_t &operator=(const cx_atomic_ref_t &) = delete;
   MJZ_CONSTANT(bool) is_always_lock_free = true;
   MJZ_CONSTANT(size_t)
   required_alignment = std::atomic_ref<T>::required_alignment;
@@ -63,7 +63,7 @@ class cx_atomic_ref_t {
   }
 
   MJZ_CX_ND_FN success_t compare_exchange_weak(
-      T& Expected, const T Desired,
+      T &Expected, const T Desired,
       const std::memory_order = std::memory_order::relaxed,
       const std::memory_order = std::memory_order::relaxed) const noexcept
     requires(mutable_v)
@@ -79,7 +79,7 @@ class cx_atomic_ref_t {
   }
 
   MJZ_CX_ND_FN success_t compare_exchange_strong(
-      T& Expected, const T Desired,
+      T &Expected, const T Desired,
       const std::memory_order = std::memory_order::relaxed,
       const std::memory_order = std::memory_order::relaxed) const noexcept
     requires(mutable_v)
@@ -152,11 +152,11 @@ class cx_atomic_ref_t {
   }
   using difference_type = T;
 
-  MJZ_CX_ND_FN auto&& as_normal_() volatile noexcept {
-    return *const_cast<cx_atomic_ref_t*>(this);
+  MJZ_CX_ND_FN auto &&as_normal_() volatile noexcept {
+    return *const_cast<cx_atomic_ref_t *>(this);
   }
-  MJZ_CX_ND_FN auto&& as_normal_() const volatile noexcept {
-    return *const_cast<const cx_atomic_ref_t*>(this);
+  MJZ_CX_ND_FN auto &&as_normal_() const volatile noexcept {
+    return *const_cast<const cx_atomic_ref_t *>(this);
   }
 
   MJZ_CX_FN T fetch_add(const T Operand, const std::memory_order =

@@ -14,7 +14,7 @@ struct bucket_alloc_info_t {
   using alloc_speed = alloc_speed_t<version_v>;
   using alloc_ref = alloc_base_ref_t<version_v>;
   using blk_state = blk_state_t<version_v>;
-  char* ptr{};
+  char *ptr{};
   uintlen_t length{};
   uintlen_t align{};
   uintlen_t blk_size{};
@@ -23,11 +23,11 @@ struct bucket_alloc_info_t {
       blk_state blk_states{};
       uintlen_t blk_size : (sizeof(uintlen_t) * 8 - 6){};
       uintlen_t log2_align : 6 {};
-      char* data_buffer{};
+      char *data_buffer{};
     };
     m_t m{};
     MJZ_NO_MV_NO_CPY(obj_t);
-    MJZ_CX_FN obj_t(alloc_t&& o) noexcept {
+    MJZ_CX_FN obj_t(alloc_t &&o) noexcept {
       if (!o.ptr) {
         return;
       }
@@ -40,7 +40,7 @@ struct bucket_alloc_info_t {
       m.blk_states.bits_of_block_aliveness_metadata_ptr =
           &o.ptr[o.length - num_state_bytes];
       if constexpr (has_lock) {
-        MJZ_UNUSED auto&& mutex_byte =
+        MJZ_UNUSED auto &&mutex_byte =
             *(m.blk_states.bits_of_block_aliveness_metadata_ptr - 1);
         mutex_byte = 0;
       }
@@ -48,17 +48,17 @@ struct bucket_alloc_info_t {
       m.data_buffer = o.ptr;
       m.blk_states.init();
     }
-    MJZ_CX_FN auto&& unsafe_get_handle() noexcept { return m; }
-    MJZ_CX_FN auto&& unsafe_get_handle() const noexcept { return m; }
+    MJZ_CX_FN auto &&unsafe_get_handle() noexcept { return m; }
+    MJZ_CX_FN auto &&unsafe_get_handle() const noexcept { return m; }
 
     template <class>
     friend class mjz_private_accessed_t;
 
    private:
-    MJZ_CX_FN bool operator==(const obj_t& other) const noexcept = delete;
+    MJZ_CX_FN bool operator==(const obj_t &other) const noexcept = delete;
 
    public:
-    MJZ_CX_FN bool is_owner(MJZ_MAYBE_UNUSED const block_info& blk,
+    MJZ_CX_FN bool is_owner(MJZ_MAYBE_UNUSED const block_info &blk,
                             MJZ_MAYBE_UNUSED alloc_info ai) const noexcept {
       auto l = lock_gaurd(ai.is_thread_safe);
       if (!l) return {};
@@ -87,7 +87,7 @@ struct bucket_alloc_info_t {
       MJZ_IF_CONSTEVAL {
         if (!dosnt_need_realign) return {};
       }
-      auto do_the_alloc = [&](auto&& f) noexcept {
+      auto do_the_alloc = [&](auto &&f) noexcept {
         return m.blk_states.alloc_block_range(
             size / m.blk_size + uintlen_t(!!(size % m.blk_size)), is_best_fit,
             f);
@@ -117,7 +117,7 @@ struct bucket_alloc_info_t {
       return block_info{.ptr{&m.data_buffer[range.begin_index * m.blk_size]},
                         .length{range.len * m.blk_size}};
     }
-    MJZ_CX_ND_FN success_t just_deallocate(block_info&& blk, bool len_is_exact,
+    MJZ_CX_ND_FN success_t just_deallocate(block_info &&blk, bool len_is_exact,
                                            bool needs_realignment) noexcept {
       uintptr_t deltaptr = uintptr_t(blk.ptr - m.data_buffer);
       uintptr_t lenptr(blk.length);
@@ -157,7 +157,7 @@ struct bucket_alloc_info_t {
       return ret;
     }
     MJZ_CX_FN
-    success_t deallocate(MJZ_MAYBE_UNUSED block_info&& blk,
+    success_t deallocate(MJZ_MAYBE_UNUSED block_info &&blk,
                          MJZ_MAYBE_UNUSED alloc_info ai) noexcept {
       auto l = lock_gaurd(ai.is_thread_safe);
       if (!l) return {};

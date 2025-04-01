@@ -153,7 +153,7 @@ struct alignas(cache_fast_align_v) alloc_vtable_t {
     using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
     using deallocate = F_t<success_t(block_info &&, alloc_info) noexcept>;
     using add_ref = F_t<success_t(intlen_t) noexcept>;
-    using num_ref = F_t<ref_count() const noexcept>;
+    using num_ref = F_t<ref_count(std::memory_order) const noexcept>;
     using destroy_obj = F_t<success_t() noexcept>;
     using handle =
         F_t<const void_struct_t *(const void_struct_t *) const noexcept>;
@@ -307,7 +307,8 @@ class alloc_base_ref_t {
   MJZ_CX_ND_FN auto has_exclusive_accsess(bool to_destroy) const noexcept
       -> bool {
     if (!this->ref) return false;
-    return num_ref().optional_count <= 1 - uintlen_t(to_destroy);
+    return num_ref(std::memory_order_acquire).optional_count <=
+           1 - uintlen_t(to_destroy);
   }
   MJZ_CX_FN
   bool can_destroy_obj() const noexcept { return has_exclusive_accsess(true); }
@@ -330,9 +331,9 @@ class alloc_base_ref_t {
     return run(get_vtbl().add_ref, -1);
   }
   MJZ_CX_FN
-  ref_count num_ref() const noexcept {
+  ref_count num_ref(std::memory_order mo) const noexcept {
     if (!this->ref || !get_vtbl().num_ref) return {};
-    return run(get_vtbl().num_ref);
+    return run(get_vtbl().num_ref,mo);
   }
 
  public:

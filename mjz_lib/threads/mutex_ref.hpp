@@ -68,12 +68,12 @@ class mutex_ref_t : private atomic_ref_t<T> {
   }
 
  public:
-  MJZ_CX_FN mutex_ref_t(atomic_ref_t<T>&& obj) noexcept
+  MJZ_CX_FN mutex_ref_t(atomic_ref_t<T> &&obj) noexcept
       : atomic_ref_t<T>{std::move(obj)} {};
-  MJZ_CX_FN mutex_ref_t(const mutex_ref_t&) noexcept = default;
-  MJZ_CX_FN mutex_ref_t(mutex_ref_t&&) noexcept = default;
-  MJZ_CX_FN mutex_ref_t& operator=(const mutex_ref_t&) noexcept = delete;
-  MJZ_CX_FN mutex_ref_t& operator=(mutex_ref_t&&) noexcept = delete;
+  MJZ_CX_FN mutex_ref_t(const mutex_ref_t &) noexcept = default;
+  MJZ_CX_FN mutex_ref_t(mutex_ref_t &&) noexcept = default;
+  MJZ_CX_FN mutex_ref_t &operator=(const mutex_ref_t &) noexcept = delete;
+  MJZ_CX_FN mutex_ref_t &operator=(mutex_ref_t &&) noexcept = delete;
   MJZ_CX_FN ~mutex_ref_t() noexcept = default;
 
   MJZ_CX_FN void unlock() noexcept {

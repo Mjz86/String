@@ -707,7 +707,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
       uintlen_t new_cap{sizeof(temp_buf)};
       if (new_cap < new_len) {
         if (rep_flags.no_allocation ||
-            !hm.malloc(rep_flags.new_cap_calc(new_len),
+            !hm.malloc(rep_flags.new_cap_calc(new_len, hm.get_is_threaded()),
                        !rep_flags.allocate_exact) ||
             !hm) {
           choose_failed = true;

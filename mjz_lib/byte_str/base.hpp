@@ -94,7 +94,7 @@ struct replace_flags_t {
         return true;
         break;
       case e::always_ownerize_off:
-        return  false;
+        return false;
         break;
     }
     return old_flag;
@@ -218,22 +218,24 @@ struct replace_flags_t {
            could_change_threaded(already_has_alloc);
   }
 
-  MJZ_CX_FN uintlen_t new_cap_calc( uintlen_t mincap) const noexcept {
+  MJZ_CX_FN uintlen_t new_cap_calc(uintlen_t mincap,bool is_thread_safe) const noexcept {
     mincap += uintlen_t(!dont_add_null);
+    if (allocate_exact) return mincap;
     uintlen_t cap{mincap};
-
+    uintlen_t overhead{
+        std::max(is_thread_safe ? hardware_destructive_interference_size : 0,
+                 sizeof(uintlen_t))};
+    cap += overhead;
     if (exponential_rounded) {
       cap = uintlen_t(1) << log2_ceil_of_val_create(cap);
-      cap -= sizeof(uintlen_t);
     } else if (exponential_resize) {
       cap <<= 1;
-      cap -= sizeof(uintlen_t);
     }
+    cap -= overhead;
+
     if (!exponential_resize) {
       cap = prefer_new_cap;
     }
-    if (allocate_exact) cap = mincap;
-
     return std::max(cap, mincap);
   }
 };

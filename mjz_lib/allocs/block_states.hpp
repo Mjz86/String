@@ -5,7 +5,7 @@
 namespace mjz ::allocs_ns {
 template <version_t version_v>
 struct blk_state_t {
-  char* bits_of_block_aliveness_metadata_ptr{};
+  char *bits_of_block_aliveness_metadata_ptr{};
   uintlen_t num_blocks{};
   struct block_range_t {
     uintlen_t begin_index{};
@@ -19,8 +19,8 @@ struct blk_state_t {
   MJZ_CX_FN
   block_range_t get_best_avalible_block_range(
       bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto&&
-          is_a_good_alignment,
+      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
+          &&is_a_good_alignment,
       uintlen_t min_number_of_blocks) const noexcept {
     block_range_t last_good_range{get_first_avalible_block_range(
         is_best_fit, is_a_good_alignment, min_number_of_blocks, 0)};
@@ -44,12 +44,12 @@ struct blk_state_t {
   MJZ_CX_FN
   block_range_t get_first_avalible_block_range(
       bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto&&
-          is_a_good_alignment,
+      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
+          &&is_a_good_alignment,
       uintlen_t min_number_of_blocks,
       const uintlen_t search_begin_index = 0) const noexcept {
     uintlen_t index = search_begin_index;
-    const char* bits_begin = bits_of_block_aliveness_metadata_ptr;
+    const char *bits_begin = bits_of_block_aliveness_metadata_ptr;
     auto align_the_block_at_index = [&]() noexcept {
       for (; index < num_blocks && !is_a_good_alignment(index); index++);
       ;
@@ -124,12 +124,12 @@ struct blk_state_t {
   MJZ_CX_FN
   block_range_t set_block_range_bits(const block_range_t range,
                                      bool val) noexcept {
-    char* bits_begin = bits_of_block_aliveness_metadata_ptr;
+    char *bits_begin = bits_of_block_aliveness_metadata_ptr;
     uintlen_t index{range.begin_index};
     uintlen_t end_index{range.begin_index + range.len};
 
     for (; index < end_index; index++) {
-      auto& byte = bits_begin[index / 8];
+      auto &byte = bits_begin[index / 8];
       const auto mask = char(1 << (index % 8));
       byte &= ~mask;
       byte |= val ? mask : 0;
@@ -153,8 +153,8 @@ struct blk_state_t {
   MJZ_CX_ND_FN
   block_range_t alloc_block_range(
       uintlen_t min_num_blocks, uintlen_t max_mum_blocks, bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto&&
-          is_a_good_alignment) noexcept {
+      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
+          &&is_a_good_alignment) noexcept {
     if (min_num_blocks > max_mum_blocks) {
       return {};
     }
@@ -169,8 +169,8 @@ struct blk_state_t {
   MJZ_CX_ND_FN
   block_range_t alloc_block_range(
       uintlen_t exact_num_blocks, bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto&&
-          is_a_good_alignment) noexcept {
+      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
+          &&is_a_good_alignment) noexcept {
     return alloc_block_range(exact_num_blocks, exact_num_blocks, is_best_fit,
                              is_a_good_alignment);
   }
@@ -232,7 +232,7 @@ struct blk_state_t {
     auto do_with_bad_base_vals = [&]() noexcept {
       for (uintlen_t i{}; i < Number_of_containers; i++) {
         uintlen_t real_index{Number_of_containers - i - one};
-        auto& obj = ret[real_index];
+        auto &obj = ret[real_index];
         obj = base_value;
         uintlen_t extract_val_of_remainder{};
         do {
@@ -301,7 +301,7 @@ struct blk_state_t {
         : index(index_),
           score(score_of_allocation<pow_of_2(Number_of_containers)>(
               size_, pow_of_2(index))) {}
-    MJZ_CX_FN auto operator<=>(const scored_index_t& b) const noexcept {
+    MJZ_CX_FN auto operator<=>(const scored_index_t &b) const noexcept {
       return score <=> b.score;
     }
   };

@@ -144,23 +144,31 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
                                         alloc_info ai) noexcept {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
-  MJZ_NCX_FN static success_t add_ref(alloc_base *This,
+  MJZ_CX_FN static success_t add_ref(alloc_base *This,
                                      intlen_t delta) noexcept {
     threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
     delta *= 2;
-    asserts(asserts.condition_rn, delta > 0 || uintlen_t(-delta) <= rc,
-            "the ref count cant be negetive!");
+    if constexpr (MJZ_IN_DEBUG_MODE) {
+      asserts(
+          asserts.condition_rn,
+          delta > 0 || uintlen_t(-delta) <= rc.load(std::memory_order_relaxed),
+          "the ref count cant be negetive!");
+    }
     // negative makes it overflow , but with the correct result.
-    rc += uintlen_t(delta);
+    rc.fetch_add(uintlen_t(delta), 0 < uintlen_t(delta)
+                                       ? std::memory_order_acquire
+                                       : std::memory_order_release);
 
     return true;
   }
-  MJZ_NCX_FN static ref_count num_ref(const alloc_base *This) noexcept {
+  MJZ_CX_FN static ref_count num_ref(const alloc_base *This,
+                                     std::memory_order mo) noexcept {
     return ref_count(
         threads_ns::atomic_ref_t<const uintlen_t>(As(This).reference_count)
-            .load() /
+            .load(mo) /
         2);
   }
+
 
   template <class>
   friend class mjz_private_accessed_t;
@@ -170,20 +178,23 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
       typename alloc_base_ref_t<version_v>::template block_info_ot<pmr_alloc>;
 
  public:
-  MJZ_NCX_FN static success_t destroy_obj(alloc_base *This) noexcept {
+  MJZ_CX_FN static success_t destroy_obj(alloc_base *This) noexcept {
     threads_ns::atomic_ref_t<uintlen_t> rc(As(This).reference_count);
-    asserts(asserts.condition_rn, rc < 2,
-            "the ref count must be zero to destroy the allocator!, this ref "
-            "must be uniqe!");
-    if (rc == 1) {
-      rc = 0;
-      std::destroy_at(This);
 
+    if constexpr (MJZ_IN_DEBUG_MODE) {
+      asserts(asserts.condition_rn, rc.load(std::memory_order_relaxed) < 2,
+              "the ref count must be zero to destroy the allocator!, this ref "
+              "must be uniqe!");
+    }
+    if (rc.load(std::memory_order_relaxed) == 1) {
+      rc.store(0, std::memory_order_relaxed);
+      std::destroy_at(This);
       std::pmr::polymorphic_allocator<char> upstream = As(This).undelying;
       MJZ_NOEXCEPT { upstream.deallocate_object(std::addressof(As(This)), 1); };
     }
     return true;
   }
+
 
   template <class>
   friend class mjz_private_accessed_t;
