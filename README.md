@@ -266,7 +266,8 @@ chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
 
-# what is the type of the owner? ( standard and custom string compatibility outside of the mjz library)( next experimental release)( another wrapper):
+# what is the type of the owner? 
+### ( standard and custom string compatibility outside of the mjz library)( next experimental release)( another wrapper):
  * this feature is  currently not implemented, but after the implementation,  this should be a safe to use feature. 
  
    a wrapper  of our string type and another string type as a compatibility layer can be made.
