@@ -301,11 +301,13 @@ range without memmove in many cases if we want to.
 
   when the `is_threaded` flag is true , we act as if the  buffer is "padded" with `(std::hardware_destructive_interference_size-sizeof(size_t))`bytes at the beginning. 
   
-  the alignment requirement of the allocator also goes up to 64bytes.
+  the alignment requirement of the allocated data char array also goes up to 64bytes.
 
-  his does increase overhead to about 64bytes per heap string with threading enabled, but the benefit would be that the string data itself is not in the same cache line as the reference count ,
+  this does increase overhead to about 64bytes per heap string with threading enabled, but the benefit would be that the string data itself is not in the same cache line as the reference count ,
+  
+ by doing this we ensure that the constant shared data stored in the string , is never affected by the reference count modifications that take place on that string.
 
-  this is especially important when each string is a leaf of the rope , because the rope is often read concurrently and the substring sharing  is very important in the ropes design. 
+his is especially important when each string is a leaf of the rope , because the rope is often read concurrently and the substring sharing  is very important in the ropes design. 
 
  sadly because of layout compatability,  the ownerized_string is also going to have the 64byte overhead in the thread-safe case , even tho its not necessary.
  
