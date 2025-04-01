@@ -266,6 +266,24 @@ chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
 
+# what is the type of the owner? ( standard and custom string compatibility outside of the mjz library)( next experimental release)( another wrapper):
+ * this feature is  currently not implemented, but after the implementation,  this should be a safe to use feature. 
+ 
+   a wrapper  of our string type and another string type as a compatibility layer can be made.
+   this is how it  works:
+   the external string type acts as a storage mechanism, 
+   the main string is stored alongside the external one .
+   the data buffer of the external string is used with the "stack" buffer feature, 
+   the external string only manages the buffer lifetime.
+   the main string provides compatible api with the library, while in actuality, 
+   the data was stored in another string type all along .
+   when the external string is needed, 
+   the string is shifted and the length is reduced( if necessary,  because of how we use a subrange of the data , we need to  make the subrange subrange the actual range again),
+   then the external string is provided. 
+   ( actually,  the `implace_string` is kinda just this , but with a standard array) 
+
+
+
 # tunable sso , no code bloat, no big types:
 
 - this will be provided with the name (`implace_string`) .
@@ -299,7 +317,7 @@ range without memmove in many cases if we want to.
 
 ## false sharing in rope consideration ( in the next experimental release )( more of a note):
 
-  when the `is_threaded` flag is true , we act as if the  buffer is "padded" with `(std::hardware_destructive_interference_size-sizeof(size_t))`bytes at the beginning. 
+  when the `is_threaded` flag is true , we make the   buffer padded with `(std::hardware_destructive_interference_size-sizeof(size_t))=56`bytes at the beginning. ( the address of the  `heap_buffer` member is aligned to 64bits )
   
   the alignment requirement of the allocated data char array also goes up to 64bytes.
 
@@ -307,9 +325,9 @@ range without memmove in many cases if we want to.
   
  by doing this we ensure that the constant shared data stored in the string , is never affected by the reference count modifications that take place on that string.
 
-his is especially important when each string is a leaf of the rope , because the rope is often read concurrently and the substring sharing  is very important in the ropes design. 
+ this is especially important when each string is a leaf of the rope , because the rope is often read concurrently and the substring sharing  is very important in the ropes design. 
 
- sadly because of layout compatability,  the ownerized_string is also going to have the 64byte overhead in the thread-safe case , even tho its not necessary.
+ sadly because of layout compatability requirements,  the ownerized_string is also going to have the 64byte overhead in the thread-safe case , even tho its not technically necessary, the need for very efficient convention from owerized to main mandates this.
  
  the thread-safety option would be the default,  but considering that almost all the strings are at least max(16,N) (N of tunable sso) bytes when in heap ,
  and that the heap size exponentially grows , in normal standard strings and vectors ,
@@ -318,7 +336,8 @@ his is especially important when each string is a leaf of the rope , because the
  also , i should revisit the atomic operations and reduce  most of their memory orderings to release,  acquire or relaxed,  because of the penalties of unnecessary  memory barriers. 
 
  
-# Small String Optimization
+# Small String Optimization 
+ * technicality,  tunable sso is the stack buffer optimization , but both of them have the same outcome, so they have the same name in this documentation. 
 
 The 15 bytes of SSO capacity allows us to not allocate anything for small
 strings.
