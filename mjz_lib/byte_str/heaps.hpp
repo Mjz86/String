@@ -193,7 +193,9 @@ class str_heap_manager_t {
     if (!*this) return false;
     asserts(asserts.assume_rn, !m.is_owenrized);
     temp_layout_t{m}.perform_ref(
-        [](auto &ref) noexcept { ref.fetch_and(1, std::memory_order_acquire); },
+        [](auto &ref) noexcept {
+        ref.fetch_add(1, std::memory_order_acquire); 
+    },
                                  [](auto &ref) noexcept { ++ref; });
     return true;
   }
