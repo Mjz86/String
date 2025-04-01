@@ -297,6 +297,25 @@ We also have 3 mods of the first position alignment of the range:
 After that, the position may change, but we could append and prepend to the
 range without memmove in many cases if we want to.
 
+## false sharing in rope consideration ( in the next experimental release )( more of a note):
+
+  when the `is_threaded` flag is true , we act as if the  buffer is "padded" with `(std::hardware_destructive_interference_size-sizeof(size_t))`bytes at the beginning. 
+  
+  the alignment requirement of the allocator also goes up to 64bytes.
+
+  his does increase overhead to about 64bytes per heap string with threading enabled, but the benefit would be that the string data itself is not in the same cache line as the reference count ,
+
+  this is especially important when each string is a leaf of the rope , because the rope is often read concurrently and the substring sharing  is very important in the ropes design. 
+
+ sadly because of layout compatability,  the ownerized_string is also going to have the 64byte overhead in the thread-safe case , even tho its not necessary.
+ 
+ the thread-safety option would be the default,  but considering that almost all the strings are at least max(16,N) (N of tunable sso) bytes when in heap ,
+ and that the heap size exponentially grows , in normal standard strings and vectors ,
+ i dont see why 64bytes is bad , especially considering the amout of subtle false sharing it reduces in the rope ( which is a crucial factor in the library,  because the rope performance is very important).
+ 
+ also , i should revisit the atomic operations and reduce  most of their memory orderings to release,  acquire or relaxed,  because of the penalties of unnecessary  memory barriers. 
+
+ 
 # Small String Optimization
 
 The 15 bytes of SSO capacity allows us to not allocate anything for small
@@ -500,6 +519,13 @@ You may give feedback in:
   [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
 - Learn about the cache:
   [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
+- CppCon 2016： Timur Doumler “Want fast C++？ Know your hardware!＂:
+  [https://www.youtube.com/watch?v=BP6NxVxDQIs](https://www.youtube.com/watch?v=BP6NxVxDQIs)
+- what does  atomic do to the cache | CppCon 2017： Fedor Pikus “C++ atomics, from basic to advanced.  What do they really do？” :
+  [https://www.youtube.com/watch?v=ZQFzMfHIxng](https://www.youtube.com/watch?v=ZQFzMfHIxng)
+-  about branch prediction, multiple die systems ,false sharing | Unlocking Modern CPU Power - Next-Gen C++ Optimization Techniques - Fedor G Pikus - C++Now 2024 :
+  [https://www.youtube.com/watch?v=wGSSUSeaLgA](https://www.youtube.com/watch?v=wGSSUSeaLgA)
+
 - String view usage:
   [https://www.youtube.com/watch?v=PEvkBmuMIr8](https://www.youtube.com/watch?v=PEvkBmuMIr8)
 - `std::basic_string`:
