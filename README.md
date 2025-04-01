@@ -316,7 +316,7 @@ We also have 3 mods of the first position alignment of the range:
 After that, the position may change, but we could append and prepend to the
 range without memmove in many cases if we want to.
 
-## false sharing in rope consideration ( in the next experimental release )( more of a note):
+# false sharing consideration :
 
   when the `is_threaded` flag is true , we make the   buffer padded with `(std::hardware_destructive_interference_size-sizeof(size_t))=56`bytes at the beginning. ( the address of the  `heap_buffer` member is aligned to 64bits )
   
@@ -334,7 +334,6 @@ range without memmove in many cases if we want to.
  and that the heap size exponentially grows , in normal standard strings and vectors ,
  i dont see why 64bytes is bad , especially considering the amout of subtle false sharing it reduces in the rope ( which is a crucial factor in the library,  because the rope performance is very important).
  
- also , i should revisit the atomic operations and reduce  most of their memory orderings to release,  acquire or relaxed,  because of the penalties of unnecessary  memory barriers. 
 
  
 # Small String Optimization 
