@@ -67,6 +67,10 @@ struct basic_str_t : void_struct_t {
                                           bool no_allocate,
                                           uintlen_t offset = 0,
                                           uintlen_t count = nops) noexcept;
+
+  MJZ_CX_ND_FN success_t copy_assign_data_fast(const basic_str_t &str,
+                                               uintlen_t offset_valid ,
+                                               uintlen_t count_valid) noexcept;
   MJZ_CX_ND_FN success_t reset(cheap_str_info &info) noexcept;
   MJZ_CX_ND_FN success_t total_reset(bool keep_flags) noexcept;
   MJZ_CX_ND_FN success_t move_init(basic_str_t &&str) noexcept;

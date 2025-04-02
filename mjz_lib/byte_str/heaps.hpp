@@ -208,7 +208,7 @@ class str_heap_manager_t {
       return var->reference_count < 2;
     }
     refcr_t ref_count{var->reference_count};
-    return (ref_count) < 2;
+    return (ref_count).load(std::memory_order_acquire) < 2;
   }
   MJZ_CX_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
     if (!*this) return false;

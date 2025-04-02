@@ -240,16 +240,45 @@ MJZ_CX_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
   m.d_set_cntrl(my_details::encodings_bits, encodings_e::err_ascii);
 }
 template <version_t version_v, bool has_alloc_v_>
+MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data_fast(
+    const basic_str_t &str, uintlen_t offset, uintlen_t count) noexcept {
+  auto set_fast_to_dest = [&]() noexcept {
+    m.d_set_cntrl(
+        my_details::encodings_bits,
+        str.m.template d_get_cntrl<encodings_e>(my_details::encodings_bits));
+    m.d_set_cntrl(my_details::as_not_threaded_bit, !str.get_threaded());
+    auto *p = m.get_alloc_ptr();
+    if (p) *p = str.get_alloc();
+  };
+  if (count <= m.mut_data.sso_cap) {
+    asserts(asserts.assume_rn, total_reset(true));
+    m.construct_sso_from_invalid(str.data() + offset, count, false);
+    set_fast_to_dest();
+    return true;
+  }
+  if (is_stacked() && count <= m.get_capacity()) {
+    m.length = count;
+    uintlen_t delta_count =
+        replace_flags{}.buffer_offset(m.get_capacity(), count);
+    m.begin = &m.buffer_location_ptr()[delta_count];
+    memcpy(m.mut_begin(), str.data() + offset, count);
+    set_fast_to_dest();
+    return true;
+  }
+  return false;
+}
+template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data(
     const basic_str_t &str, bool no_allocate, uintlen_t offset,
     uintlen_t count) noexcept {
   if (&str == this) return as_substring(offset, count);
   /* this is early check becacuse replace_data is probably not inline*/
+  std::ignore = str.make_right_then_give_has_null(offset, count);
+  if (copy_assign_data_fast(str, offset, count)) return true;
   if (no_allocate && m.mut_data.sso_cap < str.length() &&
       (m.get_capacity() < str.length() || !m.is_owner())) {
     return false;
   }
-  std::ignore = str.make_right_then_give_has_null(offset, count);
   if (!(replace_data_with_char(
             0, nops, count, nullopt, str.get_alloc(),
             replace_flags{
