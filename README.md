@@ -477,6 +477,15 @@ so , mutable iteration is not a problem for me at all, in my opinion.
 my formatting library should also support ropes in a efficient way when they are implemented  
 ( every section would be like rope sections, and if it get it right, the formatting library would have a copyless output to the rope ( generators and cow sharing ) in cases where its doable )
 
+# my implementation: 
+ the implementation of this paper is found in the papers repository,
+ my implementation is a demonstration of this paper , 
+ im sure the functions could be more performant ,
+ if you think there are ways to improve performance, readability or other things ,
+ you may do a pull request or issue on that part,
+ or you may put this paper as a reference and implement your own string with this layout or design.
+ the license is an open source mit license , so this is more of a reminder. 
+
 # where would you place this:
 
 - mutable owner:
