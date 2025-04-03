@@ -3,8 +3,7 @@
 #include "../versions.hpp"
 #if MJZ_LOG_NEW_ALLOCATIONS_
 #include "../outputs.hpp"
-#endif
-
+#endif 
 #include <new>
 #ifndef MJZ_ALLOCS_alloc_refs_FILE_HPP_
 #define MJZ_ALLOCS_alloc_refs_FILE_HPP_
@@ -373,7 +372,7 @@ class alloc_base_ref_t {
       void *ptr = ::operator new((size_t)size, align_val, std::nothrow);
       MJZ_RELEASE {
         if (!ptr) return;
-        ::operator delete(ptr, align_val, std::nothrow);
+        ::operator delete(ptr, size, align_val);
       };
 #if MJZ_LOG_NEW_ALLOCATIONS_
       mjz_debug_cout::println("[new:", size, "]");
@@ -391,7 +390,7 @@ class alloc_base_ref_t {
       return run(get_vtbl().deallocate, std::move(blk), ai);
     MJZ_IFN_CONSTEVAL {
       MJZ_RELEASE {
-        ::operator delete(blk.ptr, ai.get_alignof(), std::nothrow);
+        ::operator delete(blk.ptr,blk.length, ai.get_alignof());
       };
 #if MJZ_LOG_NEW_ALLOCATIONS_
       mjz_debug_cout::println("[delete:", blk.length, "]");
