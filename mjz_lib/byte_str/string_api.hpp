@@ -34,7 +34,7 @@ struct basic_str_t : void_struct_t {
   using difference_type = intlen_t;
 
   using back_insert_iterator_t = base_out_it_t<version_v>;
-
+  using basic_str_t_indentity_t_=basic_str_t;
  private:
   using replace_flags = replace_flags_t<version_v>;
   using static_string_view = static_string_view_t<version_v>;

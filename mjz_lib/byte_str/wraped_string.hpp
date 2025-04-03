@@ -661,8 +661,6 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   MJZ_CX_ND_FN decltype(auto) front() noexcept { return at(0); }
   MJZ_CX_ND_FN decltype(auto) back() noexcept { return at(length() - 1); }
 
-  MJZ_CX_FN void swap(str_t &o) noexcept;
-
   MJZ_CX_ND_FN std::optional<intlen_t> compare(
       const str_t &rhs) const noexcept {
     return get().compare(rhs);

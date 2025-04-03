@@ -1251,11 +1251,21 @@ basic_str_t<version_v, has_alloc_v_>::operator_add(
       "basic_str_t<version_v, has_alloc_v_>lhs):couldn't concatinate string!");
   return rhs;
 }
-template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN basic_str_t<version_v, has_alloc_v_> operator+(
-    basic_str_t<version_v, has_alloc_v_> rhs,
-    basic_str_t<version_v, has_alloc_v_> lhs) noexcept {
-  return basic_str_t<version_v, has_alloc_v_>::operator_add(rhs, lhs);
+template <class T>
+concept basic_str_t_has_indentity_c_ =
+    requires() { typename std::remove_cvref_t<T>::basic_str_t_indentity_t_; };
+
+template <class T>
+using basic_str_t_indentity_t_helper_=typename std::remove_cvref_t<T>::basic_str_t_indentity_t_;
+
+template <basic_str_t_has_indentity_c_ RHS_t,
+          basic_str_t_has_indentity_c_ LHS_t>
+  requires std::same_as<basic_str_t_indentity_t_helper_<RHS_t>,
+                        basic_str_t_indentity_t_helper_<LHS_t>>
+MJZ_CX_FN auto operator+(RHS_t &&rhs_, LHS_t &&lhs_) noexcept {
+  using self_t =basic_str_t_indentity_t_helper_<RHS_t>; 
+  self_t rhs{std::forward<RHS_t>(rhs_)}, lhs{std::forward<LHS_t>(lhs_)};
+  return self_t::operator_add(rhs, lhs);
 }
 
 template <version_t version_v, bool has_alloc_v_>
