@@ -173,6 +173,21 @@ The string ensures to use atomic operations if `is_threaded` is true. For a
 brief summary, the thread-safety grantees are similar to a `shared_ptr` of a
 `std::string` if the flag is true.
 
+if thread-safety is turned off manually( advanced users) , 
+then :
+the string object,  its (non-safe) copies and its moves and views , must all begin and end their lifetime in a single thread with the exact same id.
+the Allocators must support at least 8 byte alignment ( selected via flag) 
+
+if thread-safety is on ( default):
+the Allocator must support thread-safe allocation mode ( selected via the  custom Allocator api flags) ,
+the Allocators must support at least 64 byte alignment ( selected via flag).
+
+
+
+
+
+
+
 # Constexpr Compatibility
 
 The `reference_count` variable is stored as 8 bytes and is bitcasted (no
@@ -250,6 +265,27 @@ other stuff. Also, there are some functions that are not const
 (`remove_suffix` or `prefix`, `as_substring`) that only address the SSO part
 and treat the other parts as views; these don't even need to know about COW nor
 ownership.
+
+# why not 31byte sso ?
+
+* like how clang and fbstring use sso sizes that almost match the object size , such as 22 or 23byte sso for 24byte clang string,  and 22 or 23 bytes for fbstring. 
+* gcc and msvc are different,  and both have smaller sso compared to object size, for example 15 or 16bytes in gcc with 32bytes per string object. 
+
+first of all , that was my 3rd out of 5 old designs.
+for these reasons:
+excessive branching for the const view paths.
+when the length , begin ,and encoding are not easily accessible in a branchless way , 
+many functions suddenly become worse , 
+the inlining of code becomes harder , 
+and the code becomes really hard to write without geter seter function calls everywhere.
+the constant checking of  sso vs the non-sso case becomes exhausting. 
+while the object size can be the same 32 bytes,  the code size may increase a lot , and the performance hit may be more noticeable. 
+
+while 64 byte object for the tunable sso size of  31 is not ideal, 
+its a compromise between  being very packed,
+or easier to write and execute. 
+
+
 
 # Built-In Stack Buffer Optimization (Advanced Users Only)
 
@@ -334,9 +370,32 @@ range without memmove in many cases if we want to.
  and that the heap size exponentially grows , in normal standard strings and vectors ,
  i dont see why 64bytes is bad , especially considering the amout of subtle false sharing it reduces in the rope ( which is a crucial factor in the library,  because the rope performance is very important).
  
-
+ ###  fbstring-like cow size threshold ( next experimental release):
+  from the multithread benchmarks for medium heap strings ( not large ones ) ,  the Allocators performed faster than incrementing the reference count.
+  
+ in my test  the increment copy varies from  10ns ( in no threads) to  1500ns ( in 100 threads) per operation, ( you can measure yourself,  or see the Facebook's fbstring's reasons, which  is similar in this regard).
  
-# Small String Optimization 
+ but the copy was consistent from 50ns to 200ns in the standard string.
+ 
+ so for strings smaller than `4*std::hardware_destructive_interference_size=64*4=512 `  , 
+the reference count block is dropped,  and the block is copied  ( note that `is_sharable` is true  , but  in the next relese the  `can_share()=is_sharable&&(!is_threaded||512 < cap)` function would be used , and the documentation will be updated to reflect that).
+
+ this is not a change in the O(1) ness of cow copy , because thenon cow case has a limit. 
+ 
+ this does mean more fragmentation,  so , this is only for the thread-safe version because of obvious reasons.
+ the non thread safe version doesn't need to do this , it had no contention to begin with,  it had minimal fragmentation. 
+ this encourages strings with less than 512 capacity to not waste  1/4  of the space for nothing but a number who makes things slower. 
+ while also making big chucks of data that are expensive to allocate lower.
+ 
+ this makes users who need performance think about if thread-safety safe is necessary for them or not ,
+ because as it seems,  thread-safety grantees are not necessary for many strings ,
+ but keep in mind that they have different layouts and that their allocation strategy may be different ( my pmr Allocators  take thread safety and many other handy flags as arguments,  these should be yhe same arguments passed to the deallocate,  but the user doesn't need to worry about these).
+ for example the allocator may do something completely different if it knows it is only working on the same thread ( thread local arena).
+ but thats not the focus of the string implementation, its a costumization api nonetheless. 
+    
+ 
+ 
+ Small String Optimization 
  * technicality,  tunable sso is the stack buffer optimization , but both of them have the same outcome, so they have the same name in this documentation. 
 
 The 15 bytes of SSO capacity allows us to not allocate anything for small
