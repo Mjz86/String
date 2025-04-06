@@ -456,6 +456,18 @@ like) needs to outlive the string object, its copies, and its views,
 i have a safe way of providing such allocators (  the Allocators are refrence counted, which is opt-out, but the benefit is that if a allocator is destroyed in debug mode,  the assertion ensure that no polymorphic refrences are alive , if not , the debug will crash on assertion,  this is better than a security vulnerability,  but , the reference counting is opt out if the user suspected overhead with doing a reference counted allocator).
 i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested.
 
+## why not the standard allocator? 
+ reasons for my polymorphic allocator design,  that gives almost all control of heap management to the implementation of the allocator:
+1. no constexpr support .
+2. cannot tell the Allocator to allocate more than needed, ( the exact size is usually rounded,  but the delta is wasted).
+3. cannot grantee thread-safety. 
+4. has no notion of owning a block ( chained allocators are very hard).
+5. has no idea of the property of the allocated block ( we cant fail fast , we cant say that this is a common size of our nodes , we cant say that we can afford more time for less fragmentation,  ect...).
+7. no alignment requirement for `char`.
+8. is a template pram,  the types are always different, so much workaround for nonexistent problems ( a memory resource handle throwing exception on move or copy ) .
+9. the Allocator type ( template pram) has unpredictable size.
+10. compiler cannot Optimize  try and catch away, because they rely on the stack unwinder , but nullptr checks are easy. 
+
 # Value Semantics
 
 The string is a value type. In my library, all of the move and copy functions
@@ -600,6 +612,8 @@ You may give feedback in:
 [https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
 **References and Inspirations:**
+- CppCon 2015： Andrei Alexandrescu “std：：allocator...” :
+ [https://www.youtube.com/watch?v=LIb3L4vKZ7U](https://www.youtube.com/watch?v=LIb3L4vKZ7U)
 - CppCon 2017： John Lakos “Local ('Arena') Memory Allocators (part 1&2 of 2)” :
  [https://www.youtube.com/watch?v=nZNd5FjSquk](https://www.youtube.com/watch?v=nZNd5FjSquk)
  [https://www.youtube.com/watch?v=CFzuFNSpycI](https://www.youtube.com/watch?v=CFzuFNSpycI)
