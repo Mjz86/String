@@ -377,14 +377,14 @@ range without memmove in many cases if we want to.
  
  but the copy was consistent from 50ns to 200ns in the standard string.
  
- so for strings smaller than `4*std::hardware_destructive_interference_size=64*4=512 `  , 
-the reference count block is dropped,  and the block is copied  ( note that `is_sharable` is true  , but  in the next relese the  `can_share()=is_sharable&&(!is_threaded||512 < cap)` function would be used , and the documentation will be updated to reflect that).
+ so for strings smaller than `4*std::hardware_destructive_interference_size=64*4=256 `  , 
+the reference count block is dropped,  and the block is copied  ( note that `is_sharable` is true  , but  in the next relese the  `can_share()=is_sharable&&(!is_threaded||256 < cap)` function would be used , and the documentation will be updated to reflect that).
 
  this is not a change in the O(1) ness of cow copy , because thenon cow case has a limit. 
  
  this does mean more fragmentation,  so , this is only for the thread-safe version because of obvious reasons.
  the non thread safe version doesn't need to do this , it had no contention to begin with,  it had minimal fragmentation. 
- this encourages strings with less than 512 capacity to not waste  1/4  of the space for nothing but a number who makes things slower. 
+ this encourages strings with less than 256 capacity to not waste  1/4  of the space for nothing but a number who makes things slower. 
  while also making big chucks of data that are expensive to allocate lower.
  
  this makes users who need performance think about if thread-safety safe is necessary for them or not ,
