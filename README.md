@@ -1,3 +1,4 @@
+
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -457,8 +458,11 @@ i have a safe way of providing such allocators (  the Allocators are refrence co
 i have both constexpr friendly memory resources , and a standard pmr adaptor if anyone is interested.
 
 ## why not the standard allocator? 
- reasons for my polymorphic allocator design,  that gives almost all control of heap management to the implementation of the allocator:
-1. no constexpr support .
+
+the string class in integrated  with my highly customizable allocator module that allows very precise content over the heap.
+
+ reasons for my polymorphic allocator design,  that gives almost all control of heap management to the implementation of the allocator( the criticism of the standard allocator) :
+1. no constexpr support for pmr .
 2. cannot tell the Allocator to allocate more than needed, ( the exact size is usually rounded,  but the delta is wasted).
 3. cannot grantee thread-safety. 
 4. has no notion of owning a block ( chained allocators are very hard).
@@ -467,6 +471,8 @@ i have both constexpr friendly memory resources , and a standard pmr adaptor if 
 8. is a template pram,  the types are always different, so much workaround for nonexistent problems ( a memory resource handle throwing exception on move or copy ) .
 9. the Allocator type ( template pram) has unpredictable size.
 10. compiler cannot Optimize  try and catch away, because they rely on the stack unwinder , but nullptr checks are easy. 
+
+*  all of the above are not present in my allocator.
 
 # Value Semantics
 
