@@ -395,7 +395,7 @@ the reference count block is dropped,  and the block is copied  ( note that `is_
     
  
  
- Small String Optimization 
+# Small String Optimization 
  * technicality,  tunable sso is the stack buffer optimization , but both of them have the same outcome, so they have the same name in this documentation. 
 
 The 15 bytes of SSO capacity allows us to not allocate anything for small
