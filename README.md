@@ -52,7 +52,7 @@ uint8_t  /*the negation of this is actually stored*/is_threaded:1;
  // to always disable cow and viewer for a specific string ,
  // to remove the reference_count checks,
  //controled  with  always_ownerize(bool flag_state),
- //  (is_sharable&&!is_ownerized) determines sharability
+ //  (can_share()&&!is_ownerized) determines sharability
  // both of these flags are essential and they do not correlate.
 
   uint8_t has_null:1;// needed to share substrings
@@ -218,7 +218,7 @@ this has the `c_str` function.
 
 The built-in string viewer and shared substrings: the string is accessed via
 the begin and length pair, they provide the minimal functionality of a string
-viewer. A substring function may share the underlying data if and only if `!is_ownerized&&is_sharable`.
+viewer. A substring function may share the underlying data if and only if `!is_ownerized&&can_share()`.
 
 # Mutable Strings
 
@@ -331,7 +331,7 @@ implementation) may need it, so it's there.
   this wouldn't need lifetime knowledge, so it would be for intermediate users .
   even if they never use the unsafe stack buffer directly.
   this is like the game industry's sso strategy, but with minimal code bloat,
-  as a bonus, you can seamlessly pass this around without lifetime issues ( the is_sharable flag disables cow for the private sso buffer, so no dangling references)
+  as a bonus, you can seamlessly pass this around without lifetime issues ( the !is_sharable flag disables cow for the private sso buffer, so no dangling references)
   it can be converted to other wrappers of different sizes and to the string itself .
   also , if you remember, from the copy construction section,
   we would de-share automatically for these strings , essentially,
@@ -371,7 +371,7 @@ range without memmove in many cases if we want to.
  and that the heap size exponentially grows , in normal standard strings and vectors ,
  i dont see why 64bytes is bad , especially considering the amout of subtle false sharing it reduces in the rope ( which is a crucial factor in the library,  because the rope performance is very important).
  
- ###  fbstring-like cow size threshold ( next experimental release):
+ ###  fbstring-like cow size threshold :
   from the multithread benchmarks for medium heap strings ( not large ones ) ,  the Allocators performed faster than incrementing the reference count.
   
  in my test  the increment copy varies from  10ns ( in no threads) to  1500ns ( in 100 threads) per operation, ( you can measure yourself,  or see the Facebook's fbstring's reasons, which  is similar in this regard).
@@ -379,7 +379,9 @@ range without memmove in many cases if we want to.
  but the copy was consistent from 50ns to 200ns in the standard string.
  
  so for strings smaller than `4*std::hardware_destructive_interference_size=64*4=256 `  , 
-the reference count block is dropped,  and the block is copied  ( note that `is_sharable` is true  , but  in the next relese the  `can_share()=is_sharable&&(!is_threaded||256 < cap)` function would be used , and the documentation will be updated to reflect that).
+the reference count block is dropped,  and the block is copied  ( note that `is_sharable` is true  , the`can_share()=is_sharable&&(!is_threaded||256 < cap)` function is used to determine sharability).
+
+in the lower than threashold case,buffer has no overhead but is still aligned to 64bytes (for technical reasons).
 
  this is not a change in the O(1) ness of cow copy , because thenon cow case has a limit. 
  
@@ -480,7 +482,7 @@ The string is a value type. In my library, all of the move and copy functions
 are implemented and are `noexcept`. There's also a third one for const r-values,
 but I won't touch on that implementation detail because this is more of a
 nice-to-have thing. But as a summary, move moves everything. Share (const r-value)
-shares (no alloc) sharables and copies (alloc) the non-sharables based on `(is_sharable&&!is_ownerized)`. Copy
+shares (no alloc) sharables and copies (alloc) the non-sharables based on `(can_share()&&!is_ownerized)`. Copy
 does a memcpy (no alloc) if an allocation doesn't occur; if not, calls share.
 
 # future versions:

@@ -217,14 +217,29 @@ struct replace_flags_t {
     return could_change_alloc(already_has_alloc) ||
            could_change_threaded(already_has_alloc);
   }
-
-  MJZ_CX_FN uintlen_t new_cap_calc(uintlen_t mincap,bool is_thread_safe) const noexcept {
+  MJZ_CX_FN uintlen_t buffer_overhead(bool is_thread_safe,
+                                      uintlen_t cap) const noexcept {
+    MJZ_FCONSTANT(uintlen_t)
+    non_threaded_rf_block = sizeof(uintlen_t);
+    MJZ_FCONSTANT(uintlen_t)
+    threaded_rf_block =
+        std::max(hardware_destructive_interference_size, non_threaded_rf_block);
+    MJZ_FCONSTANT(uintlen_t)
+    cow_threaded_threshold = threaded_rf_block * 5;
+    if (!is_thread_safe) {
+      return non_threaded_rf_block;
+    }
+    if (cow_threaded_threshold < cap) {
+      return threaded_rf_block;
+    }
+    return 0;
+  }
+  MJZ_CX_FN uintlen_t new_cap_calc(uintlen_t mincap,
+                                   bool is_thread_safe) const noexcept {
     mincap += uintlen_t(!dont_add_null);
     if (allocate_exact) return mincap;
     uintlen_t cap{mincap};
-    uintlen_t overhead{
-        std::max(is_thread_safe ? hardware_destructive_interference_size : 0,
-                 sizeof(uintlen_t))};
+    uintlen_t overhead = buffer_overhead(is_thread_safe, mincap);
     cap += overhead;
     if (exponential_rounded) {
       cap = uintlen_t(1) << log2_ceil_of_val_create(cap);

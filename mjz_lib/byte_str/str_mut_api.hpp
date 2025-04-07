@@ -339,14 +339,22 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::share_init(
   if (&str == this) {
     return as_substring(offset, count);
   }
+
   if (!str.m.template d_get_cntrl<bool>(my_details::is_sharable) ||
       str.m.template d_get_cntrl<bool>(my_details::is_ownerized) ||
       m.template d_get_cntrl<bool>(my_details::is_ownerized)) {
     return copy_assign_data(str, no_allocate, offset, count);
   }
-  if (!total_reset(true)) return false;
+
   if (str.m.non_sso_buffer_location_ptr()) {
-    if (!str.m.non_sso_my_heap_manager_no_own().add_shareholder()) return false;
+    str_heap_manager hm = str.m.non_sso_my_heap_manager_no_own();
+    if (!hm.can_add_shareholder()) {
+      return copy_assign_data(str, no_allocate, offset, count);
+    }
+    if (!total_reset(true)) return false;
+    if (!hm.add_shareholder()) return false;
+  } else {
+    if (!total_reset(true)) return false;
   }
   if (m.get_alloc_ptr()) {
     *m.get_alloc_ptr() = *str.m.get_alloc_ptr();
@@ -1256,14 +1264,15 @@ concept basic_str_t_has_indentity_c_ =
     requires() { typename std::remove_cvref_t<T>::basic_str_t_indentity_t_; };
 
 template <class T>
-using basic_str_t_indentity_t_helper_=typename std::remove_cvref_t<T>::basic_str_t_indentity_t_;
+using basic_str_t_indentity_t_helper_ =
+    typename std::remove_cvref_t<T>::basic_str_t_indentity_t_;
 
 template <basic_str_t_has_indentity_c_ RHS_t,
           basic_str_t_has_indentity_c_ LHS_t>
   requires std::same_as<basic_str_t_indentity_t_helper_<RHS_t>,
                         basic_str_t_indentity_t_helper_<LHS_t>>
 MJZ_CX_FN auto operator+(RHS_t &&rhs_, LHS_t &&lhs_) noexcept {
-  using self_t =basic_str_t_indentity_t_helper_<RHS_t>; 
+  using self_t = basic_str_t_indentity_t_helper_<RHS_t>;
   self_t rhs{std::forward<RHS_t>(rhs_)}, lhs{std::forward<LHS_t>(lhs_)};
   return self_t::operator_add(rhs, lhs);
 }
