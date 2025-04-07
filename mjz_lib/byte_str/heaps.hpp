@@ -117,7 +117,10 @@ class str_heap_manager_t {
     const alloc_base_ref &ref = *m.alloc_ref;
     block_info blk = ref.allocate_bytes(min_size, alloc_info_v());
     if (!blk.ptr) {
+      m.reduce_rc_on_manager_destruction = false;
       return false;
+    } else {
+      m.reduce_rc_on_manager_destruction = true;
     }
     m.heap_data_ptr = std::assume_aligned<non_threaded_rf_block>(blk.ptr);
     m.heap_data_size = blk.length;

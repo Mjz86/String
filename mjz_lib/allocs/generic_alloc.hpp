@@ -46,8 +46,8 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   template <partial_same_as<generic_alloc_init_t> T>
   MJZ_CX_FN generic_alloc_t(alloc_ref &&upstream_alloc, T &&ai,
                             bool fast_table = false) noexcept
-      : upstream{std::move(upstream_alloc)} {
-    this->vt_ptr = fast_table ? &vt_stack_obj : &vt_obj;
+      : alloc_base{*(fast_table ? &vt_stack_obj : &vt_obj)},
+        upstream{std::move(upstream_alloc)} {
     std::construct_at(&data.obj, std::forward<T>(ai));
   }
   MJZ_CX_FN ~generic_alloc_t() noexcept {
@@ -161,27 +161,14 @@ struct generic_alloc_t : alloc_base_t<version_v> {
                                         alloc_info ai) noexcept {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
-  MJZ_CX_FN static success_t add_ref(alloc_base *This,
-                                     intlen_t delta) noexcept {
-    threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
-    delta *= 2;
-    if constexpr(MJZ_IN_DEBUG_MODE) {
-      asserts(
-          asserts.condition_rn,
-          delta > 0 || uintlen_t(-delta) <= rc.load(std::memory_order_relaxed),
-          "the ref count cant be negetive!");
+  MJZ_CX_FN static void alloc_call(alloc_base *This, block_info &blk,
+                                   alloc_info ai) noexcept {
+    if (blk.ptr) {
+      asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
+      return;
     }
-    // negative makes it overflow , but with the correct result.
-    rc.fetch_add(uintlen_t(delta),
-                 0<uintlen_t(delta) ? std::memory_order_acquire : std::memory_order_release);
-
-    return true;
-  }
-  MJZ_CX_FN static ref_count num_ref(const alloc_base *This,std::memory_order mo) noexcept {
-    return ref_count(
-        threads_ns::atomic_ref_t<const uintlen_t>(As(This).reference_count)
-            .load(mo) /
-        2);
+    blk = allocate(This, blk.length, ai);
+    return;
   }
 
   MJZ_CX_FN
@@ -201,23 +188,26 @@ struct generic_alloc_t : alloc_base_t<version_v> {
       generic_alloc>;
 
  public:
-  MJZ_CX_FN static success_t destroy_obj(alloc_base *This) noexcept {
-    threads_ns::atomic_ref_t<uintlen_t> rc(As(This).reference_count);
+  MJZ_CX_FN static void ref_call(alloc_base *This,
+                                 bool add_vs_destroy) noexcept {
+    threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
 
-    if constexpr (MJZ_IN_DEBUG_MODE) {
-      asserts(asserts.condition_rn, rc.load(std::memory_order_relaxed) < 2,
-              "the ref count must be zero to destroy the allocator!, this ref "
-              "must be uniqe!");
+    if (add_vs_destroy) {
+      rc.fetch_add(2, std::memory_order_acquire);
+      return;
     }
-    if (rc.load(std::memory_order_relaxed) == 1) {
-      rc.store(0, std::memory_order_relaxed) ;
+    if (2<=rc.fetch_sub(2, std::memory_order_acquire)) {
+      return;
+    } 
+    if (rc.load(std::memory_order_relaxed) == 1) { 
       std::destroy_at(This);
       As(This).upstream.deallocate(
           blk_t_{std::addressof(As(This)), 1},
           alloc_info::this_s_alloc_info(
               std::align_val_t(alignof(generic_alloc_init_t))));
     }
-    return true;
+    rc.store(0, std::memory_order_relaxed);
+    return;
   }
 
   template <class>
@@ -259,15 +249,11 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   MJZ_CX_FN auto &&get() const noexcept { return *std::launder(&data.obj); }
 
   MJZ_CONSTANT(alloc_vtable)
-  vt_obj{&is_owner,    Const_inequals ? nullptr : &is_equal,
-         &allocate,    &deallocate,
-         &add_ref,     &num_ref,
-         &destroy_obj, has_handle ? &handle : nullptr};
+  vt_obj{&alloc_call, &ref_call, Const_inequals ? nullptr : &is_equal,
+         &is_owner, nullptr};
   MJZ_CONSTANT(alloc_vtable)
-  vt_stack_obj{&is_owner, Const_inequals ? nullptr : &is_equal,
-               &allocate, &deallocate,
-               nullptr,   nullptr,
-               nullptr,   has_handle ? &handle : nullptr};
+  vt_stack_obj{&alloc_call, nullptr, Const_inequals ? nullptr : &is_equal,
+               &is_owner, nullptr};
 };
 
 template <version_t version_v>

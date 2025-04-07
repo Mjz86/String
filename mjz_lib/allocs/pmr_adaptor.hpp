@@ -68,10 +68,9 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
 
  public:
   MJZ_NCX_FN pmr_alloc_t(std::pmr::polymorphic_allocator<char> pmr,
-                        bool fast_table = false) noexcept
-      : undelying{std::move(pmr)} {
-    this->vt_ptr = fast_table ? &vt_stack_obj : &vt_obj;
-  }
+                         bool fast_table = false) noexcept
+      : alloc_base{*(fast_table ? &vt_stack_obj : &vt_obj)},
+        undelying{std::move(pmr)} {}
   MJZ_NCX_FN ~pmr_alloc_t() noexcept {
     asserts(asserts.condition_rn, 0 == reference_count,
             "the ref count must be 0 (deleted) , there is still an alive "
@@ -84,7 +83,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
 
  private:
   MJZ_NCX_FN static bool inequals(const alloc_ref &other,
-                                 const alloc_base *This) noexcept {
+                                  const alloc_base *This) noexcept {
     return As(other.get_ptr()).undelying != As(This).undelying;
   }
 
@@ -123,7 +122,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
 
  public:
   MJZ_NCX_FN static may_bool_t is_owner(const alloc_base *, const block_info &,
-                                       alloc_info) noexcept {
+                                        alloc_info) noexcept {
     return may_bool_t::idk;
   }
 
@@ -137,38 +136,22 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     return alloc_relations_e::equal;
   }
   MJZ_NCX_FN static block_info allocate(alloc_base *This, uintlen_t minsize,
-                                       alloc_info ai) noexcept {
+                                        alloc_info ai) noexcept {
     return As(This).obj_allocate(minsize, ai);
   }
   MJZ_NCX_FN static success_t deallocate(alloc_base *This, block_info &&blk,
-                                        alloc_info ai) noexcept {
+                                         alloc_info ai) noexcept {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
-  MJZ_CX_FN static success_t add_ref(alloc_base *This,
-                                     intlen_t delta) noexcept {
-    threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
-    delta *= 2;
-    if constexpr (MJZ_IN_DEBUG_MODE) {
-      asserts(
-          asserts.condition_rn,
-          delta > 0 || uintlen_t(-delta) <= rc.load(std::memory_order_relaxed),
-          "the ref count cant be negetive!");
+  MJZ_CX_FN static void alloc_call(alloc_base *This, block_info &blk,
+                                   alloc_info ai) noexcept {
+    if (blk.ptr) {
+      asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
+      return;
     }
-    // negative makes it overflow , but with the correct result.
-    rc.fetch_add(uintlen_t(delta), 0 < uintlen_t(delta)
-                                       ? std::memory_order_acquire
-                                       : std::memory_order_release);
-
-    return true;
+    blk = allocate(This, blk.length, ai);
+    return;
   }
-  MJZ_CX_FN static ref_count num_ref(const alloc_base *This,
-                                     std::memory_order mo) noexcept {
-    return ref_count(
-        threads_ns::atomic_ref_t<const uintlen_t>(As(This).reference_count)
-            .load(mo) /
-        2);
-  }
-
 
   template <class>
   friend class mjz_private_accessed_t;
@@ -178,23 +161,25 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
       typename alloc_base_ref_t<version_v>::template block_info_ot<pmr_alloc>;
 
  public:
-  MJZ_CX_FN static success_t destroy_obj(alloc_base *This) noexcept {
-    threads_ns::atomic_ref_t<uintlen_t> rc(As(This).reference_count);
+  MJZ_CX_FN static void ref_call(alloc_base *This,
+                                    bool add_vs_destroy) noexcept {
+    threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
 
-    if constexpr (MJZ_IN_DEBUG_MODE) {
-      asserts(asserts.condition_rn, rc.load(std::memory_order_relaxed) < 2,
-              "the ref count must be zero to destroy the allocator!, this ref "
-              "must be uniqe!");
+    if (add_vs_destroy) {
+      rc.fetch_add(2, std::memory_order_acquire);
+      return;
     }
+    if (2 <= rc.fetch_sub(2, std::memory_order_acquire)) {
+      return;
+    } 
     if (rc.load(std::memory_order_relaxed) == 1) {
-      rc.store(0, std::memory_order_relaxed);
       std::destroy_at(This);
       std::pmr::polymorphic_allocator<char> upstream = As(This).undelying;
       MJZ_NOEXCEPT { upstream.deallocate_object(std::addressof(As(This)), 1); };
     }
-    return true;
+    rc.store(0, std::memory_order_relaxed);
+    return  ;
   }
-
 
   template <class>
   friend class mjz_private_accessed_t;
@@ -228,11 +213,11 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
 
  private:
   MJZ_CONSTANT(alloc_vtable)
-  vt_obj{&is_owner, &is_equal, &allocate,    &deallocate,
-         &add_ref,  &num_ref,  &destroy_obj, nullptr};
+  vt_obj{&alloc_call, &ref_call, &is_equal,
+         &is_owner, nullptr};
   MJZ_CONSTANT(alloc_vtable)
-  vt_stack_obj{&is_owner, &is_equal, &allocate, &deallocate,
-               nullptr,   nullptr,   nullptr,   nullptr};
+  vt_stack_obj{&alloc_call, nullptr,  &is_equal,
+               &is_owner, nullptr};
 };
 
 template <version_t version_v>

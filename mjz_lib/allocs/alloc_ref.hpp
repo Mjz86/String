@@ -3,7 +3,7 @@
 #include "../versions.hpp"
 #if MJZ_LOG_NEW_ALLOCATIONS_
 #include "../outputs.hpp"
-#endif 
+#endif
 #include <new>
 #ifndef MJZ_ALLOCS_alloc_refs_FILE_HPP_
 #define MJZ_ALLOCS_alloc_refs_FILE_HPP_
@@ -132,7 +132,7 @@ struct alloc_speed_t {
 };
 
 template <version_t version_v>
-struct alignas(cache_fast_align_v) alloc_vtable_t {
+struct alloc_vtable_t {
  public:
   using alloc_base = alloc_base_t<version_v>;
   using block_info = block_info_t<version_v>;
@@ -149,11 +149,8 @@ struct alignas(cache_fast_align_v) alloc_vtable_t {
     using is_owner =
         F_t<may_bool_t(const block_info &, alloc_info) const noexcept>;
     using is_equal = F_t<alloc_relations_e(const alloc_ref &) const noexcept>;
-    using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
-    using deallocate = F_t<success_t(block_info &&, alloc_info) noexcept>;
-    using add_ref = F_t<success_t(intlen_t) noexcept>;
-    using num_ref = F_t<ref_count(std::memory_order) const noexcept>;
-    using destroy_obj = F_t<success_t() noexcept>;
+    using alloc_call = F_t<void(block_info &blk, alloc_info) noexcept>;
+    using ref_call = F_t<void(bool add_vs_destroy) noexcept>;
     using handle =
         F_t<const void_struct_t *(const void_struct_t *) const noexcept>;
 
@@ -161,6 +158,11 @@ struct alignas(cache_fast_align_v) alloc_vtable_t {
     friend class mjz_private_accessed_t;
 
    private:  // not useful rn.
+    using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
+    using deallocate = F_t<success_t(block_info &&, alloc_info) noexcept>;
+    using add_ref = F_t<success_t(intlen_t) noexcept>;
+    using num_ref = F_t<ref_count(std::memory_order) const noexcept>;
+    using destroy_obj = F_t<success_t() noexcept>;
     using compare =
         F_t<complex_alloc_relations_e(const alloc_ref &) const noexcept>;
     using can_destroy_obj = F_t<bool() const noexcept>;
@@ -199,22 +201,28 @@ struct alignas(cache_fast_align_v) alloc_vtable_t {
     typename funcs_t::remove_super_alloc remove_super_alloc;
     typename funcs_t::could_use_super_alloc could_use_super_alloc;
     typename funcs_t::could_use_sub_alloc could_use_sub_alloc;
+    typename funcs_t::allocate allocate;
+    typename funcs_t::deallocate deallocate;
+    typename funcs_t::add_ref add_ref;
+    typename funcs_t::num_ref num_ref;
+    typename funcs_t::destroy_obj destroy_obj;
   };
 
  public:
-  typename funcs_t::is_owner is_owner;
+  typename funcs_t::alloc_call alloc_call;
+  typename funcs_t::ref_call ref_call;
   typename funcs_t::is_equal is_equal;
-  typename funcs_t::allocate allocate;
-  typename funcs_t::deallocate deallocate;
-  typename funcs_t::add_ref add_ref;
-  typename funcs_t::num_ref num_ref;
-  typename funcs_t::destroy_obj destroy_obj;
+  typename funcs_t::is_owner is_owner;
   typename funcs_t::handle handle;
 };
 
 template <version_t version_v>
 struct alloc_base_t : void_struct_t {
-  const alloc_vtable_t<version_v> *vt_ptr{};
+ const alloc_vtable_t<version_v> vtable{};
+  MJZ_NO_MV_NO_CPY(alloc_base_t);
+ MJZ_CX_FN alloc_base_t(const alloc_vtable_t<version_v> &vtable_val) noexcept
+      : vtable(vtable_val) {}
+
 };
 
 template <version_t version_v>
@@ -237,9 +245,8 @@ class alloc_base_ref_t {
 
  public:
   MJZ_CX_FN const alloc_vtable_t<version_v> &get_vtbl() const noexcept {
-    asserts(asserts.assume_rn, !!this->ref);
-    asserts(asserts.assume_rn, !!get_ref().vt_ptr);
-    return *get_ref().vt_ptr;
+    asserts(asserts.assume_rn, !!this->ref); 
+    return get_ref().vtable;
   }
   MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
   MJZ_CX_FN alloc_base &get_ref() const noexcept {
@@ -248,10 +255,6 @@ class alloc_base_ref_t {
   }
   MJZ_CX_FN void reset() noexcept {
     if (!*this) return;
-    asserts(!!remove_ref(), " this ref shall be removed , UB otherwise.");
-    /*
-     * if this is zero, then we know we where the last person.
-     */
     destroy_obj();
   }
   MJZ_CX_FN explicit operator bool() const noexcept { return !!this->ref; };
@@ -302,38 +305,22 @@ class alloc_base_ref_t {
   template <class>
   friend class mjz_private_accessed_t;
 
- protected:
-  MJZ_CX_ND_FN auto has_exclusive_accsess(bool to_destroy) const noexcept
-      -> bool {
-    if (!this->ref) return false;
-    return num_ref(std::memory_order_acquire).optional_count <=
-           1 - uintlen_t(to_destroy);
-  }
-  MJZ_CX_FN
-  bool can_destroy_obj() const noexcept { return has_exclusive_accsess(true); }
+ protected: 
 
   MJZ_CX_FN
   success_t destroy_obj() noexcept {
-    if (!this->ref || !get_vtbl().destroy_obj || !can_destroy_obj())
-      return !get_vtbl().destroy_obj;
+    if (!this->ref || !get_vtbl().ref_call) return !get_vtbl().ref_call;
     MJZ_RELEASE { this->ref = nullptr; };
-    return run(get_vtbl().destroy_obj);
+     run(get_vtbl().ref_call,false);
+    return true;
   }
   MJZ_CX_FN
   success_t add_ref() const noexcept {
-    if (!this->ref || !get_vtbl().add_ref) return true;
-    return run(get_vtbl().add_ref, 1);
+    if (!this->ref || !get_vtbl().ref_call) return true;
+    run(get_vtbl().ref_call, true);
+    return true;
   }
-  MJZ_CX_FN
-  success_t remove_ref() const noexcept {
-    if (!this->ref || !get_vtbl().add_ref) return true;
-    return run(get_vtbl().add_ref, -1);
-  }
-  MJZ_CX_FN
-  ref_count num_ref(std::memory_order mo) const noexcept {
-    if (!this->ref || !get_vtbl().num_ref) return {};
-    return run(get_vtbl().num_ref,mo);
-  }
+  
 
  public:
   MJZ_CX_ND_FN auto to_raw(bool add_ref_count) noexcept
@@ -364,8 +351,16 @@ class alloc_base_ref_t {
   MJZ_CX_FN
   block_info allocate_bytes(uintlen_t minsize, alloc_info ai) const noexcept {
     if (!minsize) return {};
-    if (this->ref && (get_vtbl().allocate && get_vtbl().deallocate))
-      return run(get_vtbl().allocate, minsize, ai);
+    if (this->ref && get_vtbl().alloc_call)
+      return [&]() noexcept {
+        block_info blk{};
+        blk.length = minsize;
+        run(get_vtbl().alloc_call, blk, ai);
+#if MJZ_LOG_NEW_ALLOCATIONS_
+        mjz_debug_cout::println("[alloc:", blk.length, "]");
+#endif
+        return blk;
+      }();
     auto align_val = ai.get_alignof();
     uintlen_t size = minsize;
     MJZ_IFN_CONSTEVAL {
@@ -386,12 +381,17 @@ class alloc_base_ref_t {
   MJZ_CX_FN
   success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
     if (!blk.ptr) return !blk.length;
-    if (this->ref && (get_vtbl().allocate && get_vtbl().deallocate))
-      return run(get_vtbl().deallocate, std::move(blk), ai);
+    if (this->ref && get_vtbl().alloc_call)
+      return [&]() noexcept {
+#if MJZ_LOG_NEW_ALLOCATIONS_
+        mjz_debug_cout::println("[dealloc:", blk.length, "]");
+#endif
+        run(get_vtbl().alloc_call, blk, ai);
+       blk = block_info{};
+        return true;
+      }();
     MJZ_IFN_CONSTEVAL {
-      MJZ_RELEASE {
-        ::operator delete(blk.ptr,blk.length, ai.get_alignof());
-      };
+      MJZ_RELEASE { ::operator delete(blk.ptr, blk.length, ai.get_alignof()); };
 #if MJZ_LOG_NEW_ALLOCATIONS_
       mjz_debug_cout::println("[delete:", blk.length, "]");
 #endif
