@@ -441,12 +441,17 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_ND_FN success_t
   as_ownerized(const alloc_ref &val_alloc = m_t::empty_alloc,
                replace_flags rep_flags = replace_flags{}) noexcept {
+    return as_ownerized_il(val_alloc , rep_flags );
+  }
+
+ private:
+  MJZ_CX_AL_ND_FN success_t
+  as_ownerized_il(const alloc_ref &val_alloc = m_t::empty_alloc,
+               replace_flags rep_flags = replace_flags{}) noexcept {
     if (is_owner()) return true;
     rep_flags.force_ownership = true;
     return replace_data_with_char_il(0, 0, 0, nullopt, val_alloc, rep_flags);
   }
-
- private:
   MJZ_CX_AL_FN success_t as_always_ownerized_il(
       bool flag_state_, const alloc_ref &val_alloc = m_t::empty_alloc,
       replace_flags rep_flags = replace_flags{}) noexcept {
@@ -459,7 +464,7 @@ struct basic_str_t : void_struct_t {
     }
     rep_flags.ownerization_v =
         replace_flags::ownerization_e::always_ownerize_on;
-    if (!as_ownerized(val_alloc, rep_flags)) return false;
+    if (!as_ownerized_il(val_alloc, rep_flags)) return false;
     m.d_set_cntrl(my_details::is_ownerized, true);
     return true;
   }

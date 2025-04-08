@@ -57,7 +57,7 @@ class str_heap_manager_t {
       }
     }
   };
-  MJZ_CX_AL_FN void init_heap() noexcept {
+  MJZ_CX_FN void init_heap() noexcept {
     asserts(asserts.assume_rn, !!*this);
     if (!can_add_shareholder()) return;
     mjz::memset(m.heap_data_ptr, non_threaded_rf_block, 0);
@@ -203,7 +203,7 @@ class str_heap_manager_t {
     return !!buffer_overhead();
   }
 
-  MJZ_CX_AL_FN success_t add_shareholder() noexcept {
+  MJZ_CX_FN success_t add_shareholder() noexcept {
     if (!can_add_shareholder()) return !!*this;
     asserts(asserts.assume_rn, !m.is_owenrized);
     temp_layout_t{m}.perform_ref(
@@ -225,11 +225,22 @@ class str_heap_manager_t {
   }
  public:
 
-  MJZ_CX_AL_FN bool is_owner() const noexcept {
+  MJZ_CX_FN bool is_owner() const noexcept {
     if (!can_add_shareholder()) return !!*this;
     if (m.is_owenrized) return true;
     return is_owner_heap();
   }
+
+ private:
+  MJZ_CX_FN bool remove_shareholder_then_check_has_no_owner_heap() noexcept {
+    return temp_layout_t{m}.perform_ref(
+               [](auto &ref) noexcept -> uintlen_t {
+                 return ref.fetch_sub(1, std::memory_order_release) - 1;
+               },
+               [](auto &ref) noexcept -> uintlen_t { return --ref; }) < 1;
+  }
+ public:
+
   MJZ_CX_AL_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
     if (!*this) return false;
     if (m.is_owenrized) return true;
@@ -237,11 +248,7 @@ class str_heap_manager_t {
     /*
      * if this is zero, then we know we where the last person.
      */
-    return temp_layout_t{m}.perform_ref(
-               [](auto &ref) noexcept -> uintlen_t {
-                 return ref.fetch_sub(1, std::memory_order_release) - 1;
-               },
-               [](auto &ref) noexcept -> uintlen_t { return --ref; }) < 1;
+    return remove_shareholder_then_check_has_no_owner_heap();
   }
 
   MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
