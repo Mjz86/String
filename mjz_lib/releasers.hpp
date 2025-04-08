@@ -16,7 +16,7 @@ template <>
 class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
  public:
   template <class T>
-  MJZ_CX_FN static T mptr_static_cast(auto p) noexcept {
+  MJZ_CX_AL_FN static T mptr_static_cast(auto p) noexcept {
     if constexpr (requires() { static_cast<T>(p); }) {
       return static_cast<T>(p);
     } else if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>,
@@ -33,35 +33,35 @@ class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
   }
 
   template <class T>
-  MJZ_CX_FN static auto up_cast(T *ptr) noexcept {
+  MJZ_CX_AL_FN static auto up_cast(T *ptr) noexcept {
     return mptr_static_cast<void_struct_t *>(ptr);
   }
   template <class T>
-  MJZ_CX_FN static auto up_cast(const T *ptr) noexcept {
+  MJZ_CX_AL_FN static auto up_cast(const T *ptr) noexcept {
     return mptr_static_cast<const void_struct_t *>(ptr);
   }
   template <class T>
-  MJZ_CX_FN static auto down_cast(void_struct_t *ptr) noexcept {
+  MJZ_CX_AL_FN static auto down_cast(void_struct_t *ptr) noexcept {
     return mptr_static_cast<T *>(ptr);
   }
   template <class T>
-  MJZ_CX_FN static auto down_cast(const void_struct_t *ptr) noexcept {
+  MJZ_CX_AL_FN static auto down_cast(const void_struct_t *ptr) noexcept {
     return mptr_static_cast<const T *>(ptr);
   }
   template <class T>
-  MJZ_CX_FN static decltype(auto) up_cast(T &ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) up_cast(T &ptr) noexcept {
     return *up_cast(std::addressof(ptr));
   }
   template <class T>
-  MJZ_CX_FN static auto up_cast(const T &ptr) noexcept {
+  MJZ_CX_AL_FN static auto up_cast(const T &ptr) noexcept {
     return *up_cast(std::addressof(ptr));
   }
   template <class T>
-  MJZ_CX_FN static decltype(auto) down_cast(void_struct_t &ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) down_cast(void_struct_t &ptr) noexcept {
     return *down_cast<T>(std::addressof(ptr));
   }
   template <class T>
-  MJZ_CX_FN static decltype(auto) down_cast(const void_struct_t &ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) down_cast(const void_struct_t &ptr) noexcept {
     return *down_cast<T>(std::addressof(ptr));
   }
 };
@@ -117,7 +117,7 @@ template <size_t S>
 using uint_size_of_t = uint_sizeof_t<S>;
 template <class>
 class my_totatlly_empty_template1_class_t {};
-MJZ_CX_ND_FN static uint8_t log2_of_val_create(
+MJZ_CX_AL_ND_FN static uint8_t log2_of_val_create(
     std::integral auto val) noexcept {
   uint8_t ret{};
   while (val >>= 1) {
@@ -125,10 +125,10 @@ MJZ_CX_ND_FN static uint8_t log2_of_val_create(
   }
   return ret;
 }
-MJZ_CX_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
+MJZ_CX_AL_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
   return static_cast<uint64_t>(1ull << log2_val);
 }
-MJZ_CX_ND_FN static uint8_t log2_ceil_of_val_create(
+MJZ_CX_AL_ND_FN static uint8_t log2_ceil_of_val_create(
     std::integral auto val) noexcept
   requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
 {
@@ -185,14 +185,14 @@ class releaser_t {
   releaser_t &operator=(releaser_t &) = delete;
   releaser_t &operator=(const releaser_t &) = delete;
   releaser_t() = delete;
-  MJZ_CX_FN releaser_t(releaser_LAMBDA_t &&releaser_lambda,
+  MJZ_CX_AL_FN releaser_t(releaser_LAMBDA_t &&releaser_lambda,
                        reasorces_t &&...args) noexcept(requires() {
     { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
     { tuple_t(std::forward<reasorces_t>(args)...) } noexcept;
   })
       : m_releaser_lambda_(std::move(releaser_lambda)),
         data(std::forward<reasorces_t>(args)...) {}
-  MJZ_CX_FN ~releaser_t() noexcept(requires(reasorces_t &&...args) {
+  MJZ_CX_AL_FN ~releaser_t() noexcept(requires(reasorces_t &&...args) {
     { m_releaser_lambda_(std::forward<reasorces_t>(args)...) } noexcept;
   }) {
     call();
@@ -208,11 +208,11 @@ class releaser_t {
 
   template <typename... Ts>
     requires(sizeof...(Ts) < sizeof...(reasorces_t))
-  MJZ_CX_FN void call(Ts &&...args) {
+  MJZ_CX_AL_FN void call(Ts &&...args) {
     call(std::forward<Ts>(args)...,
          std::forward<type_at<sizeof...(Ts)>>(std::get<sizeof...(Ts)>(data)));
   }
-  MJZ_CX_FN void call(reasorces_t &&...args) {
+  MJZ_CX_AL_FN void call(reasorces_t &&...args) {
     m_releaser_lambda_(std::forward<reasorces_t>(args)...);
   }
 
@@ -229,11 +229,11 @@ class releaser_t<releaser_LAMBDA_t> {
  public:
   MJZ_NO_MV_NO_CPY(releaser_t);
   releaser_t() = delete;
-  MJZ_CX_FN
+  MJZ_CX_AL_FN
   releaser_t(releaser_LAMBDA_t &&releaser_lambda) noexcept(requires() {
     { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
   }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
-  MJZ_CX_FN ~releaser_t() { m_releaser_lambda_(); }
+  MJZ_CX_AL_FN ~releaser_t() { m_releaser_lambda_(); }
 
   template <class>
   friend class mjz_private_accessed_t;
@@ -246,7 +246,7 @@ template <std::same_as<void> = void>
 struct releaser_helper_t {
   MJZ_CE_FN releaser_helper_t() noexcept {}
   template <typename T>
-  MJZ_CX_NDF_FN("this should be stored for it to be called at end of scope")
+  MJZ_CX_AL_NDR_FN("this should be stored for it to be called at end of scope")
   auto operator->*(T &&fn) const
       noexcept(noexcept(releaser_t{std::forward<T>(fn)}))
           -> decltype(releaser_t{std::forward<T>(fn)}) {
@@ -456,24 +456,24 @@ class conditional_releaser_t : private T {
   MJZ_CX_FN conditional_releaser_t(T &&lambda_,
                                    bool has_lambda_ = true) noexcept
       : T(std::move(lambda_)), has_lambda(has_lambda_) {}
-  MJZ_CX_FN void run_now() noexcept(noexcept_v) {
+  MJZ_CX_AL_FN void run_now() noexcept(noexcept_v) {
     if (has_lambda) {
       has_lambda = false;
       std::move (**this)();
     }
   }
-  MJZ_CX_FN void dont_run() noexcept { has_lambda = false; }
-  MJZ_CX_ND_FN explicit operator bool() const noexcept { return has_lambda; }
-  MJZ_CX_ND_FN bool operator!() const noexcept { return !has_lambda; }
-  MJZ_CX_FN ~conditional_releaser_t() noexcept(noexcept_v) { run_now(); }
+  MJZ_CX_AL_FN void dont_run() noexcept { has_lambda = false; }
+  MJZ_CX_AL_ND_FN explicit operator bool() const noexcept { return has_lambda; }
+  MJZ_CX_AL_ND_FN bool operator!() const noexcept { return !has_lambda; }
+  MJZ_CX_AL_FN ~conditional_releaser_t() noexcept(noexcept_v) { run_now(); }
 
-  MJZ_CX_FN conditional_releaser_t(conditional_releaser_t &&other) noexcept(
+  MJZ_CX_AL_FN conditional_releaser_t(conditional_releaser_t &&other) noexcept(
       requires(T other_l) {
         { T(std::move(other_l)) } noexcept;
       })
       : T(std::move(*other)),
         has_lambda(std::exchange(other.has_lambda, false)) {}
-  MJZ_CX_FN conditional_releaser_t &operator=(
+  MJZ_CX_AL_FN conditional_releaser_t &operator=(
       conditional_releaser_t &&other) noexcept(requires(T other_l, T lamda) {
     { lamda = std::move(other_l) } noexcept;
   }) {

@@ -530,13 +530,15 @@ active union member... IF the first statement is true
 
 #define MJZ_NUMBEROF(Array_) (sizeof(Array_) / sizeof(Array_[0]))
 
-#define MJZ_CX_AL_FN                                 \
-  MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
-  MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
+
 #define MJZ_CX_AL_A_FN(X)                                 \
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
   X \
   MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
+#define MJZ_CX_AL_FN MJZ_CX_AL_A_FN()  
+
+#define MJZ_CX_AL_ND_FN MJZ_CX_AL_A_FN(MJZ_NODISCRAD)
+#define MJZ_CX_AL_NDR_FN(REASON) MJZ_CX_AL_A_FN(MJZ_NODISCRAD_FOR(REASON))  
 
 namespace MJZ_NORETURN_SPECIAL_namespace_ {
 struct mjz_unreachable_t {
