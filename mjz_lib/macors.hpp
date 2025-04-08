@@ -530,25 +530,22 @@ active union member... IF the first statement is true
 
 #define MJZ_NUMBEROF(Array_) (sizeof(Array_) / sizeof(Array_[0]))
 
+#define MJZ_CX_AL_FN                                 \
+  MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
+  MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
+
 namespace MJZ_NORETURN_SPECIAL_namespace_ {
 struct mjz_unreachable_t {
-  MJZ_NORETURN MJZ_CX_FN void operator()(bool B_false) const noexcept {
+  MJZ_NORETURN MJZ_CX_AL_FN void operator()(bool) const noexcept {
     MJZ_IF_CONSTEVAL {
       std::ignore = reinterpret_cast<const uint8_t &>("UB!!!!!! VVVVVVV"[0]);
-    }
-    else {
-      MJZ_JUST_ASSUME_(B_false);
+    } 
 #ifdef __cpp_lib_unreachable
       ::std::unreachable();
-#else
-      MJZ_JUST_ASSUME_(false);
-      while (!B_false);
-      while (B_false);
-      for (;;);
-      ;
+#else   
+ MJZ_MSVC_ONLY_CODE_(MJZ_JUST_ASSUME_(false));
+ MJZ_GCC_ONLY_CODE_(__builtin_unreachable());
 #endif
-    }
-    for (;;);
   }
 };
 
@@ -704,8 +701,6 @@ MJZ_DISABLE_WANINGS_END_;
 #define MJZ_VERBOSE_FORMAT_ERROR true
 #endif  // !MJZ_VERBOSE_FORMAT_ERROR
 
-
-#define MJZ_CX_AL_FN MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
 
 
 #endif  // !mjz_string_lib_HPP_FILE_
