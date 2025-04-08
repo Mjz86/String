@@ -270,7 +270,10 @@ ownership.
 # why not 31byte default sso in my main 32byte object?
 
 - the earlier design was like this :
-
+* i may revisit this design,  or something similar if  there was evidence that my tunable sso dose not outperform the absurdity of packing the most information into a single object. 
+* or , i may add another type called `packed_string` if i was bored from the main  string , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
+* the 31 byte vs 30byte sso of this also adds another branch , so i may only give 30byte sso if i dont want that.
+* i consider this as a competitor especially in embedded systems.
 ```
 
 struct alignas(8) {
@@ -602,9 +605,9 @@ my formatting library should also support ropes in a efficient way when they are
 # where would you place this:
 
 - mutable owner:
-  `std::string` vs `mjz::ownerized_string`
+  `std::string` vs `mjz::ownerized_string`  
 - in between:
-  `mjz::string`,continuous. vs ?
+  `mjz::string`,continuous. vs `mjz::packed_string` vs `fbstring` ( fbstring is still using cow , so even tho its api is mutable , it may hold an immutable storage)?
   ( maybe rust cow string)
   `mjz::rope`, discontinues. vs ?
   ( maybe other lazy ropes)
