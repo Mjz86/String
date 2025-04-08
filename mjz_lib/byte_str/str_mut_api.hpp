@@ -227,17 +227,19 @@ basic_str_t<version_v, has_alloc_v_>::operator=(
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
+MJZ_CX_AL_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
     success_t op, static_string_view view) noexcept {
   asserts(asserts.assume_rn,
           encodings_e(view->encodings) == encodings_e::ascii ||
               encodings_e(view->encodings) == encodings_e::err_ascii);
   if (op) MJZ_MOSTLY_LIKELY return;
-  asserts(asserts.assume_rn, m.deconstruct_to_invalid());
-  asserts(asserts.assume_rn,
-          m.construct_non_sso_from_invalid(view->ptr, view->len, nullptr, 0,
-                                           view->is_static, false));
-  m.d_set_cntrl(my_details::encodings_bits, encodings_e::err_ascii);
+  [view,this]()noexcept {
+    asserts(asserts.assume_rn, m.deconstruct_to_invalid());
+    asserts(asserts.assume_rn,
+            m.construct_non_sso_from_invalid(view->ptr, view->len, nullptr, 0,
+                                             view->is_static, false));
+    m.d_set_cntrl(my_details::encodings_bits, encodings_e::err_ascii);
+  }();
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data_fast(
