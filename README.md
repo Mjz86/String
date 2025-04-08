@@ -267,7 +267,41 @@ other stuff. Also, there are some functions that are not const
 and treat the other parts as views; these don't even need to know about COW nor
 ownership.
 
-# why not 31byte sso ?
+# why not 31byte default sso in my main 32byte object?
+
+- the earlier design was like this :
+
+```
+
+struct alignas(8) {
+  (allocator reference as empty base);
+  ( pragma pack start)
+  struct{
+    union{
+   struct sso_t{
+ char  buffer[30];
+union {
+ char valueof_30_minus_len; // fbstring null trick, if has_null is true , this must be alive 
+ char another_char; // if has_null is false , the length is 31 , and this must be alive
+ }
+ };
+    struct referencal_t{
+      const char* begin_ptr;
+       size_t  length;
+      char* data_block;
+      size_t capacity:56; 
+    };
+  };
+  uint8_t  control_byte;// the same stuff , but the unused bit is called is_sso  
+  };
+  ( pragma pack ends)
+};
+```
+
+the invariants were mostly similar , except the begin and sso buffer relationship being managed with a flag,  but the difference is ,
+like in fbstring,  this needed at least an extra branch in each call of the string, 
+and this is our problem.
+
 
 * like how clang and fbstring use sso sizes that almost match the object size , such as 22 or 23byte sso for 24byte clang string,  and 22 or 23 bytes for fbstring. 
 * gcc and msvc are different,  and both have smaller sso compared to object size, for example 15 or 16bytes in gcc with 32bytes per string object. 
