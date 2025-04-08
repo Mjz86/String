@@ -226,7 +226,6 @@ basic_str_t<version_v, has_alloc_v_>::operator=(
   return *this;
 }
 
-
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_AL_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_fail(
     static_string_view view) noexcept {
@@ -245,10 +244,9 @@ MJZ_CX_AL_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
   if (op) MJZ_MOSTLY_LIKELY return;
   if constexpr (MJZ_IN_DEBUG_MODE) {
     reset_to_error_fail(view);
-  } else{
+  } else {
     reset_to_error_fail();
   }
-  
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data_fast(
@@ -641,7 +639,8 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::reserve(
   }
   auto delta =
       uintlen_t(std::max<intlen_t>(intlen_t(prefer_cap - length()), 0));
-  return replace_data_with_char_il(nops, 0, delta, std::nullopt, alloc, flags) &&
+  return replace_data_with_char_il(nops, 0, delta, std::nullopt, alloc,
+                                   flags) &&
          remove_suffix(delta);
 }
 
@@ -667,14 +666,14 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::shrink_to_fit(
     return true;
   }
   return replace_data_with_char_il(0, 0, 0, std::nullopt, m.get_alloc(),
-                                replace_flags{
-                                    .prefer_new_cap = m.length,
-                                    .no_allocation = false,
-                                    .dont_add_null = false,
-                                    .allocate_exact = true,
-                                    .force_another_buffer = true,
+                                   replace_flags{
+                                       .prefer_new_cap = m.length,
+                                       .no_allocation = false,
+                                       .dont_add_null = false,
+                                       .allocate_exact = true,
+                                       .force_another_buffer = true,
 
-                                });
+                                   });
 }
 
 template <version_t version_v, bool has_alloc_v_>
@@ -685,12 +684,11 @@ basic_str_t<version_v, has_alloc_v_>::clear(bool force_ownership) noexcept {
     return true;
   }
   return replace_data_with_char_il(0, nops, 0, std::nullopt, m.get_alloc(),
-                                replace_flags{.no_allocation = true});
+                                   replace_flags{.no_allocation = true});
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN success_t
-basic_str_t<version_v, has_alloc_v_>::add_null() noexcept {
+MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::add_null() noexcept {
   if (has_null() || m.add_null(true)) return true;
   if (!replace_data_with_char_il(nops, 0, 1, '\0', m.get_alloc(),
                                  replace_flags{})) {
@@ -712,91 +710,70 @@ MJZ_CX_FN const char *basic_str_t<version_v, has_alloc_v_>::as_c_str()
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_AL_FN success_t
 basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_impl_(
-      uintlen_t &offset, uintlen_t &byte_count, uintlen_t& length_of_val,
-      std::optional<char> &val, const alloc_ref &val_alloc,
-      replace_flags& rep_flags) noexcept {
- 
-    uintlen_t null_overhead{uintlen_t(!rep_flags.dont_add_null)};
-    std::ignore = make_right_then_give_has_null(offset, byte_count);
-    if (max_size() < length_of_val) return false;
-    const intlen_t delta{intlen_t(length_of_val) - intlen_t(byte_count)};
-    // overflow is corret behaviour.
-    const uintlen_t new_len = m.length + uintlen_t(delta);
-    if (max_size() < new_len) return false;
-    const uintlen_t index_rest{offset + byte_count};
-    const uintlen_t length_rest{m.length - index_rest};
-    const uintlen_t rindex_repl{offset + length_of_val};
-    bool choose_other_alloc{};
-    bool choose_other_threaded{};
-    auto has_alloc_route = [&]() noexcept -> success_t {
-      str_heap_manager hm = str_heap_manager{
-          choose_other_alloc ? val_alloc : get_alloc(),
-          choose_other_threaded
-              ? rep_flags.to_is_threaded_v
-              : !m.template d_get_cntrl<bool>(my_details::as_not_threaded_bit),
-          rep_flags.new_always_ownerize(
-              m.template d_get_cntrl<bool>(my_details::is_ownerized))};
-      bool choose_failed{};
-      MJZ_RELEASE {
-        if (choose_failed) return;
-        if (choose_other_alloc) {
-          auto *p = m.get_alloc_ptr();
-          if (p) *p = val_alloc;
-        }
-        if (choose_other_threaded) {
-          m.d_set_cntrl(my_details::as_not_threaded_bit,
-                        !rep_flags.to_is_threaded_v);
-        }
-      };
-      alias_t<char[m_t::mut_data_t::sso_cap]> temp_buf{};
-      char *new_buf{temp_buf};
-      char *new_begin{temp_buf};
-      uintlen_t new_cap{sizeof(temp_buf)};
-      if (new_cap < new_len) {
-        if (rep_flags.no_allocation ||
-            !hm.malloc(rep_flags.new_cap_calc(new_len, hm.get_is_threaded()),
-                       !rep_flags.allocate_exact) ||
-            !hm) {
-          choose_failed = true;
-          return false;
-        }
-        new_buf = hm.get_heap_begin();
-        new_cap = hm.get_heap_cap();
-        new_begin = new_buf + rep_flags.buffer_offset(new_cap, new_len);
-      }
-      memcpy(new_begin, m.begin, offset);
-      memcpy(new_begin + rindex_repl, m.begin + index_rest, length_rest);
-      if (val) {
-        memset(new_begin + offset, length_of_val, *val);
-      }
-      if (!total_reset(true)) {
-        choose_failed = true;
-        return false;
-      }
-      if (!hm) {
-        return m.construct_sso_from_invalid(new_buf, new_len, true);
-      }
-      asserts(asserts.assume_rn,
-              m.construct_non_sso_from_invalid(new_begin, new_len, new_buf,
-                                               new_cap, true, true));
-      std::ignore = hm.steal_heap_begin(false);
-      asserts(asserts.assume_rn, m.add_null(false) || rep_flags.dont_add_null);
-      return true;
-    };
-    if (m.get_alloc_ptr() && val_alloc != m.get_alloc() &&
-        rep_flags.would_change_alloc(m.has_c_alloc(), false)) {
-      choose_other_alloc = true;
+    uintlen_t &offset, uintlen_t &byte_count, uintlen_t &length_of_val,
+    std::optional<char> &val, const alloc_ref &val_alloc,
+    replace_flags &rep_flags) noexcept {
+  uintlen_t null_overhead{uintlen_t(!rep_flags.dont_add_null)};
+  std::ignore = make_right_then_give_has_null(offset, byte_count);
+  if (max_size() < length_of_val) return false;
+  const intlen_t delta{intlen_t(length_of_val) - intlen_t(byte_count)};
+  // overflow is corret behaviour.
+  const uintlen_t new_len = m.length + uintlen_t(delta);
+  if (max_size() < new_len) return false;
+  const uintlen_t index_rest{offset + byte_count};
+  const uintlen_t length_rest{m.length - index_rest};
+  const uintlen_t rindex_repl{offset + length_of_val};
+  bool choose_other_alloc{};
+  bool choose_other_threaded{};
+  if (m.get_alloc_ptr() && val_alloc != m.get_alloc() &&
+      rep_flags.would_change_alloc(m.has_c_alloc(), false)) {
+    choose_other_alloc = true;
+  }
+  if (rep_flags.to_is_threaded_v !=
+          !m.template d_get_cntrl<bool>(my_details::as_not_threaded_bit) &&
+      rep_flags.would_change_threaded(m.has_c_alloc(), false)) {
+    choose_other_threaded = true;
+  }
+  bool choose_alloc_route = rep_flags.force_another_buffer;
+  bool can_choose_alloc_route =
+      (new_len + null_overhead <= m.mut_data.sso_cap) ||
+      !rep_flags.no_allocation;
+  if (!m.is_heap()) {
+    if (choose_other_alloc) {
+      auto *p = m.get_alloc_ptr();
+      if (p) *p = val_alloc;
     }
-    if (rep_flags.to_is_threaded_v !=
-            !m.template d_get_cntrl<bool>(my_details::as_not_threaded_bit) &&
-        rep_flags.would_change_threaded(m.has_c_alloc(), false)) {
-      choose_other_threaded = true;
+    if (choose_other_threaded) {
+      m.d_set_cntrl(my_details::as_not_threaded_bit,
+                    !rep_flags.to_is_threaded_v);
     }
-    bool choose_alloc_route = rep_flags.force_another_buffer;
-    bool can_choose_alloc_route =
-        (new_len + null_overhead <= m.mut_data.sso_cap) ||
-        !rep_flags.no_allocation;
-    if (!m.is_heap()) {
+  } else {
+    choose_alloc_route |= choose_other_threaded || choose_other_alloc;
+  }
+  choose_alloc_route |=
+      choose_alloc_route || m.get_capacity() < null_overhead + new_len;
+  if (!can_choose_alloc_route && choose_alloc_route) return false;
+  if (!rep_flags.force_ownership && !choose_alloc_route && length_of_val == 0 &&
+      byte_count == 0)
+    return true;
+  /* note:
+    that is_owner funtion acsesses the heap, if the string is not being used,
+        this is a cash miss, so by only running it if needed,
+        we reduce its use(thats why the same condition is checked)*/
+  choose_alloc_route |= choose_alloc_route || !m.is_owner();
+  if (!can_choose_alloc_route && choose_alloc_route) return false;
+
+  if (choose_alloc_route) {
+    str_heap_manager hm = str_heap_manager{
+        choose_other_alloc ? val_alloc : get_alloc(),
+        choose_other_threaded
+            ? rep_flags.to_is_threaded_v
+            : !m.template d_get_cntrl<bool>(my_details::as_not_threaded_bit),
+        rep_flags.new_always_ownerize(
+            m.template d_get_cntrl<bool>(my_details::is_ownerized))};
+    bool choose_failed{};
+    MJZ_RELEASE {
+      if (choose_failed) return;
       if (choose_other_alloc) {
         auto *p = m.get_alloc_ptr();
         if (p) *p = val_alloc;
@@ -805,78 +782,93 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_impl_(
         m.d_set_cntrl(my_details::as_not_threaded_bit,
                       !rep_flags.to_is_threaded_v);
       }
-    } else {
-      choose_alloc_route |= choose_other_threaded || choose_other_alloc;
-    }
-    choose_alloc_route |=
-        choose_alloc_route || m.get_capacity() < null_overhead + new_len;
-    if (!can_choose_alloc_route && choose_alloc_route) return false;
-    if (!rep_flags.force_ownership && !choose_alloc_route &&
-        length_of_val == 0 && byte_count == 0)
-      return true;
-    /* note:
-      that is_owner funtion acsesses the heap, if the string is not being used,
-          this is a cash miss, so by only running it if needed,
-          we reduce its use(thats why the same condition is checked)*/
-    choose_alloc_route |= choose_alloc_route || !m.is_owner();
-    if (!can_choose_alloc_route && choose_alloc_route) return false;
-
-    if (choose_alloc_route) {
-      return has_alloc_route();
-    }
-    uintlen_t front_delta = uintlen_t(m.begin - m.buffer_location_ptr());
-    uintlen_t back_delta = m.get_capacity() - m.length - front_delta;
-    bool null_has_room = !null_overhead || back_delta;
-    if (back_delta) back_delta -= null_overhead;
-    bool choose_front = null_has_room && rep_flags.can_choose_front &&
-                        !m.is_sso() && delta <= intlen_t(front_delta);
-    bool choose_back = null_has_room && rep_flags.can_choose_back &&
-                       delta <= intlen_t(back_delta);
-    char *mut_begin = m.mut_begin();
-    MJZ_RELEASE {
-      m.begin = mut_begin;
-      m.length = new_len;
-      if (!rep_flags.dont_add_null) {
-        asserts(asserts.assume_rn, m.add_null(false));
-      } else if (!choose_front) {
-        m.add_null(false);
-      } else {
-        m.d_set_cntrl(my_details::has_null, false);
-      }
-      if (val) {
-        memset(mut_begin + offset, length_of_val, *val);
-      }
     };
-    if (choose_front && choose_back) {
-      if (rep_flags.chose_more_cap_side) {
-        choose_front = back_delta < front_delta;
-      } else {
-        choose_front = offset + index_rest < m.length;
+    alias_t<char[m_t::mut_data_t::sso_cap]> temp_buf{};
+    char *new_buf{temp_buf};
+    char *new_begin{temp_buf};
+    uintlen_t new_cap{sizeof(temp_buf)};
+    if (new_cap < new_len) {
+      if (rep_flags.no_allocation ||
+          !hm.malloc(rep_flags.new_cap_calc(new_len, hm.get_is_threaded()),
+                     !rep_flags.allocate_exact) ||
+          !hm) {
+        choose_failed = true;
+        return false;
       }
+      new_buf = hm.get_heap_begin();
+      new_cap = hm.get_heap_cap();
+      new_begin = new_buf + rep_flags.buffer_offset(new_cap, new_len);
     }
-    if (choose_front) {
-      mut_begin = memomve_overlap(mut_begin - delta, mut_begin, offset);
-      return true;
+    memcpy(new_begin, m.begin, offset);
+    memcpy(new_begin + rindex_repl, m.begin + index_rest, length_rest);
+    if (val) {
+      memset(new_begin + offset, length_of_val, *val);
     }
-    if (choose_back) {
-      memomve_overlap(mut_begin + rindex_repl, m.begin + index_rest,
-                      length_rest);
-      return true;
+    if (!total_reset(true)) {
+      choose_failed = true;
+      return false;
     }
-    uintlen_t delta_count = rep_flags.buffer_offset(m.get_capacity(), new_len);
-    if (m.is_sso()) delta_count = 0;
-    mut_begin = &m.buffer_location_ptr()[delta_count];
-    bool shift_begin_first{mut_begin <= m.begin};
-    if (shift_begin_first) {
-      memomve_overlap(mut_begin, m.begin, offset);
+    if (!hm) {
+      return m.construct_sso_from_invalid(new_buf, new_len, true);
     }
+    asserts(asserts.assume_rn,
+            m.construct_non_sso_from_invalid(new_begin, new_len, new_buf,
+                                             new_cap, true, true));
+    std::ignore = hm.steal_heap_begin(false);
+    asserts(asserts.assume_rn, m.add_null(false) || rep_flags.dont_add_null);
+    return true;
+  }
+  uintlen_t front_delta = uintlen_t(m.begin - m.buffer_location_ptr());
+  uintlen_t back_delta = m.get_capacity() - m.length - front_delta;
+  bool null_has_room = !null_overhead || back_delta;
+  if (back_delta) back_delta -= null_overhead;
+  bool choose_front = null_has_room && rep_flags.can_choose_front &&
+                      !m.is_sso() && delta <= intlen_t(front_delta);
+  bool choose_back = null_has_room && rep_flags.can_choose_back &&
+                     delta <= intlen_t(back_delta);
+  char *mut_begin = m.mut_begin();
+  MJZ_RELEASE {
+    m.begin = mut_begin;
+    m.length = new_len;
+    if (!rep_flags.dont_add_null) {
+      asserts(asserts.assume_rn, m.add_null(false));
+    } else if (!choose_front) {
+      m.add_null(false);
+    } else {
+      m.d_set_cntrl(my_details::has_null, false);
+    }
+    if (val) {
+      memset(mut_begin + offset, length_of_val, *val);
+    }
+  };
+  if (choose_front && choose_back) {
+    if (rep_flags.chose_more_cap_side) {
+      choose_front = back_delta < front_delta;
+    } else {
+      choose_front = offset + index_rest < m.length;
+    }
+  }
+  if (choose_front) {
+    mut_begin = memomve_overlap(mut_begin - delta, mut_begin, offset);
+    return true;
+  }
+  if (choose_back) {
     memomve_overlap(mut_begin + rindex_repl, m.begin + index_rest, length_rest);
-    if (shift_begin_first) {
-      return true;
-    }
+    return true;
+  }
+  uintlen_t delta_count = rep_flags.buffer_offset(m.get_capacity(), new_len);
+  if (m.is_sso()) delta_count = 0;
+  mut_begin = &m.buffer_location_ptr()[delta_count];
+  bool shift_begin_first{mut_begin <= m.begin};
+  if (shift_begin_first) {
     memomve_overlap(mut_begin, m.begin, offset);
-    return true; 
-
+  }
+  memomve_overlap(mut_begin + rindex_repl, m.begin + index_rest, length_rest);
+  if (shift_begin_first) {
+    return true;
+  }
+  memomve_overlap(mut_begin, m.begin, offset);
+  return true;
 }
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_AL_FN success_t
@@ -888,7 +880,8 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_il(
     rep_flags.force_ownership = true;
   }
 
-  success_t ret = replace_data_with_char_impl_(offset, byte_count, length_of_val, val, val_alloc, rep_flags);
+  success_t ret = replace_data_with_char_impl_(
+      offset, byte_count, length_of_val, val, val_alloc, rep_flags);
   if (!ret) return false;
   if (rep_flags.always_ownerize(false)) {
     m.d_set_cntrl(my_details::is_ownerized, false);
@@ -900,7 +893,6 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_il(
   }
   return true;
 }
-
 
 template <version_t version_v, bool has_alloc_v_>
 template <class R_t>
@@ -915,7 +907,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_range(
   auto range_len{uintlen_t(std::ranges::size(range))};
   if (max_size() < range_len) return false;
   if (!replace_data_with_char_il(offset, byte_count, range_len, std::nullopt,
-                              val_alloc, rep_flags))
+                                 val_alloc, rep_flags))
     return false;
   char *range_ptr = m.mut_begin() + offset;
   auto &&begin_iter = std::ranges::begin(range);
@@ -955,7 +947,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_range(
     auto ch = get_as_option<char>(*begin_iter);
     if (!ch) return false;
     if (!front_holder_temp.replace_data_with_char_il(nops, 0, 1, *ch, val_alloc,
-                                                  rep_flags))
+                                                     rep_flags))
       return false;
   }
   if (!front_holder_temp.replace_data_with_char_il(
@@ -1006,8 +998,8 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::replace_data(
     return false;
 
   std::ignore = make_right_then_give_has_null(offset, byte_count);
-  if (!replace_data_with_char_il(offset, byte_count, other.m.length, std::nullopt,
-                              other.get_alloc(), rep_flags))
+  if (!replace_data_with_char_il(offset, byte_count, other.m.length,
+                                 std::nullopt, other.get_alloc(), rep_flags))
     return false;
 
   if (m.length) {
@@ -1041,8 +1033,8 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::erase_data(
     uintlen_t offset, uintlen_t byte_count, const alloc_ref &val_alloc,
     replace_flags rep_flags) noexcept {
-  return replace_data_with_char_il(offset, byte_count, 0, std::nullopt, val_alloc,
-                                rep_flags);
+  return replace_data_with_char_il(offset, byte_count, 0, std::nullopt,
+                                   val_alloc, rep_flags);
 }
 
 template <version_t version_v, bool has_alloc_v_>
@@ -1057,7 +1049,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::insert_data_with_char(
     uintlen_t offset, uintlen_t length_of_val, std::optional<char> val,
     const alloc_ref &val_alloc, replace_flags rep_flags) noexcept {
   return replace_data_with_char_il(offset, 0, length_of_val, val, val_alloc,
-                                rep_flags);
+                                   rep_flags);
 }
 
 template <version_t version_v, bool has_alloc_v_>
@@ -1072,7 +1064,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::append_data_with_char(
     uintlen_t length_of_val, std::optional<char> val,
     const alloc_ref &val_alloc, replace_flags rep_flags) noexcept {
   return replace_data_with_char_il(nops, 0, length_of_val, val, val_alloc,
-                                rep_flags);
+                                   rep_flags);
 }
 
 template <version_t version_v, bool has_alloc_v_>
