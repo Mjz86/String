@@ -83,7 +83,7 @@ class str_heap_manager_t {
 
   MJZ_CX_AL_FN auto alloc_ptr() const noexcept { return m.alloc_ref; }
 
-  MJZ_CX_AL_FN success_t malloc(MJZ_WILL_USE uintlen_t min_size,
+  MJZ_CX_FN success_t malloc(MJZ_WILL_USE uintlen_t min_size,
                              bool round_up = true) noexcept {
     if (!m.alloc_ref) return false;
     if (!!*this) {
@@ -128,7 +128,7 @@ class str_heap_manager_t {
     init_heap();
     return true;
   }
-  MJZ_CX_AL_FN success_t free() noexcept {
+  MJZ_CX_FN success_t free() noexcept {
     if (!*this) {
       m.heap_data_size = 0;
       return true;
@@ -211,17 +211,24 @@ class str_heap_manager_t {
         [](auto &ref) noexcept { ++ref; });
     return true;
   }
-  MJZ_CX_AL_FN bool is_owner() const noexcept {
-    if (!can_add_shareholder()) return !!*this;
+
+ private:
+  MJZ_CX_AL_FN bool is_owner_heap() const noexcept {
     char_storage_as_temp_t<uintlen_t> var{
         m.heap_data_ptr, non_threaded_rf_block, non_threaded_rf_block};
     if (!var) return false;
-    if (m.is_owenrized) return true;
     if (!m.is_threaded) {
       return *var < 2;
     }
     refcr_t ref_count{*var};
     return (ref_count).load(std::memory_order_acquire) < 2;
+  }
+ public:
+
+  MJZ_CX_AL_FN bool is_owner() const noexcept {
+    if (!can_add_shareholder()) return !!*this;
+    if (m.is_owenrized) return true;
+    return is_owner_heap();
   }
   MJZ_CX_AL_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
     if (!*this) return false;
