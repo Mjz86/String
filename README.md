@@ -1,5 +1,4 @@
 
-
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -270,7 +269,7 @@ ownership.
 
 # why not 31byte default sso in my main 32byte object?
 
-- the earlier design was like this :
+
 * i may revisit this design,  or something similar if  there was evidence that my tunable sso dose not outperform the absurdity of packing the most information into a single object. 
 * or , i may add another type called `packed_string` if i was bored from the main  string , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
 * the 31 byte vs 30byte sso of this also adds another branch , so i may only give 30byte sso if i dont want that.
@@ -279,6 +278,11 @@ ownership.
 * if we consider the 30byte sso case , this has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
 * if i Implement this , ill also probably add `packed_implace_string`,`packed_c_string`,`packed_ownerized_string` but not `packed_rope` ( the rope sso is bigger than this , so no need for it).
 * this does allow for stack buffer optimization ( = tunable sso ) and all the other optimizations , its just a bit trickier, mostly more code to write.
+* move convertions and pure-sharing( by ref count ) from this type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer csn also be shared between packed snd non packed types.
+* the integration of this type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
+* the only questions to ask now is , is it worth integrating and writing this? is the loss of potential for more encodings acceptable and  what would the sso capacity be , 30 or 31? 31 has another extra branch,  this one byte is probably not worth the effort tho.
+- the earlier design was like this :
+
 ```
 
 struct alignas(8) {
