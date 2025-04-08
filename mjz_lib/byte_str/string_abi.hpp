@@ -452,7 +452,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     asserts(asserts.assume_rn, [&]() noexcept { return is_owner(); });
     return is_sso() ? sso_buffer_location_ptr() : non_sso_buffer_location_ptr();
   }
-  MJZ_CX_FN char *mut_begin() noexcept {
+  MJZ_CX_AL_FN char *mut_begin() noexcept {
     asserts(asserts.assume_rn, !!as_const().buffer_location_ptr());
     asserts(asserts.assume_rn, [&]() noexcept { return is_owner(); });
     return buffer_location_ptr() + (begin - buffer_location_ptr());

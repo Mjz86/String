@@ -5,10 +5,10 @@
 namespace mjz {
 struct mjz_assert_t {
   mjz_assert_t(auto) = delete;
-  MJZ_CX_FN mjz_assert_t(totally_empty_type_t) noexcept {}
-  MJZ_CX_FN void operator=(auto) const noexcept = delete;
+  MJZ_CX_AL_FN mjz_assert_t(totally_empty_type_t) noexcept {}
+  MJZ_CX_AL_FN void operator=(auto) const noexcept = delete;
 
-  MJZ_CX_FN const mjz_assert_t &operator()(
+  MJZ_CX_AL_FN const mjz_assert_t &operator()(
       success_t value, const char *str = "assert",
       bool consteval_only = false) const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
@@ -27,16 +27,17 @@ struct mjz_assert_t {
     return *this;
   }
 
-  MJZ_NORETURN
-  MJZ_CX_FN void unreachable(
+  
+  MJZ_CX_AL_A_FN(MJZ_NORETURN)
+  void unreachable(
       MJZ_UNUSED const char *const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
   }
 
-  MJZ_NORETURN
-  MJZ_CX_FN void panic(
+  MJZ_CX_AL_A_FN(MJZ_NORETURN)
+  void panic(
       MJZ_UNUSED const char *const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_IFN_CONSTEVAL {
@@ -48,23 +49,26 @@ struct mjz_assert_t {
     MJZ_DISABLE_ALL_WANINGS_END_;
   }
 
-  MJZ_NORETURN
-  MJZ_CX_FN void not_implemented_yet(
+  MJZ_CX_AL_A_FN(MJZ_NORETURN)
+  void not_implemented_yet(
       MJZ_UNUSED const char *const str = "assert") const noexcept {
     panic(str);
   }
 
-  MJZ_NORETURN
-  MJZ_CX_FN void not_implemented_yet_v(auto &&...) const noexcept { panic(); }
+  MJZ_CX_AL_A_FN(MJZ_NORETURN)
+  void not_implemented_yet_v(auto &&...) const noexcept {
+    panic();
+  }
 
-  MJZ_CX_FN const mjz_assert_t &ignore_v(auto &&...) const noexcept {
+  MJZ_CX_AL_FN const mjz_assert_t &ignore_v(auto &&...) const noexcept {
     return *this;
   }
 
-  MJZ_CX_FN const mjz_assert_t &not_optimal(auto &&...) const noexcept {
+  MJZ_CX_AL_FN const mjz_assert_t &not_optimal(auto &&...) const noexcept {
     return *this;
   }
-  MJZ_CX_FN const mjz_assert_t &as_consteval(success_t value) const noexcept {
+  MJZ_CX_AL_FN const mjz_assert_t &as_consteval(
+      success_t value) const noexcept {
     (*this)(value, "assert", true);
     return *this;
   }
@@ -78,17 +82,17 @@ struct mjz_assert_t {
     pretend_rn = MJZ_TRUST_LEVEL_OF_PRETEND_,
     debug = MJZ_assert_TRUST_LEVEL_,
   };
-  MJZ_CX_FN const mjz_assert_t &operator[](
+  MJZ_CX_AL_FN const mjz_assert_t &operator[](
       mjz_asserts_e mjz_asserts_v) const noexcept {
     return (*this)(
         mjz_asserts_v, [&]() noexcept { return false; }, "assertion", false,
         false);
   }
-  MJZ_CX_FN const mjz_assert_t &operator|(bool B) const noexcept {
+  MJZ_CX_AL_FN const mjz_assert_t &operator|(bool B) const noexcept {
     return (*this)(B);
   }
 
-  MJZ_CX_FN const mjz_assert_t &operator()(
+  MJZ_CX_AL_FN const mjz_assert_t &operator()(
       mjz_asserts_e mjz_assertv_e,
       callable_c<success_t(void) noexcept> auto &&value,
       const char *str = "assert", bool consteval_only = false,
@@ -112,7 +116,7 @@ struct mjz_assert_t {
     }
     return *this;
   }
-  MJZ_CX_FN const mjz_assert_t &operator()(
+  MJZ_CX_AL_FN const mjz_assert_t &operator()(
       mjz_asserts_e mjz_assertv_e, bool value, const char *str = "assert",
       bool consteval_only = false, bool can_assume = true) const noexcept {
     if (consteval_only) {
@@ -130,11 +134,11 @@ struct mjz_assert_t {
     }
     return *this;
   }
-  MJZ_CX_FN const mjz_assert_t &debug_only(
+  MJZ_CX_AL_FN const mjz_assert_t &debug_only(
       const char *str = "assert", bool consteval_only = false) const noexcept {
     return (*this)(debug, false, str, consteval_only, false);
   }
-  MJZ_CX_FN const mjz_assert_t &force_call(
+  MJZ_CX_AL_FN const mjz_assert_t &force_call(
       callable_c<success_t(void) noexcept> auto &&value,
       mjz_asserts_e mjz_assertv_e = debug, const char *str = "assert",
       bool consteval_only = false, bool can_assume = true) const noexcept {
