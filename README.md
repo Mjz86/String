@@ -276,6 +276,7 @@ ownership.
 * i consider this as a direct competitor to my current design especially in embedded systems.
 * this design has all of the advantages of the current design,  but with a better default sso size  of 31 or 30, all of the wrappers and optimizations and systems can apply.
 * if we consider the 30byte sso case , this has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
+* if i Implement this , ill also probably add `packed_implace_string`,`packed_c_string`,`packed_ownerized_string` but not `packed_rope` ( the rope sso is bigger than this , so no need for it).
 ```
 
 struct alignas(8) {
