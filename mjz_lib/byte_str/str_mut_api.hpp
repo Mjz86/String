@@ -871,7 +871,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_impl_(
   return true;
 }
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_AL_FN success_t
+MJZ_CX_FN success_t
 basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_il(
     uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
     std::optional<char> val, const alloc_ref &val_alloc,

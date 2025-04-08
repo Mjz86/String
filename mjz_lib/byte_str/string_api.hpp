@@ -416,8 +416,12 @@ struct basic_str_t : void_struct_t {
       uintlen_t &offset, uintlen_t &byte_count, uintlen_t &length_of_val,
       std::optional<char> &val, const alloc_ref &val_alloc,
       replace_flags &rep_flags) noexcept;
-
-  MJZ_CX_AL_FN success_t replace_data_with_char_il(
+  /* the compiler kinda gives up on optimizing this when inline,
+  for better optimization , i have to do things mannually .... :( , 
+  better be out of line */
+  /* i think the all-in-one approach of this function is the problem , 
+  when the the next optimization relese hits , ill probably ditch the "replace_flags" approach for a more standard each function , do one thing approach */
+  /*MJZ_CX_AL_FN*/ MJZ_CX_FN success_t replace_data_with_char_il(
       uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
       std::optional<char> val, const alloc_ref &val_alloc,
       replace_flags rep_flags) noexcept;
