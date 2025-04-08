@@ -531,24 +531,26 @@ active union member... IF the first statement is true
 #define MJZ_NUMBEROF(Array_) (sizeof(Array_) / sizeof(Array_[0]))
 
 
-#define MJZ_CX_AL_A_FN(X)                                 \
-  MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
-  X \
-  MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
+
 #define MJZ_CX_AL_FN                                 \
+  MJZ_MAYBE_UNUSED                                   \
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
-  MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
+  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__forceinline)
+
+
+#define MJZ_CX_AL_A_FN(X) X MJZ_CX_AL_FN
+
 #define MJZ_CX_AL_ND_FN MJZ_CX_AL_A_FN(MJZ_NODISCRAD)
-#define MJZ_CX_AL_NDR_FN(REASON) MJZ_CX_AL_A_FN(MJZ_NODISCRAD_FOR(REASON))  
+#define MJZ_CX_AL_NDR_FN(REASON) MJZ_CX_AL_A_FN(MJZ_NODISCRAD_FOR(REASON))
 
 namespace MJZ_NORETURN_SPECIAL_namespace_ {
 struct mjz_unreachable_t {
   MJZ_CX_AL_A_FN(MJZ_NORETURN) void operator()(bool) const noexcept {
     MJZ_IF_CONSTEVAL {
       std::ignore = reinterpret_cast<const uint8_t &>("UB!!!!!! VVVVVVV"[0]);
-    }  
- MJZ_MSVC_ONLY_CODE_(MJZ_JUST_ASSUME_(false));
- MJZ_GCC_ONLY_CODE_(__builtin_unreachable()); 
+    }
+    MJZ_MSVC_ONLY_CODE_(MJZ_JUST_ASSUME_(false));
+    MJZ_GCC_ONLY_CODE_(__builtin_unreachable());
   }
 };
 
@@ -703,7 +705,5 @@ MJZ_DISABLE_WANINGS_END_;
 #ifndef MJZ_VERBOSE_FORMAT_ERROR
 #define MJZ_VERBOSE_FORMAT_ERROR true
 #endif  // !MJZ_VERBOSE_FORMAT_ERROR
-
-
 
 #endif  // !mjz_string_lib_HPP_FILE_
