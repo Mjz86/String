@@ -43,6 +43,7 @@ class str_heap_manager_t {
     refcr_t refcr;
     bool is_threaded;
     bool is_owenrized;
+    MJZ_CX_AL_FN ~temp_layout_t() noexcept = default;
     MJZ_CX_AL_FN temp_layout_t(m_t &m) noexcept
         : var{m.heap_data_ptr, non_threaded_rf_block, non_threaded_rf_block},
           refcr{*var},
