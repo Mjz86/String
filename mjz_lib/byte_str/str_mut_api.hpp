@@ -226,6 +226,16 @@ basic_str_t<version_v, has_alloc_v_>::operator=(
   return *this;
 }
 
+
+template <version_t version_v, bool has_alloc_v_>
+MJZ_CX_AL_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_fail(
+    static_string_view view) noexcept {
+  asserts(asserts.assume_rn, m.deconstruct_to_invalid());
+  asserts(asserts.assume_rn,
+          m.construct_non_sso_from_invalid(view->ptr, view->len, nullptr, 0,
+                                           view->is_static, false));
+  m.d_set_cntrl(my_details::encodings_bits, encodings_e::err_ascii);
+}
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_AL_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
     success_t op, static_string_view view) noexcept {
@@ -234,22 +244,9 @@ MJZ_CX_AL_FN void basic_str_t<version_v, has_alloc_v_>::reset_to_error_on_fail(
               encodings_e(view->encodings) == encodings_e::err_ascii);
   if (op) MJZ_MOSTLY_LIKELY return;
   if constexpr (MJZ_IN_DEBUG_MODE) {
-    [&]() noexcept {
-      asserts(asserts.assume_rn, m.deconstruct_to_invalid());
-      asserts(asserts.assume_rn,
-              m.construct_non_sso_from_invalid(view->ptr, view->len, nullptr, 0,
-                                               view->is_static, false));
-      m.d_set_cntrl(my_details::encodings_bits, encodings_e::err_ascii);
-    }();
+    reset_to_error_fail(view);
   } else{
-    [&]() noexcept {
-      static_string_view view_ = "[Err]";
-      asserts(asserts.assume_rn, m.deconstruct_to_invalid());
-      asserts(asserts.assume_rn,
-              m.construct_non_sso_from_invalid(view_->ptr, view_->len, nullptr,
-                                               0, view_->is_static, false));
-      m.d_set_cntrl(my_details::encodings_bits, encodings_e::err_ascii);
-    }();
+    reset_to_error_fail();
   }
   
 }

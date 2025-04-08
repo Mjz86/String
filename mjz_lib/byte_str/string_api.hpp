@@ -61,6 +61,11 @@ struct basic_str_t : void_struct_t {
   dont_mess_up = unsafe_ns::unsafe_v;
 
  private:
+  MJZ_CX_AL_FN void reset_to_error_fail(static_string_view view) noexcept;
+
+  MJZ_CX_FN void reset_to_error_fail() noexcept {
+    return reset_to_error_fail("[Err]");
+  }
   MJZ_CX_AL_FN void reset_to_error_on_fail(success_t op,
                                         static_string_view view) noexcept;
   MJZ_CX_ND_FN success_t copy_assign_data(const basic_str_t &str,
