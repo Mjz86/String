@@ -546,13 +546,9 @@ struct mjz_unreachable_t {
   MJZ_CX_AL_A_FN(MJZ_NORETURN) void operator()(bool) const noexcept {
     MJZ_IF_CONSTEVAL {
       std::ignore = reinterpret_cast<const uint8_t &>("UB!!!!!! VVVVVVV"[0]);
-    } 
-#ifdef __cpp_lib_unreachable
-      ::std::unreachable();
-#else   
+    }  
  MJZ_MSVC_ONLY_CODE_(MJZ_JUST_ASSUME_(false));
- MJZ_GCC_ONLY_CODE_(__builtin_unreachable());
-#endif
+ MJZ_GCC_ONLY_CODE_(__builtin_unreachable()); 
   }
 };
 
