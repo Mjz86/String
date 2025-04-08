@@ -275,7 +275,7 @@ ownership.
 * the 31 byte vs 30byte sso of this also adds another branch , so i may only give 30byte sso if i dont want that.
 * i consider this as a direct competitor to my current design especially in embedded systems.
 * this design has all of the advantages of the current design,  but with a better default sso size  of 31 or 30, all of the wrappers and optimizations and systems can apply.
-* if we consider the 30byte sso case , this has half the object size as the 30 byte `implace_string` , but with the cost of one extra branch in all const view paths.
+* if we consider the 30byte sso case , this has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
 ```
 
 struct alignas(8) {
