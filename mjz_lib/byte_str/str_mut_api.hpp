@@ -290,7 +290,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data(
       (m.get_capacity() < str.length() || !m.is_owner())) {
     return false;
   }
-  if (!(replace_data_with_char(
+  if (!(replace_data_with_char_il(
             0, nops, count, nullopt, str.get_alloc(),
             replace_flags{
                 .can_choose_back = true,
@@ -321,7 +321,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::copy_assign_data(
 template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t
 basic_str_t<version_v, has_alloc_v_>::reset(cheap_str_info &info) noexcept {
-  if (!replace_data_with_char(
+  if (!replace_data_with_char_il(
           0, nops, info.reserve_capacity, std::nullopt,
           info.alloc_ptr ? *info.alloc_ptr : get_alloc(),
           replace_flags{
@@ -535,7 +535,7 @@ basic_str_t<version_v, has_alloc_v_>::append_with_insert_iter(
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN success_t
+MJZ_CX_AL_FN success_t
 basic_str_t<version_v, has_alloc_v_>::make_substrview_helper_(
     const basic_str_t<version_v, has_alloc_v_> &obj, uintlen_t byte_offset,
     uintlen_t byte_count, bool propgate_alloc,
@@ -641,7 +641,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::reserve(
   }
   auto delta =
       uintlen_t(std::max<intlen_t>(intlen_t(prefer_cap - length()), 0));
-  return replace_data_with_char(nops, 0, delta, std::nullopt, alloc, flags) &&
+  return replace_data_with_char_il(nops, 0, delta, std::nullopt, alloc, flags) &&
          remove_suffix(delta);
 }
 
@@ -666,7 +666,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::shrink_to_fit(
   if (!force_ownership || m.is_owner()) {
     return true;
   }
-  return replace_data_with_char(0, 0, 0, std::nullopt, m.get_alloc(),
+  return replace_data_with_char_il(0, 0, 0, std::nullopt, m.get_alloc(),
                                 replace_flags{
                                     .prefer_new_cap = m.length,
                                     .no_allocation = false,
@@ -684,14 +684,16 @@ basic_str_t<version_v, has_alloc_v_>::clear(bool force_ownership) noexcept {
     m.length = 0;
     return true;
   }
-  return replace_data_with_char(0, nops, 0, std::nullopt, m.get_alloc(),
+  return replace_data_with_char_il(0, nops, 0, std::nullopt, m.get_alloc(),
                                 replace_flags{.no_allocation = true});
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::add_null() noexcept {
+MJZ_CX_FN success_t
+basic_str_t<version_v, has_alloc_v_>::add_null() noexcept {
   if (has_null() || m.add_null(true)) return true;
-  if (!replace_data_with_char(nops, 0, 1, '\0', m.get_alloc())) {
+  if (!replace_data_with_char_il(nops, 0, 1, '\0', m.get_alloc(),
+                                 replace_flags{})) {
     return false;
   }
   m.length--;
@@ -708,15 +710,12 @@ MJZ_CX_FN const char *basic_str_t<version_v, has_alloc_v_>::as_c_str()
  *calculates the hash
  */
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN success_t
-basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
-    uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
-    std::optional<char> val, const alloc_ref &val_alloc,
-    replace_flags rep_flags) noexcept {
-  if (rep_flags.always_ownerize(true)) {
-    rep_flags.force_ownership = true;
-  }
-  success_t ret = [&]() noexcept {
+MJZ_CX_AL_FN success_t
+basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_impl_(
+      uintlen_t &offset, uintlen_t &byte_count, uintlen_t& length_of_val,
+      std::optional<char> &val, const alloc_ref &val_alloc,
+      replace_flags& rep_flags) noexcept {
+ 
     uintlen_t null_overhead{uintlen_t(!rep_flags.dont_add_null)};
     std::ignore = make_right_then_give_has_null(offset, byte_count);
     if (max_size() < length_of_val) return false;
@@ -876,8 +875,20 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
       return true;
     }
     memomve_overlap(mut_begin, m.begin, offset);
-    return true;
-  }();
+    return true; 
+
+}
+template <version_t version_v, bool has_alloc_v_>
+MJZ_CX_AL_FN success_t
+basic_str_t<version_v, has_alloc_v_>::replace_data_with_char_il(
+    uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
+    std::optional<char> val, const alloc_ref &val_alloc,
+    replace_flags rep_flags) noexcept {
+  if (rep_flags.always_ownerize(true)) {
+    rep_flags.force_ownership = true;
+  }
+
+  success_t ret = replace_data_with_char_impl_(offset, byte_count, length_of_val, val, val_alloc, rep_flags);
   if (!ret) return false;
   if (rep_flags.always_ownerize(false)) {
     m.d_set_cntrl(my_details::is_ownerized, false);
@@ -889,6 +900,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_char(
   }
   return true;
 }
+
 
 template <version_t version_v, bool has_alloc_v_>
 template <class R_t>
@@ -902,7 +914,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_range(
   std::ignore = make_right_then_give_has_null(offset, byte_count);
   auto range_len{uintlen_t(std::ranges::size(range))};
   if (max_size() < range_len) return false;
-  if (!replace_data_with_char(offset, byte_count, range_len, std::nullopt,
+  if (!replace_data_with_char_il(offset, byte_count, range_len, std::nullopt,
                               val_alloc, rep_flags))
     return false;
   char *range_ptr = m.mut_begin() + offset;
@@ -926,7 +938,7 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_range(
   std::ignore = make_right_then_give_has_null(offset, byte_count);
   auto back_holder_temp = make_substrview(dont_mess_up, 0, 0, true, false);
   uintlen_t back_of_range_len = length() - offset - byte_count;
-  if (!back_holder_temp.replace_data_with_char(
+  if (!back_holder_temp.replace_data_with_char_il(
           0, 0, back_of_range_len, std::nullopt, val_alloc,
           [rep_flags_v = rep_flags]() mutable noexcept -> auto {
             rep_flags_v.allocate_exact = true;
@@ -936,17 +948,17 @@ basic_str_t<version_v, has_alloc_v_>::replace_data_with_range(
   memcpy(back_holder_temp.m.mut_begin(),
          m.begin + (m.length - back_of_range_len), back_of_range_len);
   if (!remove_suffix(length() - offset) ||
-      !replace_data_with_char(0, 0, 0, std::nullopt, val_alloc, rep_flags))
+      !replace_data_with_char_il(0, 0, 0, std::nullopt, val_alloc, rep_flags))
     return false;
   auto front_holder_temp{std::move(*this)};
   for (; begin_iter != end_iter; ++begin_iter) {
     auto ch = get_as_option<char>(*begin_iter);
     if (!ch) return false;
-    if (!front_holder_temp.replace_data_with_char(nops, 0, 1, *ch, val_alloc,
+    if (!front_holder_temp.replace_data_with_char_il(nops, 0, 1, *ch, val_alloc,
                                                   rep_flags))
       return false;
   }
-  if (!front_holder_temp.replace_data_with_char(
+  if (!front_holder_temp.replace_data_with_char_il(
           nops, 0, back_of_range_len, std::nullopt, val_alloc, rep_flags))
     return false;
   memcpy(front_holder_temp.m.mut_begin() +
@@ -994,7 +1006,7 @@ MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::replace_data(
     return false;
 
   std::ignore = make_right_then_give_has_null(offset, byte_count);
-  if (!replace_data_with_char(offset, byte_count, other.m.length, std::nullopt,
+  if (!replace_data_with_char_il(offset, byte_count, other.m.length, std::nullopt,
                               other.get_alloc(), rep_flags))
     return false;
 
@@ -1029,7 +1041,7 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::erase_data(
     uintlen_t offset, uintlen_t byte_count, const alloc_ref &val_alloc,
     replace_flags rep_flags) noexcept {
-  return replace_data_with_char(offset, byte_count, 0, std::nullopt, val_alloc,
+  return replace_data_with_char_il(offset, byte_count, 0, std::nullopt, val_alloc,
                                 rep_flags);
 }
 
@@ -1044,7 +1056,7 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::insert_data_with_char(
     uintlen_t offset, uintlen_t length_of_val, std::optional<char> val,
     const alloc_ref &val_alloc, replace_flags rep_flags) noexcept {
-  return replace_data_with_char(offset, 0, length_of_val, val, val_alloc,
+  return replace_data_with_char_il(offset, 0, length_of_val, val, val_alloc,
                                 rep_flags);
 }
 
@@ -1059,7 +1071,7 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::append_data_with_char(
     uintlen_t length_of_val, std::optional<char> val,
     const alloc_ref &val_alloc, replace_flags rep_flags) noexcept {
-  return replace_data_with_char(nops, 0, length_of_val, val, val_alloc,
+  return replace_data_with_char_il(nops, 0, length_of_val, val, val_alloc,
                                 rep_flags);
 }
 
@@ -1128,7 +1140,7 @@ template <version_t version_v, bool has_alloc_v_>
 MJZ_CX_FN success_t basic_str_t<version_v, has_alloc_v_>::assign(
     char c, bool no_allocator) noexcept {
   if (no_allocator && !m.is_owner()) return false;
-  return replace_data_with_char(0, nops, 1, c, m.get_alloc());
+  return replace_data_with_char_il(0, nops, 1, c, m.get_alloc());
 }
 
 template <version_t version_v, bool has_alloc_v_>

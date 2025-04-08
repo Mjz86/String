@@ -34,7 +34,8 @@ struct basic_str_t : void_struct_t {
   using difference_type = intlen_t;
 
   using back_insert_iterator_t = base_out_it_t<version_v>;
-  using basic_str_t_indentity_t_=basic_str_t;
+  using basic_str_t_indentity_t_ = basic_str_t;
+
  private:
   using replace_flags = replace_flags_t<version_v>;
   using static_string_view = static_string_view_t<version_v>;
@@ -67,14 +68,14 @@ struct basic_str_t : void_struct_t {
     return reset_to_error_fail("[Err]");
   }
   MJZ_CX_AL_FN void reset_to_error_on_fail(success_t op,
-                                        static_string_view view) noexcept;
+                                           static_string_view view) noexcept;
   MJZ_CX_ND_FN success_t copy_assign_data(const basic_str_t &str,
                                           bool no_allocate,
                                           uintlen_t offset = 0,
                                           uintlen_t count = nops) noexcept;
 
   MJZ_CX_ND_FN success_t copy_assign_data_fast(const basic_str_t &str,
-                                               uintlen_t offset_valid ,
+                                               uintlen_t offset_valid,
                                                uintlen_t count_valid) noexcept;
   MJZ_CX_ND_FN success_t reset(cheap_str_info &info) noexcept;
   MJZ_CX_ND_FN success_t total_reset(bool keep_flags) noexcept;
@@ -248,11 +249,11 @@ struct basic_str_t : void_struct_t {
   /*
    *maxes out the out of bounds indexes
    */
-  MJZ_CX_FN bool make_right_then_give_has_null(
+  MJZ_CX_AL_FN bool make_right_then_give_has_null(
       uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept;
 
  private:
-  MJZ_CX_ND_FN success_t make_substrview_helper_(
+  MJZ_CX_AL_FN success_t make_substrview_helper_(
       const basic_str_t &obj, uintlen_t byte_offset, uintlen_t byte_count,
       bool propgate_alloc = true, bool unsafe_assume_static_ = false) noexcept;
 
@@ -411,6 +412,16 @@ struct basic_str_t : void_struct_t {
   }
 
  private:
+  MJZ_CX_AL_FN success_t replace_data_with_char_impl_(
+      uintlen_t &offset, uintlen_t &byte_count, uintlen_t &length_of_val,
+      std::optional<char> &val, const alloc_ref &val_alloc,
+      replace_flags &rep_flags) noexcept;
+
+  MJZ_CX_AL_FN success_t replace_data_with_char_il(
+      uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
+      std::optional<char> val, const alloc_ref &val_alloc,
+      replace_flags rep_flags) noexcept;
+
  public:
   /*
    * replacas the data in range [offset,offset+byte_count) with other.
@@ -422,14 +433,17 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_ND_FN success_t replace_data_with_char(
       uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
       std::optional<char> val, const alloc_ref &val_alloc = m_t::empty_alloc,
-      replace_flags rep_flags = replace_flags{}) noexcept;
+      replace_flags rep_flags = replace_flags{}) noexcept {
+    return replace_data_with_char_il(offset, byte_count, length_of_val, val,
+                                     val_alloc, rep_flags);
+  }
 
   MJZ_CX_ND_FN success_t
   as_ownerized(const alloc_ref &val_alloc = m_t::empty_alloc,
                replace_flags rep_flags = replace_flags{}) noexcept {
     if (is_owner()) return true;
     rep_flags.force_ownership = true;
-    return replace_data_with_char(0, 0, 0, nullopt, val_alloc, rep_flags);
+    return replace_data_with_char_il(0, 0, 0, nullopt, val_alloc, rep_flags);
   }
   MJZ_CX_ND_FN success_t as_always_ownerized(
       bool flag_state_, const alloc_ref &val_alloc = m_t::empty_alloc,
@@ -443,7 +457,7 @@ struct basic_str_t : void_struct_t {
     }
     rep_flags.ownerization_v =
         replace_flags::ownerization_e::always_ownerize_on;
-    if (! as_ownerized( val_alloc, rep_flags))return false;
+    if (!as_ownerized(val_alloc, rep_flags)) return false;
     m.d_set_cntrl(my_details::is_ownerized, true);
     return true;
   }

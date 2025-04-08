@@ -53,7 +53,7 @@ basic_str_t<version_v, has_alloc_v_>::share_v() const noexcept {
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN bool
+MJZ_CX_AL_FN bool
 basic_str_t<version_v, has_alloc_v_>::make_right_then_give_has_null(
     uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
   byte_offset = std::min(byte_offset, m.length);
