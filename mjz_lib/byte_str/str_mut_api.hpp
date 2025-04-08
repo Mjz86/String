@@ -34,7 +34,7 @@ MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>::basic_str_t() noexcept
 }
 
 template <version_t version_v, bool has_alloc_v_>
-MJZ_CX_FN basic_str_t<version_v, has_alloc_v_>::~basic_str_t() noexcept {
+MJZ_CX_AL_FN basic_str_t<version_v, has_alloc_v_>::~basic_str_t() noexcept {
   asserts(asserts.assume_rn, m.deconstruct_to_invalid());
 }
 

@@ -137,7 +137,7 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_ND_FN explicit basic_str_t(nullptr_t) noexcept;
   MJZ_CX_ND_FN basic_str_t() noexcept;
 
-  MJZ_CX_FN ~basic_str_t() noexcept;
+  MJZ_CX_AL_FN ~basic_str_t() noexcept;
   MJZ_CX_ND_FN basic_str_t(cheap_str_info &&info) noexcept;
   /*
    *
