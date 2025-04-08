@@ -418,10 +418,9 @@ MJZ_CX_FN void raii_try_catch_rethrow(lambda_try_function &&try_func,
 
 /* do not use in production */
 MJZ_DISABLE_WANINGS_START_;
-template <typename T>
-MJZ_NCX_FN void just_do_ptr(T *arg) noexcept {
+MJZ_NCX_FN void just_do_ptr(void *arg) noexcept {
   MJZ_DISABLE_WANINGS_END_;
-  MJZ_UNUSED static volatile auto p = const_cast<volatile T *>(arg);
+  MJZ_UNUSED static thread_local volatile auto p = const_cast<volatile void *>(arg);
 };
 template <typename... Ts>
 MJZ_NCX_FN void just_do(Ts &&...args) noexcept {  //-V3541 //-V2565

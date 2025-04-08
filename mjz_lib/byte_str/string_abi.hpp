@@ -45,7 +45,6 @@ struct alloc_t<version_v, true> {
 };
 template <version_t version_v>
 union nsso_u;
- 
 
 template <version_t version_v>
   requires(version_v.is_LE())
@@ -54,7 +53,7 @@ union nsso_u<version_v> {
     char *buffer_begin;
     uintlen_t buffer_capacity_and_cntrl;
   };
- 
+
   char dummy_{};
   non_sso_t non_sso;
   char sso_raw_buffer_and_cntrl[sizeof(non_sso_t)];
@@ -236,7 +235,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   }
   MJZ_CONSTANT(uintlen_t)
   cntrl_in_cap_begin = mjz::get_begin_bit_index(mut_data_t::buffer_cntrl_mask_);
-  MJZ_CX_FN uint8_t get_cntrl(bool is_sso_) const noexcept {
+  MJZ_CX_AL_FN uint8_t get_cntrl(bool is_sso_) const noexcept {
     MJZ_IFN_CONSTEVAL {
       return *reinterpret_cast<const uint8_t *>(sso_cntrl_ptr());
     }
@@ -255,7 +254,9 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
       return uint8_t(same_val);
     }
   }
-  MJZ_CX_FN void set_cntrl(uint8_t val, bool is_sso_) noexcept {
+
+  MJZ_CX_AL_FN void set_cntrl(
+      uint8_t val, bool is_sso_) noexcept {
     MJZ_IFN_CONSTEVAL {
       *reinterpret_cast<uint8_t *>(sso_cntrl_ptr()) = val;
       return;
@@ -276,8 +277,8 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     ref = same_val;
     return;
   }
-  MJZ_CX_FN void d_set_cntrl(bool is_sso_, const uint8_t x,
-                             auto value) noexcept {
+  MJZ_CX_AL_FN  void  
+      d_set_cntrl(bool is_sso_, const uint8_t x, auto value) noexcept {
     uint8_t cntrl = get_cntrl(is_sso_);
     cntrl &= ~x;
 
@@ -285,17 +286,21 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
     return set_cntrl(cntrl, is_sso_);
   }
   template <typename T>
-  MJZ_CX_FN  std::remove_cvref_t<T> d_get_cntrl(bool is_sso_,
+  MJZ_CX_AL_FN std::remove_cvref_t<T> d_get_cntrl(
+      bool is_sso_,
                                                const uint8_t x) const noexcept {
     return static_cast<std::remove_cvref_t<T>>((x & get_cntrl(is_sso_)) >>
                                                mjz::get_begin_bit_index(x));
   }
-  MJZ_CX_FN bool is_sso() const noexcept {
-   // Debian clang version 19.1.4(1 ~deb12u1) bug( beacuse my clang version 20.1.0 works ):
-// note: comparison of addresses of literals has unspecified value
- // ^ the inner object address is never same as litteral , it may be same bug as https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074  or https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86369
-   bool B =
-       (const void *)(begin) == (const void *)(dead_sso_buffer_location_ptr());
+  MJZ_CX_AL_FN bool is_sso() const noexcept {
+    // Debian clang version 19.1.4(1 ~deb12u1) bug( beacuse my clang
+    // version 20.1.0 works ):
+    // note: comparison of addresses of literals has unspecified value
+    // ^ the inner object address is never same as litteral , it may be same bug
+    // as https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074  or
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=86369
+    bool B =
+        (const void *)(begin) == (const void *)(dead_sso_buffer_location_ptr());
     MJZ_IFN_CONSTEVAL {
       uint8_t cntrl{*reinterpret_cast<const uint8_t *>(sso_cntrl_ptr())};
       asserts(asserts.assume_rn, !(B && (cntrl & my_details::is_sharable)));
@@ -307,16 +312,19 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
 
     return B;
   }
-  MJZ_CX_FN void d_set_cntrl(const uint8_t x, auto value) noexcept {
+  MJZ_CX_AL_FN void d_set_cntrl(const uint8_t x, auto value) noexcept {
     return d_set_cntrl(is_sso(), x, value);
   }
   template <typename T>
-  MJZ_CX_FN std::remove_cvref_t<T> d_get_cntrl(const uint8_t x) const noexcept {
+  MJZ_CX_AL_FN std::remove_cvref_t<T> d_get_cntrl(
+      const uint8_t x) const noexcept {
     return d_get_cntrl<T>(is_sso(), x);
   }
 
-  MJZ_CX_FN uint8_t get_cntrl() const noexcept { return get_cntrl(is_sso()); }
-  MJZ_CX_FN void set_cntrl(uint8_t val) noexcept {
+  MJZ_CX_AL_FN uint8_t get_cntrl() const noexcept {
+    return get_cntrl(is_sso());
+  }
+  MJZ_CX_AL_FN void set_cntrl(uint8_t val) noexcept {
     return set_cntrl(val, is_sso());
   }
   MJZ_CX_FN void keep_flags_construct_sso_from_invalid_fast() noexcept {
@@ -481,12 +489,13 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
       const char *begin, uintlen_t length, char *buffer_begin,
       uintlen_t buffer_capacity) noexcept {
     // consistency , assert should never fail!
-    asserts(asserts.assume_rn,(buffer_capacity < mut_data_t::buffer_cap_max_) &&
-           (length < mut_data_t::buffer_cap_max_) &&
-           (buffer_begin || !buffer_capacity) && (begin || !length) &&
-           (!begin || !buffer_begin ||
-            (buffer_begin <= begin &&
-             begin + length <= buffer_begin + buffer_capacity &&
+    asserts(asserts.assume_rn,
+            (buffer_capacity < mut_data_t::buffer_cap_max_) &&
+                (length < mut_data_t::buffer_cap_max_) &&
+                (buffer_begin || !buffer_capacity) && (begin || !length) &&
+                (!begin || !buffer_begin ||
+                 (buffer_begin <= begin &&
+                  begin + length <= buffer_begin + buffer_capacity &&
                   length <= buffer_capacity)));
     return true;
   }
@@ -545,10 +554,9 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
   MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
     return str_heap_manager(
         get_alloc(), !d_get_cntrl<bool>(my_details::as_not_threaded_bit),
-        d_get_cntrl<bool>(my_details::is_ownerized), false,
-        false, mut_data.non_sso.buffer_begin, get_non_sso_capacity());
+        d_get_cntrl<bool>(my_details::is_ownerized), false, false,
+        mut_data.non_sso.buffer_begin, get_non_sso_capacity());
   }
-
 
   MJZ_CX_FN success_t deconstruct_non_sso_to_invalid() noexcept {
     if (!deallocate_non_sso()) return false;

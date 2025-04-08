@@ -279,8 +279,8 @@
 #define MJZ_restrict __restrict__
 #define MJZ_GCC_ONLY_CODE_(X) X
 #define MJZ_GCC_ATTRIBUTES_(X) __attribute__((X))
-#define JUST_MJZ_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_((always_inline))
-#define JUST_MJZ_NO_INLINE_ MJZ_GCC_ATTRIBUTES_((noinline)) noinline
+#define JUST_MJZ_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_(always_inline)
+#define JUST_MJZ_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline) noinline
 #define MJZ_MACRO_PRAGMA_(X) _Pragma(#X)
 #if __has_cpp_attribute(assume)
 #define MJZ_JUST_ASSUME_(X_expression_) \
@@ -703,5 +703,9 @@ MJZ_DISABLE_WANINGS_END_;
 #ifndef MJZ_VERBOSE_FORMAT_ERROR
 #define MJZ_VERBOSE_FORMAT_ERROR true
 #endif  // !MJZ_VERBOSE_FORMAT_ERROR
+
+
+#define MJZ_CX_AL_FN MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) MJZ_CX_FN MJZ_MSVC_ONLY_CODE_(__forceinline)
+
 
 #endif  // !mjz_string_lib_HPP_FILE_
