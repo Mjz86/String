@@ -267,77 +267,21 @@ other stuff. Also, there are some functions that are not const
 and treat the other parts as views; these don't even need to know about COW nor
 ownership.
 
-# why not 30byte default sso in my main 32byte object?
-* my earlier design,  it has all of the benefits of the msin string,  they can be converted to each other very easily , and i may add it.
-* the `packed_string`  is more similar to fbstring and the standard clang string,  because the sso is very big in both of them and both check for it with more branches. 
-* my main string however is more like the standard gcc implementation in its layout. 
-* i may add another type called `packed_string`  , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
-* the  `packed_string` has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
-* the `packed_string`  does allow for stack buffer optimization ( = tunable sso ) and all the other optimizations , its just a bit trickier, mostly more code to write.
-* move convertions and pure-sharing( by ref count ) from the `packed_string`  type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer can also be shared between packed snd non packed types.
-* the integration of the `packed_string`  type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
-* addition of the `packed_string` would not introduce any overhead in the main string,  they will be in different headers and the `packed_string` would only need to conform to the ABI of the heap string to integrate seamlessly with the main string, i personally like adding it , because why should my string have less default sso than clang's 24byte object,  it doesn't seem fair to not have a more aggressive sso ( the problem with the `implace_string<N>`  is that it has about 32bytes more than N as its size) .
-* the only questions to ask now is , is it worth integrating and writing the `packed_string` ? is the loss of potential for more encodings acceptable ?and , the most important question ,What percentage of strings in the workload fit within 30 bytes that wouldn't fit within 15bytes ? and could you afford to use the  `implace_string<32>` in such cases? if yes , then `packed_string ` would not be helpful .
-* an important point is that the `packed_string` is not a general purpose type , i am very certain that the main string is better at general purpose stuff, but adding an optional header for the `packed_string` would add even more flexibility, this type is not going to impact the main string performance in any way, and my preference for adding it is because i have a perfectionist tendency to have every option that is possible/good.
-- the earlier design (= `packed_string` )was like this :
+# option for more dense tunable sso , fully constexpr friendly string variable,  but with code bloat:
+* the  `packed_string<N>` will be available in the next experimental release.
 
-```
-
-struct alignas(8) {
-  (allocator reference as empty base);
-  ( pragma pack start)
-  struct{
-    union{
-   struct sso_t{
- char  buffer[30];
- char valueof_30_minus_len; // has_null is always true in the sso case.
- // we could have did a trick with has_null to increase the sso to 31 , but that would be an extra branch just for a single byte , which is not good at all. 
- };
-    struct referencal_t{
-      const char* begin_ptr;
-       size_t  length;
-      char* data_block;
-  alias_t<char[7]>  /*size_t*/ capacity/*:56*/; 
-    };
-  };
-  uint8_t  control_byte;// the same stuff , but the unused bit is called is_sso  
-  };
-  ( pragma pack ends)
-};
-```
-
-the  `packed_string`  invariants were mostly similar , except the begin and sso buffer relationship being managed with a flag,  but the difference is ,
-like in fbstring,  the  `packed_string`  needed at least an extra branch in each call of the string, 
-and this is our problem.
-
-
-
-* like how clang and fbstring use sso sizes that almost match the object size , such as 22 or 23byte sso for 24byte clang string,  and 22 or 23 bytes for fbstring. 
-* gcc and msvc are different,  and both have smaller sso compared to object size, for example 15 or 16bytes in gcc with 32bytes per string object. 
-
-first of all , that was my 3rd out of 5 old designs.
-for these reasons:
-excessive branching for the const view paths.
-when the length , begin ,and encoding are not easily accessible in a branchless way , 
-many functions suddenly become worse , 
-the inlining of code becomes harder , 
-and the code becomes really hard to write without geter seter function calls everywhere.
-the constant checking of  sso vs the non-sso case becomes exhausting. 
-while the object size can be the same 32 bytes,  the code size may increase a lot , and the performance hit may be more noticeable. 
-
-while 64 byte object for the tunable sso size of  30 is not ideal, 
-its a compromise between  being very packed,
-or easier to write and execute. 
-
-
-although,  this is likely not a big problem because most of the strings would be lass than 30 bytes , 
-and the clang implementation has this branch cost , with sso of 22 bytes,  so  this is not a bad tradeoff, hence why i am questioning if the  `packed_string`  is a welcome addition to the library or not.
-
-a pdf function distribution of string length to probability density would be very helpful, because it would show if the range 15 to 30 is important enough for optimization or not,
-and if that range is important,  is a 64byte string ( =`implace_string<32>`) object  affordable in size?
- 
-
-
+it has a very dense layout,  its not a wrapper , but its cheaply convertible to a `implace_string<N+1>`, and therfore the main string. 
+( although be careful that reducing sso size may  move the large string to heap).
+it uses a very packed layout comparable to the clang and fbstring implementation, 
+the object size is about (N+2 to N+8, and about N+16 for very lage Ns ), its lowest size is 32bytes with sso capacity of N=30byte.
+it doesn't directly store the string view information, thats why it can be used as a constexpr variable in both the sso state and the litteral view state.
+it actually was an evolution  my pervious design,
+the only drawback to `implace_string<N+1>` is that the const view paths have more instructions 
+branchless access to view information is provided,  but the branching to branchless transformation made the string information less easy to access  , 
+this however shouldn't be a major concern,  because the instruction count is relatively low ( and branchless and loadless ,if we dont consider the `*this` as a load) and acceptable for a view getter function. 
+however,  this is not recommended for the main string,  because the inlining would be relatively harder ,
+although if you need a 30byte sso with a 32byte object,  go for it.
+the main benefit is that this string is a very handy static constexpr string variable, and is very compact for storage, the access is relatively quick ( like fbstring and clang that have relatively large sso) but its not as cheap as a size variable read.
 
 # Built-In Stack Buffer Optimization (Advanced Users Only)
 
@@ -485,9 +429,7 @@ mjz_fn("im too long too fit in sso ............"_str);
 # Unicode Support
 
 While I haven't made that part in the library, we can easily support Unicode
-or any other encoding just by using one of the 8 states of encoding flags (if
-they were too small, we could use 1 bits ( `unused_for_now_` ) to add
-support for 16 separate encodings, but I don't see any reason for supporting
+or any other encoding just by using one of the 8 states of encoding flags ( I don't see any reason for supporting
 more than 8 encodings at the same time). Strings with different encodings
 may not interact; if they do, that's an error and will throw if you allow it.
 
