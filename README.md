@@ -269,14 +269,15 @@ ownership.
 
 # why not 30byte default sso in my main 32byte object?
 * my earlier design,  it has all of the benefits of the msin string,  they can be converted to each other very easily , and i may add it.
-* this is more similar to fbstring,  because the sso is very big in both of them.
+* the `packed_string`  is more similar to fbstring and the standard clang string,  because the sso is very big in both of them and both check for it with more branches. 
+* my main string however is more like the standard gcc implementation in its layout. 
 * i may add another type called `packed_string`  , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
-* this has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
-* this does allow for stack buffer optimization ( = tunable sso ) and all the other optimizations , its just a bit trickier, mostly more code to write.
-* move convertions and pure-sharing( by ref count ) from this type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer csn also be shared between packed snd non packed types.
-* the integration of this type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
-* the only questions to ask now is , is it worth integrating and writing this? is the loss of potential for more encodings acceptable ?
-- the earlier design was like this :
+* the  `packed_string` has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
+* the `packed_string`  does allow for stack buffer optimization ( = tunable sso ) and all the other optimizations , its just a bit trickier, mostly more code to write.
+* move convertions and pure-sharing( by ref count ) from the `packed_string`  type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer can also be shared between packed snd non packed types.
+* the integration of the `packed_string`  type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
+* the only questions to ask now is , is it worth integrating and writing the `packed_string` ? is the loss of potential for more encodings acceptable ?
+- the earlier design (= `packed_string` )was like this :
 
 ```
 
@@ -303,9 +304,10 @@ struct alignas(8) {
 };
 ```
 
-the invariants were mostly similar , except the begin and sso buffer relationship being managed with a flag,  but the difference is ,
-like in fbstring,  this needed at least an extra branch in each call of the string, 
+the  `packed_string`  invariants were mostly similar , except the begin and sso buffer relationship being managed with a flag,  but the difference is ,
+like in fbstring,  the  `packed_string`  needed at least an extra branch in each call of the string, 
 and this is our problem.
+
 
 
 * like how clang and fbstring use sso sizes that almost match the object size , such as 22 or 23byte sso for 24byte clang string,  and 22 or 23 bytes for fbstring. 
@@ -324,6 +326,11 @@ while the object size can be the same 32 bytes,  the code size may increase a lo
 while 64 byte object for the tunable sso size of  30 is not ideal, 
 its a compromise between  being very packed,
 or easier to write and execute. 
+
+
+although,  this is likely not a big problem because most of the strings would be lass than 30 bytes , 
+and the clang implementation has this branch cost , with sso of 22 bytes,  so  this is not a bad tradeoff, hence why i am questioning if the  `packed_string`  is a welcome addition to the library or not.
+
 
 
 
