@@ -276,6 +276,7 @@ ownership.
 * the `packed_string`  does allow for stack buffer optimization ( = tunable sso ) and all the other optimizations , its just a bit trickier, mostly more code to write.
 * move convertions and pure-sharing( by ref count ) from the `packed_string`  type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer can also be shared between packed snd non packed types.
 * the integration of the `packed_string`  type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
+* addition of the `packed_string` would not introduce any overhead in the main string,  they will be in different headers and the `packed_string` would only need to conform to the ABI of the heap string to integrate seamlessly with the main string, i personally like adding it , because why should my string have less default sso than clang's 24byte object,  it doesn't seem fair to not have a more aggressive sso ( the problem with the `implace_string<N>`  is that it has about 32bytes more than N as its size) .
 * the only questions to ask now is , is it worth integrating and writing the `packed_string` ? is the loss of potential for more encodings acceptable ?
 - the earlier design (= `packed_string` )was like this :
 
