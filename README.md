@@ -269,9 +269,7 @@ ownership.
 
 # why not 31byte default sso in my main 32byte object?
 
-
-* i may revisit this design,  or something similar if  there was evidence that my tunable sso dose not outperform the absurdity of packing the most information into a single object. 
-* or , i may add another type called `packed_string` if i was bored from the main  string , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
+* i may add another type called `packed_string` if i was bored from the main  string , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
 * the 31 byte vs 30byte sso of this also adds another branch , so i may only give 30byte sso if i dont want that.
 * i consider this as a direct competitor to my current design especially in embedded systems.
 * this design has all of the advantages of the current design,  but with a better default sso size  of 31 or 30, all of the wrappers and optimizations and systems can apply.
@@ -708,3 +706,4 @@ You may give feedback in:
   [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
 - lib format :
   [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
+
