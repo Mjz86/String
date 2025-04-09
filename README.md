@@ -277,7 +277,7 @@ ownership.
 * move convertions and pure-sharing( by ref count ) from the `packed_string`  type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer can also be shared between packed snd non packed types.
 * the integration of the `packed_string`  type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
 * addition of the `packed_string` would not introduce any overhead in the main string,  they will be in different headers and the `packed_string` would only need to conform to the ABI of the heap string to integrate seamlessly with the main string, i personally like adding it , because why should my string have less default sso than clang's 24byte object,  it doesn't seem fair to not have a more aggressive sso ( the problem with the `implace_string<N>`  is that it has about 32bytes more than N as its size) .
-* the only questions to ask now is , is it worth integrating and writing the `packed_string` ? is the loss of potential for more encodings acceptable ?and , the most important question ,What percentage of strings in the workload fit within 30 bytes that wouldn't fit within 15bytes ? and could you afford to use the `implace_string` in duch cases? if yes , then `packed_string ` would not be helpful .
+* the only questions to ask now is , is it worth integrating and writing the `packed_string` ? is the loss of potential for more encodings acceptable ?and , the most important question ,What percentage of strings in the workload fit within 30 bytes that wouldn't fit within 15bytes ? and could you afford to use the  `implace_string<32>` in such cases? if yes , then `packed_string ` would not be helpful .
 - the earlier design (= `packed_string` )was like this :
 
 ```
@@ -333,7 +333,7 @@ although,  this is likely not a big problem because most of the strings would be
 and the clang implementation has this branch cost , with sso of 22 bytes,  so  this is not a bad tradeoff, hence why i am questioning if the  `packed_string`  is a welcome addition to the library or not.
 
 a pdf function distribution of string length to probability density would be very helpful, because it would show if the range 15 to 30 is important enough for optimization or not,
-and if that range is important,  is a 64byte string object affordable?
+and if that range is important,  is a 64byte string ( =`implace_string<32>`) object  affordable in size?
  
 
 
