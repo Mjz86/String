@@ -267,18 +267,15 @@ other stuff. Also, there are some functions that are not const
 and treat the other parts as views; these don't even need to know about COW nor
 ownership.
 
-# why not 31byte default sso in my main 32byte object?
-
-* i may add another type called `packed_string` if i was bored from the main  string , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
-* the 31 byte vs 30byte sso of this also adds another branch , so i may only give 30byte sso if i dont want that.
-* i consider this as a direct competitor to my current design especially in embedded systems.
-* this design has all of the advantages of the current design,  but with a better default sso size  of 31 or 30, all of the wrappers and optimizations and systems can apply.
-* if we consider the 30byte sso case , this has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
-* if i Implement this , ill also probably add `packed_implace_string`,`packed_c_string`,`packed_ownerized_string` but not `packed_rope` ( the rope sso is bigger than this , so no need for it).
+# why not 30byte default sso in my main 32byte object?
+* my earlier design,  it has all of the benefits of the msin string,  they can be converted to each other very easily , and i may add it.
+* this is more similar to fbstring,  because the sso is very big in both of them.
+* i may add another type called `packed_string`  , because why not have both if they can be in different headers?  ( if i go down this path,  i will be certain that 8 is the most encodings that a string may have).
+* this has half the object size as the  `implace_string<30>` , but with the cost of one extra branch in all const view paths.
 * this does allow for stack buffer optimization ( = tunable sso ) and all the other optimizations , its just a bit trickier, mostly more code to write.
 * move convertions and pure-sharing( by ref count ) from this type to `implace_string<31>` should  never allocate because the heap layout of them are the same ( and the sso buffers match)  , and the heap buffer csn also be shared between packed snd non packed types.
 * the integration of this type would be easy if necessary,  and this would  probably be just a way to store a string without a big object,  but the main one and its wrappers would be for passing strings around.
-* the only questions to ask now is , is it worth integrating and writing this? is the loss of potential for more encodings acceptable and  what would the sso capacity be , 30 or 31? 31 has another extra branch,  this one byte is probably not worth the effort tho.
+* the only questions to ask now is , is it worth integrating and writing this? is the loss of potential for more encodings acceptable ?
 - the earlier design was like this :
 
 ```
@@ -290,16 +287,14 @@ struct alignas(8) {
     union{
    struct sso_t{
  char  buffer[30];
-union {
- char valueof_30_minus_len; // fbstring null trick, if has_null is true , this must be alive 
- char another_char; // if has_null is false , the length is 31 , and this must be alive
- }
+ char valueof_30_minus_len; // has_null is always true in the sso case.
+ // we could have did a trick with has_null to increase the sso to 31 , but that would be an extra branch just for a single byte , which is not good at all. 
  };
     struct referencal_t{
       const char* begin_ptr;
        size_t  length;
       char* data_block;
-      size_t capacity:56; 
+  alias_t<char[7]>  /*size_t*/ capacity/*:56*/; 
     };
   };
   uint8_t  control_byte;// the same stuff , but the unused bit is called is_sso  
@@ -326,7 +321,7 @@ and the code becomes really hard to write without geter seter function calls eve
 the constant checking of  sso vs the non-sso case becomes exhausting. 
 while the object size can be the same 32 bytes,  the code size may increase a lot , and the performance hit may be more noticeable. 
 
-while 64 byte object for the tunable sso size of  31 is not ideal, 
+while 64 byte object for the tunable sso size of  30 is not ideal, 
 its a compromise between  being very packed,
 or easier to write and execute. 
 
