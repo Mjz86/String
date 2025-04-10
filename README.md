@@ -269,7 +269,7 @@ ownership.
 
 # option for more dense tunable sso , fully constexpr friendly string variable,  but with code bloat:
 * the  `packed_string<N>` will be available in the next experimental release.
-
+* the   `packed_string<N~>` is one to one to `implace_string<N~>` , but uses the sso state instead of stack buffer to tune its sso, and has all the features of the main string, and is ABI compatible( in terms of move semantics , can be moved to a main string without accessing data outside the object ( if it was in sso , we may need to allocate if destination wasnt big enough) )  for the heap/stack/view states.
 it has a very dense layout,  its not a wrapper , but its cheaply convertible to a `implace_string<N+1>`, and therfore the main string. 
 ( although be careful that reducing sso size may  move the large string to heap).
 it uses a very packed layout comparable to the clang and fbstring implementation, 
@@ -395,9 +395,11 @@ in the lower than threashold case,buffer has no overhead but is still aligned to
  
 # Small String Optimization 
  * technicality,  tunable sso is the stack buffer optimization , but both of them have the same outcome, so they have the same name in this documentation. 
-
+ * the `packed_string<N>` sso is not a stack buffer,  its smallest sso is very big(=30bytes) for same object of 32bytes (=the msin object size) , this type is recommended for storage purposes.
 The 15 bytes of SSO capacity allows us to not allocate anything for small
 strings.
+
+
 
 # Copy on Write Optimization
 
