@@ -19,7 +19,7 @@ diffrence is due to constexpr's pointer comparason limitation.
 IF THIS FUNCTION GIVES AN ERROR IN CONSTEXPR GCC < 12 :
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074
 */
-MJZ_CX_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
+MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
                                   const char *const b_ptr_,
                                   uintlen_t b_len) noexcept {
   MJZ_IF_CONSTEVAL {
@@ -71,9 +71,11 @@ MJZ_CX_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
   }
 }
 
-MJZ_CX_FN char *memcpy_forward(char *dest, const char *src,
+MJZ_CX_AL_FN char *memcpy_forward(char *dest, const char *src,
                                uintlen_t len) noexcept {
-  MJZ_IFN_CONSTEVAL {
+  MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
+                       // the behavior is undefined. (NO! , len=0 defines this)
+    if (!len) return dest;
     return reinterpret_cast<char *>(
         ::std::memmove(reinterpret_cast<void *>(dest),
                        reinterpret_cast<const void *>(src), size_t(len)));
@@ -86,9 +88,11 @@ MJZ_CX_FN char *memcpy_forward(char *dest, const char *src,
   return dest;
 }
 
-MJZ_CX_FN char *memcpy_backward(char *dest, const char *src,
+MJZ_CX_AL_FN char *memcpy_backward(char *dest, const char *src,
                                 uintlen_t len) noexcept {
-  MJZ_IFN_CONSTEVAL {
+  MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
+                       // the behavior is undefined. (NO! , len=0 defines this)
+    if (!len) return dest;
     return reinterpret_cast<char *>(
         ::std::memmove(reinterpret_cast<void *>(dest),
                        reinterpret_cast<const void *>(src), size_t(len)));
@@ -101,9 +105,11 @@ MJZ_CX_FN char *memcpy_backward(char *dest, const char *src,
   return dest;
 }
 
-MJZ_CX_FN char *memomve_overlap(char *dest, const char *src,
+MJZ_CX_AL_FN char *memomve_overlap(char *dest, const char *src,
                                 uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
+      //If dest or src is a null pointer or invalid pointer, the behavior is undefined (NO! , len=0 defines this)
+    if (!len) return dest;
     return reinterpret_cast<char *>(
         ::std::memmove(reinterpret_cast<void *>(dest),
                        reinterpret_cast<const void *>(src), size_t(len)));
@@ -118,12 +124,7 @@ O(len) time complexity .
 NOTE:
 use memmove for potentialy overlaping memory.
 */
-MJZ_CX_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
-  MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char *>(
-        ::std::memcpy(reinterpret_cast<void *>(dest),
-                      reinterpret_cast<const void *>(src), size_t(len)));
-  }
+MJZ_CX_AL_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
   return memcpy_forward(dest, src, len);
 }
 
@@ -132,7 +133,7 @@ O(len) time complexity .
 NOTE:
 use memmove for potentialy overlaping memory.
 */
-MJZ_CX_FN char *memcpy_swap(char *dest, char *src, uintlen_t len) noexcept {
+MJZ_CX_AL_FN char *memcpy_swap(char *dest, char *src, uintlen_t len) noexcept {
   char *d = dest;
   char *s = src;
   while (len--) {
@@ -146,17 +147,17 @@ O(len^2)  time complexity in compile-time.
 NOTE:
 diffrence is due to constexpr's pointer comparason limitation.
 */
-MJZ_CX_FN char *memmove(char *const dest, const char *const src,
+MJZ_CX_AL_FN char *memmove(char *const dest, const char *const src,
                         const uintlen_t len) noexcept {
-  MJZ_IFN_CONSTEVAL {
-    return reinterpret_cast<char *>(
-        ::std::memmove(reinterpret_cast<void *>(dest),
-                       reinterpret_cast<const void *>(src), size_t(len)));
-  }
   const char *from = src;
   char *to = dest;
   if (from == to || len == 0) {
     return dest;
+  }
+  MJZ_IFN_CONSTEVAL {
+    return reinterpret_cast<char *>(
+        ::std::memmove(reinterpret_cast<void *>(dest),
+                       reinterpret_cast<const void *>(src), size_t(len)));
   }
   if (!memory_has_overlap(dest, len, src, len)) {
     return memcpy(dest, src, len);
@@ -195,7 +196,7 @@ O(len^2)  time complexity in compile-time.
 NOTE:
 diffrence is due to constexpr's pointer comparason limitation.
 */
-MJZ_CX_FN char *memmove_swap(char *const dest, char *const src,
+MJZ_CX_AL_FN char *memmove_swap(char *const dest, char *const src,
                              const uintlen_t len) noexcept {
   char *from = src;
   char *to = dest;
@@ -302,6 +303,10 @@ struct mjz_unique_cache_line_t {
   alignas(hardware_constructive_interference_size) char buffer
       [hardware_constructive_interference_size];
 };
+static_assert(
+    log2_ceil_of_val_create(hardware_constructive_interference_size) ==
+    log2_of_val_create(hardware_constructive_interference_size));
+
 
 template <uintlen_t N>
 MJZ_CX_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],

@@ -53,9 +53,16 @@
  *  log allocations in the allocators when using new.
  */
 
+
+#ifndef MJZ_LOG_ALLOC_ALLOCATIONS_
+#define MJZ_LOG_ALLOC_ALLOCATIONS_ false
+#endif  // !MJZ_LOG_ALLOC_ALLOCATIONS_
 #ifndef MJZ_LOG_NEW_ALLOCATIONS_
 #define MJZ_LOG_NEW_ALLOCATIONS_ false
 #endif  // !MJZ_LOG_NEW_ALLOCATIONS_
+ 
+#define MJZ_LOG_ALLOCATIONS_ \
+  (MJZ_LOG_NEW_ALLOCATIONS_ || MJZ_LOG_ALLOC_ALLOCATIONS_) 
 /*
  * dosent work in gcc :( , we shoud wait till c++26 to get
  * https://en.cppreference.com/w/cpp/language/structured_binding auto [...args]
@@ -526,7 +533,6 @@ active union member... IF the first statement is true
 #define MJZ_SASSERT(EXPRESTION_) \
   MJZ_MSASSERT(EXPRESTION_, "  requremets are not met ")
 
-#define MJZ_offsetof(type_, member_) uintptr_t(offsetof(type_, member_))
 
 #define MJZ_NUMBEROF(Array_) (sizeof(Array_) / sizeof(Array_[0]))
 

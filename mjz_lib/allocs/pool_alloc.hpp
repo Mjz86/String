@@ -163,7 +163,7 @@ struct pool_alloc_info_t {
         return false;
       }
       auto array = blk_state::template get_best_index_es<N>(
-          std::max(size, s.get_alignof_z()));
+          std::max(size, std::max(s.get_alignof_z(),s.size_multiplier)));
       for (uintlen_t i{0}; i < N; i++) {
         if (auto ret = Fn(array[i]); !!ret) {
           return ret;

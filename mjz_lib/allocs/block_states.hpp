@@ -11,26 +11,90 @@ struct blk_state_t {
     uintlen_t begin_index{};
     uintlen_t len{};
   };
+  struct blocks_ncx_info {
+    uintlen_t align_mask{};
+    const void *blocks_ptr{};
+    uintlen_t block_size{};
+    MJZ_CX_AL_FN bool is_aligned(uintlen_t i) const noexcept {
+      MJZ_IF_CONSTEVAL { return true; }
+      else {
+        uintlen_t ptr =
+            reinterpret_cast<uintptr_t>(blocks_ptr) + block_size * i;
+        return (~align_mask & ptr) == ptr;
+      }
+    }
+  };
+  using cache_as_t = char;
+  struct cache_t {
+    alignas(sizeof(cache_as_t)) char buffer[sizeof(cache_as_t)];
+  };
+  struct allocation_cache_t {
+    cache_t cache{};
+    uintlen_t num_blocks{};
+    uintlen_t num_bytes{};
+    uintlen_t num_lines{};
+    uintlen_t index_of_line{};
+    char *bits_of_block_aliveness_metadata_ptr{};
+    bool release{};
 
+    MJZ_NO_MV_NO_CPY(allocation_cache_t);
+    MJZ_CX_AL_FN allocation_cache_t(blk_state_t *This) noexcept
+        : allocation_cache_t(&std::as_const(*This)) {
+      release = true;
+    }
+    MJZ_CX_AL_FN allocation_cache_t(const blk_state_t *This) noexcept {
+      bits_of_block_aliveness_metadata_ptr =
+          This->bits_of_block_aliveness_metadata_ptr;
+      num_blocks = This->num_blocks;
+      num_bytes = (num_blocks / 8) + uintlen_t(!!(num_blocks % 8));
+      num_lines = (num_bytes / sizeof(cache)) +
+                  uintlen_t(!!(num_bytes % sizeof(cache)));
+      refresh(0);
+    }
+    MJZ_CX_AL_FN ~allocation_cache_t() noexcept { flush(); }
+    MJZ_CX_AL_FN void flush() noexcept {
+      if (!release) return;
+      uintlen_t real_i = index_of_line * sizeof(cache);
+      memcpy(&this->bits_of_block_aliveness_metadata_ptr[real_i], cache.buffer,
+             std::min(num_bytes - real_i, sizeof(cache)));
+    }
+    MJZ_CX_AL_FN void refresh(uintlen_t line_n) noexcept {
+      flush();
+      uintlen_t real_i = line_n * sizeof(cache);
+
+      memcpy(cache.buffer, &this->bits_of_block_aliveness_metadata_ptr[real_i],
+             std::min(num_bytes - real_i, sizeof(cache)));
+      index_of_line = line_n;
+    }
+    // no bounds checks!
+    MJZ_CX_AL_FN char &operator[](uintlen_t i) noexcept {
+      uintlen_t line_n = i / sizeof(cache);
+      if (line_n != index_of_line) MJZ_IS_UNLIKELY {
+          refresh(line_n);
+        }
+      return cache.buffer[i % sizeof(cache)];
+    }  // unsafe - no refresh
+    MJZ_CX_AL_FN char &operator()(uintlen_t i) noexcept {
+      return cache.buffer[i];
+    }
+  };
   template <class>
   friend class mjz_private_accessed_t;
 
  private:
-  MJZ_CX_FN
+  MJZ_CX_AL_FN
   block_range_t get_best_avalible_block_range(
-      bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
-          &&is_a_good_alignment,
+      bool is_best_fit, blocks_ncx_info info,
       uintlen_t min_number_of_blocks) const noexcept {
     block_range_t last_good_range{get_first_avalible_block_range(
-        is_best_fit, is_a_good_alignment, min_number_of_blocks, 0)};
+        is_best_fit, info, min_number_of_blocks, 0)};
     block_range_t best_fit_range{last_good_range};
     if (!is_best_fit) {
       return best_fit_range;
     }
     for (;;) {
       last_good_range = get_first_avalible_block_range(
-          is_best_fit, is_a_good_alignment, min_number_of_blocks,
+          is_best_fit, info, min_number_of_blocks,
           last_good_range.begin_index + last_good_range.len);
       if (!last_good_range.len) {
         return best_fit_range;
@@ -40,18 +104,16 @@ struct blk_state_t {
       }
     }
   }
-
-  MJZ_CX_FN
-  block_range_t get_first_avalible_block_range(
-      bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
-          &&is_a_good_alignment,
-      uintlen_t min_number_of_blocks,
-      const uintlen_t search_begin_index = 0) const noexcept {
+  /* can probably be more optimized by simd */ /* can probably be more optimized
+                                                  by simd */
+  MJZ_CX_AL_FN
+  block_range_t cx_get_first_avalible_block_range(
+      blocks_ncx_info info, bool is_best_fit, uintlen_t min_number_of_blocks,
+      const uintlen_t search_begin_index) const noexcept {
     uintlen_t index = search_begin_index;
-    const char *bits_begin = bits_of_block_aliveness_metadata_ptr;
+    allocation_cache_t bits_begin = this;
     auto align_the_block_at_index = [&]() noexcept {
-      for (; index < num_blocks && !is_a_good_alignment(index); index++);
+      for (; index < num_blocks && !info.is_aligned(index); index++);
       ;
       return index < num_blocks;
     };
@@ -61,7 +123,7 @@ struct blk_state_t {
     uintlen_t begin_index{index};
     if (is_best_fit) {
       while (index < num_blocks) {
-        if (!bool(bits_begin[index / 8] & char(1 << (index % 8)))) {
+        if (bool(bits_begin[index / 8] & char(1 << (index % 8)))) {
           index++;
           continue;
         }
@@ -88,25 +150,11 @@ struct blk_state_t {
     min_number_of_blocks--;
     uintlen_t num_blocks_til_now{0};
     while (index < num_blocks) {
-      bool hasnt_block = bool(bits_begin[index / 8] & char(1 << (index % 8)));
+      bool hasnt_block = !bool(bits_begin[index / 8] & char(1 << (index % 8)));
       index++;
       if (hasnt_block) {
-        MJZ_IF_CONSTEVAL {
-          for (; index < num_blocks && !is_a_good_alignment(index); index++);
-          ;
-        }
-        else {
-          /*
-           * invalid pointers(indexes) are passed , but they will never get
-           * derefrenced!!. also , this is increadably unsafe , beacuse if the
-           * is_a_good_alignment never returns true, this will loop forever.
-           * but this will probably just be an easy optimization considering
-           * valid uses.
-           */
-          for (; !is_a_good_alignment(index); index++);
-          ;
-        }
-
+        for (; index < num_blocks && !info.is_aligned(index); index++);
+        ;
         num_blocks_til_now = 0;
         begin_index = index;
         continue;
@@ -121,10 +169,32 @@ struct blk_state_t {
     }
     return {};
   }
+
   MJZ_CX_FN
+  block_range_t get_first_avalible_block_range(
+      bool is_best_fit, blocks_ncx_info info, uintlen_t min_number_of_blocks,
+      const uintlen_t search_begin_index = 0) const noexcept {
+#if 0
+        MJZ_IFN_CONSTEVAL {
+      bool is_already_aligned =
+          (info.block_size & info.align_mask) == info.align_mask;
+      is_already_aligned &= info.is_aligned(0);
+      if (!is_already_aligned) {
+        return ncx_get_first_avalible_block_range(info, min_number_of_blocks,
+                                                  search_begin_index);
+      }
+      return ncx_get_first_avalible_block_range(
+          blocks_ncx_info{}, min_number_of_blocks, search_begin_index);
+    }
+#endif
+    return cx_get_first_avalible_block_range(
+        info, is_best_fit, min_number_of_blocks, search_begin_index);
+  }
+  MJZ_CX_AL_FN
   block_range_t set_block_range_bits(const block_range_t range,
                                      bool val) noexcept {
-    char *bits_begin = bits_of_block_aliveness_metadata_ptr;
+    if (!range.len) return {};
+    allocation_cache_t bits_begin = this;
     uintlen_t index{range.begin_index};
     uintlen_t end_index{range.begin_index + range.len};
 
@@ -132,7 +202,7 @@ struct blk_state_t {
       auto &byte = bits_begin[index / 8];
       const auto mask = char(1 << (index % 8));
       byte &= ~mask;
-      byte |= val ? mask : 0;
+      byte |= val ? 0 : mask;
     }
     return range;
   }
@@ -146,20 +216,14 @@ struct blk_state_t {
   }
 
  public:
-  /*
-   * the is_a_good_alignment function must return true on the first byte of the
-   * returned block
-   */
   MJZ_CX_ND_FN
-  block_range_t alloc_block_range(
-      uintlen_t min_num_blocks, uintlen_t max_mum_blocks, bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
-          &&is_a_good_alignment) noexcept {
+  block_range_t alloc_block_range(uintlen_t min_num_blocks,
+                                  uintlen_t max_mum_blocks, bool is_best_fit,
+                                  blocks_ncx_info info) noexcept {
     if (min_num_blocks > max_mum_blocks) {
       return {};
     }
-    auto ret = get_best_avalible_block_range(is_best_fit, is_a_good_alignment,
-                                             min_num_blocks);
+    auto ret = get_best_avalible_block_range(is_best_fit, info, min_num_blocks);
     ret.len = std::min(ret.len, max_mum_blocks);
     if (!ret.len) {
       ret.begin_index = 0;
@@ -167,12 +231,10 @@ struct blk_state_t {
     return alloc_block_range(ret);
   }
   MJZ_CX_ND_FN
-  block_range_t alloc_block_range(
-      uintlen_t exact_num_blocks, bool is_best_fit,
-      callable_c<bool(uintlen_t begin_blocks_index) noexcept> auto
-          &&is_a_good_alignment) noexcept {
+  block_range_t alloc_block_range(uintlen_t exact_num_blocks, bool is_best_fit,
+                                  blocks_ncx_info info) noexcept {
     return alloc_block_range(exact_num_blocks, exact_num_blocks, is_best_fit,
-                             is_a_good_alignment);
+                             info);
   }
 
   MJZ_CX_FN
@@ -183,6 +245,8 @@ struct blk_state_t {
   void init() noexcept {
     memset(bits_of_block_aliveness_metadata_ptr,
            num_blocks / 8 + uintlen_t(bool(num_blocks % 8)), 0);
+    // the reason is that the last block's byte must be 1 only for its blocks
+    dealloc_block_range(block_range_t{.len = num_blocks});
   }
   template <bool do_mem_restart = false>
   MJZ_CX_FN success_t deinit() noexcept {
@@ -194,10 +258,10 @@ struct blk_state_t {
     if constexpr (!MJZ_IN_DEBUG_MODE) {
       MJZ_IFN_CONSTEVAL { return true; }
     }
-    auto ptr(bits_of_block_aliveness_metadata_ptr);
+    allocation_cache_t ptr = this;
     auto len(num_blocks / 8 + uintlen_t(bool(num_blocks % 8)));
     for (uintlen_t i{}; i < len; i++) {
-      if (ptr[i]) return false;
+      if (!ptr[i]) return false;
     }
     return true;
   }
@@ -330,6 +394,124 @@ struct blk_state_t {
       array[j] = temp[j].index;
     }
     return array;
+  }
+  struct byte_bits {
+    bool bit0 : 1;
+    bool bit1 : 1;
+    bool bit2 : 1;
+    bool bit3 : 1;
+    bool bit4 : 1;
+    bool bit5 : 1;
+    bool bit6 : 1;
+    bool bit7 : 1;
+  };
+  static_assert(sizeof(byte_bits) == 1);
+  //// unsafe
+  struct alingment_cache_t {
+    cache_t cache{};
+    uintlen_t num_blocks{};
+    uintlen_t num_bytes{};
+    uintlen_t num_lines{};
+    uintlen_t index_of_line{};
+    blocks_ncx_info info{};
+
+    MJZ_NO_MV_NO_CPY(alingment_cache_t);
+    MJZ_CX_AL_FN alingment_cache_t(const blk_state_t *This,
+                                   blocks_ncx_info info_) noexcept
+        : info(info_) {
+      num_blocks = This->num_blocks;
+      num_bytes = (num_blocks / 8) + uintlen_t(!!(num_blocks % 8));
+      num_lines = (num_bytes / sizeof(cache)) +
+                  uintlen_t(!!(num_bytes % sizeof(cache)));
+      refresh(0);
+    }
+
+    MJZ_CX_AL_FN void refresh(uintlen_t line_n) noexcept {
+      uintlen_t real_i = line_n * sizeof(cache) * 8;
+      for (auto &c : cache.buffer) {
+        byte_bits values{info.is_aligned(real_i++), info.is_aligned(real_i++),
+                         info.is_aligned(real_i++), info.is_aligned(real_i++),
+                         info.is_aligned(real_i++), info.is_aligned(real_i++),
+                         info.is_aligned(real_i++), info.is_aligned(real_i++)};
+        c = std::bit_cast<char>(values);
+      }
+      index_of_line = line_n;
+    }
+    // no bounds checks!
+    MJZ_CX_AL_FN char &operator()(uintlen_t i) noexcept {
+      return cache.buffer[i];
+    }
+  };
+  // this is a more brancless version
+  MJZ_CX_AL_FN block_range_t ncx_get_first_avalible_block_range(
+      blocks_ncx_info info, uintlen_t min_number_of_blocks,
+      const uintlen_t search_begin_index) const noexcept {
+    allocation_cache_t bits_begin = this;
+    alingment_cache_t good_alignment{this, info};
+    const uintlen_t cached_blocks = 8 * sizeof(cache_t);
+    const uintlen_t cached_bytes = sizeof(cache_t);
+    uintlen_t cache_index{search_begin_index / cached_blocks};
+    const uintlen_t cache_num{bits_begin.num_lines};
+    uintlen_t begin_index{cache_index * cached_blocks};
+    uintlen_t currant_index{begin_index};
+    uintlen_t index_in_cache{};
+    cache_t cache_result{};
+    {
+      uintlen_t begin_index_local{begin_index};
+      auto fnv = [&]() noexcept {
+        return search_begin_index <= begin_index_local++;
+      };
+      for (auto &c : cache_result.buffer) {
+        byte_bits values{fnv(), fnv(), fnv(), fnv(),
+                         fnv(), fnv(), fnv(), fnv()};
+        c = std::bit_cast<char>(values);
+      }
+    }
+    /* note that out of bounds are viewed like allocated blocks*/
+    while (true) {
+      for (auto &c : cache_result.buffer) {
+        c &= bits_begin(index_in_cache) | ~good_alignment(index_in_cache);
+        index_in_cache++;
+      }
+      index_in_cache = 0;
+      while (index_in_cache < cached_bytes) {
+        uint8_t free_blocks = uint8_t(cache_result.buffer[index_in_cache++]);
+        for (uint8_t i{}; i < 8; i++) {
+          /* branchless transformation go brrrrr*/
+          uintlen_t local_currant_index{currant_index},
+              local_begin_index{begin_index};
+          bool is_free = (free_blocks & 1);
+          free_blocks >>= 1;
+          bool return_if_not_free =
+              min_number_of_blocks <= currant_index - begin_index;
+          local_currant_index++;
+          local_begin_index = local_currant_index;
+          local_currant_index = alias_t<uintlen_t[2]>{
+              local_currant_index, currant_index}[return_if_not_free];
+          local_begin_index = alias_t<uintlen_t[2]>{
+              local_begin_index, begin_index}[return_if_not_free];
+
+          currant_index = alias_t<uintlen_t[2]>{local_currant_index,
+                                                currant_index + 1}[is_free];
+          begin_index =
+              alias_t<uintlen_t[2]>{local_begin_index, begin_index}[is_free];
+        }
+      }
+      if (min_number_of_blocks <= currant_index - begin_index) {
+        break;
+      }
+      cache_index++;
+      if (cache_index < cache_num) break;
+      bits_begin.refresh(cache_index);
+      good_alignment.refresh(cache_index);
+      for (auto &c : cache_result.buffer) {
+        c = uint8_t(-1);
+      }
+    }
+    if (min_number_of_blocks <= currant_index - begin_index) {
+      return {begin_index, currant_index - begin_index};
+    }
+    return {};
   }
 };
 };  // namespace mjz::allocs_ns

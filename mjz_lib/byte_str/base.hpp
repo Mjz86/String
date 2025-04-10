@@ -225,7 +225,7 @@ struct replace_flags_t {
     threaded_rf_block =
         std::max(hardware_destructive_interference_size, non_threaded_rf_block);
     MJZ_FCONSTANT(uintlen_t)
-    cow_threaded_threshold = threaded_rf_block * 5;
+    cow_threaded_threshold = threaded_rf_block * 4;
     if (!is_thread_safe) {
       return non_threaded_rf_block;
     }
@@ -264,7 +264,7 @@ struct base_string_view_t : void_struct_t {
   uintlen_t is_static : 1;
   uintlen_t encodings : 3;
   uintlen_t len : (sizeof(uintlen_t) * 8 - 5);
-  MJZ_CX_FN static base_string_view_t make(
+  MJZ_CX_AL_FN static base_string_view_t make(
       const char *ptr_, uintlen_t len_,
       encodings_e encodings_ = encodings_e::ascii, bool has_null_ = false,
       bool is_static_ = false) noexcept {

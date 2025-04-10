@@ -79,7 +79,6 @@ struct bucket_alloc_info_t {
     }
     MJZ_CX_ND_FN block_info just_allocate(uintlen_t size,
                                           size_t alloc_alignment,
-                                          size_t max_alignment_offset,
                                           bool is_best_fit) noexcept {
       size_t align_val = log2_of_val_to_val(m.log2_align);
       if (!(m.blk_size && alloc_alignment && size && align_val)) return {};
@@ -87,30 +86,13 @@ struct bucket_alloc_info_t {
       MJZ_IF_CONSTEVAL {
         if (!dosnt_need_realign) return {};
       }
-      auto do_the_alloc = [&](auto &&f) noexcept {
-        return m.blk_states.alloc_block_range(
-            size / m.blk_size + uintlen_t(!!(size % m.blk_size)), is_best_fit,
-            f);
-      };
-      uintptr_t data_buffer_uint{};
-      uintptr_t block_size_uint{};
-      uintptr_t offset_uint{};
-      MJZ_IFN_CONSTEVAL {
-        data_buffer_uint =
-            reinterpret_cast<uintptr_t>(m.data_buffer) % alloc_alignment;
-        offset_uint = (max_alignment_offset) % alloc_alignment;
-        block_size_uint = m.blk_size % alloc_alignment;
-      }
-      block_range_t range = [&]() noexcept {
-        if (dosnt_need_realign || MJZ_STD_is_constant_evaluated_FUNCTION_RET) {
-          return do_the_alloc([](auto) noexcept { return true; });
-        } else {
-          return do_the_alloc([=](uintlen_t block_index) noexcept -> bool {
-            return ((data_buffer_uint + block_index * block_size_uint) %
-                    alloc_alignment) < offset_uint;
+      block_range_t range = m.blk_states.alloc_block_range(
+          size / m.blk_size + uintlen_t(!!(size % m.blk_size)), is_best_fit,
+          alias_t<typename blk_state::blocks_ncx_info>{
+              .align_mask{alloc_alignment - 1},
+              .blocks_ptr{m.data_buffer},
+              .block_size{m.blk_size},
           });
-        };
-      }();
       if (!range.len) {
         return {};
       }
@@ -132,7 +114,7 @@ struct bucket_alloc_info_t {
    public:
     MJZ_CX_FN block_info allocate(MJZ_MAYBE_UNUSED uintlen_t minsize,
                                   MJZ_MAYBE_UNUSED alloc_info ai) noexcept {
-      auto l = lock_gaurd(ai.is_thread_safe);
+      auto l = lock_gaurd(ai.cant_bother_with_good_size().is_thread_safe);
       if (!l) return {};
       block_info ret{};
       bool needs_realignment{m.log2_align < ai.log2_of_align_val};
@@ -140,10 +122,9 @@ struct bucket_alloc_info_t {
         return ret;
       }
       // ptr  shall point in the first block for a funcioning destructor.
-      auto align_v(ai.get_alignof_z());
+      auto align_v =  ai.get_alignof_z();
       ret =
-          just_allocate(minsize + (needs_realignment ? m.blk_size : 0), align_v,
-                        uintlen_t(m.blk_size) - 1ULL, ai.uses_best_fit);
+          just_allocate(minsize + (needs_realignment ? m.blk_size : 0), align_v,ai.uses_best_fit);
       if (!ret.ptr) {
         return ret;
       }
@@ -159,7 +140,7 @@ struct bucket_alloc_info_t {
     MJZ_CX_FN
     success_t deallocate(MJZ_MAYBE_UNUSED block_info &&blk,
                          MJZ_MAYBE_UNUSED alloc_info ai) noexcept {
-      auto l = lock_gaurd(ai.is_thread_safe);
+      auto l = lock_gaurd(ai.cant_bother_with_good_size().is_thread_safe);
       if (!l) return {};
       if (!blk.ptr) return false;
       bool needs_realignment{m.log2_align < ai.log2_of_align_val};

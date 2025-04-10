@@ -1,10 +1,11 @@
 
 #include "../optional_ref.hpp"
 #include "../versions.hpp"
-#if MJZ_LOG_NEW_ALLOCATIONS_
+#if MJZ_LOG_ALLOCATIONS_
 #include "../outputs.hpp"
 #endif
 #include <new>
+#include <numeric>
 #ifndef MJZ_ALLOCS_alloc_refs_FILE_HPP_
 #define MJZ_ALLOCS_alloc_refs_FILE_HPP_
 
@@ -36,6 +37,7 @@ struct alloc_info_t {
   }
 
  public:
+  uintlen_t size_multiplier{1};
   uint16_t log2_of_align_val : 6 {0};
   uint16_t time_threashhold : 2 {3};
   uint16_t uses_upstream_forwarding : 1 {1};
@@ -48,6 +50,17 @@ struct alloc_info_t {
   uint16_t can_do_allocator_regrowth : 1 {1};
 
  public:
+  template <class T>
+  MJZ_CX_ND_FN alloc_info_t &consider_type(T *) noexcept {
+    size_multiplier = std::gcd(size_multiplier, sizeof(T));
+    set_alignof_z(std::max(get_alignof_z(), alignof(T)));
+    return *this;
+  }
+  MJZ_CX_ND_FN alloc_info_t &cant_bother_with_good_size() noexcept {
+    allocate_exactly_minsize |=
+        std::gcd(size_multiplier, get_alignof_z()) != get_alignof_z();
+    return *this;
+  }
   MJZ_CX_ND_FN
   size_t get_alignof_z() const noexcept {
     return log2_of_align_val_to_val_z(log2_of_align_val);
@@ -214,15 +227,20 @@ struct alloc_vtable_t {
   typename funcs_t::is_equal is_equal;
   typename funcs_t::is_owner is_owner;
   typename funcs_t::handle handle;
+
+  MJZ_CX_FN std::strong_ordering operator<=>(
+      const alloc_vtable_t &) const noexcept = default;
+  MJZ_CX_FN bool operator==(
+      const alloc_vtable_t &) const noexcept = default;
+
 };
 
 template <version_t version_v>
 struct alloc_base_t : void_struct_t {
- const alloc_vtable_t<version_v> vtable{};
+  const alloc_vtable_t<version_v> vtable{};
   MJZ_NO_MV_NO_CPY(alloc_base_t);
- MJZ_CX_FN alloc_base_t(const alloc_vtable_t<version_v> &vtable_val) noexcept
+  MJZ_CX_FN alloc_base_t(const alloc_vtable_t<version_v> &vtable_val) noexcept
       : vtable(vtable_val) {}
-
 };
 
 template <version_t version_v>
@@ -245,7 +263,7 @@ class alloc_base_ref_t {
 
  public:
   MJZ_CX_FN const alloc_vtable_t<version_v> &get_vtbl() const noexcept {
-    asserts(asserts.assume_rn, !!this->ref); 
+    asserts(asserts.assume_rn, !!this->ref);
     return get_ref().vtable;
   }
   MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
@@ -305,13 +323,12 @@ class alloc_base_ref_t {
   template <class>
   friend class mjz_private_accessed_t;
 
- protected: 
-
+ protected:
   MJZ_CX_FN
   success_t destroy_obj() noexcept {
     if (!this->ref || !get_vtbl().ref_call) return !get_vtbl().ref_call;
     MJZ_RELEASE { this->ref = nullptr; };
-     run(get_vtbl().ref_call,false);
+    run(get_vtbl().ref_call, false);
     return true;
   }
   MJZ_CX_FN
@@ -320,7 +337,6 @@ class alloc_base_ref_t {
     run(get_vtbl().ref_call, true);
     return true;
   }
-  
 
  public:
   MJZ_CX_ND_FN auto to_raw(bool add_ref_count) noexcept
@@ -356,7 +372,7 @@ class alloc_base_ref_t {
         block_info blk{};
         blk.length = minsize;
         run(get_vtbl().alloc_call, blk, ai);
-#if MJZ_LOG_NEW_ALLOCATIONS_
+#if MJZ_LOG_ALLOC_ALLOCATIONS_
         mjz_debug_cout::println("[alloc:", blk.length, "]");
 #endif
         return blk;
@@ -383,11 +399,11 @@ class alloc_base_ref_t {
     if (!blk.ptr) return !blk.length;
     if (this->ref && get_vtbl().alloc_call)
       return [&]() noexcept {
-#if MJZ_LOG_NEW_ALLOCATIONS_
+#if MJZ_LOG_ALLOC_ALLOCATIONS_
         mjz_debug_cout::println("[dealloc:", blk.length, "]");
 #endif
         run(get_vtbl().alloc_call, blk, ai);
-       blk = block_info{};
+        blk = block_info{};
         return true;
       }();
     MJZ_IFN_CONSTEVAL {
@@ -611,8 +627,7 @@ class alloc_base_ref_t {
   template <typename T>
   MJZ_CX_ND_FN static alloc_info preapare_strategy(
       alloc_info strategy) noexcept {
-    return strategy.set_alignof_z(
-        std::max(strategy.get_alignof_z(), alignof(T)));
+    return strategy.consider_type(alias_t<T *>{});
   }
 };
 

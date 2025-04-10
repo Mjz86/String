@@ -15,7 +15,10 @@ struct byte_traits_t {
   using enum floating_format_e;
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(auto) npos {(uintlen_t(-1) >> 8) + 1 };
+  MJZ_CONSTANT(auto)
+  npos {
+    std::min((uintlen_t(-1) >> 8) + 1, std_view_max_size)
+  };
 
   MJZ_CX_ND_FN intlen_t pv_compare(const char *rhs, const char *lhs,
                                    uintlen_t len) const noexcept {

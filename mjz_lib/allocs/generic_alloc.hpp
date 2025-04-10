@@ -35,18 +35,29 @@ struct generic_alloc_t : alloc_base_t<version_v> {
     MJZ_CX_FN data_u_t() noexcept {}
     MJZ_DISABLE_WANINGS_END_;
   };
+  data_u_t data{};
   alloc_ref upstream{};
   /*
    * the first bit is used to determine if its heap allocated or not.
    */
-  uintlen_t reference_count{};
-  data_u_t data{};
+  MJZ_DISABLE_ALL_WANINGS_START_;
+  alignas(hardware_destructive_interference_size)  uintlen_t reference_count{};
+  MJZ_DISABLE_ALL_WANINGS_END_;
+  MJZ_CX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
+    if (fast_table) {
+      return {&alloc_call, nullptr, Const_inequals ? nullptr : &is_equal,
+              &is_owner, nullptr};
+    } else {
+      return {&alloc_call, &ref_call, Const_inequals ? nullptr : &is_equal,
+              &is_owner, nullptr};
+    }
+  }
 
  public:
   template <partial_same_as<generic_alloc_init_t> T>
   MJZ_CX_FN generic_alloc_t(alloc_ref &&upstream_alloc, T &&ai,
                             bool fast_table = false) noexcept
-      : alloc_base{*(fast_table ? &vt_stack_obj : &vt_obj)},
+      : alloc_base{vtable_val_f(fast_table)},
         upstream{std::move(upstream_alloc)} {
     std::construct_at(&data.obj, std::forward<T>(ai));
   }
@@ -148,7 +159,7 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   alloc_relations_e static is_equal(const alloc_base *This,
                                     const alloc_ref &other) noexcept {
     if (This == other.get_ptr()) return alloc_relations_e::equal;
-    if (!other || &other.get_vtbl() != &vt_obj || inequals(other, This)) {
+    if (!other || This->vtable != other .get_vtbl() || inequals(other, This)) {
       return alloc_relations_e::none;
     }
     return alloc_relations_e::equal;
@@ -196,10 +207,10 @@ struct generic_alloc_t : alloc_base_t<version_v> {
       rc.fetch_add(2, std::memory_order_acquire);
       return;
     }
-    if (2<=rc.fetch_sub(2, std::memory_order_acquire)) {
+    if (2 <= rc.fetch_sub(2, std::memory_order_acquire)) {
       return;
-    } 
-    if (rc.load(std::memory_order_relaxed) == 1) { 
+    }
+    if (rc.load(std::memory_order_relaxed) == 1) {
       std::destroy_at(This);
       As(This).upstream.deallocate(
           blk_t_{std::addressof(As(This)), 1},
@@ -247,13 +258,6 @@ struct generic_alloc_t : alloc_base_t<version_v> {
  private:
   MJZ_CX_FN auto &&get() noexcept { return *std::launder(&data.obj); }
   MJZ_CX_FN auto &&get() const noexcept { return *std::launder(&data.obj); }
-
-  MJZ_CONSTANT(alloc_vtable)
-  vt_obj{&alloc_call, &ref_call, Const_inequals ? nullptr : &is_equal,
-         &is_owner, nullptr};
-  MJZ_CONSTANT(alloc_vtable)
-  vt_stack_obj{&alloc_call, nullptr, Const_inequals ? nullptr : &is_equal,
-               &is_owner, nullptr};
 };
 
 template <version_t version_v>

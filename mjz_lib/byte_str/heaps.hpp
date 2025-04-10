@@ -23,11 +23,17 @@ class str_heap_manager_t {
     uintlen_t heap_data_size{};
   } m;
 
-  MJZ_CX_AL_FN allocs_ns::alloc_info_t<version_v> alloc_info_v() const noexcept {
+  MJZ_CX_AL_FN allocs_ns::alloc_info_t<version_v> alloc_info_v()
+      const noexcept {
     allocs_ns::alloc_info_t<version_v> info{};
     if (m.is_threaded) {
       info.make_threaded();
+      info.size_multiplier = threaded_rf_block;
+    } else {
+      info.size_multiplier = non_threaded_rf_block;
+      info.is_thread_safe = 0;
     }
+    info.uses_best_fit = false;
     info.set_alignof_z(non_threaded_rf_block);
     MJZ_IFN_CONSTEVAL {
       if (m.is_threaded) {
@@ -49,7 +55,8 @@ class str_heap_manager_t {
           refcr{*var},
           is_threaded{m.is_threaded},
           is_owenrized{m.is_owenrized} {}
-    MJZ_CX_AL_FN auto perform_ref(auto &&Lmabda_th, auto &&Lmabda_nth) noexcept {
+    MJZ_CX_AL_FN auto perform_ref(auto &&Lmabda_th,
+                                  auto &&Lmabda_nth) noexcept {
       if (is_threaded && !is_owenrized) {
         return Lmabda_th(refcr);
       } else {
@@ -76,7 +83,7 @@ class str_heap_manager_t {
   threaded_rf_block =
       std::max(hardware_destructive_interference_size, non_threaded_rf_block);
   MJZ_CONSTANT(uintlen_t)
-  cow_threaded_threshold = threaded_rf_block * 5;
+  cow_threaded_threshold = threaded_rf_block * 4;
 
  public:
   MJZ_NO_CPY(str_heap_manager_t);
@@ -93,13 +100,20 @@ class str_heap_manager_t {
     }
     if (!min_size) return true;
     if (m.is_threaded) {
-      if (cow_threaded_threshold < min_size + threaded_rf_block) {
-        min_size = std::max(min_size, cow_threaded_threshold);
+      min_size = (min_size / threaded_rf_block) +
+                 uintlen_t(!!(min_size % threaded_rf_block));
+      min_size *= threaded_rf_block;
+      if (cow_threaded_threshold < min_size) { 
         min_size += threaded_rf_block;
       }
     } else {
+      min_size = (min_size / non_threaded_rf_block) +
+                 uintlen_t(!!(min_size % non_threaded_rf_block));
+      min_size *= non_threaded_rf_block;
       min_size += non_threaded_rf_block;
     }
+
+
     if (round_up) {
       constexpr uint8_t round_up_min_ratio_pow{2};
       constexpr uint8_t round_up_min_pow{5};
@@ -147,14 +161,14 @@ class str_heap_manager_t {
   }
   MJZ_CX_AL_FN void must_free() noexcept { asserts(asserts.assume_rn, free()); }
   MJZ_CX_AL_FN uintlen_t buffer_overhead() const noexcept {
-    if (!*this) return 0;
-    if (!m.is_threaded) {
-      return non_threaded_rf_block;
-    }
-    if (cow_threaded_threshold < m.heap_data_size) {
-      return threaded_rf_block;
-    }
-    return 0;
+    bool is_nfull = !*this;
+    bool is_cow = cow_threaded_threshold < m.heap_data_size;
+    bool is_threaded = m.is_threaded;
+    uintlen_t awnser[2][2][2]{{{non_threaded_rf_block, non_threaded_rf_block},
+                               {0, threaded_rf_block}},
+                              {}};
+    // branch-less
+    return awnser[is_nfull][is_threaded][is_cow];
   }
   MJZ_CX_AL_FN char *get_heap_begin() const noexcept {
     if (!m.heap_data_ptr) return nullptr;
@@ -223,8 +237,8 @@ class str_heap_manager_t {
     refcr_t ref_count{*var};
     return (ref_count).load(std::memory_order_acquire) < 2;
   }
- public:
 
+ public:
   MJZ_CX_FN bool is_owner() const noexcept {
     if (!can_add_shareholder()) return !!*this;
     if (m.is_owenrized) return true;
@@ -239,8 +253,8 @@ class str_heap_manager_t {
                },
                [](auto &ref) noexcept -> uintlen_t { return --ref; }) < 1;
   }
- public:
 
+ public:
   MJZ_CX_AL_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
     if (!*this) return false;
     if (m.is_owenrized) return true;
@@ -251,22 +265,23 @@ class str_heap_manager_t {
     return remove_shareholder_then_check_has_no_owner_heap();
   }
 
-  MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
-                               bool is_owenrized_) noexcept
+  MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc,
+                                  bool is_threaded_,
+                                  bool is_owenrized_) noexcept
       : m{&alloc, is_threaded_, true, is_owenrized_} {}
-  MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
-                               bool is_owenrized_, uintlen_t min_size) noexcept
+  MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc,
+                                  bool is_threaded_, bool is_owenrized_,
+                                  uintlen_t min_size) noexcept
       : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
     malloc(min_size);
   }
-  MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc, bool is_threaded_,
-                               bool is_owenrized_,
-                               bool add_rc_on_manager_construction,
-                               bool reduce_rc_on_manager_destruction,
-                               char *heap_begin,
-                               uintlen_t capacity = 0) noexcept
+  MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc,
+                                  bool is_threaded_, bool is_owenrized_,
+                                  bool add_rc_on_manager_construction,
+                                  bool reduce_rc_on_manager_destruction,
+                                  char *heap_begin,
+                                  uintlen_t capacity = 0) noexcept
       : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
-    if (!heap_begin || !capacity) return;
     m.heap_data_ptr = std::assume_aligned<non_threaded_rf_block>(heap_begin);
     m.heap_data_size = capacity;
     m.heap_data_size += buffer_overhead();
@@ -274,11 +289,13 @@ class str_heap_manager_t {
     if (add_rc_on_manager_construction) {
       add_shareholder();
     }
+    asserts(asserts.assume_rn,!heap_begin == !capacity);
   }
 
   MJZ_CX_AL_FN str_heap_manager_t(str_heap_manager_t &&obj) noexcept
       : m{std::exchange(obj.m, m_t{obj.m.alloc_ref, obj.m.is_threaded})} {}
-  MJZ_CX_AL_FN str_heap_manager_t &operator=(str_heap_manager_t &&obj) noexcept {
+  MJZ_CX_AL_FN str_heap_manager_t &operator=(
+      str_heap_manager_t &&obj) noexcept {
     must_free();
     m = std::exchange(obj.m, m_t{obj.m.alloc_ref, obj.m.is_threaded});
   }

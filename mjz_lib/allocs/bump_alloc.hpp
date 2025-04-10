@@ -59,7 +59,8 @@ struct stack_alloc_t {
         return ret;
       }
 
-      auto align_v = strategy.get_alignof_z();
+      auto align_v = strategy.cant_bother_with_good_size().get_alignof_z(); 
+          
       if (!strategy.uses_munual_alignment && align_v < 2) {
         return ret;
       }
