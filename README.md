@@ -566,15 +566,23 @@ this effectively kills cow for things that would suffer from it.
 - why you might choose ownerized:
 
       * mutable api :
+      
       we have a string,  therfore we own and can modify it.
-      * we wont ever trash any chaches:
+    
+     * we wont ever trash any chaches:
+  
       we might need a bigger and fragmented memory, 
       but we never trashed the cache of the other core.
-      * more inlining in trivial cases:
+ 
+     * more inlining in trivial cases:
+     
       no code for reference counting makes inlining easier. 
-     * i work on numa(multi-die, non uniform memory architecture)  systems :
+ 
+    * i work on numa(multi-die, non uniform memory architecture)  systems :
+    
        if this is your point , i would consider watching the "Unlocking Modern CPU Power - Next-Gen C++ Optimization Techniques - Fedor G Pikus - C++Now 2024 ", 
        and also , see if you can use only a single die , usually a single die is good enough,  and also , if not , you can always use `always_ownerize ` on runtime. 
+       also see if the threashold can be adjusted to  your personal needs.
 
 # future versions:
 
