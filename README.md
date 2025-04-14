@@ -690,7 +690,13 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
  - will eventually get rope counterpart. 
  - very few allocations in common single threaded use.
  - tunable sso.
- -  no null termination requirement unless specified. 
+ -  no null termination requirement unless specified.
+ - the `implace_string<N>` ( stack buffer wrapper that takes care of  lifetime management of its stack buffer member( RAII)) is a safe alternative to `char[N]` in C, because it will never overflow,  and its lifetime is granteed, also it has a string interface. 
+ - no `strlen` is used in the code ,to make a string,  the length amd encoding must be specified,  this is to ensure safety,  the litteral operators `u8""_str` and `""_str` help to make the code easy and safe for most use cases.
+ - Branchless access to all string information.
+ - constexpr friendly and noexcept, all functionality is completely constexpr friendly and noexcept ( excluding the friend shift operators of standard `cin`, and `cout`)
+ 
+ 
  
  
  
@@ -704,6 +710,9 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
  - another string library to consider or manage. 
 
 
+ -  just something to point out :
+ i will not reduce complexity unless its provable to be faster ,
+ if you want a simple design,  go use the standard string.
 
 
 # Extensions:
