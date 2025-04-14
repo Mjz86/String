@@ -34,6 +34,12 @@ struct properties_t {
   
   // note that the thread-safey guarantees are like fbstring when this is true
   std::optional<bool> is_threaded{};
+enum class align_direction_e : char {
+  relaxed = 0,
+  center = 1,
+  front = 2,
+  back = 3
+}align;
 };
 // template pram 
 <properties>// determine if dome grantees can be made to improve performance because of edge case reduction,  and to add some api components like `c_str` or mutatable iteration. 
