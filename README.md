@@ -202,8 +202,8 @@ just  don't make the string object too large.
 
 ## stack buffer optimization ( runtime sso tuning) ( advanced users):
 - use the  tunable sso  feature for a better quality of life , it has more safety.
-- if codd bloat of the main tunable sso is a concern , then use the `implace_string`.
-
+- if code bloat of the main tunable sso is a concern , then use the `implace_string`.
+- if the stack buffer is not big enough,  unlike in C , we do not overflow,  but we allocate on the heap , this ensures safety that C did not have in its stack buffers ( char arrays in C are kinda just stack buffers) 
 By using a stack buffer, you ensure that no allocation occurs as long as the
 buffer is big enough. If not, allocation may occur. The users must ensure
 that the buffer outlives the string object and the objects that it moved to or
@@ -214,7 +214,6 @@ obvious reasons. Also, this is not checked; it's raw performance of a span of
 chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
-
 
 ### what is the type of the owner?  ( standard and custom string compatibility outside of the mjz library)( next experimental release)( another wrapper):
  * this feature is  currently not implemented, but after the implementation,  this should be a safe to use feature. 
