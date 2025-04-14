@@ -647,6 +647,42 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
 
 
 
+## the benefits of this design and the shortcomings:
+
+ - designed for resources constrained environments .
+ - very low fragmentation and high memory efficiency when configured correctly. 
+ - having cow when a large portion of string operations are read-only.
+ - disabling cow when its not beneficial. 
+ - not being a bag of bytes. 
+ - all of the functions and implementations are noexcept , the allocator are not allowed to throw exceptions.
+ - having the ability to make the most optimal decisions on the fly.
+ - being extensible. 
+ - the library is header only and works on 3 major compilers.
+ - the Allocators are generally the best it can get before going into heavy template land.
+ - my design is for modorn hardware, but its also easy to use on embedded platforms ( my esp32 project).
+ - very big sso ( 30 is a big size for sso).
+ - can use stack buffers if the user can manage it.
+ - (for those in cpp : not written in rust)
+ - will eventually get unicode support .
+ - will eventually get rope counterpart. 
+ - very few allocations in common single threaded use.
+ - tunable sso.
+ -  no null termination requirement unless specified. 
+ 
+ 
+ 
+ - the code is "hard to read".
+ - not a standard component.   
+ - currently not popular.
+ - if used without cow , many of the template code is not used but parsed by the compiler ( the implementation uses `if constexpr`  to reduce unnecessary code gen).
+ - not the simplest string in the world. 
+ - (for those in rust : not written in rust)
+ - cow threshold can be used at runtime to configure the amout of copying the string should do in multithreaded environments. 
+ - another string library to consider or manage. 
+
+
+
+
 # Extensions:
 
 in my library, i have a fmt like format library, to generate these strings ,
