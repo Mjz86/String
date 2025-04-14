@@ -550,10 +550,10 @@ this effectively kills cow for things that would suffer from it.
      its  constant time amortized for many operations,
      and the key to its success is sharing the substrings. 
 
-      * const is what i need:
+    * const is what i need:
        most of the time , a non mutable api is what we need.
        
-       * you can always pick the best threashold ( even at runtime when you create the allocator):
+    * you can always pick the best threashold ( even at runtime when you create the allocator):
        by using the configuration options, 
        there are many ways to pick a threashold other than 256.
        this way , you may even use cow in numa systems, 
@@ -564,6 +564,7 @@ this effectively kills cow for things that would suffer from it.
        
        
 - why you might choose ownerized:
+
       * mutable api :
       we have a string,  therfore we own and can modify it.
       * we wont ever trash any chaches:
