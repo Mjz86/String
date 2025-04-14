@@ -779,52 +779,76 @@ You may give feedback in:
 **References and Inspirations:**
 - CppCon 2015： Andrei Alexandrescu “std：：allocator...” :
  [https://www.youtube.com/watch?v=LIb3L4vKZ7U](https://www.youtube.com/watch?v=LIb3L4vKZ7U)
+
 - CppCon 2017： John Lakos “Local ('Arena') Memory Allocators (part 1&2 of 2)” :
  [https://www.youtube.com/watch?v=nZNd5FjSquk](https://www.youtube.com/watch?v=nZNd5FjSquk)
  [https://www.youtube.com/watch?v=CFzuFNSpycI](https://www.youtube.com/watch?v=CFzuFNSpycI)
+
 - legacy cow vs sso in the standard  ( old video):
   [https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF](https://youtu.be/OMbwbXZWtDM?si=eeu8WQdb1CuwpxIF)
+  
 - All Rust string types explained :
   [https://www.youtube.com/watch?v=CpvzeyzgQdw](https://www.youtube.com/watch?v=CpvzeyzgQdw)
+  
 - Learn about the cache:
   [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
+  
 - CppCon 2016： Timur Doumler “Want fast C++？ Know your hardware!＂:
   [https://www.youtube.com/watch?v=BP6NxVxDQIs](https://www.youtube.com/watch?v=BP6NxVxDQIs)
+  
 - what does  atomic do to the cache | CppCon 2017： Fedor Pikus “C++ atomics, from basic to advanced.  What do they really do？” :
   [https://www.youtube.com/watch?v=ZQFzMfHIxng](https://www.youtube.com/watch?v=ZQFzMfHIxng)
+  
 -  about branch prediction, multiple die systems ,false sharing | Unlocking Modern CPU Power - Next-Gen C++ Optimization Techniques - Fedor G Pikus - C++Now 2024 :
   [https://www.youtube.com/watch?v=wGSSUSeaLgA](https://www.youtube.com/watch?v=wGSSUSeaLgA)
+
 - Branchless Programming in C++ - Fedor Pikus - CppCon 2021 :
 [https://youtube.com/watch?v=g-WPhYREFjk&si=9c_haYLVkI0GOcr_](https://youtube.com/watch?v=g-WPhYREFjk&si=9c_haYLVkI0GOcr_)
+
 -Taking a Byte Out of C++ - Avoiding Punning by Starting Lifetimes - Robert Leahy - CppCon 2022:
 [https://www.youtube.com/watch?v=pbkQG09grFw](https://www.youtube.com/watch?v=pbkQG09grFw)
+
 - CppCon 2017： P. McKenney, M. Michael & M. Wong “Is Parallel Programming still hard？ PART 1&2 of 2” :
 [https://www.youtube.com/watch?v=YM8Xy6oKVQg](https://www.youtube.com/watch?v=YM8Xy6oKVQg)
 [https://www.youtube.com/watch?v=74QjNwYAJ7M](https://www.youtube.com/watch?v=74QjNwYAJ7M)
+
 -Non-Uniform Memory Architecture (NUMA)： A Nearly Unfathomable Morass of Arcana - Fedor Pikus  CppNow :
 [https://www.youtube.com/watch?v=f0ZKBusa4CI](https://www.youtube.com/watch?v=f0ZKBusa4CI)
+
 - String view usage:
   [https://www.youtube.com/watch?v=PEvkBmuMIr8](https://www.youtube.com/watch?v=PEvkBmuMIr8)
+  
 - `std::basic_string`:
   [https://en.cppreference.com/w/cpp/string/basic_string](https://en.cppreference.com/w/cpp/string/basic_string)
+  
 - `std::basic_string_view`:
   [https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
+  
 - CppCon 2017: Barbara Geller & Ansel Sermersheim “Unicode Strings: Why the
   Implementation Matters”:
   [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
+  
 - CppCon 2016: Nicholas Ormrod “The strange details of std::string at
   Facebook”:
   [https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
+  
 - Optimizing A String Class for Computer Graphics in Cpp - Zander Majercik,
   Morgan McGuire CppCon 22:
   [https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
+  
 - CppCon 2018: Victor Ciura “Enough string_view to Hang Ourselves”:
   [https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
+  
 - Postmodern immutable data structures:
   [https://www.youtube.com/watch?v=sPhpelUfu8Q](https://www.youtube.com/watch?v=sPhpelUfu8Q)
+  
 - strings 1 - Why COW is ungood for std string\strings 1 - Why COW is
   ungood for std string:
   [https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755](https://gist.github.com/alf-p-steinbach/c53794c3711eb74e7558bb514204e755)
+
+- FBString:
+ [https://github.com/facebook/folly/blob/main/folly/docs/FBString.md](https://github.com/facebook/folly/blob/main/folly/docs/FBString.md)
+
 - lib format :
   [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
 
