@@ -1,4 +1,5 @@
 
+
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -569,6 +570,17 @@ this effectively kills cow for things that would suffer from it.
        the only thing is that after an allocator object got created, you cant configure more .
        but this is not much of a limitation,  it is seen in the standard that memory resource objects only configure at creation. 
        
+    * a carefully chosen threashold will improve performance in many cases:
+       cow is not used when its not optimal, 
+       synchronization and reference counting is not even presented below the threashold, 
+       cost of these optimizations tends to be large , but when they are not preformed,  they eont cost anything, 
+       especially because most branches are predictable,  and in the case that  cow is used  ,
+       the length of the string would already have been too large to begin with , and the memcpy alone would cost more than some cache misses. 
+       the key here is to choose the best threashold for your specific allocator. 
+
+
+  
+    
 - why you might choose ownerized:
  
      * mutable api :
@@ -724,7 +736,31 @@ then use it.
   it currently lacks unicode support,  but is encoding aware ( but non ascii is currently an encoding mismatch error )
  
  
+ # my default recommendation( usually good enough) :
+   i recommend to use the following  as default strings to go to:
 
+ - mutable(=owerized, without cow)  string with relaxed thread-safety ( nullopt) ,  without null terminator,   with 30byte sso , and no allocator , and relaxed direction alignment .
+ 
+  this is for changing the string like normal.  
+ 
+ - immutable (= with cow ) string with relaxed thread-safety ( nullopt) ,  without null terminator,   with 30byte sso , and no allocator and relaxed direction alignment .
+ 
+ this is like a string slice in rust , or a string view ,
+ but the flexibility of storing this without being bound by its source is good.
+
+- and in cases where you know you dont need more : pure string view.
+
+- the thread-safe cow threashold being 256( like fbstring).
+ 
+ 
+ ### why is this my recommendation?
+ because usually this is good enough. 
+ but if you suspected some problems with allocation or contention, 
+ then i recommend the use of the custom Allocators , or just use ownerized. 
+ usually the 30bytes of sso and `implace_string` is sufficient for most allocation bottlenecks.  
+ 
+ 
+ 
 # where would you place this:
 
 - mutable owner:
