@@ -1,5 +1,4 @@
 
-
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -87,9 +86,16 @@ The encoding flags are for knowing the encoding of the stored data.
 The heap block can be thought of as:
 
 ```c++
-struct heap_alloc_t /* not a type , just a layout mapped to the allocated block*/{
+union heap_alloc_t /* not a type , just a layout mapped to the allocated character block, this is a diagram */{
+struct can_share_true_t{
 size_t  reference_count;
+char padding [is_threaded?8-std::hardware_destructive_interference_size:0];
  alignas(is_threaded?std::hardware_destructive_interference_size :8 )  char heap_buffer[capacity];
+} cow_heap;
+struct can_share_false_t{
+//assertions of is_threaded for picking this layout. 
+alignas(std::hardware_destructive_interference_size )  char heap_buffer[capacity];
+}owned_heap;
 };
 ```
 
@@ -921,4 +927,6 @@ You may give feedback in:
   
   [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
 
+- Ghidra Software Reverse Engineering Framework:
 
+[https://github.com/NationalSecurityAgency/ghidra](https://github.com/NationalSecurityAgency/ghidra)
