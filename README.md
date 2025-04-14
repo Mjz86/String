@@ -695,7 +695,7 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
  - no `strlen` is used in the code ,to make a string,  the length amd encoding must be specified,  this is to ensure safety,  the litteral operators `u8""_str` and `""_str` help to make the code easy and safe for most use cases.
  - Branchless access to all string information.
  - constexpr friendly and noexcept, all functionality is completely constexpr friendly and noexcept ( excluding the friend shift operators of standard `cin`, and `cout`)
- 
+  - cow threshold can be used at runtime to configure the amout of copying the string should do in multithreaded environments. 
  
  
  
@@ -706,7 +706,6 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
  - if used without cow , many of the template code is not used but parsed by the compiler ( the implementation uses `if constexpr`  to reduce unnecessary code gen).
  - not the simplest string in the world. 
  - (for those in rust : not written in rust)
- - cow threshold can be used at runtime to configure the amout of copying the string should do in multithreaded environments. 
  - another string library to consider or manage. 
 
 
