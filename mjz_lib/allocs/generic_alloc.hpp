@@ -46,10 +46,10 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   MJZ_CX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
       return {&alloc_call, nullptr, Const_inequals ? nullptr : &is_equal,
-              &is_owner, nullptr};
+              &is_owner, nullptr,cow_threashold_v<version_v>};
     } else {
       return {&alloc_call, &ref_call, Const_inequals ? nullptr : &is_equal,
-              &is_owner, nullptr};
+              &is_owner,   nullptr,   cow_threashold_v<version_v>};
     }
   }
 
@@ -207,7 +207,7 @@ struct generic_alloc_t : alloc_base_t<version_v> {
       rc.fetch_add(2, std::memory_order_acquire);
       return;
     }
-    if (2 <= rc.fetch_sub(2, std::memory_order_acquire)) {
+    if (2 <= rc.fetch_sub(2, std::memory_order_acq_rel)) {
       return;
     }
     if (rc.load(std::memory_order_relaxed) == 1) {

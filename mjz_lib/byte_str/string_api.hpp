@@ -58,7 +58,7 @@ struct basic_str_t : void_struct_t {
   using dont_mess_up_t = unsafe_ns::i_know_what_im_doing_t;
 
  private:
-  MJZ_CONSTANT(dont_mess_up_t)
+   static constexpr const  dont_mess_up_t&
   dont_mess_up = unsafe_ns::unsafe_v;
 
  private:

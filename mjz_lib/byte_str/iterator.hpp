@@ -617,7 +617,7 @@ struct buffer_out_buf_t : void_struct_t {
   MJZ_CX_FN success_t reserve(uintlen_t new_cap) noexcept {
     if (new_cap <= capacity) return true;
     if ((uintlen_t(-1) >> 1) < capacity) return false;
-    new_cap = rp.new_cap_calc(new_cap, info.is_thread_safe);
+    new_cap = uintlen_t(1)<<log2_ceil_of_val_create(new_cap);
     allocs_ns::block_info_t<version_v> blk =
         alloc.allocate_bytes(new_cap, info);
     uintlen_t len = length;

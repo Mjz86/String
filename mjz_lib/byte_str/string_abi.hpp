@@ -1,6 +1,5 @@
 
-#include "heaps.hpp"
-#include "views.hpp"
+#include "base_abi.hpp"
 #ifndef MJZ_BYTE_STRING_string_abi_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_string_abi_LIB_HPP_FILE_
 namespace mjz ::bstr_ns {
@@ -16,33 +15,7 @@ struct wrapped_props_t {
     return sso_min_cap;
   }
 };
-template <version_t version_v>
-struct MJZ_DEPRECATED_R(" unneccesery alloc_ref creation ") base_str_info_t {
-  allocs_ns::alloc_base_ref_t<version_v> alloc{};
-  uintlen_t reserve_capacity{0};
-  bool is_threaded{true};
-  // mostly ignored for now
-  bool add_null{true};
-  // mostly ignored for now
-  encodings_e encoding{encodings_e::ascii};
-};
-template <version_t version_v>
-struct cheap_base_str_info_t {
-  const allocs_ns::alloc_base_ref_t<version_v> *alloc_ptr{};
-  uintlen_t reserve_capacity{0};
-  bool is_threaded{true};
-  // mostly ignored for now
-  bool add_null{true};
-  // mostly ignored for now
-  encodings_e encoding{encodings_e::ascii};
-};
-namespace basic_str_abi_ns_ {
-template <version_t version_v, bool has_alloc_v_>
-struct alloc_t {};
-template <version_t version_v>
-struct alloc_t<version_v, true> {
-  allocs_ns::alloc_base_ref_t<version_v> alloc_;
-};
+namespace basic_str_abi_ns_{
 template <version_t version_v>
 union nsso_u;
 
@@ -133,7 +106,7 @@ struct details_t {
 };
 
 template <version_t version_v, bool has_alloc_v_>
-struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
+struct m_t : public abi_ns_::alloc_t<version_v, has_alloc_v_> {
   const char *begin;
   uintlen_t length;
   using mut_data_t = basic_str_abi_ns_::nsso_u<version_v>;
@@ -174,8 +147,7 @@ struct m_t : public basic_str_abi_ns_::alloc_t<version_v, has_alloc_v_> {
       "branchless in runtime");
 
  public:
-  MJZ_CONSTANT(alloc_ref)
-  empty_alloc{};
+  constexpr static const alloc_ref &empty_alloc{allocs_ns::empty_alloc<version_v>};
   template <class = void>
     requires has_alloc_v_
   MJZ_CX_AL_FN const alloc_ref *get_alloc_ptr() const noexcept

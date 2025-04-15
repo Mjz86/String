@@ -11,6 +11,11 @@
 
 namespace mjz::allocs_ns {
 
+// configurable
+template <version_t version_v>
+constexpr static const uintlen_t cow_threashold_v{
+    4 * hardware_destructive_interference_size};
+
 template <version_t v>
 struct alloc_base_t;
 template <version_t version_v>
@@ -222,25 +227,45 @@ struct alloc_vtable_t {
   };
 
  public:
-  typename funcs_t::alloc_call alloc_call;
-  typename funcs_t::ref_call ref_call;
-  typename funcs_t::is_equal is_equal;
-  typename funcs_t::is_owner is_owner;
-  typename funcs_t::handle handle;
-
-  MJZ_CX_FN std::strong_ordering operator<=>(
-      const alloc_vtable_t &) const noexcept = default;
-  MJZ_CX_FN bool operator==(
-      const alloc_vtable_t &) const noexcept = default;
-
+  typename funcs_t::alloc_call alloc_call{};
+  typename funcs_t::ref_call ref_call{};
+  typename funcs_t::is_equal is_equal{};
+  typename funcs_t::is_owner is_owner{};
+  typename funcs_t::handle handle{};
+  uintlen_t cow_threashold{cow_threashold_v<version_v>};
+  alloc_info default_info{};
+  MJZ_CX_FN bool operator==(const alloc_vtable_t &rhs) const noexcept {
+    auto res = std::array{
+      alloc_call == rhs.alloc_call, ref_call == rhs.ref_call,
+          is_equal == rhs.is_equal, is_owner == rhs.is_owner,
+          handle == rhs.handle, cow_threashold == rhs.cow_threashold
+    };
+    bool b{true};
+    for (auto o : res) b &= o;
+    return b;
+  }
 };
 
 template <version_t version_v>
 struct alloc_base_t : void_struct_t {
   const alloc_vtable_t<version_v> vtable{};
   MJZ_NO_MV_NO_CPY(alloc_base_t);
+  MJZ_CX_FN alloc_base_t() noexcept = default;
   MJZ_CX_FN alloc_base_t(const alloc_vtable_t<version_v> &vtable_val) noexcept
-      : vtable(vtable_val) {}
+      : alloc_base_t([&vtable_val]() noexcept {
+          alloc_vtable_t<version_v> vtable_{};
+          uintlen_t min = hardware_destructive_interference_size;
+          uintlen_t align_log2 = log2_ceil_of_val_create(min);
+          vtable_.cow_threashold >>= align_log2;
+          vtable_.cow_threashold <<= align_log2;
+          vtable_.cow_threashold += alias_t<uintlen_t[2]>{
+              0, min}[vtable_.cow_threashold != vtable_val.cow_threashold];
+          return vtable_;
+            },
+            void_struct_t{}) {}
+
+ private:
+  MJZ_CX_FN alloc_base_t(auto &&lam,void_struct_t) noexcept : vtable(lam()) {}
 };
 
 template <version_t version_v>
@@ -255,6 +280,7 @@ class alloc_base_ref_t {
   using ref_count = ref_count_t<version_v>;
   using alloc_speed = alloc_speed_t<version_v>;
   using alloc_ref = alloc_base_ref_t<version_v>;
+  using bptr_t = const alloc_base *;
   alignas(sizeof(uintlen_t)) alloc_base *ref{};
   template <typename... Ts>
   MJZ_CX_FN auto run(auto &&fn, Ts &&...args) const noexcept {
@@ -262,19 +288,17 @@ class alloc_base_ref_t {
   }
 
  public:
-  MJZ_CX_FN const alloc_vtable_t<version_v> &get_vtbl() const noexcept {
-    asserts(asserts.assume_rn, !!this->ref);
-    return get_ref().vtable;
+  MJZ_CX_FN alloc_vtable_t<version_v> get_vtbl() const noexcept {
+    constexpr const alloc_base dummy{};
+    bptr_t vptr = alias_t<bptr_t[2]>{&dummy, this->ref}[!!this->ref];
+    return vptr->vtable;
   }
   MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
   MJZ_CX_FN alloc_base &get_ref() const noexcept {
     asserts(asserts.assume_rn, !!this->ref);
     return *this->ref;
   }
-  MJZ_CX_FN void reset() noexcept {
-    if (!*this) return;
-    destroy_obj();
-  }
+  MJZ_CX_FN void reset() noexcept { destroy_obj(); }
   MJZ_CX_FN explicit operator bool() const noexcept { return !!this->ref; };
 
   template <class>
@@ -282,7 +306,6 @@ class alloc_base_ref_t {
 
  private:
   MJZ_CX_FN void copy_init(const alloc_base_ref_t &other) noexcept {
-    if (!other.ref) return;
     if (!other.add_ref()) return;
     this->ref = other.ref;
   }
@@ -326,14 +349,14 @@ class alloc_base_ref_t {
  protected:
   MJZ_CX_FN
   success_t destroy_obj() noexcept {
-    if (!this->ref || !get_vtbl().ref_call) return !get_vtbl().ref_call;
+    if (!get_vtbl().ref_call) return true;
     MJZ_RELEASE { this->ref = nullptr; };
     run(get_vtbl().ref_call, false);
     return true;
   }
   MJZ_CX_FN
   success_t add_ref() const noexcept {
-    if (!this->ref || !get_vtbl().ref_call) return true;
+    if (!get_vtbl().ref_call) return true;
     run(get_vtbl().ref_call, true);
     return true;
   }
@@ -351,13 +374,18 @@ class alloc_base_ref_t {
   MJZ_CX_FN
   may_bool_t is_owner_of_bytes(const block_info &blk,
                                alloc_info ai) const noexcept {
-    if (!this->ref || !get_vtbl().is_owner) return may_bool_t::idk;
+    if (!get_vtbl().is_owner) return may_bool_t::idk;
     return run(get_vtbl().is_owner, blk, ai);
   }
   MJZ_CX_FN
   alloc_relations_e is_equal(const alloc_ref &ar) const noexcept {
-    if (this->ref == ar.ref) return alloc_relations_e::equal;
-    if (!this->ref || !get_vtbl().is_equal) return alloc_relations_e::none;
+    bool no_call{};
+    bool is_eq = this->ref == ar.ref;
+    is_eq |= !get_vtbl().is_equal;
+    if (no_call) {
+      return alias_t<alloc_relations_e[2]>{alloc_relations_e::none,
+                                           alloc_relations_e::equal}[is_eq];
+    }
     return run(get_vtbl().is_equal, ar);
   }
   MJZ_CX_FN bool operator==(const alloc_ref &ar) const noexcept {
@@ -366,39 +394,53 @@ class alloc_base_ref_t {
 
   MJZ_CX_FN
   block_info allocate_bytes(uintlen_t minsize, alloc_info ai) const noexcept {
-    if (!minsize) return {};
-    if (this->ref && get_vtbl().alloc_call)
+    if (get_vtbl().alloc_call)
       return [&]() noexcept {
         block_info blk{};
+        if (!minsize) return blk;
         blk.length = minsize;
         run(get_vtbl().alloc_call, blk, ai);
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
         mjz_debug_cout::println("[alloc:", blk.length, "]");
 #endif
+        /* lets assume this isnt needed beacuse of c++20:
+       new (ptr) char[(size_t)size]*/
         return blk;
       }();
     auto align_val = ai.get_alignof();
     uintlen_t size = minsize;
     MJZ_IFN_CONSTEVAL {
-      void *ptr = ::operator new((size_t)size, align_val, std::nothrow);
+      void *ptr{};
+      if (default_new_align_z < uintlen_t(align_val)) {
+        ptr = ::operator new((size_t)size, align_val, std::nothrow);
+      } else {
+        ptr = ::operator new((size_t)size, std::nothrow);
+      }
       MJZ_RELEASE {
         if (!ptr) return;
-        ::operator delete(ptr, size, align_val);
+        if (default_new_align_z < uintlen_t(align_val)) {
+          ::operator delete(ptr, size, align_val);
+        } else {
+          ::operator delete(ptr, size);
+        }
       };
 #if MJZ_LOG_NEW_ALLOCATIONS_
       mjz_debug_cout::println("[new:", size, "]");
 #endif
-      if (!ptr) return {};
-      return {new (std::exchange(ptr, nullptr)) char[(size_t)size], size};
+      size = alias_t<uintlen_t[2]>{0, size}[!!ptr];
+      block_info blk{};
+      blk.length = size;
+      blk.ptr = reinterpret_cast<char *>(std::exchange(ptr, nullptr));
+      return blk;
     }
     if (static_cast<size_t>(align_val) > default_new_align_z) return {};
     return {new char[(size_t)size], size};
   }
   MJZ_CX_FN
   success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
-    if (!blk.ptr) return !blk.length;
-    if (this->ref && get_vtbl().alloc_call)
+    if (get_vtbl().alloc_call)
       return [&]() noexcept {
+        if (!blk.ptr) return !blk.length;
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
         mjz_debug_cout::println("[dealloc:", blk.length, "]");
 #endif
@@ -407,7 +449,14 @@ class alloc_base_ref_t {
         return true;
       }();
     MJZ_IFN_CONSTEVAL {
-      MJZ_RELEASE { ::operator delete(blk.ptr, blk.length, ai.get_alignof()); };
+      MJZ_RELEASE {
+        auto align_val = ai.get_alignof();
+        if (default_new_align_z < uintlen_t(align_val)) {
+          ::operator delete(blk.ptr, blk.length, align_val);
+        } else {
+          ::operator delete(blk.ptr, blk.length);
+        }
+      };
 #if MJZ_LOG_NEW_ALLOCATIONS_
       mjz_debug_cout::println("[delete:", blk.length, "]");
 #endif
@@ -418,7 +467,7 @@ class alloc_base_ref_t {
   }
   MJZ_CX_FN
   const void_struct_t *handle(const void_struct_t *input) const noexcept {
-    if (!this->ref || !get_vtbl().handle) return nullptr;
+    if (!get_vtbl().handle) return nullptr;
     return run(get_vtbl().handle, input);
   }
   template <typename T>
@@ -630,6 +679,9 @@ class alloc_base_ref_t {
     return strategy.consider_type(alias_t<T *>{});
   }
 };
+
+template <version_t version_v>
+constexpr static const alloc_base_ref_t<version_v> empty_alloc{};
 
 }  // namespace mjz::allocs_ns
 

@@ -110,9 +110,8 @@ struct mjz_assert_t {
         std::ignore = 0;
       }
       return *this;
-    }
-    if (!(MJZ_NOEXCEPT { (*this)(value(), str, false); })) {
-      panic();
+    } else {
+      (*this)(value(), str, false);
     }
     return *this;
   }

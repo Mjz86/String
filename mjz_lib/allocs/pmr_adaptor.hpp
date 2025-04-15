@@ -64,12 +64,23 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   /*
    * the first bit is used to determine if its heap allocated or not.
    */
-  uintlen_t reference_count{};
+  MJZ_DISABLE_ALL_WANINGS_START_;
+  alignas(hardware_destructive_interference_size) uintlen_t reference_count{};
+  MJZ_DISABLE_ALL_WANINGS_END_;
+  MJZ_CX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
+    if (fast_table) {
+      return {&alloc_call, nullptr, &is_equal,nullptr,   nullptr, cow_threashold_v<version_v>};
+    } else {
+      return {&alloc_call, &ref_call, &is_equal,
+              nullptr,     nullptr,   cow_threashold_v<version_v>};
+    }
+  }
+
 
  public:
   MJZ_NCX_FN pmr_alloc_t(std::pmr::polymorphic_allocator<char> pmr,
                          bool fast_table = false) noexcept
-      : alloc_base{*(fast_table ? &vt_stack_obj : &vt_obj)},
+      : alloc_base{*vtable_val_f(fast_table)},
         undelying{std::move(pmr)} {}
   MJZ_NCX_FN ~pmr_alloc_t() noexcept {
     asserts(asserts.condition_rn, 0 == reference_count,
@@ -120,17 +131,13 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     return true;
   }
 
- public:
-  MJZ_NCX_FN static may_bool_t is_owner(const alloc_base *, const block_info &,
-                                        alloc_info) noexcept {
-    return may_bool_t::idk;
-  }
+ public: 
 
   MJZ_NCX_FN
   alloc_relations_e static is_equal(const alloc_base *This,
                                     const alloc_ref &other) noexcept {
     if (This == other.get_ptr()) return alloc_relations_e::equal;
-    if (!other || &other.get_vtbl() != &vt_obj || inequals(other, This)) {
+    if (!other || other.get_vtbl() != This->vtable || inequals(other, This)) {
       return alloc_relations_e::none;
     }
     return alloc_relations_e::equal;
@@ -169,7 +176,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
       rc.fetch_add(2, std::memory_order_acquire);
       return;
     }
-    if (2 <= rc.fetch_sub(2, std::memory_order_acquire)) {
+    if (2 <= rc.fetch_sub(2, std::memory_order_acq_rel)) {
       return;
     } 
     if (rc.load(std::memory_order_relaxed) == 1) {
@@ -211,13 +218,6 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   template <class>
   friend class mjz_private_accessed_t;
 
- private:
-  MJZ_CONSTANT(alloc_vtable)
-  vt_obj{&alloc_call, &ref_call, &is_equal,
-         &is_owner, nullptr};
-  MJZ_CONSTANT(alloc_vtable)
-  vt_stack_obj{&alloc_call, nullptr,  &is_equal,
-               &is_owner, nullptr};
 };
 
 template <version_t version_v>
