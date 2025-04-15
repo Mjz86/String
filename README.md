@@ -1,4 +1,5 @@
 
+
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -86,9 +87,16 @@ The encoding flags are for knowing the encoding of the stored data.
 The heap block can be thought of as:
 
 ```c++
-struct heap_alloc_t /* not a type , just a layout mapped to the allocated block*/{
+union heap_alloc_t /* not a type , just a layout mapped to the allocated character block, this is a diagram */{
+struct can_share_true_t{
 size_t  reference_count;
+char padding [is_threaded?8-std::hardware_destructive_interference_size:0];
  alignas(is_threaded?std::hardware_destructive_interference_size :8 )  char heap_buffer[capacity];
+} cow_heap;
+struct can_share_false_t{
+//assertions of is_threaded for picking this layout. 
+alignas(std::hardware_destructive_interference_size )  char heap_buffer[capacity];
+}owned_heap;
 };
 ```
 
@@ -195,8 +203,8 @@ just  don't make the string object too large.
 
 ## stack buffer optimization ( runtime sso tuning) ( advanced users):
 - use the  tunable sso  feature for a better quality of life , it has more safety.
-- if codd bloat of the main tunable sso is a concern , then use the `implace_string`.
-
+- if code bloat of the main tunable sso is a concern , then use the `implace_string`.
+- if the stack buffer is not big enough,  unlike in C , we do not overflow,  but we allocate on the heap , this ensures safety that C did not have in its stack buffers ( char arrays in C are kinda just stack buffers) 
 By using a stack buffer, you ensure that no allocation occurs as long as the
 buffer is big enough. If not, allocation may occur. The users must ensure
 that the buffer outlives the string object and the objects that it moved to or
@@ -207,7 +215,6 @@ obvious reasons. Also, this is not checked; it's raw performance of a span of
 chars, and most users won't ever need such performance (lifetimes are hard;
 this is discouraged), but some places (in the internals of my rope
 implementation) may need it, so it's there.
-
 
 ### what is the type of the owner?  ( standard and custom string compatibility outside of the mjz library)( next experimental release)( another wrapper):
  * this feature is  currently not implemented, but after the implementation,  this should be a safe to use feature. 
@@ -569,6 +576,17 @@ this effectively kills cow for things that would suffer from it.
        the only thing is that after an allocator object got created, you cant configure more .
        but this is not much of a limitation,  it is seen in the standard that memory resource objects only configure at creation. 
        
+    * a carefully chosen threashold will improve performance in many cases:
+       cow is not used when its not optimal, 
+       synchronization and reference counting is not even presented below the threashold, 
+       cost of these optimizations tends to be large , but when they are not preformed,  they eont cost anything, 
+       especially because most branches are predictable,  and in the case that  cow is used  ,
+       the length of the string would already have been too large to begin with , and the memcpy alone would cost more than some cache misses. 
+       the key here is to choose the best threashold for your specific allocator. 
+
+
+  
+    
 - why you might choose ownerized:
  
      * mutable api :
@@ -673,7 +691,13 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
  - will eventually get rope counterpart. 
  - very few allocations in common single threaded use.
  - tunable sso.
- -  no null termination requirement unless specified. 
+ -  no null termination requirement unless specified.
+ - the `implace_string<N>` ( stack buffer wrapper that takes care of  lifetime management of its stack buffer member( RAII)) is a safe alternative to `char[N]` in C, because it will never overflow,  and its lifetime is granteed, also it has a string interface. 
+ - no `strlen` is used in the code ,to make a string,  the length amd encoding must be specified,  this is to ensure safety,  the litteral operators `u8""_str` and `""_str` help to make the code easy and safe for most use cases.
+ - Branchless access to all string information.
+ - constexpr friendly and noexcept, all functionality is completely constexpr friendly and noexcept ( excluding the friend shift operators of standard `cin`, and `cout`)
+  - cow threshold can be used at runtime to configure the amout of copying the string should do in multithreaded environments. 
+ 
  
  
  
@@ -683,10 +707,12 @@ usually its better to  use the wrappers when needed on the fly , and use the mai
  - if used without cow , many of the template code is not used but parsed by the compiler ( the implementation uses `if constexpr`  to reduce unnecessary code gen).
  - not the simplest string in the world. 
  - (for those in rust : not written in rust)
- - cow threshold can be used at runtime to configure the amout of copying the string should do in multithreaded environments. 
  - another string library to consider or manage. 
 
 
+ -  just something to point out :
+ i will not reduce complexity unless its provable to be faster ,
+ if you want a simple design,  go use the standard string.
 
 
 # Extensions:
@@ -704,6 +730,11 @@ my formatting library should also support ropes in a efficient way when they are
  you may do a pull request or issue on that part,
  or you may put this paper as a reference and implement your own string with this layout or design.
  the license is an open source mit license , so this is more of a reminder. 
+
+  * please look at the following video ("Let's Talk Open Source - Prime Reacts ") before doing a pull request,  a issue or any other massage:
+   
+   [https://youtube.com/watch?v=SQ0mBnJmd6I&si=eFCaaEIP0xvqpiWJ](https://youtube.com/watch?v=SQ0mBnJmd6I&si=eFCaaEIP0xvqpiWJ)
+
 
 ## why another string, arent you tired of new strings? 
 
@@ -724,7 +755,31 @@ then use it.
   it currently lacks unicode support,  but is encoding aware ( but non ascii is currently an encoding mismatch error )
  
  
+ # my default recommendation( usually good enough) :
+   i recommend to use the following  as default strings to go to:
 
+ - mutable(=owerized, without cow)  string with relaxed thread-safety ( nullopt) ,  without null terminator,   with 30byte sso , and no allocator , and relaxed direction alignment .
+ 
+  this is for changing the string like normal.  
+ 
+ - immutable (= with cow ) string with relaxed thread-safety ( nullopt) ,  without null terminator,   with 30byte sso , and no allocator and relaxed direction alignment .
+ 
+ this is like a string slice in rust , or a string view ,
+ but the flexibility of storing this without being bound by its source is good.
+
+- and in cases where you know you dont need more : pure string view.
+
+- the thread-safe cow threashold being 256( like fbstring).
+ 
+ 
+ ### why is this my recommendation?
+ because usually this is good enough. 
+ but if you suspected some problems with allocation or contention, 
+ then i recommend the use of the custom Allocators , or just use ownerized. 
+ usually the 30bytes of sso and `implace_string` is sufficient for most allocation bottlenecks.  
+ 
+ 
+ 
 # where would you place this:
 
 - mutable owner:
@@ -885,4 +940,6 @@ You may give feedback in:
   
   [https://github.com/fmtlib/fmt](https://github.com/fmtlib/fmt)
 
+- Ghidra Software Reverse Engineering Framework:
 
+[https://github.com/NationalSecurityAgency/ghidra](https://github.com/NationalSecurityAgency/ghidra)
