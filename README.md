@@ -1,4 +1,5 @@
 
+
 # Reconsidering COW, a Modern C++20 String Implementation
 
 **tl;dr:**
@@ -729,6 +730,11 @@ my formatting library should also support ropes in a efficient way when they are
  you may do a pull request or issue on that part,
  or you may put this paper as a reference and implement your own string with this layout or design.
  the license is an open source mit license , so this is more of a reminder. 
+
+  * please look at the following video ("Let's Talk Open Source - Prime Reacts ") before doing a pull request,  a issue or any other massage:
+   
+   [https://youtube.com/watch?v=SQ0mBnJmd6I&si=eFCaaEIP0xvqpiWJ](https://youtube.com/watch?v=SQ0mBnJmd6I&si=eFCaaEIP0xvqpiWJ)
+
 
 ## why another string, arent you tired of new strings? 
 
