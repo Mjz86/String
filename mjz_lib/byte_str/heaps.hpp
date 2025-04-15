@@ -66,8 +66,10 @@ class str_heap_manager_t {
     }
   };
   MJZ_CX_FN void init_heap() noexcept {
-    if (!can_add_shareholder()) return;
+    alignas(non_threaded_rf_block) char dummy[sizeof(non_threaded_rf_block)]{};
     char *rc_ptr = std::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr);
+    rc_ptr =
+        alias_t<alias_t<char *>[2]>{&dummy[0], rc_ptr}[can_add_shareholder()];
     MJZ_IF_CONSTEVAL {
       mjz::memset(rc_ptr, non_threaded_rf_block, 0);
       char_storage_as_temp_t<uintlen_t> var{rc_ptr, non_threaded_rf_block,

@@ -1,7 +1,7 @@
 
 #include <compare>
 #include <utility>
-
+#include "../restricted_arguments.hpp"
 #include "cx_string_abi.hpp"
 
 #ifndef MJZ_BYTE_STRING_cx_string_LIB_HPP_FILE_
@@ -20,20 +20,15 @@ struct cx_props_t {
   bool has_alloc{};
   bool has_null{};
   bool is_ownerized{};
-  may_bool_t is_threaded{};
+  may_bool_t is_threaded{may_bool_t::idk};
   align_direction_e align{};
 };
-
-struct cx_str_t : void_struct_t {
+template <version_t version_v_, cx_props_t props_v_ = cx_props_t{}>
+struct basic_cx_str_t : void_struct_t {
   MJZ_CONSTANT(version_t)
-  version_v{};
+  version_v = version_v_;
   MJZ_CONSTANT(cx_props_t)
-  props_v = cx_props_t{.sso_min_cap = 0,
-                       .has_alloc = 0,
-                       .has_null = 0,
-                       .is_ownerized = 1,
-                       .is_threaded = may_bool_t::no};
-
+  props_v = props_v_;
   MJZ_CONSTANT(version_t)
   Version_v_{version_v};
 
@@ -50,7 +45,7 @@ struct cx_str_t : void_struct_t {
   m_t m{};
 
  public:
-  using self_t = cx_str_t;
+  using self_t = basic_cx_str_t;
   using traits_type = byte_traits_t<version_v>;
   using value_type = char;
   using mut_type = std::conditional_t<props_v.is_ownerized, char, const char>;
@@ -398,7 +393,7 @@ struct cx_str_t : void_struct_t {
       m.set_length(1);
       return;
     };
-    if (m.has_room_for<when_v>(1, props_v.has_null)) return fn_();
+    if (m.template has_room_for<when_v>(1, props_v.has_null)) return fn_();
     m.destruct_all();
     return fn_();
   }
@@ -433,11 +428,11 @@ struct cx_str_t : void_struct_t {
 
  private:
   template <bool no_null_>
-  MJZ_CX_ND_FN cx_str_t(const dont_mess_up_t &,
+  MJZ_CX_ND_FN basic_cx_str_t(const dont_mess_up_t &,
                         owned_stack_buffer &stack_buffer, uintlen_t byte_offset,
                         uintlen_t byte_count,
                         std::bool_constant<no_null_>) noexcept
-  /* not needed : cx_str_t()*/ {
+  /* not needed : basic_cx_str_t()*/ {
     m.set_invalid_to_non_sso_begin(
         stack_buffer.buffer, stack_buffer.buffer_size, stack_buffer.buffer,
         stack_buffer.buffer_size, false, false);
@@ -450,99 +445,99 @@ struct cx_str_t : void_struct_t {
     if constexpr (no_null_) {
       return;
     }
-    if (m.add_null<when_t::no_heap>()) {
+    if (m.template add_null<when_t::no_heap>()) {
       return;
     }
 
     reset_to_error_on_fail_<when_t::no_heap>(
         as_ownerized(true),
-        "[Error] cx_str_t(const dont_mess_up_t &, owned_stack_buffer "
+        "[Error] basic_cx_str_t(const dont_mess_up_t &, owned_stack_buffer "
         "&,uintlen_t , uintlen_t,bool) : cannot add null , init fail ");
   }
 
  public:
-  MJZ_CX_AL_FN ~cx_str_t() noexcept { m.destruct_to_invalid(); }
-  MJZ_CX_FN cx_str_t() noexcept { m.invalid_to_empty(); }
-  MJZ_CX_FN cx_str_t(self_t &&src) noexcept : cx_str_t() {
+  MJZ_CX_AL_FN ~basic_cx_str_t() noexcept { m.destruct_to_invalid(); }
+  MJZ_CX_FN basic_cx_str_t() noexcept { m.invalid_to_empty(); }
+  MJZ_CX_FN basic_cx_str_t(self_t &&src) noexcept : basic_cx_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         move_init_<when_t::as_sso>(std::move(src)),
-        "[Error]cx_str_t(cx_str_t&&):couldn't move string!");
+        "[Error]basic_cx_str_t(basic_cx_str_t&&):couldn't move string!");
   }
-  MJZ_CX_FN cx_str_t(self_t const &src) noexcept : cx_str_t() {
+  MJZ_CX_FN basic_cx_str_t(self_t const &src) noexcept : basic_cx_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         copy_assign_<when_t::as_sso>(src),
-        "[Error]cx_str_t(const cx_str_t&):couldn't copy string!");
+        "[Error]basic_cx_str_t(const basic_cx_str_t&):couldn't copy string!");
   }
-  MJZ_CX_FN cx_str_t(self_t const &&src) noexcept : cx_str_t() {
+  MJZ_CX_FN basic_cx_str_t(self_t const &&src) noexcept : basic_cx_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         share_init_<when_t::as_sso>(src),
-        "[Error]cx_str_t(const cx_str_t&&):couldn't share string!");
+        "[Error]basic_cx_str_t(const basic_cx_str_t&&):couldn't share string!");
   }
-  MJZ_CX_FN cx_str_t &operator=(self_t &&src) noexcept {
+  MJZ_CX_FN basic_cx_str_t &operator=(self_t &&src) noexcept {
     if (void_struct_cast_t::up_cast(this) == &void_struct_cast_t::up_cast(src))
       return *this;
     if (m.no_destroy()) {
       reset_to_error_on_fail_<when_t::no_heap>(
           move_init_<when_t::no_heap>(std::move(src)),
-          "[Error]cx_str_t&operator=( cx_str_t&& "
+          "[Error]basic_cx_str_t&operator=( basic_cx_str_t&& "
           "obj):couldn't move string!");
     } else {
       reset_to_error_on_fail_<when_t::relax>(
           move_init_<when_t::relax>(std::move(src)),
-          "[Error]cx_str_t&operator=( cx_str_t&& "
+          "[Error]basic_cx_str_t&operator=( basic_cx_str_t&& "
           "obj):couldn't move string!");
     }
     return *this;
   }
-  MJZ_CX_FN cx_str_t &operator=(self_t const &src) noexcept {
+  MJZ_CX_FN basic_cx_str_t &operator=(self_t const &src) noexcept {
     if (void_struct_cast_t::up_cast(this) == &void_struct_cast_t::up_cast(src))
       return *this;
     if (m.no_destroy()) {
       reset_to_error_on_fail_<when_t::no_heap>(
           copy_assign_<when_t::no_heap>(src),
-          "[Error]cx_str_t&operator=(const cx_str_t& "
+          "[Error]basic_cx_str_t&operator=(const basic_cx_str_t& "
           "obj):couldn't copy string!");
     } else {
       reset_to_error_on_fail_<when_t::relax>(
           copy_assign_<when_t::relax>(src),
-          "[Error]cx_str_t&operator=(const cx_str_t& "
+          "[Error]basic_cx_str_t&operator=(const basic_cx_str_t& "
           "obj):couldn't copy string!");
     }
     return *this;
   }
-  MJZ_CX_FN cx_str_t &operator=(self_t const &&src) noexcept {
+  MJZ_CX_FN basic_cx_str_t &operator=(self_t const &&src) noexcept {
     if (void_struct_cast_t::up_cast(this) == &void_struct_cast_t::up_cast(src))
       return *this;
     if (m.no_destroy()) {
       reset_to_error_on_fail_<when_t::no_heap>(
           share_init_<when_t::no_heap>(src),
-          "[Error]cx_str_t&operator=(const cx_str_t&&):couldn't share string!");
+          "[Error]basic_cx_str_t&operator=(const basic_cx_str_t&&):couldn't share string!");
     } else {
       reset_to_error_on_fail_<when_t::relax>(
           share_init_<when_t::relax>(src),
-          "[Error]cx_str_t&operator=(const cx_str_t&&):couldn't share string!");
+          "[Error]basic_cx_str_t&operator=(const basic_cx_str_t&&):couldn't share string!");
     }
     return *this;
   };
 
  public:
-  MJZ_CX_ND_FN cx_str_t(cheap_str_info *info) noexcept : cx_str_t() {
+  MJZ_CX_ND_FN basic_cx_str_t(cheap_str_info *info) noexcept : basic_cx_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(reset_<when_t::as_sso>(*info),
-                                            "[Error]cx_str_t(cheap_str_info)");
+                                            "[Error]basic_cx_str_t(cheap_str_info)");
   }
 
  public:
-  MJZ_CX_ND_FN explicit cx_str_t(nullptr_t) noexcept : cx_str_t() {}
+  MJZ_CX_ND_FN explicit basic_cx_str_t(nullptr_t) noexcept : basic_cx_str_t() {}
 
-  MJZ_CX_ND_FN cx_str_t(cheap_str_info info) noexcept : cx_str_t(&info) {}
+  MJZ_CX_ND_FN basic_cx_str_t(cheap_str_info info) noexcept : basic_cx_str_t(&info) {}
   /*
    *
    */
-  MJZ_CX_ND_FN cx_str_t(const dont_mess_up_t &,
+  MJZ_CX_ND_FN basic_cx_str_t(const dont_mess_up_t &,
                         owned_stack_buffer &&stack_buffer,
                         cheap_str_info &&info, uintlen_t byte_offset = 0,
                         uintlen_t byte_count = 0) noexcept
-      : cx_str_t(dont_mess_up, stack_buffer, byte_offset, byte_count,
+      : basic_cx_str_t(dont_mess_up, stack_buffer, byte_offset, byte_count,
                  std::true_type{}) {
     m.cntrl().encodings_bits = uint8_t(info.encoding);
     m.set_threaded(info.is_threaded);
@@ -555,49 +550,49 @@ struct cx_str_t : void_struct_t {
     }
     info.reserve_capacity = std::max(info.reserve_capacity, length());
     bool add_null_ = !!(info.add_null + props_v.has_null);
-    if (m.has_room_for<when_t::no_heap>(info.reserve_capacity, add_null_)) {
+    if (m.template has_room_for<when_t::no_heap>(info.reserve_capacity, add_null_)) {
       if (add_null_) {
-        asserts(asserts.assume_rn,m.template add_null<when_t::no_heap>());
+        asserts(asserts.assume_rn, m.template add_null<when_t::no_heap>());
       }
       return;
     }
     reset_to_error_on_fail_<when_t::no_heap>(
         reserve_<when_t::no_heap>(info.reserve_capacity + uintlen_t(add_null_)),
-        "[Error]:cx_str_t(const dont_mess_up_t &, owned_stack_buffer && "
+        "[Error]:basic_cx_str_t(const dont_mess_up_t &, owned_stack_buffer && "
         ",cheap_str_info && , uintlen_t  , uintlen_t ): coulnt initilize");
   }
 
  public:
-  MJZ_CX_ND_FN cx_str_t(const dont_mess_up_t &ok,
+  MJZ_CX_ND_FN basic_cx_str_t(const dont_mess_up_t &ok,
                         owned_stack_buffer &&stack_buffer,
                         uintlen_t byte_offset = 0,
                         uintlen_t byte_count = 0) noexcept
-      : cx_str_t(ok, stack_buffer, byte_offset, byte_count, std::false_type{}) {
+      : basic_cx_str_t(ok, stack_buffer, byte_offset, byte_count, std::false_type{}) {
 
   }
   /*
    * initilizes the string as a view
    */
   MJZ_CX_ND_FN
-  cx_str_t(const dont_mess_up_t &, generic_string_view view) noexcept
-      : cx_str_t() {
+  basic_cx_str_t(const dont_mess_up_t &, generic_string_view view) noexcept
+      : basic_cx_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         init_view_<when_t::as_sso>(view, false),
-        "[Error]cx_str_t(generic_string_view)");
+        "[Error]basic_cx_str_t(generic_string_view)");
   } /*
      * reserves space if appropreate then copies,
      * if not initilizes the string as a view
      */
-  MJZ_CX_ND_FN cx_str_t(static_string_view view, cheap_str_info info) noexcept
-      : cx_str_t(dont_mess_up, generic_string_view(view), info) {}
+  MJZ_CX_ND_FN basic_cx_str_t(static_string_view view, cheap_str_info info) noexcept
+      : basic_cx_str_t(dont_mess_up, generic_string_view(view), info) {}
   /*
    * reserves space if appropreate then copies, if not
    * initilizes the string as a   static  view (string litteral view)
    *
    */
-  MJZ_CX_ND_FN cx_str_t(const dont_mess_up_t &, generic_string_view view,
+  MJZ_CX_ND_FN basic_cx_str_t(const dont_mess_up_t &, generic_string_view view,
                         cheap_str_info info) noexcept
-      : cx_str_t([&info, &view]() noexcept {
+      : basic_cx_str_t([&info, &view]() noexcept {
           bool do_alloc_ = props_v.is_ownerized;
           do_alloc_ |= !!(info.reserve_capacity);
           info.reserve_capacity = alias_t<uintlen_t[2]>{
@@ -607,36 +602,36 @@ struct cx_str_t : void_struct_t {
     if (m.no_destroy()) {
       reset_to_error_on_fail_<when_t::no_heap>(
           init_view_<when_t::no_heap>(view, false),
-          "[Error]cx_str_t(static_string_view,cheap_str_info)");
+          "[Error]basic_cx_str_t(static_string_view,cheap_str_info)");
     } else {
       reset_to_error_on_fail_<when_t::relax>(
           init_view_<when_t::relax>(view, false),
-          "[Error]cx_str_t(static_string_view,cheap_str_info)");
+          "[Error]basic_cx_str_t(static_string_view,cheap_str_info)");
     }
   }
   /*
    * initilizes the string as a   static  view (string litteral view)
    */
-  MJZ_CX_ND_FN cx_str_t(static_string_view view) noexcept : cx_str_t() {
+  MJZ_CX_ND_FN basic_cx_str_t(static_string_view view) noexcept : basic_cx_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         init_view_<when_t::as_sso>(view, false),
-        "[Error]cx_str_t(static_string_view)");
+        "[Error]basic_cx_str_t(static_string_view)");
   }
   /*
    * reserves space if appropreate then copies, if not
    *initilizes the string as a non sharable dynamic view
    */
   MJZ_CX_ND_FN
-  cx_str_t(const dont_mess_up_t &, dynamic_string_view view,
+  basic_cx_str_t(const dont_mess_up_t &, dynamic_string_view view,
            cheap_str_info info) noexcept
-      : cx_str_t(dont_mess_up, generic_string_view(view), info) {}
+      : basic_cx_str_t(dont_mess_up, generic_string_view(view), info) {}
 
   /*
    * initilizes the string as a non sharable dynamic view
    */
   MJZ_CX_ND_FN
-  cx_str_t(const dont_mess_up_t &, dynamic_string_view view) noexcept
-      : cx_str_t(dont_mess_up, generic_string_view(view)) {}
+  basic_cx_str_t(const dont_mess_up_t &, dynamic_string_view view) noexcept
+      : basic_cx_str_t(dont_mess_up, generic_string_view(view)) {}
   /*
    * moves the content of obj in
    * then makes the obj empty
@@ -646,43 +641,43 @@ struct cx_str_t : void_struct_t {
    *safely copies the data without allocation of the obj if possible, if not
    *,shares it if possible, if not copies it with an allocation.
    */
-  MJZ_CX_ND_FN cx_str_t(const cx_str_t &obj, cheap_str_info info) noexcept
-      : cx_str_t(&info) {
+  MJZ_CX_ND_FN basic_cx_str_t(const basic_cx_str_t &obj, cheap_str_info info) noexcept
+      : basic_cx_str_t(&info) {
     if (m.no_destroy()) {
       reset_to_error_on_fail_<when_t::no_heap>(
           copy_assign_<when_t::no_heap>(obj),
-          "[Error]cx_str_t(const cx_str_t& "
+          "[Error]basic_cx_str_t(const basic_cx_str_t& "
           "obj,cheap_str_info):couldn't copy string!");
     } else {
       reset_to_error_on_fail_<when_t::relax>(
           copy_assign_<when_t::relax>(obj),
-          "[Error]cx_str_t(const cx_str_t& "
+          "[Error]basic_cx_str_t(const basic_cx_str_t& "
           "obj,cheap_str_info):couldn't copy string!");
     }
   }
   MJZ_DEPRECATED_R("the cheap_str_info is used but discarded afterwards")
-  MJZ_CX_FN cx_str_t(cx_str_t &&obj, cheap_str_info &&info) noexcept = delete;
+  MJZ_CX_FN basic_cx_str_t(basic_cx_str_t &&obj, cheap_str_info &&info) noexcept = delete;
 
   MJZ_DEPRECATED_R("the cheap_str_info is used but discarded afterwards")
   MJZ_CX_FN
-  cx_str_t(const cx_str_t &&obj, cheap_str_info &&info) noexcept = delete;
+  basic_cx_str_t(const basic_cx_str_t &&obj, cheap_str_info &&info) noexcept = delete;
   /*
    * reserves space if appropreate then copies, if not
    * initilizes the string as "c" in sso
    */
-  MJZ_CX_ND_FN cx_str_t(char c, cheap_str_info &&info) noexcept
-      : cx_str_t(&info) {
+  MJZ_CX_ND_FN basic_cx_str_t(char c, cheap_str_info &&info) noexcept
+      : basic_cx_str_t(&info) {
     assign_ch_<when_t::own_relax>(c);
   }
   /*
    * initilizes the string as "c" in sso
    */
-  MJZ_CX_ND_FN cx_str_t(char c) noexcept : cx_str_t() {
+  MJZ_CX_ND_FN basic_cx_str_t(char c) noexcept : basic_cx_str_t() {
     assign_ch_<when_t::as_sso>(c);
   }
 
  public:
-  MJZ_CX_FN cx_str_t &operator=(char c) noexcept {
+  MJZ_CX_FN basic_cx_str_t &operator=(char c) noexcept {
     assign_ch_<when_t::relax>(c);
     return *this;
   }
@@ -697,7 +692,7 @@ struct cx_str_t : void_struct_t {
     self_t ret{};
     ret.reset_to_error_on_fail_<when_t::as_sso>(
         ret.copy_assign_<when_t::as_sso>(*this, false, byte_offset, byte_count),
-        "[Error]cx_str_t::make_substring");
+        "[Error]basic_cx_str_t::make_substring");
     return ret;
   }
   /*similar to make_substring but gives range from [begin_i,end_i) */
@@ -712,11 +707,11 @@ struct cx_str_t : void_struct_t {
     if (m.no_destroy()) {
       reset_to_error_on_fail_<when_t::no_heap>(
           as_substring_<when_t::no_heap>(byte_offset, byte_count),
-          "[Error]cx_str_t::to_substring");
+          "[Error]basic_cx_str_t::to_substring");
     } else {
       reset_to_error_on_fail_<when_t::relax>(
           as_substring_<when_t::relax>(byte_offset, byte_count),
-          "[Error]cx_str_t::to_substring");
+          "[Error]basic_cx_str_t::to_substring");
     }
     return *this;
   }
@@ -873,7 +868,7 @@ struct cx_str_t : void_struct_t {
     }
     ret.reset_to_error_on_fail_<when_t::as_sso>(
         ret.init_view_<when_t::as_sso>(view, false),
-        "[Error]cx_str_t::make_substrview");
+        "[Error]basic_cx_str_t::make_substrview");
     return ret;
   }
   /*
@@ -964,7 +959,7 @@ struct cx_str_t : void_struct_t {
     if constexpr (!props_v.has_null) {
       return true;
     }
-    asserts(asserts.assume_rn,m.template add_null<when_t::no_heap>());
+    asserts(asserts.assume_rn, m.template add_null<when_t::no_heap>());
     return true;
   }
 
@@ -972,7 +967,7 @@ struct cx_str_t : void_struct_t {
                                            owned_stack_buffer &where) noexcept {
     if ((where.buffer_size < length() + uintlen_t(props_v.has_null)) ||
         (is_stacked() && m.get_buffer_ptr() == where.buffer) ||
-        (m.has_room_for<when_t::relax>(where.buffer_size, false)))
+        (m.template has_room_for<when_t::relax>(where.buffer_size, false)))
       return true;
     return consider_stack(idk, std::move(where));
   }
@@ -986,7 +981,7 @@ struct cx_str_t : void_struct_t {
         hm.unsafe_clear();
         return false;
       }
-    m.memcpy_to_non_sso<when_t::relax>(m.get_begin(), m.get_length(),
+    m.template memcpy_to_non_sso<when_t::relax>(m.get_begin(), m.get_length(),
                                        hm.get_heap_begin(), hm.get_heap_cap(),
                                        true);
     hm.unsafe_clear();
@@ -1003,7 +998,8 @@ struct cx_str_t : void_struct_t {
   }
 
   MJZ_CX_FN success_t add_null() noexcept {
-    return has_null() ||m.template add_null<when_t::relax>() || as_ownerized(true);
+    return has_null() || m.template add_null<when_t::relax>() ||
+           as_ownerized(true);
   }
 
   MJZ_CX_FN const char *as_c_str() & noexcept {
@@ -1136,8 +1132,8 @@ struct cx_str_t : void_struct_t {
         continue;
       }
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-      if (!hm.template u_malloc<props_v.has_alloc>(
-              uintlen_t(props_v.has_null) + new_len))
+      if (!hm.template u_malloc<props_v.has_alloc>(uintlen_t(props_v.has_null) +
+                                                   new_len))
         MJZ_IS_UNLIKELY {
           hm.unsafe_clear();
           return false;
@@ -1194,9 +1190,9 @@ struct cx_str_t : void_struct_t {
 
   MJZ_CX_ND_FN success_t
   as_ownerized(bool add_null = props_v.has_null) noexcept {
-    if (m.has_room_for<when_t::relax>(m.get_length(), add_null)) return true;
+    if (m.template has_room_for<when_t::relax>(m.get_length(), add_null)) return true;
     return reserve(uintlen_t(add_null) + length()) &&
-          m.template add_null<when_t::own_relax>();
+           m.template add_null<when_t::own_relax>();
   }
 
   MJZ_CX_ND_FN success_t as_always_ownerized(bool flag_state_) noexcept {
@@ -1301,7 +1297,6 @@ struct cx_str_t : void_struct_t {
                                     uintlen_t byte_count) noexcept {
     return replace_data_with_none(offset, byte_count, 0);
   }
-  
 
   MJZ_CX_ND_FN success_t push_back(std::optional<char> c) noexcept {
     return replace_data_with_char(nops, 0, 1, c);
@@ -1455,7 +1450,7 @@ struct cx_str_t : void_struct_t {
       }
     };
     m.set_length(new_len);
-    asserts(asserts.assume_rn,m.template add_null<when_t::own_relax>());
+    asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     set_encoding(dont_mess_up, encodings_e::ascii);
     return true;
   }
@@ -1482,9 +1477,9 @@ struct cx_str_t : void_struct_t {
       }
     };
     m.set_length(new_len);
-    asserts(asserts.assume_rn,m.template add_null<when_t::own_relax>());
+    asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     set_encoding(dont_mess_up, encodings_e::ascii);
-    
+
     return true;
   }
 
@@ -1524,71 +1519,157 @@ struct cx_str_t : void_struct_t {
           [&](base_string_view_t<version_v> read_slice) noexcept -> success_t {
             if constexpr (MJZ_IN_DEBUG_MODE) {
               total += read_slice.len;
-              asserts(asserts.assume_rn,total <= v.len);
+              asserts(asserts.assume_rn, total <= v.len);
             }
             memcpy(ptr, read_slice.ptr, read_slice.len);
             ptr += read_slice.len;
             return true;
           });
       if constexpr (MJZ_IN_DEBUG_MODE) {
-        asserts(asserts.assume_rn, total ==v.len);
+        asserts(asserts.assume_rn, total == v.len);
       }
     }
     if constexpr (props_v.has_null) {
       if (good)
-      asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
+        asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     }
     return good = true;
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   // not implemented yet
   MJZ_CX_ND_FN success_t assign_own(const self_t &other,
-                                    bool no_allocate = false) noexcept;
+                                    bool no_allocate = false) noexcept {
+    return memcopy_assign_<when_t::relax>(other, no_allocate, 0, nops);
+  }
   MJZ_CX_ND_FN success_t assign(const self_t &other,
-                                bool no_allocate = false) noexcept;
+                                bool no_allocate = false) noexcept {
+    return copy_assign_<when_t::relax>(other, no_allocate, 0, nops);
+  }
   MJZ_CX_ND_FN success_t assign_share(const self_t &other,
-                                      bool no_allocate = false) noexcept;
-  MJZ_CX_ND_FN success_t assign_move(self_t &&other) noexcept;
-  MJZ_CX_ND_FN success_t assign(char c, bool no_allocator = false) noexcept;
+                                      bool no_allocate = false) noexcept {
+    return share_init_<when_t::relax>(other, no_allocate, 0, nops);
+  }
+  MJZ_CX_ND_FN success_t assign_move(self_t &&other) noexcept {
+    return move_init_<when_t::relax>(std::move(other));
+  }
+  MJZ_CX_ND_FN success_t assign(char c) noexcept {
+    assign_ch_<when_t::relax>(c);
+    return true;
+  }
 
-  MJZ_CX_ND_FN success_t replace_data(uintlen_t offset,
-                                      uintlen_t byte_count) noexcept;
   MJZ_CX_ND_FN success_t replace_data(uintlen_t offset, uintlen_t byte_count,
-                                      const self_t &other) noexcept;
+                                      const self_t &other) noexcept {
+    if (other.get_encoding() != get_encoding()) return false;
+    if (&other == this) {
+      return false;
+    }
+    make_right_then_give_has_null(offset, byte_count);
+    if (!replace_data_with_none(offset, byte_count, other.size())) {
+      return true;
+    }
+    memcpy(m.u_get_mut_begin() + offset, other.data(), other.size());
+    return true;
+  }
 
-  MJZ_CX_FN success_t append_data_temp(self_t &&str) noexcept;
+  MJZ_CX_ND_FN success_t insert_data(uintlen_t offset,
+                                     const self_t &other) noexcept {
+    return replace_data(offset, 0, other);
+  }
+  MJZ_CX_ND_FN success_t append_data(const self_t &other) noexcept {
+    return insert_data(nops, other);
+  }
 
-  MJZ_CX_FN self_t &operator+=(self_t &&obj) noexcept;
-  MJZ_CX_FN self_t &operator+=(const self_t &obj) noexcept;
-  MJZ_CX_FN static self_t operator_add(self_t rhs, self_t lhs) noexcept;
   MJZ_CX_ND_FN success_t
-  insert_data(uintlen_t offset, const self_t &other) noexcept;
-  MJZ_CX_ND_FN success_t insert_data_with_char(
-      uintlen_t offset, uintlen_t length_of_val, std::optional<char> val) noexcept;
-  MJZ_CX_ND_FN success_t append_data(
-      const self_t &other) noexcept;
-  MJZ_CX_ND_FN success_t
-  append_data_with_char(uintlen_t length_of_val, std::optional<char> val) noexcept;
+  insert_data_with_char(uintlen_t offset, uintlen_t length_of_val,
+                        std::optional<char> val) noexcept {
+    return replace_data_with_char(offset, 0, length_of_val, val);
+  }
+  MJZ_CX_ND_FN success_t append_data_with_char(
+      uintlen_t length_of_val, std::optional<char> val) noexcept {
+    return insert_data_with_char(nops, length_of_val, val);
+  }
 
-
+  MJZ_CX_FN success_t append_data_temp(self_t &&str) noexcept {
+    uintlen_t new_len = str.length() + length();
+    bool can_fit_lhs = m.template has_room_for<when_t::relax>(new_len, props_v.has_null);
+    bool can_fit_rhs =
+        str.m.template has_room_for<when_t::relax>(new_len, str.props_v.has_null);
+    bool both_can_fit = can_fit_lhs;
+    both_can_fit |= can_fit_rhs;
+    bool rhs_is_better = m.get_capacity() < str.m.get_capacity();
+    can_fit_rhs = alias_t<bool[2]>{can_fit_rhs, rhs_is_better}[both_can_fit];
+    if (can_fit_rhs) {
+      if (!str.insert_data(0, *this)) {
+        return false;
+      }
+      *this = std::move(str);
+      return true;
+    }
+    if (!str.append_data(*this)) {
+      return false;
+    }
+    return true;
+  }
+  MJZ_CX_FN self_t &operator+=(self_t &&obj) noexcept {
+    reset_to_error_on_fail_<when_t::relax>(
+        append_data_temp(std::move(obj)),
+        "[Error]basic_cx_str_t::operator+=(self_t &&obj)");
+    return *this;
+  }
+  MJZ_CX_FN self_t &operator+=(const self_t &obj) noexcept {
+    reset_to_error_on_fail_<when_t::relax>(
+        append_data(obj), "[Error]basic_cx_str_t::operator+=(const self_t &obj)");
+    return *this;
+  }
+  MJZ_CX_FN static self_t operator_add(self_t rhs, self_t lhs) noexcept {
+    rhs += std::move(lhs);
+    return rhs;
+  }
 };
 };  // namespace mjz::bstr_ns
+
+
+namespace mjz ::bstr_ns {
+namespace litteral_ns {
+MJZ_CONSTANT(version_t) version_V_var1_{};
+/*
+ *makes a gengeric basic_str_t  that views the string
+ */
+template <str_litteral_t L, version_t vr = version_t{},
+          cx_props_t props_v = cx_props_t{}>
+MJZ_CE_FN decltype(auto) operator_cxstr() noexcept
+  requires(!std::is_empty_v<basic_cx_str_t<vr, props_v>>)
+{
+  if constexpr (props_v .is_ownerized&& props_v.sso_min_cap < L.size()) {
+    return basic_cx_str_t<vr, props_v>{operator_view<L, vr>()};
+  } else {
+    return make_static_data([]() noexcept {
+      return basic_cx_str_t<vr, props_v>(operator_view<L, vr>());
+    });
+  }
+};
+/*
+ *specialized operator for newest version
+ */
+/*
+ *makes a basic_str_t(with custom allocator feature) that views the string
+ */
+template <str_litteral_t L>
+MJZ_CX_FN decltype(auto) operator""_cxstr() noexcept
+  requires(!std::is_empty_v<basic_cx_str_t<version_V_var1_, cx_props_t{}>>)
+{ 
+    return make_static_data([]() noexcept {
+    return basic_cx_str_t<version_V_var1_, cx_props_t{}>(
+        operator_view<L, version_V_var1_>());
+    });
+}
+};  // namespace litteral_ns
+};  // namespace mjz::bstr_ns
+template <mjz::version_t version_v,mjz::bstr_ns::cx_props_t props_v>
+struct std::hash<mjz::bstr_ns::basic_cx_str_t<version_v, props_v>> {
+  std::size_t operator()(const auto &s) const noexcept {
+    return std::size_t(s.hash());
+  }
+};
+
 #endif  // MJZ_BYTE_STRING_cx_string_LIB_HPP_FILE_

@@ -568,19 +568,21 @@ struct byte_traits_t {
   template <std::floating_point T,
             callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
                 decltype(defualt_is_point_fn),
-            callable_c<std::optional<uintlen_t>(const char &,
-                                                const uint8_t &) noexcept>
+            callable_c<std::optional<
+                std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
+                const char &, const uint8_t &) noexcept>
                 power_fn_t = decltype(defualt_power_fn)>
   MJZ_CX_ND_FN std::optional<T> to_floating_pv(
-      const char *ptr, uintlen_t len, const uint8_t raidex,
+      const char *ptr, uintlen_t len, 
       is_point_fn_t &&is_point_fn = is_point_fn_t{},
       power_fn_t &&power_fn = power_fn_t{}) const noexcept {
+    uint8_t raidex = 10;
     if (ascii_to_num(std::min(std::min('N', 'A'), std::min('I', 'F'))) <
         raidex) {
       return std::nullopt;  // ambigous , NAN or INF could be a valid number!
     }
     if (std::optional<T> v = this->template to_real_floating<T>(
-            ptr, len, raidex, is_point_fn, power_fn)) {
+            ptr, len, is_point_fn, power_fn)) {
       return v;
     }
     if (36 < raidex || !ptr || !len || !raidex || is_point_fn('+', raidex) ||
@@ -1202,10 +1204,11 @@ struct byte_traits_t {
 
   template <std::floating_point T,
             callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-                decltype(defualt_is_point_fn),
-            callable_c<std::optional<uintlen_t>(const char &,
-                                                const uint8_t &) noexcept>
-                power_fn_t = decltype(defualt_power_fn)>
+                std::remove_cvref_t<decltype(defualt_is_point_fn)>,
+            callable_c<std::optional<
+                std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
+                const char &, const uint8_t &) noexcept>
+                power_fn_t = std::remove_cvref_t<decltype(defualt_power_fn)>>
   MJZ_CX_ND_FN std::optional<T> to_floating(
       const char *ptr, uintlen_t len,
       is_point_fn_t &&is_point_fn = is_point_fn_t{},
@@ -1222,7 +1225,7 @@ struct byte_traits_t {
       len--;
     }
     if (len && *ptr != '0') {
-      return this->template to_floating_pv<T>(ptr, len, 10, is_point_fn,
+      return this->template to_floating_pv<T>(ptr, len, is_point_fn,
                                               power_fn);
     }
     if (len) {

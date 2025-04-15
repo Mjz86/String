@@ -476,8 +476,7 @@ struct owned_stack_buffer_t {
 };
 namespace litteral_ns {
 template <std::size_t N>
-struct str_litteral_t {
-  MJZ_CONSTANT(std::size_t) size = N;
+struct str_litteral_t { 
   template <std::size_t... I>
   MJZ_CX_FN str_litteral_t(const char8_t (&r)[N],
                            std::index_sequence<I...>) noexcept
@@ -490,8 +489,64 @@ struct str_litteral_t {
       : s{r[I]...}, was_unicode{false} {}
   MJZ_CX_FN str_litteral_t(const char (&r)[N]) noexcept
       : str_litteral_t(r, std::make_index_sequence<N>()) {}
+  MJZ_DEFAULTED_CLASS(str_litteral_t);
   char s[N]{};
   bool was_unicode{};
+  MJZ_CX_ND_FN const char *c_str() const noexcept { return s; }
+  MJZ_CX_ND_FN const char *data() const noexcept { return s; }
+  MJZ_CX_ND_FN uintlen_t length() const noexcept { return N-1; }
+  using value_type = char;
+  using pointer = const char *;
+  using const_pointer = const char *;
+  using reference = const char &;
+  using const_reference = const char &;
+  using const_iterator = iterator_t<const str_litteral_t>;
+  using iterator = const_iterator;
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+  using reverse_iterator = const_reverse_iterator;
+  using size_type = uintlen_t;
+  using difference_type = intlen_t;
+  MJZ_CX_ND_FN encodings_e get_encoding() const noexcept {
+    return was_unicode ? encodings_e ::utf8 : encodings_e::ascii;
+  }
+  MJZ_CX_ND_FN const_iterator begin() const noexcept {
+    return const_iterator(*this, 0);
+  }
+  MJZ_CX_ND_FN const_iterator end() const noexcept {
+    return const_iterator(*this, length());
+  }
+  MJZ_CX_ND_FN const_iterator cbegin() const noexcept { return begin(); }
+  MJZ_CX_ND_FN const_iterator cend() const noexcept { return end(); }
+
+  MJZ_CX_ND_FN const_reverse_iterator rbegin() const noexcept {
+    return const_reverse_iterator{end()};
+  }
+
+  MJZ_CX_ND_FN const_reverse_iterator rend() const noexcept {
+    return const_reverse_iterator{begin()};
+  }
+  MJZ_CX_ND_FN const_reverse_iterator crbegin() const noexcept {
+    return rbegin();
+  }
+
+  MJZ_CX_ND_FN const_reverse_iterator crend() const noexcept { return rend(); }
+
+  MJZ_CX_ND_FN size_type size() const noexcept { return length(); }
+  MJZ_CX_ND_FN bool empty() const noexcept { return length() == 0; }
+
+  MJZ_CX_ND_FN std::optional<char> front() const noexcept { return at(0); }
+  MJZ_CX_ND_FN std::optional<char> back() const noexcept {
+    return at(length() - 1);
+  }
+  MJZ_CX_ND_FN std::optional<char> operator[](
+      const uintlen_t i) const noexcept {
+    return at(i);
+  }
+  MJZ_CX_ND_FN std::optional<char> at(const uintlen_t i) const noexcept {
+    return i < length() ? std::optional<char>(data()[i]) : std::nullopt;
+  }
+
+
 };
 template <char... cs>
 MJZ_CX_FN auto &operator""_cs() noexcept {

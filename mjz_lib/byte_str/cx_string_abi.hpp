@@ -354,8 +354,12 @@ struct cx_str_abi_t_ {
                                       uintlen_t len) noexcept {
       asserts(asserts.assume_rn, len <= sso_cap);
       m_v().raw_data.sso_buffer[0] = 0;  // make the buffer alive
+      char* buf = m_v().raw_data.sso_buffer;
+      MJZ_IF_CONSTEVAL {
+          memset(buf, sso_cap, 0);
+      }
       MJZ_DISABLE_ALL_WANINGS_START_;
-      memcpy(m_v().raw_data.sso_buffer, non_overlapping_ptr, len)[len] = '\0';
+      memcpy(buf, non_overlapping_ptr, len)[len] = '\0';
       MJZ_DISABLE_ALL_WANINGS_END_;
 
       cntrl().is_sso = true;
