@@ -19,7 +19,7 @@
 #include "../mjz_lib/byte_str/formatting/range_formatters.hpp"
 #include "../mjz_lib/byte_str/formatting/std_view_formatters.hpp"
 #include "../mjz_lib/byte_str/string.hpp"
-#include "../mjz_lib/byte_str/wraped_string.hpp"
+#include "../mjz_lib/byte_str/implace_string.hpp"
 
 namespace used_mjz_ns {
 using namespace mjz;
@@ -36,7 +36,7 @@ using namespace print_ns;
 MJZ_CONSTANT(version_t) version_v{};
 struct main_t {
   MJZ_NO_MV_NO_CPY(main_t);
-  using str_t = basic_str_t<version_v, false>;
+  using str_t = basic_str_t<version_v>;
 
   MJZ_CX_FN void run() const;
   MJZ_CX_FN main_t() noexcept {
@@ -49,8 +49,8 @@ struct scoped_timer_t {
   MJZ_NO_MV_NO_CPY(scoped_timer_t);
   int64_t nanos{};
   uintlen_t count{};
-  basic_str_t<version_v, false> view{nullopt};
-  MJZ_CX_FN scoped_timer_t(basic_str_t<version_v, false> name,
+  basic_str_t<version_v> view{nullopt};
+  MJZ_CX_FN scoped_timer_t(basic_str_t<version_v> name,
                            uintlen_t count_ = 100000ull) noexcept {
     MJZ_IF_CONSTEVAL { return; }
     view = std::move(name);
@@ -88,10 +88,8 @@ struct scoped_timer_t {
   }
 };
 MJZ_CX_FN void main_t::run() const {
-  constexpr wrapped_props_t wrapped_props{.sso_min_cap = 128,
-                                          .is_ownerized = true};
   bool disable_cow{false};
-  wrapped_string_t<version_v, wrapped_props> result{};
+  implace_str_t<version_v> result{};
   str_t s =
       "i am a big massage 0123456789abcdefghijklmnop53666666666666666666666666"_str;
   if (disable_cow) {
@@ -115,8 +113,7 @@ MJZ_CX_FN void main_t::run() const {
       timer.no_optimize(fn1());
     }
     for (auto&& timer : scoped_timer_t{name + ":mmjz"_str, count}) {
-      timer.no_optimize(
-          wrapped_string_t<version_v, wrapped_props_t{.is_ownerized = true}>(
+      timer.no_optimize(implace_str_t<version_v>(
               fn1()));
     }
     for (auto&& timer : scoped_timer_t{name + ":std"_str, count}) {

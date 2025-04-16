@@ -226,7 +226,7 @@ struct basic_lazy_str_t {
       auto& rc_ = obj.storage.lazy_ref.object->reference_count;
       if (obj.storage.lazy_ref.is_threaded) {
         if (1==threads_ns::atomic_ref_t<uintlen_t>(rc_).fetch_sub(
-                1, std::memory_order_release))
+                     1, std::memory_order_acq_rel))
           return;
       } else {
         if (--rc_) return;

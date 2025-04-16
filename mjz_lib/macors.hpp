@@ -480,7 +480,7 @@ active union member... IF the first statement is true
 #define MJZ_DISABLE_ALL_WANINGS_START_    \
   MJZ_MSVC_ONLY_PRAGMA_(warning(push, 0)) \
   MJZ_MSVC_ONLY_PRAGMA_(warning(          \
-      disable : MJZ_DISABLED_MSVC_WANINGS_ 4702 6385 26115 26110 6236 26495 6287 28020 26816))
+      disable : MJZ_DISABLED_MSVC_WANINGS_ 4702 6385 26115 26110 6236 26495 6287 28020 26816 6386))
 
 #define MJZ_DISABLE_ALL_WANINGS_END_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
 
@@ -542,6 +542,11 @@ active union member... IF the first statement is true
   MJZ_MAYBE_UNUSED                                   \
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
   MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__forceinline)
+
+#define MJZ_CX_NL_FN                                 \
+  MJZ_MAYBE_UNUSED                                   \
+  MJZ_GCC_ONLY_CODE_(__attribute__((noinline))) \
+  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__declspec(noinline))
 
 
 #define MJZ_CX_AL_A_FN(X) X MJZ_CX_AL_FN

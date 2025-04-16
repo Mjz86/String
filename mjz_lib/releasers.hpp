@@ -33,19 +33,20 @@ class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
   }
 
   template <class T>
-  MJZ_CX_AL_FN static auto up_cast(T *ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) up_cast(T *ptr) noexcept {
     return mptr_static_cast<void_struct_t *>(ptr);
   }
   template <class T>
-  MJZ_CX_AL_FN static auto up_cast(const T *ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) up_cast(const T *ptr) noexcept {
     return mptr_static_cast<const void_struct_t *>(ptr);
   }
   template <class T>
-  MJZ_CX_AL_FN static auto down_cast(void_struct_t *ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) down_cast(void_struct_t *ptr) noexcept {
     return mptr_static_cast<T *>(ptr);
   }
   template <class T>
-  MJZ_CX_AL_FN static auto down_cast(const void_struct_t *ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) down_cast(
+      const void_struct_t *ptr) noexcept {
     return mptr_static_cast<const T *>(ptr);
   }
   template <class T>
@@ -53,7 +54,7 @@ class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
     return *up_cast(std::addressof(ptr));
   }
   template <class T>
-  MJZ_CX_AL_FN static auto up_cast(const T &ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) up_cast(const T &ptr) noexcept {
     return *up_cast(std::addressof(ptr));
   }
   template <class T>
@@ -61,13 +62,14 @@ class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
     return *down_cast<T>(std::addressof(ptr));
   }
   template <class T>
-  MJZ_CX_AL_FN static decltype(auto) down_cast(const void_struct_t &ptr) noexcept {
+  MJZ_CX_AL_FN static decltype(auto) down_cast(
+      const void_struct_t &ptr) noexcept {
     return *down_cast<T>(std::addressof(ptr));
   }
 };
 using void_struct_cast_t =
     mjz_private_accessed_t<void_struct_t(void_struct_t *)>;
-enum class may_bool_t : char { yes, no, idk, err };
+enum class may_bool_t : char { no = false, yes = true, idk = 2, err = 3 };
 MJZ_CONSTANT(bool)
 SYSTEM_is_little_endian_{std::endian::little == std::endian::native};
 #if MJZ_uintlen_t_as_64_bit
@@ -119,11 +121,8 @@ template <class>
 class my_totatlly_empty_template1_class_t {};
 MJZ_CX_AL_ND_FN static uint8_t log2_of_val_create(
     std::integral auto val) noexcept {
-  uint8_t ret{};
-  while (val >>= 1) {
-    ret++;
-  }
-  return ret;
+  uint8_t ret = uint8_t(std::bit_width(val));
+  return alias_t<uint8_t[2]>{uint8_t(ret - 1), 0}[ret == 0];
 }
 MJZ_CX_AL_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
   return static_cast<uint64_t>(1ull << log2_val);
@@ -186,7 +185,7 @@ class releaser_t {
   releaser_t &operator=(const releaser_t &) = delete;
   releaser_t() = delete;
   MJZ_CX_AL_FN releaser_t(releaser_LAMBDA_t &&releaser_lambda,
-                       reasorces_t &&...args) noexcept(requires() {
+                          reasorces_t &&...args) noexcept(requires() {
     { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
     { tuple_t(std::forward<reasorces_t>(args)...) } noexcept;
   })
@@ -305,6 +304,15 @@ struct noexcept_er_helper_t {
   MJZ_CX_FN success_t operator->*(Lmabda_t &&fn) const noexcept {
     return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
   };
+  template <class Lmabda_t>
+  MJZ_CX_FN success_t operator*(Lmabda_t &&fn) const noexcept {
+    success_t ret{};
+    run_and_block_exeptions(
+        [&]() noexcept(noexcept(success_t(std::forward<Lmabda_t>(fn)()))) {
+          ret = success_t(std::forward<Lmabda_t>(fn)());
+        });
+    return ret;
+  };
   MJZ_DEPRECATED_R("confusion")
   MJZ_CX_FN explicit operator bool() const noexcept = delete;
   MJZ_DEPRECATED_R("confusion")
@@ -420,8 +428,9 @@ MJZ_CX_FN void raii_try_catch_rethrow(lambda_try_function &&try_func,
 MJZ_DISABLE_WANINGS_START_;
 MJZ_NCX_FN void just_do_ptr(volatile void *arg) noexcept {
   MJZ_DISABLE_WANINGS_END_;
-  MJZ_UNUSED static thread_local volatile auto p = const_cast<volatile void *>(arg);
-  p=arg;
+  MJZ_UNUSED static thread_local volatile auto p =
+      const_cast<volatile void *>(arg);
+  p = arg;
 };
 template <typename... Ts>
 MJZ_NCX_FN void just_do(Ts &&...args) noexcept {  //-V3541 //-V2565

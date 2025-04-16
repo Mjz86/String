@@ -1,4 +1,5 @@
 
+#include <concepts>
 #include <cstring>
 
 #include "packings.hpp"
@@ -20,8 +21,8 @@ IF THIS FUNCTION GIVES AN ERROR IN CONSTEXPR GCC < 12 :
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074
 */
 MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
-                                  const char *const b_ptr_,
-                                  uintlen_t b_len) noexcept {
+                                     const char *const b_ptr_,
+                                     uintlen_t b_len) noexcept {
   MJZ_IF_CONSTEVAL {
     if (b_len && a_len) {
       const char *a_ptr{a_ptr_};
@@ -71,8 +72,26 @@ MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
   }
 }
 
+template <typename T>
+  requires(std::is_trivially_copy_constructible_v<T> &&
+           std::is_trivially_default_constructible_v<T> &&
+           std::is_trivially_destructible_v<T>)
+MJZ_NCX_FN T cpy_aligned_bitcast(const void *src) noexcept {
+  T ret{};
+  std::memcpy(&ret, std::assume_aligned<alignof(T)>(src), sizeof(src));
+  return ret;
+}
+
+template <typename T>
+  requires(std::is_trivially_copy_constructible_v<T> &&
+           std::is_trivially_default_constructible_v<T> &&
+           std::is_trivially_destructible_v<T>)
+MJZ_NCX_FN void cpy_aligned_bitcast( void *dest,const T&src) noexcept {
+  std::memcpy(std::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
+}
+
 MJZ_CX_AL_FN char *memcpy_forward(char *dest, const char *src,
-                               uintlen_t len) noexcept {
+                                  uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
                        // the behavior is undefined. (NO! , len=0 defines this)
     if (!len) return dest;
@@ -89,7 +108,7 @@ MJZ_CX_AL_FN char *memcpy_forward(char *dest, const char *src,
 }
 
 MJZ_CX_AL_FN char *memcpy_backward(char *dest, const char *src,
-                                uintlen_t len) noexcept {
+                                   uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
                        // the behavior is undefined. (NO! , len=0 defines this)
     if (!len) return dest;
@@ -106,9 +125,10 @@ MJZ_CX_AL_FN char *memcpy_backward(char *dest, const char *src,
 }
 
 MJZ_CX_AL_FN char *memomve_overlap(char *dest, const char *src,
-                                uintlen_t len) noexcept {
+                                   uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
-      //If dest or src is a null pointer or invalid pointer, the behavior is undefined (NO! , len=0 defines this)
+    // If dest or src is a null pointer or invalid pointer, the behavior is
+    // undefined (NO! , len=0 defines this)
     if (!len) return dest;
     return reinterpret_cast<char *>(
         ::std::memmove(reinterpret_cast<void *>(dest),
@@ -148,7 +168,7 @@ NOTE:
 diffrence is due to constexpr's pointer comparason limitation.
 */
 MJZ_CX_AL_FN char *memmove(char *const dest, const char *const src,
-                        const uintlen_t len) noexcept {
+                           const uintlen_t len) noexcept {
   const char *from = src;
   char *to = dest;
   if (from == to || len == 0) {
@@ -197,7 +217,7 @@ NOTE:
 diffrence is due to constexpr's pointer comparason limitation.
 */
 MJZ_CX_AL_FN char *memmove_swap(char *const dest, char *const src,
-                             const uintlen_t len) noexcept {
+                                const uintlen_t len) noexcept {
   char *from = src;
   char *to = dest;
   if (from == to || len == 0) {
@@ -306,7 +326,6 @@ struct mjz_unique_cache_line_t {
 static_assert(
     log2_ceil_of_val_create(hardware_constructive_interference_size) ==
     log2_of_val_create(hardware_constructive_interference_size));
-
 
 template <uintlen_t N>
 MJZ_CX_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
