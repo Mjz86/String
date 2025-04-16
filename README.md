@@ -732,9 +732,12 @@ my formatting library should also support ropes in a efficient way when they are
  the license is an open source mit license , so this is more of a reminder. 
 
   * please look at the following video ("Let's Talk Open Source - Prime Reacts ") before doing a pull request,  a issue or any other massage:
+  
+   [https://www.youtube.com/watch?v=fXqX2S6s3rU](https://www.youtube.com/watch?v=fXqX2S6s3rU)
    
    [https://youtube.com/watch?v=SQ0mBnJmd6I&si=eFCaaEIP0xvqpiWJ](https://youtube.com/watch?v=SQ0mBnJmd6I&si=eFCaaEIP0xvqpiWJ)
 
+   [https://www.youtube.com/watch?v=H9GkSSWbw4c](https://www.youtube.com/watch?v=H9GkSSWbw4c)
 
 ## why another string, arent you tired of new strings? 
 
