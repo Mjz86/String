@@ -1,36 +1,39 @@
 
 
 #include "../byte_str/string.hpp"
-#ifndef MJZ_BYTE_STRING_wraped_string_LIB_HPP_FILE_
-#define MJZ_BYTE_STRING_wraped_string_LIB_HPP_FILE_
+#ifndef MJZ_BYTE_STRING_implace_string_LIB_HPP_FILE_
+#define MJZ_BYTE_STRING_implace_string_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
 
-template <version_t version_v, wrapped_props_t props_v>
-struct wrapped_string_data_t
-    : protected basic_str_t<version_v, props_v.has_alloc> {
+template <version_t version_v, props_t props_v, uintlen_t stack_cap>
+struct implace_string_data_t : protected basic_str_t<version_v, props_v> {
  private:
   template <class>
   friend class mjz_private_accessed_t;
 };
-template <version_t version_v, wrapped_props_t props_v>
+template <version_t version_v, props_t props_v, uintlen_t stack_cap>
   requires requires() {
-    requires(basic_str_abi_ns_::nsso_u<version_v>::sso_cap <
-             props_v.sso_min_cap);
+    requires(basic_str_t<version_v, props_v>::sso_cap < stack_cap);
   }
-struct wrapped_string_data_t<version_v, props_v>
-    : protected basic_str_t<version_v, props_v.has_alloc> {
+struct implace_string_data_t<version_v, props_v, stack_cap>
+    : protected basic_str_t<version_v, props_v> {
  protected:
   template <class>
   friend class mjz_private_accessed_t;
   MJZ_CONSTANT(uintlen_t)
-  sso_cap_v_{props_v.cap()};
+  sso_cap_v_{((stack_cap / sizeof(uintlen_t)) +
+              uintlen_t(!!(stack_cap % sizeof(uintlen_t)))) *
+             sizeof(uintlen_t)};
   std::array<char, sso_cap_v_> m_stack_buffer_{};
 };
-/* 
-* still not optimal , many functions , especially the constructors need optimization for better inlining 
-*/
-template <version_t version_v, wrapped_props_t props_v>
-struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
+/*
+ * still not optimal , many functions , especially the constructors need
+ * optimization for better inlining
+ */
+template <version_t version_v, uintlen_t stack_cap = 1024,
+          props_t props_v = props_t{}>
+struct implace_str_t
+    : private implace_string_data_t<version_v, props_v, stack_cap> {
   template <class T>
   MJZ_CX_FN T mptr_static_cast_pv_fn_() noexcept {
     return static_cast<T>(this);
@@ -40,21 +43,19 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     return static_cast<T>(this);
   }
   MJZ_CX_FN static auto mptr_static_cast_pv_fn_(void_struct_t *p) noexcept {
-    return static_cast<wrapped_string_t *>(p);
+    return static_cast<implace_str_t *>(p);
   }
   MJZ_CX_FN static auto mptr_static_cast_pv_fn_(
       const void_struct_t *p) noexcept {
-    return static_cast<const wrapped_string_t *>(p);
+    return static_cast<const implace_str_t *>(p);
   }
-  using wrapped_string_t_unique_tag_ = void;
+  using implace_str_t_unique_tag_ = void;
 
  private:
-  template <version_t , wrapped_props_t >
-  friend struct wrapped_string_t;
+  template <version_t, uintlen_t, props_t>
+  friend struct implace_str_t;
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(bool)
-  has_alloc_v_{props_v.has_alloc};
 
  public:
   using traits_type = byte_traits_t<version_v>;
@@ -65,8 +66,8 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   using reference =
       std::conditional_t<props_v.is_ownerized, char &, const char &>;
   using const_reference = const char &;
-  using const_iterator = iterator_t<const wrapped_string_t>;
-  using iterator = iterator_t<wrapped_string_t>;
+  using const_iterator = iterator_t<const implace_str_t>;
+  using iterator = iterator_t<implace_str_t>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using size_type = uintlen_t;
@@ -75,23 +76,19 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   using back_insert_iterator_t = base_out_it_t<version_v>;
 
  private:
-  using replace_flags = replace_flags_t<version_v>;
   using static_string_view = static_string_view_t<version_v>;
 
   using dynamic_string_view = dynamic_string_view_t<version_v>;
   using generic_string_view = basic_string_view_t<version_v>;
 
   using str_heap_manager = str_heap_manager_t<version_v>;
-  using str_t = basic_str_t<version_v, has_alloc_v_>;
+  using str_t = basic_str_t<version_v, props_v>;
   // using    base_str_info = base_str_info_t<version_v>;
   using cheap_str_info = cheap_base_str_info_t<version_v>;
   using EM_t = encodings_e;
   using alloc_ref = allocs_ns::alloc_base_ref_t<version_v>;
   using owned_stack_buffer = owned_stack_buffer_t<version_v>;
   using hash_t = hash_bytes_t<version_v>;
-
-  using m_t = basic_str_abi_ns_::m_t<version_v, has_alloc_v_>;
-  using my_details = basic_str_abi_ns_::details_t<version_v>;
 
   using dont_mess_up_t = unsafe_ns::i_know_what_im_doing_t;
 
@@ -114,158 +111,137 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     return *void_struct_cast_t::down_cast<str_t>(
         void_struct_cast_t::up_cast(this));
   }
-  MJZ_CX_FN static success_t ensure_props(str_t &where) noexcept {
-    return where.ensure_props(props_v);
-  }
+
   MJZ_CX_FN auto prop_guard() noexcept {
-    return releaser_t{[this]() noexcept {
-      if (init_stack(m_str()) && ensure_props(m_str())) {
-        return;
-      }
-      // this err has to fit in sso  :( , so  data() can modify it.
-      m_str().reset_to_error_on_fail(false, "[Err]");
-      asserts(asserts.assume_rn, ensure_props(m_str()));
-    }};
+    return releaser_t{[this]() noexcept { init_stack(m_str()); }};
   }
   MJZ_CX_FN success_t init_stack(str_t &where) noexcept {
     std::optional<owned_stack_buffer_t<version_v>> msb = my_stack_buffer();
     if (!msb) return true;
-    return where.may_reconsider_stack(unsafe_ns::unsafe_v, *msb,
-                                      props_v.has_null);
+    return where.may_reconsider_stack(unsafe_ns::unsafe_v, *msb);
   }
 
  public:
-  MJZ_CX_FN wrapped_string_t() noexcept {
+  MJZ_CX_FN implace_str_t() noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
-        init_stack(m_str()) && ensure_props(m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t():  failed string init");
+        init_stack(m_str()),
+        "[Error]implace_str_t::implace_str_t():  failed string init");
   }
 
-
-
-  MJZ_CX_FN wrapped_string_t(str_t&& source_,
-                             void_struct_t ) noexcept {
+  MJZ_CX_FN implace_str_t(str_t &&source_, void_struct_t) noexcept {
     m_str() = std::move(source_);
     MJZ_UNUSED auto gard_ = prop_guard();
-    m_str().reset_to_error_on_fail(init_stack(m_str()) && ensure_props(m_str()),
-                                   "[Error]wrapped_string_t::wrapped_string_t("
+    m_str().reset_to_error_on_fail(init_stack(m_str()),
+                                   "[Error]implace_str_t::implace_str_t("
                                    "str_t&&):  failed string init");
   }
-  MJZ_CX_FN wrapped_string_t(const str_t& source_, void_struct_t) noexcept {
+  MJZ_CX_FN implace_str_t(const str_t &source_, void_struct_t) noexcept {
     m_str() = source_;
     MJZ_UNUSED auto gard_ = prop_guard();
-    m_str().reset_to_error_on_fail(init_stack(m_str()) && ensure_props(m_str()),
-                                   "[Error]wrapped_string_t::wrapped_string_t("
+    m_str().reset_to_error_on_fail(init_stack(m_str()),
+                                   "[Error]implace_str_t::implace_str_t("
                                    "const str_t&):  failed string init");
   }
   template <class U>
-  MJZ_CX_FN wrapped_string_t(U &&arg) noexcept
-      : wrapped_string_t(std::forward<U>(arg), totally_empty_type) {}
-  MJZ_CX_FN wrapped_string_t(wrapped_string_t &&arg) noexcept
-      : wrapped_string_t(std::forward<wrapped_string_t>(arg),
+  MJZ_CX_FN implace_str_t(U &&arg) noexcept
+      : implace_str_t(std::forward<U>(arg), totally_empty_type) {}
+  MJZ_CX_FN implace_str_t(implace_str_t &&arg) noexcept
+      : implace_str_t(std::forward<implace_str_t>(arg),
                          totally_empty_type) {}
-  MJZ_CX_FN wrapped_string_t(const wrapped_string_t &arg) noexcept
-      : wrapped_string_t(std::forward<const wrapped_string_t&>(arg),
+  MJZ_CX_FN implace_str_t(const implace_str_t &arg) noexcept
+      : implace_str_t(std::forward<const implace_str_t &>(arg),
                          totally_empty_type) {}
 
   template <class U>
-  MJZ_CX_FN wrapped_string_t(U &&source_,void_struct_t) noexcept
+  MJZ_CX_FN implace_str_t(U &&source_, void_struct_t) noexcept
     requires requires() {
       requires std::same_as<U, std::remove_cvref_t<U>>;
-      typename U::wrapped_string_t_unique_tag_;
+      typename U::implace_str_t_unique_tag_;
     }
-      : wrapped_string_t() {
+      : implace_str_t() {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
-        std::move(source_).move_to_dest(m_str()) && ensure_props(m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t( "
+        std::move(source_).move_to_dest(m_str()),
+        "[Error]implace_str_t::implace_str_t( "
         "wrapped_string_data_t<version_v_src, version_v_src>&&):  failed "
         "string init");
   }
   template <class U>
-  MJZ_CX_FN wrapped_string_t(U &&source_,
-                             void_struct_t ) noexcept
+  MJZ_CX_FN implace_str_t(U &&source_, void_struct_t) noexcept
     requires requires() {
-      requires std::same_as<U, std::remove_reference_t<U>&>;
-      typename std::remove_cvref_t<U>::wrapped_string_t_unique_tag_;
+      requires std::same_as<U, std::remove_reference_t<U> &>;
+      typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
     }
-      : wrapped_string_t() {
+      : implace_str_t() {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         m_str().assign(source_.m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t( "
+        "[Error]implace_str_t::implace_str_t( "
         "const wrapped_string_data_t<version_v_src, version_v_src>&):  failed "
-        "string construct"); 
+        "string construct");
   }
 
   template <class U>
     requires requires() {
       requires std::same_as<U, std::remove_cvref_t<U>>;
-      typename U::wrapped_string_t_unique_tag_;
+      typename U::implace_str_t_unique_tag_;
     }
-  MJZ_CX_FN wrapped_string_t &operator_assign(U &&source_) noexcept {
+  MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         source_.move_to_dest(m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t &operator_assign( "
+        "[Error]implace_str_t::implace_str_t &operator_assign( "
         "wrapped_string_data_t<version_v_src, version_v_src>&&):  failed "
         "string assign");
     return *this;
   }
   template <class U>
     requires requires() {
-      requires std::same_as<U, std::remove_reference_t<U> &>||std::is_const_v<U>;
-      typename std::remove_cvref_t<U>::wrapped_string_t_unique_tag_;
+      requires std::same_as<U, std::remove_reference_t<U> &> ||
+                   std::is_const_v<U>;
+      typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
     }
-  MJZ_CX_FN wrapped_string_t &operator_assign(U &&source_) noexcept {
+  MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(
         m_str().assign(source_.m_str()),
-        "[Error]wrapped_string_t::wrapped_string_t &operator_assign( "
+        "[Error]implace_str_t::implace_str_t &operator_assign( "
         "const wrapped_string_data_t<version_v_src, version_v_src>&):  failed "
         "string assign");
     return *this;
   }
 
-  MJZ_CX_FN wrapped_string_t &operator_assign(const str_t &source_) noexcept {
+  MJZ_CX_FN implace_str_t &operator_assign(const str_t &source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str().reset_to_error_on_fail(m_str().assign(source_),
-                                   "[Error]wrapped_string_t::wrapped_string_t "
+                                   "[Error]implace_str_t::implace_str_t "
                                    "&operator_assign(const str_t &):  failed "
                                    "string assign");
     return *this;
   }
-  MJZ_CX_FN wrapped_string_t &operator_assign(str_t &&source_) noexcept {
+  MJZ_CX_FN implace_str_t &operator_assign(str_t &&source_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    m_str().reset_to_error_on_fail(init_stack(source_) &&
-                                       ensure_props(source_) &&
-                                       m_str().move_init(std::move(source_)),
-                                   "[Error]wrapped_string_t::wrapped_string_t "
-                                   "&operator_assign(str_t&&):  failed "
-                                   "string assign");
+    m_str().reset_to_error_on_fail(
+        init_stack(source_) && m_str().move_init(std::move(source_)),
+        "[Error]implace_str_t::implace_str_t "
+        "&operator_assign(str_t&&):  failed "
+        "string assign");
     return *this;
   }
   template <class U>
-  MJZ_CX_FN wrapped_string_t &operator=(U &&source_) noexcept {
+  MJZ_CX_FN implace_str_t &operator=(U &&source_) noexcept {
     return operator_assign(std::forward<U>(source_));
-  } 
-  MJZ_CX_FN wrapped_string_t &operator=(wrapped_string_t &&source_) noexcept {
-    return operator_assign(std::forward<wrapped_string_t>(source_));
   }
-  MJZ_CX_FN wrapped_string_t &operator=(
-      const wrapped_string_t &source_) noexcept {
-    return operator_assign(std::forward<const wrapped_string_t&>(source_));
+  MJZ_CX_FN implace_str_t &operator=(implace_str_t &&source_) noexcept {
+    return operator_assign(std::forward<implace_str_t>(source_));
+  }
+  MJZ_CX_FN implace_str_t &operator=(
+      const implace_str_t &source_) noexcept {
+    return operator_assign(std::forward<const implace_str_t &>(source_));
   }
 
-  MJZ_CX_FN ~wrapped_string_t() noexcept {
-    asserts(asserts.assume_rn, (!props_v.is_ownerized || get().is_owner()) &&
-                                   (!props_v.has_null || get().has_null()));
-    if constexpr (props_v.is_ownerized) {
-        // reassures the compiler
-      m_str().m.d_set_cntrl(my_details::is_ownerized, true);
-    }
-  }
+  MJZ_CX_FN ~implace_str_t() noexcept { std::ignore = 0; }
 
  public:
   MJZ_CX_FN success_t move_to_dest(str_t &dest) && noexcept {
@@ -293,28 +269,28 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
                                    bool try_to_add_null = true) noexcept {
     return get().as_substring(byte_offset, byte_count, try_to_add_null);
   }
-  MJZ_CX_ND_FN wrapped_string_t
+  MJZ_CX_ND_FN implace_str_t
   make_substring(uintlen_t byte_offset, uintlen_t byte_count) const noexcept {
-    wrapped_string_t ret{};
+    implace_str_t ret{};
     str_t &str = ret.m_str();
     m_str().reset_to_error_on_fail(
         str.copy_assign(m_str(), false, byte_offset, byte_count) &&
-            ret.init_stack(str) && ret.ensure_props(str),
-        "[Error]wrapped_string_t::make_substring: cannot init string");
+            ret.init_stack(str),
+        "[Error]implace_str_t::make_substring: cannot init string");
     return ret;
   }
-  MJZ_CX_ND_FN wrapped_string_t operator()(uintlen_t begin_i = 0,
+  MJZ_CX_ND_FN implace_str_t operator()(uintlen_t begin_i = 0,
                                            uintlen_t end_i = nops) noexcept {
     if (end_i < begin_i) return {};
     return make_substring(begin_i, end_i - begin_i);
   }
 
   /* similar to as_substring*/
-  MJZ_CX_FN wrapped_string_t &to_substring(uintlen_t byte_offset,
+  MJZ_CX_FN implace_str_t &to_substring(uintlen_t byte_offset,
                                            uintlen_t byte_count) noexcept {
     m_str().reset_to_error_on_fail(
         as_substring(byte_offset, byte_count),
-        "[Error]wrapped_string_t::to_substring: cannot init string");
+        "[Error]implace_str_t::to_substring: cannot init string");
     return *this;
   }
   void data() && = delete;
@@ -391,7 +367,7 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   MJZ_DEPRECATED_R("clear lifetime issue")
   void make_substrview(const dont_mess_up_t &, uintlen_t, uintlen_t,
                        bool = true) const && = delete;
-  MJZ_CX_ND_FN wrapped_string_t
+  MJZ_CX_ND_FN implace_str_t
   make_substrview(const dont_mess_up_t &idk, uintlen_t byte_offset,
                   uintlen_t byte_count, bool propgate_alloc = true,
                   bool unsafe_assume_static_ = false) const & noexcept {
@@ -414,11 +390,10 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   MJZ_CX_ND_FN uintlen_t capacity(bool must_owner = true) const noexcept {
     return get().capacity(must_owner);
   }
-  MJZ_CX_FN success_t reserve(uintlen_t mincap, uintlen_t prefer_cap = 0,
-                              const alloc_ref &alloc = m_t::empty_alloc,
-                              replace_flags flags = replace_flags{}) noexcept {
+  MJZ_CX_FN success_t reserve(uintlen_t mincap,
+                              uintlen_t prefer_cap = 0) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().reserve(mincap, prefer_cap, alloc, flags);
+    return m_str().reserve(mincap, prefer_cap);
   }
   MJZ_CX_FN success_t consider_stack(const dont_mess_up_t &idk,
                                      owned_stack_buffer &&where) noexcept {
@@ -458,128 +433,101 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
   MJZ_CX_FN bool is_stacked() const noexcept { return get().is_stacked(); }
   MJZ_CX_ND_FN success_t replace_data_with_char(
       uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
-      std::optional<char> val, const alloc_ref &val_alloc = m_t::empty_alloc,
-      replace_flags rep_flags = replace_flags{}) noexcept {
+      std::optional<char> val) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     return m_str().replace_data_with_char(offset, byte_count, length_of_val,
-                                          val, val_alloc, rep_flags);
+                                          val);
   }
 
-  MJZ_CX_ND_FN success_t
-  as_ownerized(const alloc_ref &val_alloc = m_t::empty_alloc,
-               replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t as_ownerized() noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().as_ownerized(val_alloc, rep_flags);
+    return m_str().as_ownerized();
   }
-  MJZ_CX_ND_FN success_t as_always_ownerized(
-      bool flag_state_, const alloc_ref &val_alloc = m_t::empty_alloc,
-      replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t as_always_ownerized(bool flag_state_) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().as_always_ownerized(flag_state_, val_alloc, rep_flags);
+    return m_str().as_always_ownerized(flag_state_);
   }
   template <class R_t>
     requires std::ranges::sized_range<R_t> && std::ranges::forward_range<R_t>
-  MJZ_CX_ND_FN success_t
-  replace_data_with_range(uintlen_t offset, uintlen_t byte_count, R_t &&r,
-                          const alloc_ref &val_alloc = m_t::empty_alloc,
-                          replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t replace_data_with_range(uintlen_t offset,
+                                                 uintlen_t byte_count,
+                                                 R_t &&r) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().replace_data_with_range(
-        offset, byte_count, std::forward<R_t>(r), val_alloc, rep_flags);
+    return m_str().replace_data_with_range(offset, byte_count,
+                                           std::forward<R_t>(r));
   }
   template <std::ranges::forward_range R_t>
-  MJZ_CX_ND_FN success_t
-  replace_data_with_range(uintlen_t offset, uintlen_t byte_count, R_t &&r,
-                          const alloc_ref &val_alloc = m_t::empty_alloc,
-                          replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t replace_data_with_range(uintlen_t offset,
+                                                 uintlen_t byte_count,
+                                                 R_t &&r) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().replace_data_with_range(
-        offset, byte_count, std::forward<R_t>(r), val_alloc, rep_flags);
+    return m_str().replace_data_with_range(offset, byte_count,
+                                           std::forward<R_t>(r));
   }
 
   template <std::ranges::forward_range R_t>
-  MJZ_CX_ND_FN success_t insert_data_with_range(
-      uintlen_t offset, R_t &&r, const alloc_ref &val_alloc = m_t::empty_alloc,
-      replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t insert_data_with_range(uintlen_t offset,
+                                                R_t &&r) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().insert_data_with_range(offset, std::forward<R_t>(r),
-                                          val_alloc, rep_flags);
+    return m_str().insert_data_with_range(offset, std::forward<R_t>(r));
   }
   template <std::ranges::forward_range R_t>
-  MJZ_CX_ND_FN success_t
-  append_data_with_range(R_t &&r, const alloc_ref &val_alloc = m_t::empty_alloc,
-                         replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t append_data_with_range(R_t &&r) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().append_data_with_range(std::forward<R_t>(r), val_alloc,
-                                          rep_flags);
+    return m_str().append_data_with_range(std::forward<R_t>(r));
   }
   template <std::ranges::forward_range R_t>
-  MJZ_CX_ND_FN success_t
-  assign_data_with_range(R_t &&r, const alloc_ref &val_alloc = m_t::empty_alloc,
-                         replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t assign_data_with_range(R_t &&r) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().assign_data_with_range(std::forward<R_t>(r), val_alloc,
-                                          rep_flags);
+    return m_str().assign_data_with_range(std::forward<R_t>(r));
   }
 
-  MJZ_CX_ND_FN success_t
-  replace_data(uintlen_t offset, uintlen_t byte_count, const str_t &&other,
-               replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t replace_data(uintlen_t offset, uintlen_t byte_count,
+                                      const str_t &&other) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().replace_data(offset, byte_count, other, rep_flags);
+    return m_str().replace_data(offset, byte_count, other);
   }
-  MJZ_CX_ND_FN success_t
-  replace_data(uintlen_t offset, uintlen_t byte_count, const str_t &other,
-               replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t replace_data(uintlen_t offset, uintlen_t byte_count,
+                                      const str_t &other) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().replace_data(offset, byte_count, other, rep_flags);
+    return m_str().replace_data(offset, byte_count, other);
   }
 
-  MJZ_CX_ND_FN success_t
-  erase_data(uintlen_t offset, uintlen_t byte_count, const alloc_ref &val_alloc,
-             replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t erase_data(uintlen_t offset,
+                                    uintlen_t byte_count) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().erase_data(offset, byte_count, val_alloc, rep_flags);
+    return m_str().erase_data(offset, byte_count);
+  }
+  MJZ_CX_ND_FN success_t insert_data(uintlen_t offset,
+                                     const str_t &other) noexcept {
+    MJZ_UNUSED auto gard_ = prop_guard();
+    return m_str().erase_data(offset, other);
   }
   MJZ_CX_ND_FN success_t
-  insert_data(uintlen_t offset, const str_t &other,
-              replace_flags rep_flags = replace_flags{}) noexcept {
+  insert_data_with_char(uintlen_t offset, uintlen_t length_of_val,
+                        std::optional<char> val) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().erase_data(offset, other, rep_flags);
+    return m_str().insert_data_with_char(offset, length_of_val, val);
   }
-  MJZ_CX_ND_FN success_t insert_data_with_char(
-      uintlen_t offset, uintlen_t length_of_val, std::optional<char> val,
-      const alloc_ref &val_alloc = m_t::empty_alloc,
-      replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t append_data(const str_t &other) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().insert_data_with_char(offset, length_of_val, val, val_alloc,
-                                         rep_flags);
+    return m_str().append_data(other);
   }
-  MJZ_CX_ND_FN success_t append_data(
-      const str_t &other, replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t append_data_with_char(uintlen_t length_of_val,
+                                               std::optional<char> val
+
+                                               ) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().append_data(other, rep_flags);
-  }
-  MJZ_CX_ND_FN success_t
-  append_data_with_char(uintlen_t length_of_val, std::optional<char> val,
-                        const alloc_ref &val_alloc = m_t::empty_alloc,
-                        replace_flags rep_flags = replace_flags{}) noexcept {
-    MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().append_data_with_char(length_of_val, val, val_alloc,
-                                         rep_flags);
+    return m_str().append_data_with_char(length_of_val, val);
   }
 
-  MJZ_CX_ND_FN success_t
-  push_back(std::optional<char> c,
-            replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t push_back(std::optional<char> c) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().push_back(c, rep_flags);
+    return m_str().push_back(c);
   }
-  MJZ_CX_ND_FN success_t
-  push_front(std::optional<char> c,
-             replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t push_front(std::optional<char> c) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().push_front(c, rep_flags);
+    return m_str().push_front(c);
   }
   MJZ_CX_ND_FN std::optional<char> pop_back() noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
@@ -612,13 +560,13 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     MJZ_UNUSED auto gard_ = prop_guard();
     return m_str().assign(c, no_allocator);
   }
-  MJZ_CX_ND_FN success_t
-  resize(uintlen_t new_len, std::optional<char> val = std::nullopt,
-         bool force_ownership = false,
-         const alloc_ref &val_alloc = m_t::empty_alloc,
-         replace_flags rep_flags = replace_flags{}) noexcept {
+  MJZ_CX_ND_FN success_t resize(uintlen_t new_len,
+                                std::optional<char> val = std::nullopt,
+                                bool force_ownership = false
+
+                                ) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().resize(new_len, val, force_ownership, val_alloc, rep_flags);
+    return m_str().resize(new_len, val, force_ownership);
   }
 
   MJZ_CX_ND_FN const_iterator begin() const noexcept {
@@ -769,19 +717,19 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     return m_str().append_data_temp(str);
   }
 
-  MJZ_CX_FN wrapped_string_t &operator+=(str_t &&obj) noexcept {
+  MJZ_CX_FN implace_str_t &operator+=(str_t &&obj) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str() += std::move(obj);
     return *this;
   }
-  MJZ_CX_FN wrapped_string_t &operator+=(const str_t &obj) noexcept {
+  MJZ_CX_FN implace_str_t &operator+=(const str_t &obj) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
     m_str() += (obj);
     return *this;
   }
-  MJZ_CX_FN static wrapped_string_t operator_add(str_t &rhs,
+  MJZ_CX_FN static implace_str_t operator_add(str_t &rhs,
                                                  str_t &lhs) noexcept {
-    wrapped_string_t ret{rhs};
+    implace_str_t ret{rhs};
     ret.m_str() += lhs;
     return ret;
   }
@@ -821,25 +769,24 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
     return m_str().to_base_lazy_pv_fn_(idk);
   }
   MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
-      unsafe_ns::i_know_what_im_doing_t idk, blazy_t v,
-      replace_flags rp = replace_flags{}) noexcept {
+      unsafe_ns::i_know_what_im_doing_t idk, blazy_t v) noexcept {
     MJZ_UNUSED auto gard_ = prop_guard();
-    return m_str().format_back_insert_append_pv_fn_(idk, v, rp);
+    return m_str().format_back_insert_append_pv_fn_(idk, v);
   }
 
 #if MJZ_WITH_iostream
 
   MJZ_NCX_FN friend std::ostream &operator<<(std::ostream &cout_v,
-                                             const wrapped_string_t &obj) {
+                                             const implace_str_t &obj) {
     return cout_v << obj.m_str();
   }
   MJZ_NCX_FN friend std::istream &operator>>(std::istream &cin_v,
-                                             wrapped_string_t &obj) {
+                                             implace_str_t &obj) {
     MJZ_UNUSED auto gard_ = obj.prop_guard();
     return cin_v >> obj.m_str();
   }
   MJZ_NCX_FN friend std::istream &getline(std::istream &cin_v,
-                                          wrapped_string_t &obj,
+                                          implace_str_t &obj,
                                           char delim = '\n') {
     MJZ_UNUSED auto gard_ = obj.prop_guard();
     return getline(cin_v, obj.m_str(), delim);
@@ -848,22 +795,27 @@ struct wrapped_string_t : private wrapped_string_data_t<version_v, props_v> {
 };
 namespace litteral_ns {
 /*
- *makes a gengeric wrapped_string_t  that views the string
+ *makes a gengeric implace_str_t  that views the string
  */
-template <str_litteral_t L, version_t vr, wrapped_props_t props_v>
-MJZ_CE_FN wrapped_string_t<vr, props_v> operator_wstr() noexcept
-  requires(!std::is_empty_v<wrapped_string_t<vr, props_v>>)
+template <str_litteral_t L, mjz::version_t version_v, mjz::uintlen_t stack_cap,
+          mjz::bstr_ns::props_t props_v>
+MJZ_CE_FN implace_str_t<version_v, stack_cap, props_v>
+operator_icxstr() noexcept
+  requires(!std::is_empty_v<implace_str_t<version_v, stack_cap, props_v>>)
 {
-  return wrapped_string_t<vr, props_v>(operator_view<L, vr>());
+  return implace_str_t<version_v, stack_cap, props_v>(
+      operator_str<L, version_v, props_v>());
 };
 
 };  // namespace litteral_ns
 };  // namespace mjz::bstr_ns
-template <mjz::version_t version_v, mjz::bstr_ns::wrapped_props_t props_v>
-struct std::hash<mjz::bstr_ns::wrapped_string_t<version_v, props_v>> {
+template <mjz::version_t version_v, mjz::bstr_ns::props_t props_v,
+          mjz::uintlen_t stack_cap>
+struct std::hash<
+    mjz::bstr_ns::implace_str_t<version_v, stack_cap, props_v>> {
   std::size_t operator()(const auto &s) const noexcept {
     return std::size_t(s.hash());
   }
 };
 
-#endif  // MJZ_BYTE_STRING_wraped_string_LIB_HPP_FILE_
+#endif  // MJZ_BYTE_STRING_implace_string_LIB_HPP_FILE_
