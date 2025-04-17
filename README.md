@@ -1,6 +1,6 @@
 
 
-# Reconsidering COW, a Modern C++20 String Implementation
+#my Modern C++20 String Implementation
 
 **tl;dr:**
 
