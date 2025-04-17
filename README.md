@@ -1,6 +1,6 @@
 
 
-#my Modern C++20 String Implementation
+# A Modern C++20 String Implementation
 
 **tl;dr:**
 
@@ -757,6 +757,13 @@ then use it.
   it feels very convenient,  its also more customizable in my opinion. 
   it currently lacks unicode support,  but is encoding aware ( but non ascii is currently an encoding mismatch error )
  
+ ## abi stability :
+almost all types have a version number in their typeinfo ,
+if you want to use a newer version of the library,  update the version id macro , to use the newer version without subtle undetectable mismatches,  
+i would try to make most of the types without version information in their type  stable , 
+if you see any issues with the type information,  you could notify me,
+but know that two incompatible version ids will not link in the linker.
+
  
  # my default recommendation( usually good enough) :
    i recommend to use the following  as default strings to go to:
