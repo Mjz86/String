@@ -1,6 +1,6 @@
 
 
-# My Modern C++20 String Implementation
+#my Modern C++20 String Implementation
 
 **tl;dr:**
 
@@ -90,7 +90,7 @@ The heap block can be thought of as:
 union heap_alloc_t /* not a type , just a layout mapped to the allocated character block, this is a diagram */{
 struct can_share_true_t{
 size_t  reference_count;
-char padding [is_threaded?8-std::hardware_destructive_interference_size:0];
+char padding [is_threaded?std::hardware_destructive_interference_size-8:0];
  alignas(is_threaded?std::hardware_destructive_interference_size :8 )  char heap_buffer[capacity];
 } cow_heap;
 struct can_share_false_t{
@@ -131,7 +131,7 @@ alignas(std::hardware_destructive_interference_size )  char heap_buffer[capacity
     - `begin != nullptr`.
     - `data_block == &heap_buffer`. ( the flags show if the padding andor reference count exist or not).
     - `capacity != 0`.
-    - (`capacity` is almost always bigger than 15, but no guarantees are made)
+    - (`capacity` is almost always bigger than `sso_cap`, but no guarantees are made ( because its not necessary) )
     - `is_owner() ==(is_ownerized ||  !can_share() ||(reference_count < 2))`.
     - ` !is_ownerized || (!can_share() || reference_count < 2)`.
     - `is_sharable == true`.
