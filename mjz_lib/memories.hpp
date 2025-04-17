@@ -145,6 +145,14 @@ NOTE:
 use memmove for potentialy overlaping memory.
 */
 MJZ_CX_AL_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
+  MJZ_IFN_CONSTEVAL {
+    // If dest or src is a null pointer or invalid pointer, the behavior is
+    // undefined (NO! , len=0 defines this)
+    if (!len) return dest;
+    return reinterpret_cast<char *>(
+        ::std::memcpy(reinterpret_cast<void *>(dest),
+                       reinterpret_cast<const void *>(src), size_t(len)));
+  }
   return memcpy_forward(dest, src, len);
 }
 
@@ -323,6 +331,7 @@ struct mjz_unique_cache_line_t {
   alignas(hardware_constructive_interference_size) char buffer
       [hardware_constructive_interference_size];
 };
+static_assert(sizeof(uintlen_t)<=hardware_constructive_interference_size);
 static_assert(
     log2_ceil_of_val_create(hardware_constructive_interference_size) ==
     log2_of_val_create(hardware_constructive_interference_size));

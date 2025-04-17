@@ -14,7 +14,7 @@ struct standard_output_it_t : file_output_it_t<version_v> {
 #if MJZ_WITH_iostream
 
   threads_ns::bit_mutex_t<> &output_muext() noexcept {
-    static threads_ns::bit_mutex_t<> mutex{};
+ alignas(hardware_destructive_interference_size)   static threads_ns::bit_mutex_t<> mutex{};
     return mutex;
   }
   MJZ_CX_FN standard_output_it_t(bool &&p = bool{}) noexcept

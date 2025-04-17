@@ -1,5 +1,6 @@
 
 #include "releasers.hpp"
+#include<bit>
 #ifndef MJZ_PACKING_LIB_HPP_FILE_
 #define MJZ_PACKING_LIB_HPP_FILE_
 namespace mjz {
@@ -188,6 +189,11 @@ struct bit_rotate_t {
     MJZ_FCONSTANT(intlen_t) nbits = intlen_t(sizeof(T) * 8);
     MJZ_FCONSTANT(T) all_one{~T{}};
     const intlen_t how_much = intlen_t(how_much_ % nbits);
+#ifdef __cpp_lib_bitops
+    if constexpr (true) {
+      return std::rotl(x, int(how_much));
+    }
+#endif
     const intlen_t neg_how_much = nbits - how_much;
     const T mask{to_left(all_one, -how_much)};
     const T neg_mask{to_left(all_one, -neg_how_much)};

@@ -67,7 +67,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   MJZ_DISABLE_ALL_WANINGS_START_;
   alignas(hardware_destructive_interference_size) uintlen_t reference_count{};
   MJZ_DISABLE_ALL_WANINGS_END_;
-  MJZ_CX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
+  MJZ_NCX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
       return {&alloc_call, nullptr, &is_equal,nullptr,   nullptr, cow_threashold_v<version_v>};
     } else {
@@ -150,7 +150,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
                                          alloc_info ai) noexcept {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
-  MJZ_CX_FN static void alloc_call(alloc_base *This, block_info &blk,
+  MJZ_NCX_FN static void alloc_call(alloc_base *This, block_info &blk,
                                    alloc_info ai) noexcept {
     if (blk.ptr) {
       asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
@@ -168,7 +168,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
       typename alloc_base_ref_t<version_v>::template block_info_ot<pmr_alloc>;
 
  public:
-  MJZ_CX_FN static void ref_call(alloc_base *This,
+  MJZ_NCX_FN static void ref_call(alloc_base *This,
                                     bool add_vs_destroy) noexcept {
     threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
 

@@ -26,11 +26,7 @@ struct implace_string_data_t<version_v, props_v, stack_cap>
              sizeof(uintlen_t)};
   std::array<char, sso_cap_v_> m_stack_buffer_{};
 };
-/*
- * still not optimal , many functions , especially the constructors need
- * optimization for better inlining
- */
-template <version_t version_v, uintlen_t stack_cap = 1024,
+template <version_t version_v, uintlen_t stack_cap = 1024 - 4*sizeof(uintlen_t),
           props_t props_v = props_t{}>
 struct implace_str_t
     : private implace_string_data_t<version_v, props_v, stack_cap> {
@@ -422,6 +418,9 @@ struct implace_str_t
   }
   MJZ_CX_FN const char *as_c_str() & noexcept { return m_str().as_c_str(); }
   MJZ_CX_ND_FN hash_t hash() const noexcept { return get().hash(); }
+  MJZ_CX_ND_FN concatabe_hash_t<version_v> concatable_hash() const noexcept {
+    return get().concatable_hash();
+  }
   MJZ_CX_ND_FN bool is_owner() const noexcept {
     if constexpr (props_v.is_ownerized) {
       return true;

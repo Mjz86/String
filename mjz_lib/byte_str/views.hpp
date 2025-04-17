@@ -351,8 +351,12 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
    *calculates the hash
    */
   MJZ_CX_ND_FN hash_t hash() const noexcept {
-    return hash_t{data(), length()};
-  } /*
+    return hash_t{data(), length()}; }
+  MJZ_CX_ND_FN concatabe_hash_t<version_v> concatable_hash() const noexcept {
+    return concatabe_hash_t<version_v>{data(), length()}; 
+  } 
+  
+  /*
      *copies the substring in buf.
      * buf must at least be of  min(byte_count,length)+ uintlen_t(add_null) in
      *size. if add_null then we add a null terminatior.

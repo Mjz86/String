@@ -444,13 +444,14 @@ struct str_abi_t_ {
 
     MJZ_CX_FN static uintlen_t s_buffer_offset(
         uintlen_t cap, uintlen_t len,
-        align_direction_e align = align_direction_v_) noexcept {
+        align_direction_e align = align_direction_v_,
+        bool has_null_ = has_null_v_) noexcept {
       if constexpr (align_direction_v_ != align_direction_e::relaxed) {
         align = align_direction_v_;
       }
       uintlen_t delta = cap - len;
       uintlen_t center = delta >> 1;
-      uintlen_t back = std::max(uintlen_t(has_null_v_), delta) - has_null_v_;
+      uintlen_t back = std::max(uintlen_t(has_null_), delta) - has_null_;
       uintlen_t front = 0;
       return alias_t<uintlen_t[4]>{center, center, front,
                                    back}[uint8_t(char(align))];
@@ -563,7 +564,7 @@ struct str_abi_t_ {
         return true;
       }
       asserts(asserts.assume_rn, !is_sso());
-      uintlen_t offset = s_buffer_offset(cap, len);
+      uintlen_t offset = s_buffer_offset(cap, len, align_direction_v_,true);
       char* buf = memcpy(get_buffer_ptr() + offset, get_begin(), len);
       buf[len] = '\0';
       set_invalid_to_non_sso_begin(buf, len, get_buffer_ptr(), cap,

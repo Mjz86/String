@@ -57,13 +57,13 @@ struct alloc_info_t {
  public:
   template <class T>
   MJZ_CX_ND_FN alloc_info_t &consider_type(T *) noexcept {
-    size_multiplier = std::gcd(size_multiplier, sizeof(T));
+    size_multiplier = std::lcm(size_multiplier, sizeof(T));
     set_alignof_z(std::max(get_alignof_z(), alignof(T)));
     return *this;
   }
   MJZ_CX_ND_FN alloc_info_t &cant_bother_with_good_size() noexcept {
     allocate_exactly_minsize |=
-        std::gcd(size_multiplier, get_alignof_z()) != get_alignof_z();
+        std::lcm(size_multiplier, get_alignof_z()) != get_alignof_z();
     return *this;
   }
   MJZ_CX_ND_FN
@@ -225,7 +225,9 @@ struct alloc_vtable_t {
     typename funcs_t::num_ref num_ref;
     typename funcs_t::destroy_obj destroy_obj;
   };
-
+  static_assert(std::gcd(cow_threashold_v<version_v>,
+                         hardware_destructive_interference_size) ==
+                hardware_destructive_interference_size);
  public:
   typename funcs_t::alloc_call alloc_call{};
   typename funcs_t::ref_call ref_call{};

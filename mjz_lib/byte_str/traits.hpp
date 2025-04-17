@@ -1,3 +1,6 @@
+#ifdef __cpp_lib_to_chars
+#include <charconv>
+#endif
 #include "../maths.hpp"
 #include "base.hpp"
 #ifndef MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
@@ -16,9 +19,7 @@ struct byte_traits_t {
   template <class>
   friend class mjz_private_accessed_t;
   MJZ_CONSTANT(auto)
-  npos {
-    std::min((uintlen_t(-1) >> 8) + 1, std_view_max_size)
-  };
+  npos{std::min((uintlen_t(-1) >> 8) + 1, std_view_max_size)};
 
   MJZ_CX_ND_FN intlen_t pv_compare(const char *rhs, const char *lhs,
                                    uintlen_t len) const noexcept {
@@ -46,6 +47,9 @@ struct byte_traits_t {
 
   MJZ_CX_ND_FN const char *pv_find(const char *begin, uintlen_t len,
                                    char c) const noexcept {
+    MJZ_IFN_CONSTEVAL {
+      return reinterpret_cast<const char *>(std::memchr(begin, c, len));
+    }
     for (; 0 < len; --len, ++begin) {
       if (*begin == c) {
         return begin;
@@ -573,7 +577,7 @@ struct byte_traits_t {
                 const char &, const uint8_t &) noexcept>
                 power_fn_t = decltype(defualt_power_fn)>
   MJZ_CX_ND_FN std::optional<T> to_floating_pv(
-      const char *ptr, uintlen_t len, 
+      const char *ptr, uintlen_t len,
       is_point_fn_t &&is_point_fn = is_point_fn_t{},
       power_fn_t &&power_fn = power_fn_t{}) const noexcept {
     uint8_t raidex = 10;
@@ -598,7 +602,7 @@ struct byte_traits_t {
       is_neg = *ptr == '-';
       if (!len) return std::nullopt;
     }
-    auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
+    auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
       uintlen_t i{};
       while (i < len && i < N - 1 &&
              ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {
@@ -685,6 +689,20 @@ struct byte_traits_t {
   MJZ_CX_ND_FN std::optional<uintlen_t> from_integral_fill(
       char *buf, uintlen_t len, T val_rg_, bool upper_case,
       const uint8_t raidex) const noexcept {
+#ifdef __cpp_lib_to_chars
+#ifdef __cpp_lib_constexpr_charconv
+    if constexpr (true)
+#else
+    MJZ_IFN_CONSTEVAL
+#endif
+    {
+      std::to_chars_result res = std::to_chars(buf, buf + len, val_rg_, raidex);
+      if (res.ec == std::errc{}) {
+        return uintlen_t(res.ptr - buf);
+      }
+      return {};
+    }
+#endif
     if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
     constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT(~(UT(-1) >> 1));
@@ -833,8 +851,8 @@ struct byte_traits_t {
       }
     }
     auto sb1_ = value.to_log_and_coeffient(exp_base);
-    //https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
-    auto &&[ceil_log_0_, fractionic_val_0_] = sb1_; 
+    // https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
+    auto &&[ceil_log_0_, fractionic_val_0_] = sb1_;
     std::optional<std::pair<int64_t, mjz_float_t>> int_and_float =
         fractionic_val_0_.to_integral_and_fraction();
     auto &&[Int_, Float_] = *int_and_float;
@@ -844,7 +862,7 @@ struct byte_traits_t {
     buf += *len_diff;
     if (!len) return std::nullopt;
     auto limit_num = [&]() noexcept {
-      auto&& [ceil_log, fractionic_val] = sb1_; 
+      auto &&[ceil_log, fractionic_val] = sb1_;
       int64_t max_log2 =
           log2_ceil_of_val_create(uint64_t(fractionic_val.m_coeffient)) +
           fractionic_val.m_exponent;
@@ -853,7 +871,7 @@ struct byte_traits_t {
         fractionic_val.m_coeffient = 0;
       }
     };
-    auto &&[ceil_log, fractionic_val] = sb1_; 
+    auto &&[ceil_log, fractionic_val] = sb1_;
     fractionic_val = Float_;
     limit_num();
     if (accuracacy && fractionic_val.m_coeffient) {
@@ -1119,10 +1137,72 @@ struct byte_traits_t {
 
   template <std::floating_point T>
   MJZ_CX_FN std::optional<uintlen_t> from_float_format_fill(
-      char *const f_buf, const uintlen_t f_len, T f_val,
-      const uintlen_t f_accuracacy = 6, bool upper_case = true,
+      char *f_buf, uintlen_t f_len, T f_val, const uintlen_t f_accuracacy = 6,
+      bool upper_case = true,
       floating_format_e floating_format = floating_format_e::general,
       char point_ch = '.', bool add_prefix = true) const noexcept {
+#ifdef __cpp_lib_to_chars
+    MJZ_IFN_CONSTEVAL {
+      char *buf_c_ = f_buf;
+        bool add_prefix_ = add_prefix;
+        add_prefix = false;
+        std::to_chars_result res{
+
+        };
+        switch (floating_format) {
+          case floating_format_e::fixed:
+            res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                                std::chars_format::fixed, int(f_accuracacy));
+            break;
+          case floating_format_e::hex:
+            add_prefix = add_prefix_;
+            if (add_prefix) {
+              if (f_len < 2) return {};
+              f_buf += 2;
+              f_len -= 2;
+            }
+            res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                                std::chars_format::hex, int(f_accuracacy));
+            break;
+          case floating_format_e::general:
+            res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                                std::chars_format::general, int(f_accuracacy));
+            break;
+          case floating_format_e::scientific:
+            res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::scientific, int(f_accuracacy));
+            break;
+          default:
+            return nullopt;
+            break;
+        }
+        if (res.ec != std::errc{}) {
+          return {};
+        }
+
+        if (point_ch != '.') {
+          uintlen_t v = find_ch(f_buf, f_len, 0, '.');
+          if (v < f_len) f_buf[v] = point_ch;
+        }
+        if (add_prefix) {
+          if (*f_buf == '+' || *f_buf == ' ' || *f_buf == '-') {
+            *(f_buf - 2) = *f_buf;
+            f_buf++;
+          }
+          f_buf -= 2;
+          f_buf[0] = '0';
+          f_buf[1] = upper_case ? 'X' : 'x';
+          f_len += 2;
+          if (upper_case) {
+            uintlen_t v = find_ch(f_buf, f_len, 0, 'p');
+            if (v < f_len) f_buf[v] = 'P';
+          };
+        }
+        return uintlen_t(res.ptr - buf_c_);
+      
+    }
+#endif
+
     [&]() noexcept {
       if (floating_format_e::general != floating_format) return;
       using mjz_float_t = big_float_t<version_v>;
@@ -1225,8 +1305,7 @@ struct byte_traits_t {
       len--;
     }
     if (len && *ptr != '0') {
-      return this->template to_floating_pv<T>(ptr, len, is_point_fn,
-                                              power_fn);
+      return this->template to_floating_pv<T>(ptr, len, is_point_fn, power_fn);
     }
     if (len) {
       ptr++;
