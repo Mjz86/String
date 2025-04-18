@@ -401,16 +401,21 @@ more than 32 encodings at the same time). Strings with different encodings
 may not interact; if they do, that's an error and will throw if you allow it.
 
 ```c++
+
+// IMPORTANT : the byte-string API works with byte-indexies, 
+// for using it , you must use correct offsets , 
+// i recomend making wrapper strings/iterators/ranges for it , to make it easier
+
 enum class encodings_e : uint8_t {
   bytes,
   latin1 = bytes,
   ascii = bytes,
-  utf8,// UTF8 
-  utf16_le,// little endian UTF16
-  utf16_be,// big endian UTF16
-  utf32_le,// little  endian UTF32
-  utf32_be,// big endian UTF32
-  //////////// user-specified////////////////
+  utf8,// UTF-8 
+  utf16_le,// little endian UTF-16 
+  utf16_be,// big endian UTF-16
+  utf32_le,// little  endian UTF-32
+  utf32_be,// big endian UTF-32
+  ////////////25 user-specified encodings ////////////////
   usr_0,
   usr_1,
   usr_2,
@@ -442,6 +447,12 @@ enum class encodings_e : uint8_t {
   err_ascii = err_bytes,  // we have only 5 bits for the encoding
 };
 ```
+
+- you may use another  unicode library that knows how to work with ranges, till i see how i could do this
+
+- my curant issue is that the speed of the algorithms is important and there are many diffrent variations of them,  and they usually involve big tables and need to be up-to-date with the latest Unicode standard, 
+i will put some links to relevant talks and refrences.
+
 # Exception Safety
 
 In my library, almost everything is `noexcept`. I mainly wanted everything to be
