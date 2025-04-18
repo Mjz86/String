@@ -80,10 +80,10 @@ lazy_Vtable *vtable;
 
 struct root {
   allocator alloc;
-  size_t encoding : 3;
+  size_t encoding : 5;
   size_t is_threaded : 1;
   size_t type : 2;
-  size_t length : 58;
+  size_t length : 56;
   union {
     char sso_buffer[48];
     mjz::string leaf;
