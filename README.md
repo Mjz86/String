@@ -1040,5 +1040,5 @@ You may give feedback in:
  
  - [The Wonderfully Terrible World of C and C++ Encoding APIs (with Some Rust)](https://thephd.dev/the-c-c++-rust-string-text-encoding-api-landscape)
  
-[unicode standard](https://www.unicode.org/standard/standard.html)
+  - [unicode standard](https://www.unicode.org/standard/standard.html)
  
