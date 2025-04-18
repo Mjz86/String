@@ -202,6 +202,7 @@ just  don't make the string object too large.
 
 
 ## stack buffer optimization ( runtime sso tuning) ( advanced users):
+- use `implace_string` for a safe wrapper of this feature without lifetime management. 
 - use the  tunable sso  feature for a better quality of life , it has more safety.
 - if code bloat of the main tunable sso is a concern , then use the `implace_string`.
 - if the stack buffer is not big enough,  unlike in C , we do not overflow,  but we allocate on the heap , this ensures safety that C did not have in its stack buffers ( char arrays in C are kinda just stack buffers) 
@@ -243,7 +244,8 @@ this will make the stack buffer the "sso" storage ,
 and no allocation would be made.
 this is safe raii wrapper that ensures that the stack buffer is managed without user mental overhead. 
 
-# easy conversions :
+# easy conversions  :
+- will be supported soon.
 you may convert from any mjz string with any properties to any other properties, 
 usually the conversions are cheap , but if some requirements were placed,  some of the conversions may allocate .
 this allows for use of any desired  string in any place.
@@ -407,8 +409,8 @@ may not interact; if they do, that's an error and will throw if you allow it.
 // i recomend making wrapper strings/iterators/ranges for it , to make it easier
 
 enum class encodings_e : uint8_t {
-  bytes,
-  latin1 = bytes,
+ (will be deprecated) bytes,
+(will be deprecated)  latin1 = bytes,
   ascii = bytes,
   utf8,// UTF-8 
   utf16_le,// little endian UTF-16 
@@ -442,9 +444,9 @@ enum class encodings_e : uint8_t {
   usr_23,
   usr_24,  
   //--the string error type--//
-  err_bytes=31,
-  err_latin1 = err_bytes,
-  err_ascii = err_bytes,  // we have only 5 bits for the encoding
+(will be deprecated)  err_bytes=31,
+ (will be deprecated) err_latin1 = err_bytes,
+  err_ascii = 31,  // we have only 5 bits for the encoding
 };
 ```
 
@@ -453,7 +455,15 @@ enum class encodings_e : uint8_t {
 - my curant issue is that the speed of the algorithms is important and there are many diffrent variations of them,  and they usually involve big tables and need to be up-to-date with the latest Unicode standard,  but also , they need a constexpr path (  without simd) for constexpr support,  and another runtime path ( potentially simd  ) for performance,
 i will put some links to relevant talks and refrences.
 
-
+- particulay  i want to have implementation of the following list, i am certain it will take a long time, and i would  appreciate any help to add these (work both at compile  tine and runtime, have safe checking and unsafe non checked and bounded and unbound output variants , and the input range and output range must be templates for extendablility, and simd would be nice if possible):
+1. conversions from the 3  main encodings to each other (utf-n), and to their opposite endian. 
+2. bidirectional  code point iteration. 
+3. bidirectional grapheme(="extended grapheme cluster") iteration (with customizable definition of what a  grapheme is).
+4. bidirectional  word iteration (with customizable definition of what a  word is).
+5. bidirectional line iteration (with customizable definition of what a  line is).
+6. all of the  normalization variants.
+7. code point categories. 
+8. types that wrapp the string to ensure encoding or normalization invariants.
 
 
 # Exception Safety
@@ -1030,5 +1040,5 @@ You may give feedback in:
  
  - [The Wonderfully Terrible World of C and C++ Encoding APIs (with Some Rust)](https://thephd.dev/the-c-c++-rust-string-text-encoding-api-landscape)
  
- 
+[unicode standard](https://www.unicode.org/standard/standard.html)
  
