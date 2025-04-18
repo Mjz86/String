@@ -1020,6 +1020,7 @@ You may give feedback in:
 [https://github.com/NationalSecurityAgency/ghidra](https://github.com/NationalSecurityAgency/ghidra)
 
  - [Catch ⬆️： Unicode for C++23 - JeanHeyd Meneide - CppCon 2019](https://www.youtube.com/watch?v=BdUipluIf1E)
+ - [Catching ⬆️： Unicode for C++ in Greater Detail - JeanHeyd Meneide - Meeting C++ 2019 ](https://www.youtube.com/watch?v=FQHofyOgQtM)
  
  - [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 1)” ](https://www.youtube.com/watch?v=944GjKxwMBo) 
  -  [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 2)” ](https://www.youtube.com/watch?v=GJ2xMAqCZL8)
