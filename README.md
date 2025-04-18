@@ -25,7 +25,7 @@ The basic layout can be thought of as the following (not valid C++, but its equi
 
 ```c++
 struct properties_t {
-  uintlen_t sso_min_cap{};// sso_cap is more than or equal to sso_min_cap
+  size_t sso_min_cap{};// sso_cap is more than or equal to sso_min_cap
   bool has_alloc{};// the pmr allocator is a private base if and only if has_alloc. 
   // else , we use new and aligned new and their delete counterpart, note that the user can overload new and delete,  so the user must make the overload thread-safe if they work in multithreaded environments.
   bool has_null{};//  c_str exists if and only if has_null
@@ -442,7 +442,7 @@ enum class encodings_e : uint8_t {
   usr_23,
   usr_24,  
   //--the string error type--//
-  err_bytes,
+  err_bytes=31,
   err_latin1 = err_bytes,
   err_ascii = err_bytes,  // we have only 5 bits for the encoding
 };
