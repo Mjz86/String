@@ -453,6 +453,9 @@ enum class encodings_e : uint8_t {
 - my curant issue is that the speed of the algorithms is important and there are many diffrent variations of them,  and they usually involve big tables and need to be up-to-date with the latest Unicode standard,  but also , they need a constexpr path (  without simd) for constexpr support,  and another runtime path ( potentially simd  ) for performance,
 i will put some links to relevant talks and refrences.
 
+
+
+
 # Exception Safety
 
 In my library, almost everything is `noexcept`. I mainly wanted everything to be
@@ -1025,7 +1028,7 @@ You may give feedback in:
  
  - [Unicode： Going Down the Rabbit Hole - Peter Bindels - CppCon 2019](https://www.youtube.com/watch?v=SMSmKg1nApM)
  
- 
+ - [The Wonderfully Terrible World of C and C++ Encoding APIs (with Some Rust)](https://thephd.dev/the-c-c++-rust-string-text-encoding-api-landscape)
  
  
  
