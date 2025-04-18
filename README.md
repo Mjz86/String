@@ -1,5 +1,4 @@
 
-
 # A Modern C++20 String Implementation
 
 **tl;dr:**
@@ -50,10 +49,14 @@ struct {
   union{
     char  buffer[sso_cap+sizeof(sso_len_t)];// the last bytes hold the length information,  they use the fbstring trick of storing  capacity minus length,  so the string will always be null terminated. 
     struct referencal_t{// the string is a reference to something
-     char /*size_t*/ capacity[7]/*:56*/;// in actuality only 7 bytes
+      char /*size_t*/ capacity[7]/*:56*/;// in actuality only 7 bytes
       char* data_block;
       const char* begin_ptr;
-      size_t  length;
+      size_t is_sharable : 1 ;
+      ( always true if properties is null terminated) 
+      size_t has_null : 1 ;// needed to share substrings
+      size_t length : sizeof(size_t) * 8 - 2 ;// this  indicates  that we are in a heap or litteral view , vs , sso or stack buffer or copying view.
+
     };
   };
 };
@@ -66,9 +69,7 @@ struct {
 uint8_t is_sso:1;
   ( const and always enabled/disabled if properties are strictly that way)
 uint8_t  /*the negation of this is actually stored*/is_threaded:1;
-
-  uint8_t  is_sharable:1;// this  indicates  that we are in a heap or litteral view , vs , sso or stack buffer or copying view.
-
+ 
  ( const and always true if properties is ownerized)
  uint8_t is_ownerized:1;   /*this flag is not propagated by copy or share, only by move,in the non-move case,  if any side (dest or src) has this flag set to true, a memcpy and a potential allocation occurs (if sso or stack buffer is not large enough) */
  // to always disable cow and viewer for a specific string ,
@@ -76,9 +77,8 @@ uint8_t  /*the negation of this is actually stored*/is_threaded:1;
  //controled  with  always_ownerize(bool flag_state),
  //  (can_share()&&!is_ownerized) determines sharability
  // both of these flags are essential and they do not correlate.
- ( always true if properties is null terminated)
-  uint8_t has_null:1;// needed to share substrings
-  uint8_t  encoding:3; // we are not a bag of bytes
+
+  uint8_t  encoding:5; // we are not a bag of bytes
 };
 ```
 
@@ -396,10 +396,52 @@ mjz_fn("im too long too fit in sso ............"_str);
 # Unicode Support
 
 While I haven't made that part in the library, we can easily support Unicode
-or any other encoding just by using one of the 8 states of encoding flags ( I don't see any reason for supporting
-more than 8 encodings at the same time). Strings with different encodings
+or any other encoding just by using one of the 32 states of encoding flags ( I don't see any reason for supporting
+more than 32 encodings at the same time). Strings with different encodings
 may not interact; if they do, that's an error and will throw if you allow it.
 
+```c++
+enum class encodings_e : uint8_t {
+  bytes,
+  latin1 = bytes,
+  ascii = bytes,
+  utf8,// UTF8 
+  utf16_le,// little endian UTF16
+  utf16_be,// big endian UTF16
+  utf32_le,// little  endian UTF32
+  utf32_be,// big endian UTF32
+  //////////// user-specified////////////////
+  usr_0,
+  usr_1,
+  usr_2,
+  usr_3,
+  usr_4,
+  usr_5,
+  usr_6,
+  usr_7,
+  usr_8,
+  usr_9,
+  usr_10,
+  usr_11,
+  usr_12,
+  usr_13,
+  usr_14,
+  usr_15,
+  usr_16,
+  usr_17,
+  usr_18,
+  usr_19,
+  usr_20,
+  usr_21,
+  usr_22,
+  usr_23,
+  usr_24,  
+  //--the string error type--//
+  err_bytes,
+  err_latin1 = err_bytes,
+  err_ascii = err_bytes,  // we have only 5 bits for the encoding
+};
+```
 # Exception Safety
 
 In my library, almost everything is `noexcept`. I mainly wanted everything to be
@@ -633,8 +675,8 @@ we have this as the view type in the library:
 
 ```c++
 struct {
-size_t  length:59;
-size_t  encoding:3;
+size_t  length:64-7;
+size_t  encoding:5;
 size_t has_null:1;
 size_t  is_static:1;// equivalent to is_sharable,  but in the view world,  this is just a tag.
 const char*begin;
@@ -756,7 +798,7 @@ then use it.
   i made a noexcept  constexpr friendly formatting library, to work with these strings, 
   it feels very convenient,  its also more customizable in my opinion. 
   it currently lacks unicode support,  but is encoding aware ( but non ascii is currently an encoding mismatch error )
- 
+  
  ## abi stability :
 almost all types have a version number in their typeinfo ,
 if you want to use a newer version of the library,  update the version id macro , to use the newer version without subtle undetectable mismatches,  
@@ -764,7 +806,6 @@ i would try to make most of the types without version information in their type 
 if you see any issues with the type information,  you could notify me,
 but know that two incompatible version ids will not link in the linker.
 
- 
  # my default recommendation( usually good enough) :
    i recommend to use the following  as default strings to go to:
 

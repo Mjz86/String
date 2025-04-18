@@ -148,7 +148,7 @@ struct basic_str_t : void_struct_t {
           m.template has_room_for<when_v>(len, props_v.has_null)) {
         m.template memcpy_to_non_sso<when_t::no_heap>(
             ptr, len, m.get_buffer_ptr(), m.get_capacity(),
-            m.cntrl().is_sharable);
+            m.is_sharable());
         return true;
       }
     }
@@ -220,7 +220,7 @@ struct basic_str_t : void_struct_t {
     byte_offset = std::min(byte_offset, len);
     byte_count = std::min(byte_offset + byte_count, len) - byte_offset;
     bool ret = byte_offset + byte_count == len;
-    ret &= m.cntrl().has_null;
+    ret &= m.has_null();
     return ret;
   }
 
@@ -236,8 +236,8 @@ struct basic_str_t : void_struct_t {
       return true;
     }
     m.non_sso().begin_ptr += byte_offset;
-    m.non_sso().length = byte_count;
-    m.cntrl().has_null = has_null;
+    m.non_sso().str_data.length = byte_count;
+    m.non_sso().str_data.has_null = has_null;
     if constexpr (!props_v.has_null) {
       return true;
     }
@@ -293,7 +293,7 @@ struct basic_str_t : void_struct_t {
     if constexpr (props_v.is_ownerized) {
       return memcopy_assign_<when_v>(obj, no_allocate, offset, count);
     }
-    bool cant = !obj.m.cntrl().is_sharable;
+    bool cant = !obj.m.is_sharable();
     cant |= props_v.has_null && !has_null_;
     cant |= m.is_ownerized();
     bool unmached_threaded = m.is_threaded() != m.is_threaded();
@@ -384,17 +384,12 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN void assign_ch_(char c) noexcept {
     auto fn_ = [this, c]() noexcept {
       char *p = m.u_get_mut_begin();
-      p[0] = c;
-      if constexpr (props_v.has_null) {
-        p[1] = 0;
-        m.cntrl().has_null = true;
-      } else {
-        m.cntrl().has_null = false;
-      }
+      p[0] = c; 
+  asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
       m.set_length(1);
       return;
     };
-    if (m.template has_room_for<when_v>(1, props_v.has_null)) return fn_();
+    if (m.template has_room_for<when_v>(1, true)) return fn_();
     m.destruct_all();
     return fn_();
   }
@@ -439,7 +434,7 @@ struct basic_str_t : void_struct_t {
         stack_buffer.buffer_size, false, false);
     make_right_then_give_has_null(byte_offset, byte_count);
     m.non_sso().begin_ptr += byte_offset;
-    m.non_sso().length = byte_count;
+    m.non_sso().str_data.length = byte_count;
     if constexpr (!props_v.has_null) {
       return;
     }
@@ -739,7 +734,7 @@ struct basic_str_t : void_struct_t {
    *is the data a "valid" C string?
    * (does it have a null terminator(='\0') at the end?
    */
-  MJZ_CX_ND_FN bool has_null() const noexcept { return !!m.cntrl().has_null; }
+  MJZ_CX_ND_FN bool has_null() const noexcept { return !!m.has_null(); }
   /* gives  length of the data */
   MJZ_CX_ND_FN uintlen_t length() const noexcept { return m.get_length(); }
   /* gives  encoding of the data */
@@ -1088,7 +1083,7 @@ struct basic_str_t : void_struct_t {
         MJZ_RELEASE {
           if (!m.is_sso()) {
             m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap,
-                                           !!m.cntrl().is_sharable, false);
+                                           !!m.is_sharable(), false);
           } else {
             m.set_sso_length(new_len);
           }

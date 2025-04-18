@@ -41,11 +41,16 @@ struct str_abi_t_ {
           (((min_buffer_size + cntrl_size) / sizeof(uintlen_t)) +
            uintlen_t(!!((min_buffer_size + cntrl_size) % sizeof(uintlen_t)))) -
       cntrl_size;
-
+  struct str_data_t {
+    uintlen_t is_sharable : 1 {};
+    uintlen_t has_null : 1 {};
+    uintlen_t length : sizeof(uintlen_t) * 8 - 2 {};
+  };
   MJZ_PACKING_START_;
+  static_assert(sizeof(str_data_t) == sizeof(uintlen_t));
   struct non_sso_t {
     char raw_capacity[sizeof(uintlen_t) - 1]{};
-    uintlen_t length{};
+    str_data_t str_data{};
     const char* begin_ptr{};
     char* data_block{};
   };
@@ -59,10 +64,8 @@ struct str_abi_t_ {
     uint8_t is_sso : 1 {};
     uint8p_t<is_threaded_v_ != may_bool_t::idk> as_not_threaded_bit : 1 {
         !bool(char(is_threaded_v_))};
-    uint8_t is_sharable : 1 {};
     uint8p_t<is_ownerized_v_> is_ownerized : 1 {is_ownerized_v_};
-    uint8_t has_null : 1 {};
-    uint8_t encodings_bits : 3 {};
+    uint8_t encodings_bits : 5 {};
 
     MJZ_CX_FN control_byte_t() noexcept = default;
     MJZ_CX_FN ~control_byte_t() noexcept = default;
@@ -144,6 +147,9 @@ struct str_abi_t_ {
       return *std::assume_aligned<alignof(uintlen_t)>(&m);
     }
     MJZ_CX_FN non_sso_t& non_sso() noexcept { return m_v().raw_data.non_sso; }
+    MJZ_CX_FN const non_sso_t& non_sso() const noexcept {
+      return m_v().raw_data.non_sso;
+    }
 
     MJZ_CX_FN const control_byte_t& cntrl() const noexcept {
       return m_v().control_byte;
@@ -194,6 +200,12 @@ struct str_abi_t_ {
         return std::bit_cast<cap_mins_length_t>(buf);
       }
     }
+    MJZ_NCX_FN str_data_t str_data_() const noexcept {
+      return std::bit_cast<str_data_t>(cpy_aligned_bitcast<uintlen_t>(
+                       reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
+                       offsetof(non_sso_t, str_data)));
+    }
+
     MJZ_CX_FN void set_cap_minus_sso_length(uintlen_t new_val_) noexcept {
       cap_mins_length_t new_val{cap_mins_length_t(new_val_)};
       asserts(asserts.assume_rn, new_val == new_val_);
@@ -220,14 +232,11 @@ struct str_abi_t_ {
     MJZ_CX_FN uintlen_t get_length() const noexcept {
       MJZ_IF_CONSTEVAL {
         if (!is_sso()) {
-          return m_v().raw_data.non_sso.length;
+          return m_v().raw_data.non_sso.str_data.length;
         }
         return get_sso_length();
       } /* UB? na , just branchless */
-      uintlen_t lengths[2]{
-          cpy_aligned_bitcast<uintlen_t>(
-              reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
-              offsetof(non_sso_t, length)),
+      uintlen_t lengths[2]{str_data_().length,
           get_sso_length()};
       return lengths[is_sso()];
     }
@@ -269,15 +278,15 @@ struct str_abi_t_ {
       non_sso_t& data = *std::construct_at(&m_v().raw_data.non_sso);
       data.begin_ptr = begin_;
       data.data_block = buffer_begin_;
-      data.length = length_;
+      data.str_data.length = length_;
+      data.str_data.has_null = has_null_;
+      data.str_data.is_sharable = is_shared_;
       uintlen_t cap_ask{uintlen_t(-1) >> 8};
       if constexpr (version_v.is_LE()) {
         capacity_ <<= 8;
         cap_ask <<= 8;
       }
       cntrl().is_sso = false;
-      cntrl().has_null = has_null_;
-      cntrl().is_sharable = is_shared_;
       MJZ_IFN_CONSTEVAL {
         auto ptr_ = reinterpret_cast<uint8_t*>(data.raw_capacity) - 1;
         uintlen_t cntrl_and_cap = cpy_aligned_bitcast<uintlen_t>(ptr_);
@@ -361,14 +370,12 @@ struct str_abi_t_ {
       memcpy(buf, non_overlapping_ptr, len)[len] = '\0';
       MJZ_DISABLE_ALL_WANINGS_END_;
 
-      cntrl().is_sso = true;
-      cntrl().has_null = true;
-      cntrl().is_sharable = false;
+      cntrl().is_sso = true; 
       set_sso_length(len);
     }
     MJZ_CX_FN void set_length(uintlen_t new_len) noexcept {
       if (!is_sso()) {
-        m_v().raw_data.non_sso.length = new_len;
+        m_v().raw_data.non_sso.str_data.length = new_len;
         return;
       }
       set_sso_length(new_len);
@@ -399,12 +406,25 @@ struct str_abi_t_ {
       return alias_t<alias_t<char*>[2]>{nullptr, u_get_mut_begin()}[has_mut()];
     }
     MJZ_CX_FN bool has_mut() const noexcept { return !!get_buffer_ptr(); }
+    MJZ_CX_FN bool has_null() const noexcept { 
+        MJZ_IF_CONSTEVAL { return is_sso() || non_sso().str_data.has_null;
+      }
+
+        bool ret = is_sso();
+      ret |= str_data_().has_null;
+        return ret;
+    }
+    MJZ_CX_FN bool is_sharable() const noexcept {
+      MJZ_IF_CONSTEVAL { return !is_sso() && non_sso().str_data.is_sharable;
+      }
+      bool ret = !is_sso();
+      ret &= str_data_().is_sharable;
+      return ret;
+    }
     MJZ_CX_FN basic_string_view_t<version_v> get_view() const noexcept {
-      bool is_s_view_ = cntrl().is_sharable;
+      bool is_s_view_ = is_sharable();
       is_s_view_ &= !has_mut();
-      return base_string_view_t<version_v>::make(get_begin(), get_length(),
-                                                 get_encoding(),
-                                                 cntrl().has_null, is_s_view_);
+      return base_string_view_t<version_v>::make(get_begin(), get_length(), get_encoding(), has_null(), is_s_view_);
     }
 
     using str_heap_manager = str_heap_manager_t<version_v>;
@@ -424,7 +444,7 @@ struct str_abi_t_ {
 
    public:
     MJZ_CX_FN bool no_destroy() const noexcept {
-      alias_t<uint8_t[3]> b{!!cntrl().is_sso, !cntrl().is_sharable, !has_mut()};
+      alias_t<uint8_t[3]> b{!!cntrl().is_sso, !is_sharable(), !has_mut()};
       return !!(b[0] + b[1] + b[2]);
     }
     MJZ_CX_FN void destruct_all() noexcept {
@@ -469,7 +489,7 @@ struct str_abi_t_ {
       }
 
       asserts(asserts.assume_rn,
-              !cntrl().is_ownerized && cntrl().is_sharable && has_mut());
+              !cntrl().is_ownerized && is_sharable() && has_mut());
       str_heap_manager hm = non_sso_my_heap_manager_no_own();
       bool is_owner = hm.is_owner();
       // compiler did non optimize free away if this wasnt present
@@ -484,10 +504,10 @@ struct str_abi_t_ {
         return may_bool_t::yes;
       }
       bool is_ownerized = cntrl().is_ownerized;
-      bool is_sharable = cntrl().is_sharable;
+      bool is_sharable_ = is_sharable();
       bool has_mut_ = has_mut();
       asserts(asserts.assume_rn, !is_ownerized || has_mut_);
-      bool is_owner = !is_sharable;
+      bool is_owner = !is_sharable_;
       is_owner &= has_mut_;
       is_owner |= is_ownerized;
       bool no_check = is_owner;
@@ -552,15 +572,20 @@ struct str_abi_t_ {
     }
     template <when_t when_v>
     MJZ_CX_FN success_t add_null() noexcept {
+      if (is_sso()) {
+        m.raw_data.sso_buffer[get_length()] = '\0';
+        return true;
+      }
+
       uintlen_t len = get_length();
       uintlen_t cap = get_capacity();
       if (!has_room_for<when_v>(len, true)) {
-        cntrl().has_null = false;
+        non_sso().str_data.has_null = false;
         return false;
       }
       if (can_add_null<when_t::own_relax>()) {
         u_get_mut_begin()[len] = '\0';
-        cntrl().has_null = true;
+        non_sso().str_data.has_null = true;
         return true;
       }
       asserts(asserts.assume_rn, !is_sso());
@@ -568,14 +593,19 @@ struct str_abi_t_ {
       char* buf = memcpy(get_buffer_ptr() + offset, get_begin(), len);
       buf[len] = '\0';
       set_invalid_to_non_sso_begin(buf, len, get_buffer_ptr(), cap,
-                                   !!cntrl().is_sharable, true);
+                                   !!non_sso().str_data.is_sharable,
+                                   true);
       return true;
     }
     MJZ_CX_FN bool is_heap() const noexcept {
-      return has_mut() && cntrl().is_sharable;
+      bool ret = has_mut();
+   ret&= is_sharable();
+      return ret;
     }
     MJZ_CX_FN bool is_s_view() const noexcept {
-      return !has_mut() && cntrl().is_sharable;
+      bool ret = !has_mut();
+      ret &= is_sharable();
+      return ret;
     }
   };
 };

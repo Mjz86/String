@@ -13,17 +13,41 @@ enum class encodings_e : uint8_t {
   bytes,
   latin1 = bytes,
   ascii = bytes,
-  //--the string error type--//
-  err_bytes,
-  err_latin1 = err_bytes,
-  err_ascii = err_bytes,
-  utf8,
-  ////////////--can b utf8,utf16,utf32--////////////////
+  utf8,      // UTF8
+  utf16_le,  // little endian UTF16
+  utf16_be,  // big endian UTF16
+  utf32_le,  // little  endian UTF32
+  utf32_be,  // big endian UTF32
+  //////////// user-specified////////////////
   usr_0,
   usr_1,
   usr_2,
   usr_3,
   usr_4,
+  usr_5,
+  usr_6,
+  usr_7,
+  usr_8,
+  usr_9,
+  usr_10,
+  usr_11,
+  usr_12,
+  usr_13,
+  usr_14,
+  usr_15,
+  usr_16,
+  usr_17,
+  usr_18,
+  usr_19,
+  usr_20,
+  usr_21,
+  usr_22,
+  usr_23,
+  usr_24,
+  //--the string error type--//
+  err_bytes,
+  err_latin1 = err_bytes,
+  err_ascii = err_bytes,  // we have only 5 bits for the encoding
 };
 
 template <version_t version_v>
@@ -227,8 +251,8 @@ struct base_string_view_t : void_struct_t {
   const char *ptr;
   uintlen_t has_null_v : 1;
   uintlen_t is_static : 1;
-  uintlen_t encodings : 3;
-  uintlen_t len : (sizeof(uintlen_t) * 8 - 5);
+  uintlen_t encodings : 5;
+  uintlen_t len : (sizeof(uintlen_t) * 8 - 7);
   MJZ_CX_AL_FN static base_string_view_t make(
       const char *ptr_, uintlen_t len_,
       encodings_e encodings_ = encodings_e::ascii, bool has_null_ = false,
@@ -287,8 +311,8 @@ struct base_lazy_view_t : void_struct_t {
   };
   data_t data{};
   uintlen_t state_type : 3;
-  uintlen_t encodings : 3;
-  uintlen_t len : (sizeof(uintlen_t) * 8 - 6);
+  uintlen_t encodings : 5;
+  uintlen_t len : (sizeof(uintlen_t) * 8 - 8);
   uintlen_t offset;
   MJZ_CX_FN encodings_e get_encoding() const noexcept {
     return encodings_e(encodings);
