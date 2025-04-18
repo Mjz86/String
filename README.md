@@ -1005,3 +1005,26 @@ You may give feedback in:
 - Ghidra Software Reverse Engineering Framework:
 
 [https://github.com/NationalSecurityAgency/ghidra](https://github.com/NationalSecurityAgency/ghidra)
+
+ - [Catch ⬆️： Unicode for C++23 - JeanHeyd Meneide - CppCon 2019](https://www.youtube.com/watch?v=BdUipluIf1E)
+ 
+ - [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 1)” ](https://www.youtube.com/watch?v=944GjKxwMBo)
+ 
+-[Unicode - going down the rabbit hole - Peter Bindels](https://www.youtube.com/watch?v=IXNIqThaSs8)
+ 
+-[A Crash Course in Unicode for C++ Developers - Steve Downey - CppNow 2021](https://www.youtube.com/watch?v=iQWtiYNK3kQ)
+ 
+ - [Applying the Lessons of std：：ranges to Unicode in the C++ Standard Library - Zach Laine  CppNow 2023](https://www.youtube.com/watch?v=AoLl_ZZqyOk)
+ 
+ - [Unicode in C++  CppCon ](https://www.youtube.com/watch?v=MW884pluTw8)
+
+- [Unicode in C++ - James McNellis - Meeting C++ 2016 ](https://www.youtube.com/watch?v=tOHnXt3Ycfo)
+ 
+ - [CppCon 2014： James McNellis ＂Unicode in C++](https://www.youtube.com/watch?v=n0GK-9f4dl8)
+ 
+ - [Unicode： Going Down the Rabbit Hole - Peter Bindels - CppCon 2019](https://www.youtube.com/watch?v=SMSmKg1nApM)
+ 
+ 
+ 
+ 
+ 
