@@ -1,4 +1,5 @@
 
+
 # A Modern C++20 String Implementation
 
 **tl;dr:**
@@ -1008,7 +1009,8 @@ You may give feedback in:
 
  - [Catch ⬆️： Unicode for C++23 - JeanHeyd Meneide - CppCon 2019](https://www.youtube.com/watch?v=BdUipluIf1E)
  
- - [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 1)” ](https://www.youtube.com/watch?v=944GjKxwMBo)
+ - [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 1)” ](https://www.youtube.com/watch?v=944GjKxwMBo) 
+ -  [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 2)” ](https://www.youtube.com/watch?v=GJ2xMAqCZL8)
  
 -[Unicode - going down the rabbit hole - Peter Bindels](https://www.youtube.com/watch?v=IXNIqThaSs8)
  
