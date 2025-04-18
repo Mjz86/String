@@ -1,5 +1,4 @@
 
-
 # A Modern C++20 String Implementation
 
 **tl;dr:**
@@ -451,7 +450,7 @@ enum class encodings_e : uint8_t {
 
 - you may use another  unicode library that knows how to work with ranges, till i see how i could do this
 
-- my curant issue is that the speed of the algorithms is important and there are many diffrent variations of them,  and they usually involve big tables and need to be up-to-date with the latest Unicode standard, 
+- my curant issue is that the speed of the algorithms is important and there are many diffrent variations of them,  and they usually involve big tables and need to be up-to-date with the latest Unicode standard,  but also , they need a constexpr path (  without simd) for constexpr support,  and another runtime path ( potentially simd  ) for performance,
 i will put some links to relevant talks and refrences.
 
 # Exception Safety
