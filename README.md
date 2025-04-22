@@ -409,9 +409,7 @@ may not interact; if they do, that's an error and will throw if you allow it.
 // i recomend making wrapper strings/iterators/ranges for it , to make it easier
 
 enum class encodings_e : uint8_t {
- (will be deprecated) bytes,
-(will be deprecated)  latin1 = bytes,
-  ascii = bytes,
+  ascii,
   utf8,// UTF-8 
   utf16_le,// little endian UTF-16 
   utf16_be,// big endian UTF-16
@@ -444,9 +442,7 @@ enum class encodings_e : uint8_t {
   usr_23,
   usr_24,  
   //--the string error type--//
-(will be deprecated)  err_bytes=31,
- (will be deprecated) err_latin1 = err_bytes,
-  err_ascii = 31,  // we have only 5 bits for the encoding
+  err_ascii ,  // we have only 5 bits for the encoding
 };
 ```
 
@@ -983,6 +979,8 @@ You may give feedback in:
   Implementation Matters”:
 
    [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
+  
+  -[CppCon 2014： Chandler Carruth ＂Efficiency with Algorithms, Performance with Data Structures＂ ](https://www.youtube.com/watch?v=fHNmRkzxHWs)
   
 - CppCon 2016: Nicholas Ormrod “The strange details of std::string at
   Facebook”:
