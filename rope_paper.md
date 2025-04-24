@@ -14,50 +14,38 @@ The following conceptual code illustrates the core ideas. It's simplified for cl
 
 ```c++
 // To avoid trashing cache lines, each node has a padded base that holds
-// the reference count.  Since it's padded anyway, redundant members
-// are added for convenience during destruction.
+// the reference count.  
 struct alignas(std::hardware_destructive_interference_size)
 node_shared_cache {
   size_t reference_count;
-// redundant members,  can be derived from node_ref 
-  std::span<elem> elems;
-  size_t length;
-  allocator my_alloc;
-  bool is_threaded;
-  bool is_sso;
 };
-
+struct elem_meta_t{
+ size_t index_of_end:62;
+ size_t type : 2;
+};
 struct node : node_shared_cache {
-  union {
-    elem children[B];
-    //  B×64 bytes
-    //  For B=15, the node's SSO segment would be 960 bytes.
-    //  Rope slice progression: root(48) -> slice(56) -> node(960) -> more.
-    //  The maximum m would be approximately n/28, and the minimum would be 1.
-    //  'm' depends only on the number of operations, not 'n', so fragmentation is generally low.
-    char sso_buffer[sizeof(children)];
-  };
+ elem children[B];
+elem_meta_t elem_meta[B];// used to search our way to the data in a cache friendly way
+
 };
 
 struct node_ref {
   node *object;
-  // size_t  offset;  Easier substringing could be achieved with an offset, but it's
+  size_t  offset;  Easier substringing could be achieved with an offset, but it's
   // avoided due to potential fragmentation.
   size_t length;
   size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
-  size_t tree_height; // Helps in the concatenation algorithm to identify the
+  size_t tree_height:64-1; // Helps in the concatenation algorithm to identify the
                      // tree depth at which concatenation should occur.
+  size_t is_threaded:1;
   allocator node_alloc;
-  bool is_threaded;
-  bool is_sso;
+  
 };
 
 // This struct is not padded because the SSO buffer is the largest member.
-struct alignas(64) elem {
-  size_t index_of_end : 62; // SSO length can be calculated using this and the previous index.
-  size_t type : 2;
+struct elem {
   union {
-    char sso_buffer[56];
+    char sso_buffer[64];
     mjz::string string;
     Lazy lazy;
     node_ref node_ref;
@@ -74,7 +62,7 @@ struct Lazy {
   size_t offset;// only stored , added to the virtual offset to get the real_offset
  struct lazy_info {
 lazy_Vtable *vtable;
-  union lazy_storage; // Size of max(64-24,16)
+  union lazy_storage; // Size of 48bytes of inline storage for generators
   };
 };
 
@@ -84,12 +72,7 @@ struct root {
   size_t is_threaded : 1;
   size_t type : 2;
   size_t length : 56;
-  union {
-    char sso_buffer[48];
-    mjz::string leaf;
-    Lazy lazy;
-    node_ref node_ref;
-  };
+  elem head;
 };
 ```
 
@@ -114,6 +97,8 @@ but two distinct rope objects (having different addresses) can , if the thread-s
 The degree of fragmentation in the rope is influenced by the randomness of user access patterns. If a user modifies a position `i`, and another modification occurs at `j` within a distance of at least 56, then `i` and `j` likely reside in the same block. Initially, the rope has minimal fragmentation (m < 2). Even if the rope is initialized with a gigabyte of data, extensive modifications across almost the entire dataset would be required to reach the worst-case fragmentation of m = n/28. This is a demanding task, even for continuous arrays. Rope users are unlikely to modify an entire gigabyte. However, `for_range` can reduce fragmentation back to 1. Furthermore, `for_range` can be used to reduce fragmentation of a specific range before iteration, creating a continuous slice without modifying the data directly.
 
 ## Invariants:
+
+* also  `2<2a<B`.
 
 The index of the string end serves as the key to the tree structure. All (a,b)-tree invariants must hold. Additionally, the following optimization invariants are enforced:
 
@@ -242,11 +227,6 @@ The sub-rope is materialized using `for_crange` (basically `for_range` but provi
 This ensures that the algorithm only runs once per block, saving many decodings.
 The rope API is designed to be similar to the main string API, without assuming continuous representations.
 The rope does not need to be a tree for small strings.  
-In fact, it cannot be a tree for those. As per the invariants, a rope with a size less than B×64 (e.g., 960) must have at most one sso leaf,
-guaranteeing a single sso node allocation for such small ropes .
-Also, for all strings below the 48-byte threshold, the rope collapses to the inline SSO.
-so , B is more than just a fanout, the bigger the B , the more continuous and eager the rope.
-this means , that for example, a one gigabyte file, may have some very hot , 960 (B×64) byte chunks that it works with to edit text ( note that when we own the node , theres no thread contention on it , because we are the only thread that owns it) , and the other parts would probably be some multi megabyte lazy fragments.
 
 ## Conclusion
 
