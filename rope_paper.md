@@ -35,9 +35,9 @@ struct node_ref {
   // avoided due to potential fragmentation.
   size_t length;
   size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
-  size_t tree_height:64-1; // Helps in the concatenation algorithm to identify the
+  size_t tree_height; // Helps in the concatenation algorithm to identify the
                      // tree depth at which concatenation should occur.
-  size_t is_threaded:1;
+  bool is_threaded;
   allocator node_alloc;
   
 };
