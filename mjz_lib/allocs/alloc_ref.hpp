@@ -42,11 +42,11 @@ constexpr static const uintlen_t cow_threashold_v{
 
 // configurable
 template <version_t version_v>
-constexpr static const bool uses_pmr_sync_v = true;
+constexpr static const bool uses_pmr_sync_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
 
 // configurable
 template <version_t version_v>
-constexpr static const bool uses_pmr_async_v = true;
+constexpr static const bool uses_pmr_async_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
 // configurable
 template <version_t version_v>
 constexpr static const bool check_the_alloc_info{MJZ_IN_DEBUG_MODE};
@@ -648,6 +648,20 @@ class alloc_base_ref_t {
       asserts(asserts.condition_rn, val == log);
     }
   }
+  MJZ_CX_FN alloc_info get_default_th_info() const noexcept {
+    return get_default_info().make_threaded();
+  }
+  MJZ_CX_FN alloc_info get_default_nth_ex_info() const noexcept {
+    alloc_info ret = get_default_info();
+    ret.is_thread_safe = false;
+    ret.make_allocate_exactly_minsize();
+    return ret;
+  }
+  MJZ_CX_FN alloc_info get_default_th_ex_info() const noexcept {
+    alloc_info ret = get_default_th_info();
+    ret.make_allocate_exactly_minsize();
+    return ret;
+  }
 
  public:
   MJZ_CX_FN
@@ -665,9 +679,7 @@ class alloc_base_ref_t {
   MJZ_CX_FN alloc_info get_default_info() const noexcept {
     return get_vtbl().default_info;
   }
-  MJZ_CX_FN alloc_info get_default_th_info() const noexcept {
-    return get_default_info().make_threaded();
-  }
+
   MJZ_CX_FN
   success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
     if constexpr (check_the_alloc_info<version_v>) {
@@ -693,6 +705,35 @@ class alloc_base_ref_t {
   template <typename T>
   MJZ_CX_FN success_t deallocate(block_info_ot<T> &&blk) const noexcept {
     return deallocate<T>(std::move(blk), get_default_th_info());
+  }
+  template <typename T>
+  MJZ_CX_ND_ALLOC_FN T *allocate_exact(uintlen_t count) const noexcept {
+    return allocate<T>(count, get_default_th_ex_info()).ptr;
+  }
+
+  template <typename T>
+  MJZ_CX_FN void deallocate_exact(T *ptr, uintlen_t count) const noexcept {
+    block_info_ot<T> val{};
+    val.ptr = ptr;
+    val.length = count;
+    asserts(asserts.assume_rn,
+            deallocate(std::move(val), get_default_th_ex_info()));
+  }
+
+  template <typename T>
+  MJZ_CX_ND_ALLOC_FN T *allocate_exact_no_threads(
+      uintlen_t count) const noexcept {
+    return allocate<T>(count, get_default_nth_ex_info()).ptr;
+  }
+
+  template <typename T>
+  MJZ_CX_FN void deallocate_exact_no_threads(T *ptr,
+                                             uintlen_t count) const noexcept {
+    block_info_ot<T> val{};
+    val.ptr = ptr;
+    val.length = count;
+    asserts(asserts.assume_rn,
+            deallocate(std::move(val), get_default_nth_ex_info()));
   }
   MJZ_CX_FN
   const void_struct_t *handle(const void_struct_t *input) const noexcept {
@@ -909,6 +950,56 @@ class alloc_base_ref_t {
 
 template <version_t version_v>
 constexpr static const alloc_base_ref_t<version_v> empty_alloc{};
+
+template <class T, version_t version_v, bool no_threads_v = false,
+          bool do_throw = MJZ_CATCHES_EXCEPTIONS_>
+class std_alloc_ref_t : public alloc_base_ref_t<version_v> {
+ public:
+  using self_t = std_alloc_ref_t;
+  using alloc_base_ref_t<version_v>::alloc_base_ref_t;
+  using value_type = T;
+  using size_type = size_t;
+  using difference_type = ptrdiff_t;
+  using propagate_on_container_move_assignment = std::true_type;
+  using propagate_on_container_copy_assignment = std::true_type;
+  using propagate_on_container_swap = std::true_type;
+  using is_always_equal = std::false_type;
+  template <class U>
+  struct rebind {
+    using other = std_alloc_ref_t<U, version_v,no_threads_v, do_throw>;
+  };
+  MJZ_CX_ND_FN MJZ_MSVC_ONLY_CODE_(__declspec(allocator)) T *allocate(
+      const size_t count) noexcept(!do_throw) {
+    T *ret{};
+    if constexpr (no_threads_v) {
+      ret = this->template allocate_exact_no_threads<T>(uintlen_t(count));
+    } else {
+      ret = this->template allocate_exact<T>(uintlen_t(count));
+    }
+    if constexpr (do_throw) {
+      if (!ret) {
+        throw std::bad_alloc{};
+      }
+    }
+    return ret;
+  }
+
+  MJZ_CX_FN void deallocate(T *const ptr, const size_t count) noexcept {
+    if constexpr (no_threads_v) {
+      return this->deallocate_exact_no_threads(ptr, uintlen_t(count));
+    }else {
+      return this->deallocate_exact(ptr, uintlen_t(count));
+    }
+  }
+  MJZ_CX_ND_FN static size_type max_size() noexcept {
+    return size_type(
+        std::min(uintlen_t(std::min(static_cast<size_t>(PTRDIFF_MAX),
+                                    static_cast<size_t>(-1))),
+                 uintlen_t(-1) >> 8));
+  }
+
+  MJZ_CX_ND_FN bool operator==(const self_t &) const noexcept = default;
+};
 
 }  // namespace mjz::allocs_ns
 

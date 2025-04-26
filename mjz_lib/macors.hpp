@@ -75,6 +75,11 @@ SOFTWARE.
  *  log allocations in the allocators when using new.
  */
 
+
+#ifndef MJZ_PMR_GLOBAL_ALLOCATIONS_
+#define MJZ_PMR_GLOBAL_ALLOCATIONS_ false
+#endif  // !MJZ_PMR_GLOBAL_ALLOCATIONS_
+
 #ifndef MJZ_LOG_ALLOC_ALLOCATIONS_
 #define MJZ_LOG_ALLOC_ALLOCATIONS_ false
 #endif  // !MJZ_LOG_ALLOC_ALLOCATIONS_

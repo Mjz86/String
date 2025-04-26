@@ -285,15 +285,15 @@ typedef bool success_t;
 MJZ_CONSTANT(success_t) success_v = true;
 MJZ_CONSTANT(success_t) failiure_v = false;
 
-template <class Lmabda_t>
+template <class Lmabda_t, bool no_exeptions = false>
 MJZ_CX_FN success_t run_and_block_exeptions(
-    Lmabda_t &&code, const bool no_exeptions = false) noexcept {
+    Lmabda_t &&code) noexcept {
   if constexpr (requires(Lmabda_t &&code_) {
                   { std::forward<Lmabda_t>(code_)() } noexcept;
                 }) {
     std::forward<Lmabda_t>(code)();
     return true;
-  } else if (no_exeptions) {
+  } else if constexpr (no_exeptions) {
     std::forward<Lmabda_t>(code)();
     return true;
   } else {
