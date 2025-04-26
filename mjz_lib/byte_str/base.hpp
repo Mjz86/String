@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include "../restricted_arguments.hpp"
 #include "../versions.hpp"
@@ -9,10 +31,8 @@ MJZ_CONSTANT(uintlen_t)
 std_view_max_size{uintlen_t(
     std::min(static_cast<size_t>(PTRDIFF_MAX), static_cast<size_t>(-1)))};
 
-enum class encodings_e : uint8_t {
-  bytes,
-  latin1 = bytes,
-  ascii = bytes,
+enum class encodings_e : uint8_t { 
+  ascii,
   utf8,      // UTF8
   utf16_le,  // little endian UTF16
   utf16_be,  // big endian UTF16
@@ -44,10 +64,8 @@ enum class encodings_e : uint8_t {
   usr_22,
   usr_23,
   usr_24,
-  //--the string error type--//
-  err_bytes,
-  err_latin1 = err_bytes,
-  err_ascii = err_bytes,  // we have only 5 bits for the encoding
+  //--the string error type--// ,
+  err_ascii ,  // we have only 5 bits for the encoding
 };
 
 template <version_t version_v>

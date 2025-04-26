@@ -1,20 +1,55 @@
+/*MIT License
 
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #include "../optional_ref.hpp"
 #include "../versions.hpp"
 #if MJZ_LOG_ALLOCATIONS_
 #include "../outputs.hpp"
 #endif
+#include <stdlib.h>
+
+#include <cstdlib>
+#include <memory_resource>
 #include <new>
 #include <numeric>
 #ifndef MJZ_ALLOCS_alloc_refs_FILE_HPP_
 #define MJZ_ALLOCS_alloc_refs_FILE_HPP_
-
 namespace mjz::allocs_ns {
 
 // configurable
 template <version_t version_v>
 constexpr static const uintlen_t cow_threashold_v{
     4 * hardware_destructive_interference_size};
+
+// configurable
+template <version_t version_v>
+constexpr static const bool uses_pmr_sync_v = true;
+
+// configurable
+template <version_t version_v>
+constexpr static const bool uses_pmr_async_v = true;
+// configurable
+template <version_t version_v>
+constexpr static const bool check_the_alloc_info{MJZ_IN_DEBUG_MODE};
 
 template <version_t v>
 struct alloc_base_t;
@@ -27,6 +62,8 @@ struct alloc_info_t {
   friend class mjz_private_accessed_t;
   template <class>
   friend class mjz_private_accessed_t;
+
+  MJZ_CX_FN bool operator==(const alloc_info_t &) const noexcept = default;
 
  private:
   MJZ_CX_ND_FN static uint8_t log2_of_align_val_create_z(size_t val) noexcept {
@@ -130,6 +167,7 @@ template <version_t v, typename T = char>
 struct block_info_t {
   T *ptr;
   uintlen_t length;
+  MJZ_CX_FN bool operator==(const block_info_t &) const noexcept = default;
 };
 enum class complex_alloc_relations_e : char {
   equal,
@@ -228,6 +266,7 @@ struct alloc_vtable_t {
   static_assert(std::gcd(cow_threashold_v<version_v>,
                          hardware_destructive_interference_size) ==
                 hardware_destructive_interference_size);
+
  public:
   typename funcs_t::alloc_call alloc_call{};
   typename funcs_t::ref_call ref_call{};
@@ -236,16 +275,7 @@ struct alloc_vtable_t {
   typename funcs_t::handle handle{};
   uintlen_t cow_threashold{cow_threashold_v<version_v>};
   alloc_info default_info{};
-  MJZ_CX_FN bool operator==(const alloc_vtable_t &rhs) const noexcept {
-    auto res = std::array{
-      alloc_call == rhs.alloc_call, ref_call == rhs.ref_call,
-          is_equal == rhs.is_equal, is_owner == rhs.is_owner,
-          handle == rhs.handle, cow_threashold == rhs.cow_threashold
-    };
-    bool b{true};
-    for (auto o : res) b &= o;
-    return b;
-  }
+  MJZ_CX_FN bool operator==(const alloc_vtable_t &rhs) const noexcept = default;
 };
 
 template <version_t version_v>
@@ -254,20 +284,21 @@ struct alloc_base_t : void_struct_t {
   MJZ_NO_MV_NO_CPY(alloc_base_t);
   MJZ_CX_FN alloc_base_t() noexcept = default;
   MJZ_CX_FN alloc_base_t(const alloc_vtable_t<version_v> &vtable_val) noexcept
-      : alloc_base_t([&vtable_val]() noexcept {
-          alloc_vtable_t<version_v> vtable_{};
-          uintlen_t min = hardware_destructive_interference_size;
-          uintlen_t align_log2 = log2_ceil_of_val_create(min);
-          vtable_.cow_threashold >>= align_log2;
-          vtable_.cow_threashold <<= align_log2;
-          vtable_.cow_threashold += alias_t<uintlen_t[2]>{
-              0, min}[vtable_.cow_threashold != vtable_val.cow_threashold];
-          return vtable_;
+      : alloc_base_t(
+            [&vtable_val]() noexcept {
+              alloc_vtable_t<version_v> vtable_{vtable_val};
+              uintlen_t min = hardware_destructive_interference_size;
+              uintlen_t align_log2 = log2_ceil_of_val_create(min);
+              vtable_.cow_threashold >>= align_log2;
+              vtable_.cow_threashold <<= align_log2;
+              vtable_.cow_threashold += alias_t<uintlen_t[2]>{
+                  0, min}[vtable_.cow_threashold != vtable_val.cow_threashold];
+              return vtable_;
             },
             void_struct_t{}) {}
 
  private:
-  MJZ_CX_FN alloc_base_t(auto &&lam,void_struct_t) noexcept : vtable(lam()) {}
+  MJZ_CX_FN alloc_base_t(auto &&lam, void_struct_t) noexcept : vtable(lam()) {}
 };
 
 template <version_t version_v>
@@ -276,6 +307,8 @@ class alloc_base_ref_t {
   friend class mjz_private_accessed_t;
 
  private:
+  template <typename T>
+  using block_info_ot = block_info_t<version_v, T>;
   using alloc_base = alloc_base_t<version_v>;
   using block_info = block_info_t<version_v>;
   using alloc_info = alloc_info_t<version_v>;
@@ -348,7 +381,7 @@ class alloc_base_ref_t {
   template <class>
   friend class mjz_private_accessed_t;
 
- protected:
+ private:
   MJZ_CX_FN
   success_t destroy_obj() noexcept {
     if (!get_vtbl().ref_call) return true;
@@ -394,40 +427,97 @@ class alloc_base_ref_t {
     return is_equal(ar) == alloc_relations_e::equal;
   }
 
-  MJZ_CX_FN
-  block_info allocate_bytes(uintlen_t minsize, alloc_info ai) const noexcept {
-    if (get_vtbl().alloc_call)
-      return [&]() noexcept {
-        block_info blk{};
-        if (!minsize) return blk;
-        blk.length = minsize;
-        run(get_vtbl().alloc_call, blk, ai);
-#if MJZ_LOG_ALLOC_ALLOCATIONS_
-        mjz_debug_cout::println("[alloc:", blk.length, "]");
-#endif
-        /* lets assume this isnt needed beacuse of c++20:
-       new (ptr) char[(size_t)size]*/
-        return blk;
-      }();
+ private:
+  MJZ_NCX_FN static void *nothrow_new_th(size_t size,
+                                         std::align_val_t align) noexcept {
+    void *ptr{};
+    if constexpr (!uses_pmr_sync_v<version_v>) {
+      if (default_new_align_v < align) {
+        ptr = ::operator new(size, align, std::nothrow);
+      } else {
+        ptr = ::operator new(size, std::nothrow);
+      }
+      return ptr;
+    } else {
+      MJZ_NOEXCEPT { ptr = th_pool().allocate(size, size_t(align)); };
+      return ptr;
+    }
+  }
+  MJZ_NCX_FN static void *nothrow_new(size_t size, std::align_val_t align,
+                                      bool is_threaded) noexcept {
+    if constexpr (!uses_pmr_async_v<version_v>) {
+      return nothrow_new_th(size, align);
+    } else if (is_threaded) {
+      return nothrow_new_th(size, align);
+    } else {
+      return nothrow_new_nth(size, align);
+    }
+  }
+
+  MJZ_NCX_FN static void nothrow_delete(void *ptr, size_t size,
+                                        std::align_val_t align,
+                                        bool is_threaded) noexcept {
+    if constexpr (!uses_pmr_async_v<version_v>) {
+      return nothrow_delete_th(ptr, size, align);
+    } else if (is_threaded) {
+      return nothrow_delete_th(ptr, size, align);
+    } else {
+      return nothrow_delete_nth(ptr, size, align);
+    }
+  }
+
+  MJZ_NCX_FN static void nothrow_delete_th(void *ptr, size_t size,
+                                           std::align_val_t align) noexcept {
+    if constexpr (!uses_pmr_sync_v<version_v>) {
+      if (default_new_align_v < align) {
+        ::operator delete(ptr, size, align);
+      } else {
+        ::operator delete(ptr, size);
+      }
+      return;
+    } else {
+      MJZ_NOEXCEPT { th_pool().deallocate(ptr, size, size_t(align)); };
+    }
+  }
+  template <class T>
+  class std_pmr_resource_t final : public T {
+   public:
+    using T::T;
+  };
+  using sync_pmr_t = std_pmr_resource_t<std::pmr::synchronized_pool_resource>;
+  using async_pmr_t =
+      std_pmr_resource_t<std::pmr::unsynchronized_pool_resource>;
+  MJZ_NCX_FN static sync_pmr_t &th_pool() {
+    alignas(hardware_destructive_interference_size) static sync_pmr_t pool{
+        std::pmr::new_delete_resource()};
+    return pool;
+  }
+  MJZ_NCX_FN static async_pmr_t &nth_pool() {
+    alignas(hardware_constructive_interference_size) thread_local async_pmr_t
+        async_pool{std::pmr::new_delete_resource()};
+    return async_pool;
+  }
+  MJZ_NCX_FN static void nothrow_delete_nth(void *ptr, size_t size,
+                                            std::align_val_t align) noexcept {
+    MJZ_NOEXCEPT { nth_pool().deallocate(ptr, size, size_t(align)); };
+  }
+
+  MJZ_NCX_FN static void *nothrow_new_nth(size_t size,
+                                          std::align_val_t align) noexcept {
+    void *ptr{};
+    MJZ_NOEXCEPT { ptr = nth_pool().allocate(size, size_t(align)); };
+    return ptr;
+  }
+
+  MJZ_CX_FN static block_info global_alloc(uintlen_t minsize,
+                                           alloc_info ai) noexcept {
     auto align_val = ai.get_alignof();
     uintlen_t size = minsize;
     MJZ_IFN_CONSTEVAL {
       void *ptr{};
-      if (default_new_align_z < uintlen_t(align_val)) {
-        ptr = ::operator new((size_t)size, align_val, std::nothrow);
-      } else {
-        ptr = ::operator new((size_t)size, std::nothrow);
-      }
-      MJZ_RELEASE {
-        if (!ptr) return;
-        if (default_new_align_z < uintlen_t(align_val)) {
-          ::operator delete(ptr, size, align_val);
-        } else {
-          ::operator delete(ptr, size);
-        }
-      };
+      ptr = nothrow_new((size_t)size, align_val, ai.is_thread_safe);
 #if MJZ_LOG_NEW_ALLOCATIONS_
-      mjz_debug_cout::println("[new:", size, "]");
+      MJZ_NOEXCEPT { mjz_debug_cout::println("[new:", size, "]"); };
 #endif
       size = alias_t<uintlen_t[2]>{0, size}[!!ptr];
       block_info blk{};
@@ -438,42 +528,177 @@ class alloc_base_ref_t {
     if (static_cast<size_t>(align_val) > default_new_align_z) return {};
     return {new char[(size_t)size], size};
   }
-  MJZ_CX_FN
-  success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
-    if (get_vtbl().alloc_call)
-      return [&]() noexcept {
-        if (!blk.ptr) return !blk.length;
-#if MJZ_LOG_ALLOC_ALLOCATIONS_
-        mjz_debug_cout::println("[dealloc:", blk.length, "]");
-#endif
-        run(get_vtbl().alloc_call, blk, ai);
-        blk = block_info{};
-        return true;
-      }();
+  MJZ_CX_FN static void global_dealloc(block_info blk, alloc_info ai) noexcept {
     MJZ_IFN_CONSTEVAL {
-      MJZ_RELEASE {
-        auto align_val = ai.get_alignof();
-        if (default_new_align_z < uintlen_t(align_val)) {
-          ::operator delete(blk.ptr, blk.length, align_val);
-        } else {
-          ::operator delete(blk.ptr, blk.length);
-        }
-      };
 #if MJZ_LOG_NEW_ALLOCATIONS_
-      mjz_debug_cout::println("[delete:", blk.length, "]");
+      MJZ_NOEXCEPT { mjz_debug_cout::println("[delete:", blk.length, "]"); };
 #endif
-      return true;
+      nothrow_delete(blk.ptr, blk.length, ai.get_alignof(), ai.is_thread_safe);
+      return;
     }
     delete[] blk.ptr;
+    return;
+  }
+  MJZ_CX_FN block_info local_alloc(uintlen_t minsize,
+                                   alloc_info ai) const noexcept {
+    block_info blk{};
+    if (!minsize) return blk;
+    blk.length = minsize;
+    run(get_vtbl().alloc_call, blk, ai);
+#if MJZ_LOG_ALLOC_ALLOCATIONS_
+    MJZ_NOEXCEPT { mjz_debug_cout::println("[alloc:", blk.length, "]"); };
+#endif
+    /* lets assume this isnt needed beacuse of c++20:
+   new (ptr) char[(size_t)size]*/
+    return blk;
+  }
+  MJZ_CX_FN void local_dealloc(block_info blk, alloc_info ai) const noexcept {
+    if (!blk.ptr) return;
+#if MJZ_LOG_ALLOC_ALLOCATIONS_
+    MJZ_NOEXCEPT { mjz_debug_cout::println("[dealloc:", blk.length, "]"); };
+#endif
+    run(get_vtbl().alloc_call, blk, ai);
+    blk = block_info{};
+    return;
+  }
+  MJZ_CX_FN
+  block_info allocate_bytes_impl_(uintlen_t minsize,
+                                  alloc_info ai) const noexcept {
+    if (!get_vtbl().alloc_call) {
+      return global_alloc(minsize, ai);
+    }
+    return local_alloc(minsize, ai);
+  }
+  MJZ_CX_FN
+  success_t deallocate_bytes_impl_(block_info blk,
+                                   alloc_info ai) const noexcept {
+    if (!get_vtbl().alloc_call) {
+      global_dealloc(blk, ai);
+      return true;
+    }
+    local_dealloc(blk, ai);
     return true;
+  }
+
+  struct alloc_log_info {
+    version_t version{version_v};
+    alloc_info ai{};
+    block_info ret{};
+    MJZ_CX_FN bool operator==(const alloc_log_info &) const noexcept = default;
+  };
+  struct cx_alloc_log_info {
+    version_t version{version_v};
+    alloc_info ai{};
+    alignas(alignof(block_info)) char block_info_[sizeof(block_info)]{};
+    MJZ_CX_FN bool operator==(const cx_alloc_log_info &) const noexcept =
+        default;
+  };
+  static_assert(sizeof(cx_alloc_log_info) == sizeof(alloc_log_info) &&
+                bitcastable_c<alloc_log_info> &&
+                bitcastable_c<cx_alloc_log_info>);
+
+  MJZ_CX_FN void allocate_bytes_log_check(
+      MJZ_MAYBE_UNUSED uintlen_t &minsize,
+      MJZ_MAYBE_UNUSED alloc_info &ai) const noexcept {
+    ai.allocate_exactly_minsize = true;
+    minsize += sizeof(alloc_log_info);
+  }
+  MJZ_CX_FN void allocate_bytes_log_fix(MJZ_MAYBE_UNUSED block_info &ret,
+                                        MJZ_MAYBE_UNUSED alloc_info
+                                            old_ai) const noexcept {
+    if (!ret.ptr) return;
+    ret.length -= sizeof(alloc_log_info);
+    char *alloc_log_info_ptr = ret.ptr + ret.length;
+    MJZ_IF_CONSTEVAL {
+      cx_alloc_log_info log{};
+      log.ai = old_ai;
+      cpy_bitcast(log.block_info_, ret.length);
+      cpy_bitcast(alloc_log_info_ptr, log);
+    }
+    else {
+      alloc_log_info log{};
+      log.ai = old_ai;
+      log.ret = ret;
+      cpy_bitcast(alloc_log_info_ptr, log);
+    }
+  }
+
+  MJZ_CX_FN void deallocate_bytes_log_check_fix(
+      MJZ_MAYBE_UNUSED block_info &blk,
+      MJZ_MAYBE_UNUSED alloc_info &ai) const noexcept {
+    if (!blk.ptr) return;
+    MJZ_RELEASE {
+      ai.allocate_exactly_minsize = true;
+      blk.length += sizeof(alloc_log_info);
+    };
+    char *alloc_log_info_ptr = blk.ptr + blk.length;
+    MJZ_IF_CONSTEVAL {
+      cx_alloc_log_info log{};
+      log.ai = ai;
+      cpy_bitcast(log.block_info_, blk.length);
+      cx_alloc_log_info val =
+          cpy_bitcast<cx_alloc_log_info>(alloc_log_info_ptr);
+      asserts(asserts.condition_rn, val == log);
+    }
+    else {
+      alloc_log_info log{};
+      log.ai = ai;
+      log.ret = blk;
+      alloc_log_info val = cpy_bitcast<alloc_log_info>(alloc_log_info_ptr);
+      asserts(asserts.condition_rn, val == log);
+    }
+  }
+
+ public:
+  MJZ_CX_FN
+  block_info allocate_bytes(uintlen_t minsize, alloc_info ai) const noexcept {
+    if constexpr (check_the_alloc_info<version_v>) {
+      alloc_info old_ai{ai};
+      allocate_bytes_log_check(minsize, ai);
+      block_info ret = allocate_bytes_impl_(minsize, ai);
+      allocate_bytes_log_fix(ret, old_ai);
+      return ret;
+    } else {
+      return allocate_bytes_impl_(minsize, ai);
+    }
+  }
+  MJZ_CX_FN alloc_info get_default_info() const noexcept {
+    return get_vtbl().default_info;
+  }
+  MJZ_CX_FN alloc_info get_default_th_info() const noexcept {
+    return get_default_info().make_threaded();
+  }
+  MJZ_CX_FN
+  success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
+    if constexpr (check_the_alloc_info<version_v>) {
+      deallocate_bytes_log_check_fix(blk, ai);
+      MJZ_RELEASE { blk = block_info{}; };
+      return deallocate_bytes_impl_(blk, ai);
+    } else {
+      return deallocate_bytes_impl_(blk, ai);
+    }
+  }
+  MJZ_CX_FN
+  block_info allocate_bytes(uintlen_t minsize) const noexcept {
+    return allocate_bytes(minsize, get_default_th_info());
+  }
+  MJZ_CX_FN success_t deallocate_bytes(block_info &&blk) const noexcept {
+    return deallocate_bytes(std::move(blk), get_default_th_info());
+  }
+  template <typename T>
+  MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate(uintlen_t count) const noexcept {
+    return allocate<T>(count, get_default_th_info());
+  }
+
+  template <typename T>
+  MJZ_CX_FN success_t deallocate(block_info_ot<T> &&blk) const noexcept {
+    return deallocate<T>(std::move(blk), get_default_th_info());
   }
   MJZ_CX_FN
   const void_struct_t *handle(const void_struct_t *input) const noexcept {
     if (!get_vtbl().handle) return nullptr;
     return run(get_vtbl().handle, input);
   }
-  template <typename T>
-  using block_info_ot = block_info_t<version_v, T>;
   template <typename T>
   MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate(
       uintlen_t count, alloc_info strategy) const noexcept {

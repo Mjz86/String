@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include "../allocs/alloc_ref.hpp"
 #include "../byte_str/traits.hpp"
@@ -5,7 +27,8 @@
 #ifndef MJZ_BYTE_STRING_heap_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_heap_LIB_HPP_FILE_
 namespace mjz ::bstr_ns {
-template <version_t version_v>
+template <version_t version_v, may_bool_t is_threaded_v_, bool is_ownerized_v_,
+          bool has_alloc_v_>
 class str_heap_manager_t {
   using alloc_base_ref = const allocs_ns::alloc_base_ref_t<version_v>;
 
@@ -25,25 +48,27 @@ class str_heap_manager_t {
   } m;
 
   MJZ_CX_AL_FN allocs_ns::alloc_info_t<version_v> alloc_info_v(
-      const alloc_base_ref &ref)
-      const noexcept {
-    allocs_ns::alloc_info_t<version_v> info=ref.get_vtbl().default_info;
-    if (m.is_threaded) {
+      const alloc_base_ref &ref) const noexcept {
+    allocs_ns::alloc_info_t<version_v> info = ref.get_vtbl().default_info;
+    if (get_is_threaded()) {
       info.make_threaded();
       info.size_multiplier = threaded_rf_block;
     } else {
       info.size_multiplier = non_threaded_rf_block;
       info.is_thread_safe = 0;
-    } 
+    }
     info.set_alignof_z(non_threaded_rf_block);
     MJZ_IFN_CONSTEVAL {
-      if (m.is_threaded) {
+      if (get_is_threaded()) {
         info.set_alignof_z(threaded_rf_block);
       }
     }
     return info;
   }
-  using refcr_t = threads_ns::atomic_ref_t<uintlen_t>;
+  using refcr_t =
+      std::conditional_t<is_ownerized_v_ || is_threaded_v_ == may_bool_t::no,
+                         threads_ns::cx_atomic_ref_t<uintlen_t>,
+                         threads_ns::atomic_ref_t<uintlen_t>>;
   struct temp_layout_t {
     MJZ_NO_MV_NO_CPY(temp_layout_t);
     char_storage_as_temp_t<uintlen_t> var;
@@ -56,9 +81,11 @@ class str_heap_manager_t {
           refcr{*var},
           is_threaded{m.is_threaded},
           is_owenrized{m.is_owenrized} {}
-    MJZ_CX_AL_FN auto perform_ref(auto &&Lmabda_th,
+    MJZ_CX_AL_FN auto perform_ref(MJZ_MAYBE_UNUSED auto &&Lmabda_th,
                                   auto &&Lmabda_nth) noexcept {
-      if (is_threaded && !is_owenrized) {
+      if constexpr (is_ownerized_v_ || is_threaded_v_ == may_bool_t::no) {
+        return Lmabda_nth(*var);
+      } else if (is_threaded && !is_owenrized) {
         return Lmabda_th(refcr);
       } else {
         return Lmabda_nth(*var);
@@ -96,19 +123,20 @@ class str_heap_manager_t {
  public:
   MJZ_NO_CPY(str_heap_manager_t);
 
-  MJZ_CX_AL_FN auto alloc_ptr() const noexcept { return m.alloc_ref; }
+  MJZ_CX_AL_FN auto alloc_ptr() const noexcept {
+    if constexpr (has_alloc_v_) {
+      return m.alloc_ref;
+    } else {
+      return &allocs_ns::empty_alloc<version_v>;
+    }
+  }
 
  private:
-  template <bool has_alloc_v = true>
   MJZ_CX_FN success_t malloc_p(MJZ_WILL_USE uintlen_t min_size) noexcept {
     block_info blk{};
-    if constexpr (has_alloc_v) {
-      const alloc_base_ref &ref = *m.alloc_ref;
-      blk = ref.allocate_bytes(min_size, alloc_info_v(ref));
-    } else {
-      const alloc_base_ref &ref = allocs_ns::empty_alloc<version_v>;
-      blk = ref.allocate_bytes(min_size, alloc_info_v(ref));
-    }
+    const alloc_base_ref &ref = *alloc_ptr();
+    blk = ref.allocate_bytes(min_size, alloc_info_v(ref));
+
     bool succuss = !!blk.ptr;
     m.reduce_rc_on_manager_destruction = succuss;
     // as far as i know nullptr is aligned
@@ -126,7 +154,7 @@ class str_heap_manager_t {
     }
     init_heap();
     asserts(asserts.assume_rn,
-            !succuss || std::cmp_less_equal(min_size, blk.length));
+            !succuss || std::cmp_less_equal(blk.length, min_size));
     return succuss;
   }
   MJZ_CX_FN uintlen_t minsize_calc(uintlen_t min_size, bool round_up) noexcept {
@@ -141,32 +169,30 @@ class str_heap_manager_t {
                    uintlen_t(!!(min_size_ntr % non_threaded_rf_block));
     min_size_ntr *= non_threaded_rf_block;
     min_size_ntr += non_threaded_rf_block;
-    min_size = alias_t<uintlen_t[2]>{min_size_ntr, min_size_tr}[m.is_threaded];
+    min_size =
+        alias_t<uintlen_t[2]>{min_size_ntr, min_size_tr}[get_is_threaded()];
     min_size = alias_t<uintlen_t[2]>{
         min_size, uintlen_t(1) << log2_ceil_of_val_create(min_size)}[round_up];
     return min_size;
   }
 
  public:
-  template <bool has_alloc_v = true>
   MJZ_CX_FN success_t malloc(MJZ_WILL_USE uintlen_t min_size,
                              bool round_up = true) noexcept {
     bool bad_ret = !min_size;
-    bad_ret |= !m.alloc_ref;
+    bad_ret |= !alloc_ptr();
     bad_ret |= !!*this;
     if (bad_ret) MJZ_IS_UNLIKELY {
         return m.reduce_rc_on_manager_destruction && free();
       }
-    return u_malloc<has_alloc_v>(min_size, round_up);
+    return u_malloc(min_size, round_up);
   }
-  template <bool has_alloc_v>
   MJZ_CX_FN success_t u_malloc(MJZ_WILL_USE uintlen_t min_size,
                                bool round_up = true) noexcept {
-    return malloc_p<has_alloc_v>(minsize_calc(min_size, round_up));
+    return malloc_p(minsize_calc(min_size, round_up));
   }
 
  private:
-  template <bool has_alloc_v = true>
   MJZ_CX_FN success_t free_p() noexcept {
     asserts(asserts.assume_rn, !!*this);
     if (!deinit_heap_and_ask()) {
@@ -175,31 +201,23 @@ class str_heap_manager_t {
     return u_free_p();
   }
 
-  template <bool has_alloc_v = true>
   MJZ_CX_FN success_t u_free_p() noexcept {
-    if constexpr (has_alloc_v) {
-      const alloc_base_ref &ref = *m.alloc_ref;
-      return ref.deallocate_bytes(block_info{m.heap_data_ptr, m.heap_data_size},
-                                  alloc_info_v(ref));
-    } else {
-      const alloc_base_ref &ref = allocs_ns::empty_alloc<version_v>;
-      return ref.deallocate_bytes(block_info{m.heap_data_ptr, m.heap_data_size},
-                                  alloc_info_v(ref));
-    }
+    const alloc_base_ref &ref = *alloc_ptr();
+    return ref.deallocate_bytes(block_info{m.heap_data_ptr, m.heap_data_size},
+                                alloc_info_v(ref));
   }
 
  public:
-  template <bool is_ownerized_v, bool has_alloc_v>
   MJZ_CX_AL_FN void u_must_free() noexcept {
     MJZ_RELEASE { unsafe_clear(); };
-    if constexpr (!is_ownerized_v) {
+    if constexpr (!is_ownerized_v_) {
       bool do_rf_free = m.is_owenrized;
       do_rf_free |= !can_add_shareholder();
       if (!(do_rf_free || remove_shareholder_then_check_has_no_owner_heap())) {
         return;
       }
     }
-    asserts(asserts.assume_rn, u_free_p<has_alloc_v>());
+    asserts(asserts.assume_rn, u_free_p());
   }
   MJZ_CX_AL_FN success_t free() noexcept {
     if (!!*this) {
@@ -210,13 +228,12 @@ class str_heap_manager_t {
   }
   MJZ_CX_AL_FN void must_free() noexcept { asserts(asserts.assume_rn, free()); }
   MJZ_CX_AL_FN uintlen_t cow_threaded_threshold() const noexcept {
-     return m.alloc_ref->get_vtbl()
-        .cow_threashold;
+    return alloc_ptr()->get_vtbl().cow_threashold;
   }
   MJZ_CX_AL_FN uintlen_t buffer_overhead() const noexcept {
     bool is_nfull = !*this;
     bool is_cow = cow_threaded_threshold() < m.heap_data_size;
-    bool is_threaded = m.is_threaded;
+    bool is_threaded = get_is_threaded();
     uintlen_t awnser[2][2][2]{{{non_threaded_rf_block, non_threaded_rf_block},
                                {0, threaded_rf_block}},
                               {}};
@@ -254,11 +271,16 @@ class str_heap_manager_t {
   MJZ_CX_AL_FN uintlen_t get_heap_cap() const noexcept {
     return m.heap_data_size - buffer_overhead();
   }
-  MJZ_CX_AL_FN bool get_is_threaded() const noexcept { return m.is_threaded; }
-
-  MJZ_CX_AL_FN operator bool() const noexcept {
-    return !!m.heap_data_ptr;
+  MJZ_CX_AL_FN bool get_is_threaded() const noexcept {
+    static_assert(may_bool_t::err != is_threaded_v_);
+    if constexpr (may_bool_t::idk == is_threaded_v_) {
+      return m.is_threaded;
+    } else {
+      return !!uint8_t(is_threaded_v_);
+    }
   }
+
+  MJZ_CX_AL_FN operator bool() const noexcept { return !!m.heap_data_ptr; }
 
   MJZ_CX_AL_FN bool can_add_shareholder() const noexcept {
     bool ret = !!buffer_overhead();
@@ -285,7 +307,7 @@ class str_heap_manager_t {
     char_storage_as_temp_t<uintlen_t> var{
         m.heap_data_ptr, non_threaded_rf_block, non_threaded_rf_block};
     if (!var) return false;
-    if (!m.is_threaded) {
+    if (!get_is_threaded()) {
       return *var < 2;
     }
     refcr_t ref_count{*var};
@@ -349,11 +371,12 @@ class str_heap_manager_t {
   }
 
   MJZ_CX_AL_FN str_heap_manager_t(str_heap_manager_t &&obj) noexcept
-      : m{std::exchange(obj.m, m_t{obj.m.alloc_ref, obj.m.is_threaded})} {}
+      : m{std::exchange(obj.m, m_t{obj.m.alloc_ptr(), obj.get_is_threaded()})} {
+  }
   MJZ_CX_AL_FN str_heap_manager_t &operator=(
       str_heap_manager_t &&obj) noexcept {
     must_free();
-    m = std::exchange(obj.m, m_t{obj.m.alloc_ref, obj.m.is_threaded});
+    m = std::exchange(obj.m, m_t{obj.m.alloc_ptr(), obj.get_is_threaded()});
   }
   MJZ_CX_AL_FN ~str_heap_manager_t() noexcept {
     if (!m.reduce_rc_on_manager_destruction) {

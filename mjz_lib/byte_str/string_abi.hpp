@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include "base_abi.hpp"
 #ifndef MJZ_BYTE_STRING_string_ABI_LIB_HPP_FILE_
@@ -155,7 +177,7 @@ struct str_abi_t_ {
       return m_v().control_byte;
     }
     MJZ_CX_FN control_byte_t& cntrl() noexcept { return m_v().control_byte; }
-    MJZ_CX_FN bool is_sso() const noexcept { return cntrl().is_sso; }
+    MJZ_CX_FN bool is_sso() const noexcept {    return cntrl().is_sso; }
 
     MJZ_CX_FN bool is_ownerized() const noexcept {
       if constexpr (is_ownerized_v_) {
@@ -176,7 +198,7 @@ struct str_abi_t_ {
       if constexpr (is_threaded_v_ != may_bool_t::idk) {
         return;
       } else {
-        cntrl().as_not_threaded_bit = var;
+        cntrl().as_not_threaded_bit = !var;
       }
     }
     MJZ_CX_FN void set_ownerized(bool var) noexcept {
@@ -427,7 +449,7 @@ struct str_abi_t_ {
       return base_string_view_t<version_v>::make(get_begin(), get_length(), get_encoding(), has_null(), is_s_view_);
     }
 
-    using str_heap_manager = str_heap_manager_t<version_v>;
+    using str_heap_manager = str_heap_manager_t<version_v,is_threaded_v_,is_ownerized_v_,has_alloc_v_>;
     MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
       asserts(asserts.assume_rn, !is_sso());
       return str_heap_manager(get_alloc(), is_threaded(), is_ownerized(), false,
@@ -438,7 +460,7 @@ struct str_abi_t_ {
    private:
     MJZ_CX_FN void destruct_heap() noexcept {
       str_heap_manager hm = non_sso_my_heap_manager_no_own();
-      hm.template u_must_free<is_ownerized_v_, has_alloc_v_>();
+      hm. u_must_free();
       hm.unsafe_clear();
     }
 

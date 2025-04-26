@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 
 #include "../threads/atomic_ref.hpp"
@@ -24,7 +46,7 @@ struct basic_lazy_vtable_t {
 };
 
 template <version_t version_v>
-struct heap_storage_base_t {
+struct alignas(hardware_destructive_interference_size) heap_storage_base_t {
   uintlen_t reference_count{1};
 };
 template <version_t version_v, class T>
@@ -47,7 +69,7 @@ MJZ_DISABLE_ALL_WANINGS_START_;
 template <version_t version_v>
 union alignas(alignof(uintlen_t)) lazy_storage_u {
   char dummy_{};
-  char raw[sizeof(uintlen_t) * 5];
+  char raw[sizeof(uintlen_t)*4];
   lazy_ref_t<version_v> lazy_ref;
   MJZ_UNSAFE_UNION(lazy_storage_u);
 };

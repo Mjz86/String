@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include <concepts>
 #include <cstring>
@@ -58,17 +80,25 @@ MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
     return false;
   }
   else {
-    const char *const a_ptr{a_ptr_};
-    const char *const b_ptr{b_ptr_};
+    const uintlen_t a_ptr{std::bit_cast<uintptr_t>(a_ptr_)};
+    const uintlen_t b_ptr{std::bit_cast<uintptr_t>(b_ptr_)};
     auto b_end = b_ptr + b_len;
     auto a_end = a_ptr + a_len;
-    bool a_beg_is_in_b = (b_ptr <= a_ptr) && (a_ptr < b_end);
-    bool b_beg_is_in_a = (a_ptr <= b_ptr) && (b_ptr < a_end);
+    bool a_beg_is_in_b = (b_ptr <= a_ptr);
+    a_beg_is_in_b &= (a_ptr < b_end);
+    bool b_beg_is_in_a = (a_ptr <= b_ptr);
+    b_beg_is_in_a &= (b_ptr < a_end);
     auto a_last = a_end - 1;
     auto b_last = b_end - 1;
-    bool a_last_is_in_b = (b_ptr <= a_last) && (a_last < b_end);
-    bool b_last_is_in_a = (a_ptr <= b_last) && (b_last < a_end);
-    return a_beg_is_in_b || b_beg_is_in_a || a_last_is_in_b || b_last_is_in_a;
+    bool a_last_is_in_b = (b_ptr <= a_last);
+    a_last_is_in_b &= (a_last < b_end);
+    bool b_last_is_in_a = (a_ptr <= b_last);
+    b_last_is_in_a &= (b_last < a_end);
+    bool ret = a_beg_is_in_b;
+    ret |= b_beg_is_in_a;
+    ret |= a_last_is_in_b;
+    ret |= b_last_is_in_a;
+    return ret;
   }
 }
 
@@ -86,10 +116,9 @@ template <typename T>
   requires(std::is_trivially_copy_constructible_v<T> &&
            std::is_trivially_default_constructible_v<T> &&
            std::is_trivially_destructible_v<T>)
-MJZ_NCX_FN void cpy_aligned_bitcast( void *dest,const T&src) noexcept {
+MJZ_NCX_FN void cpy_aligned_bitcast(void *dest, const T &src) noexcept {
   std::memcpy(std::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
 }
-
 MJZ_CX_AL_FN char *memcpy_forward(char *dest, const char *src,
                                   uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
@@ -151,7 +180,7 @@ MJZ_CX_AL_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
     if (!len) return dest;
     return reinterpret_cast<char *>(
         ::std::memcpy(reinterpret_cast<void *>(dest),
-                       reinterpret_cast<const void *>(src), size_t(len)));
+                      reinterpret_cast<const void *>(src), size_t(len)));
   }
   return memcpy_forward(dest, src, len);
 }
@@ -291,6 +320,7 @@ MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
 }
 MJZ_CX_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
   MJZ_IFN_CONSTEVAL {
+    if (!len) return ptr;
     return reinterpret_cast<char *>(
         ::std::memset(reinterpret_cast<void *>(ptr), val, size_t(len)));
   }
@@ -331,7 +361,7 @@ struct mjz_unique_cache_line_t {
   alignas(hardware_constructive_interference_size) char buffer
       [hardware_constructive_interference_size];
 };
-static_assert(sizeof(uintlen_t)<=hardware_constructive_interference_size);
+static_assert(sizeof(uintlen_t) <= hardware_constructive_interference_size);
 static_assert(
     log2_ceil_of_val_create(hardware_constructive_interference_size) ==
     log2_of_val_create(hardware_constructive_interference_size));
@@ -381,6 +411,28 @@ MJZ_CX_FN uintlen_t mjz_binary_search(const T &value, uintlen_t array_size,
     }
   }
   return first;
+}
+
+template <typename T>
+concept bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
+                        std::is_trivially_destructible_v<T>;
+
+template <bitcastable_c T>
+MJZ_CX_FN T cpy_bitcast(const char *src) noexcept {
+  alignas(alignof(T)) std::array<char, sizeof(T)> buf{};
+  memcpy(buf.data(), src, sizeof(T));
+  return std::bit_cast<T>(buf);
+}
+
+template <bitcastable_c T>
+MJZ_CX_FN auto make_bitcast(const T &src) noexcept {
+  return std::bit_cast<std::array<char, sizeof(T)>>(src);
+}
+template <bitcastable_c T>
+MJZ_CX_FN void cpy_bitcast(char *dest, const T &src) noexcept {
+  alignas(alignof(T)) auto buf = make_bitcast<T>(src);
+  memcpy(dest, buf.data(), sizeof(T));
+  return;
 }
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

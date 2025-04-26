@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include <compare>
 #include <utility>
@@ -16,7 +38,8 @@ concept str_c_ = requires() {
            std::remove_cvref_t<self_str_t_>::Version_v_);
   typename std::remove_cvref_t<T>::str_t_indentity_t_;
 };
-struct props_t {
+template <version_t version_v_>
+struct basic_str_props_t {
   uintlen_t sso_min_cap{};
   bool has_alloc{};
   bool has_null{};
@@ -24,11 +47,12 @@ struct props_t {
   may_bool_t is_threaded{may_bool_t::idk};
   align_direction_e align{};
 };
-template <version_t version_v_, props_t props_v_ = props_t{}>
+template <version_t version_v_, basic_str_props_t<version_v_> props_v_ =
+                                    basic_str_props_t<version_v_>{}>
 struct basic_str_t : void_struct_t {
   MJZ_CONSTANT(version_t)
   version_v = version_v_;
-  MJZ_CONSTANT(props_t)
+  MJZ_CONSTANT(basic_str_props_t<version_v_>)
   props_v = props_v_;
   MJZ_CONSTANT(version_t)
   Version_v_{version_v};
@@ -43,6 +67,16 @@ struct basic_str_t : void_struct_t {
 
  private:
   m_t m{};
+
+ public:
+  MJZ_CX_FN const m_t &unsafe_handle_pv_(
+      unsafe_ns::i_know_what_im_doing_t) const noexcept {
+    return m;
+  }
+  MJZ_CX_FN m_t &unsafe_handle_pv_(unsafe_ns::i_know_what_im_doing_t) noexcept {
+    return m;
+  }
+  using unsafe_handle_pv_t_ = m_t;
 
  public:
   MJZ_CONSTANT(uintlen_t) sso_cap = m_t::sso_cap;
@@ -75,7 +109,9 @@ struct basic_str_t : void_struct_t {
   using dynamic_string_view = dynamic_string_view_t<version_v>;
   using generic_string_view = basic_string_view_t<version_v>;
 
-  using str_heap_manager = str_heap_manager_t<version_v>;
+  using str_heap_manager =
+      str_heap_manager_t<version_v, props_v.is_threaded, props_v.is_ownerized,
+                         props_v.has_alloc>;
   using str_t = self_t;
   // using    base_str_info = base_str_info_t<version_v>;
   using cheap_str_info = cheap_base_str_info_t<version_v>;
@@ -127,9 +163,7 @@ struct basic_str_t : void_struct_t {
       m.destruct_to_invalid();
     }
     str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-    if (!hm.template u_malloc<props_v.has_alloc>(uintlen_t(props_v.has_null) +
-                                                 len))
-      MJZ_IS_UNLIKELY {
+    if (!hm.u_malloc(uintlen_t(props_v.has_null) + len)) MJZ_IS_UNLIKELY {
         m.invalid_to_empty();
         hm.unsafe_clear();
         return false;
@@ -147,8 +181,7 @@ struct basic_str_t : void_struct_t {
       if (!m.is_sso() &&
           m.template has_room_for<when_v>(len, props_v.has_null)) {
         m.template memcpy_to_non_sso<when_t::no_heap>(
-            ptr, len, m.get_buffer_ptr(), m.get_capacity(),
-            m.is_sharable());
+            ptr, len, m.get_buffer_ptr(), m.get_capacity(), m.is_sharable());
         return true;
       }
     }
@@ -245,8 +278,7 @@ struct basic_str_t : void_struct_t {
       return true;
     }
     str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-    if (!hm.template u_malloc<props_v.has_alloc>(1 + byte_count, false))
-      MJZ_IS_UNLIKELY {
+    if (!hm.u_malloc(1 + byte_count, false)) MJZ_IS_UNLIKELY {
         hm.unsafe_clear();
         return false;
       }
@@ -258,21 +290,37 @@ struct basic_str_t : void_struct_t {
   }
   template <when_t when_v, str_c_<self_t> T>
   MJZ_CX_ND_FN success_t move_init_(alias_t<T &&> str) noexcept {
-    if constexpr (when_v) {
-      m.destruct_to_invalid();
-    }
     if constexpr (partial_same_as<decltype(str), self_t>) {
-      m = std::exchange(str.m, {});
-      return true;
+      if (!m.template has_room_for<when_v>(str.m.get_length(),
+                                           props_v.has_null)) {
+        if constexpr (when_v) {
+          m.destruct_to_invalid();
+        }
+        m = std::exchange(str.m, {});
+        return true;
+      }
     }
     if constexpr (std::remove_cvref_t<T>::sso_cap <= sso_cap) {
-      m.cntrl().encodings_bits = str.m.cntrl().encodings_bits;
-      m.set_threaded(str.m.is_threaded());
-      if constexpr (!props_v.is_ownerized) {
-        m.cntrl().is_ownerized = str.m.cntrl().is_ownerized;
+      if (str.m.get_length()<= sso_cap) {
+        if constexpr (when_v) {
+          m.destruct_to_invalid();
+        }
+        m.cntrl().encodings_bits = str.m.cntrl().encodings_bits;
+        m.set_threaded(str.m.is_threaded());
+        m.set_ownerized(str.m.is_ownerized());
+        if constexpr (props_v.has_alloc) {
+          *m.get_alloc_ptr() = str.m.get_alloc();
+        }
+        m.set_invalid_to_sso(str.m.get_begin(), str.m.get_length());
+        return true;
       }
-      m.set_invalid_to_sso(str.m.get_begin(), str.m.get_length());
-      return true;
+    }
+    if constexpr (!props_v.is_ownerized) {
+      if (str.m.is_ownerized() != m.is_ownerized()) {
+        m.destruct_to_invalid();
+        m.set_ownerized(str.m.is_ownerized());
+        return copy_assign_<when_t::no_heap>(str);
+      }
     }
     return copy_assign_<when_v>(str);
   }
@@ -296,6 +344,7 @@ struct basic_str_t : void_struct_t {
     bool cant = !obj.m.is_sharable();
     cant |= props_v.has_null && !has_null_;
     cant |= m.is_ownerized();
+    cant |= obj.m.is_ownerized();
     bool unmached_threaded = m.is_threaded() != m.is_threaded();
     unmached_threaded &= obj.m.has_mut();
     cant |= unmached_threaded;
@@ -362,10 +411,9 @@ struct basic_str_t : void_struct_t {
       return true;
     }
     str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-    if (!hm.template u_malloc<props_v.has_alloc>(
-            info.reserve_capacity +
-                uintlen_t(props_v.has_null || info.add_null),
-            false))
+    if (!hm.u_malloc(info.reserve_capacity +
+                         uintlen_t(props_v.has_null || info.add_null),
+                     false))
       MJZ_IS_UNLIKELY {
         m.invalid_to_empty();
         hm.unsafe_clear();
@@ -384,8 +432,8 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN void assign_ch_(char c) noexcept {
     auto fn_ = [this, c]() noexcept {
       char *p = m.u_get_mut_begin();
-      p[0] = c; 
-  asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
+      p[0] = c;
+      asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
       m.set_length(1);
       return;
     };
@@ -697,11 +745,17 @@ struct basic_str_t : void_struct_t {
   }
   /*similar to make_substring but gives range from [begin_i,end_i) */
   MJZ_CX_ND_FN self_t operator()(uintlen_t begin_i = 0,
-                                 uintlen_t end_i = nops) noexcept {
+                                 uintlen_t end_i = nops)const noexcept {
     return make_substring(begin_i, end_i - begin_i);
   }
-
-  /* similar to as_substring_*/
+  MJZ_CX_FN success_t as_substring(uintlen_t byte_offset,
+                                   uintlen_t byte_count) noexcept {
+    if (m.no_destroy()) {
+      return as_substring_<when_t::no_heap>(byte_offset, byte_count);
+    } else {
+      return as_substring_<when_t::relax>(byte_offset, byte_count);
+    }
+  }
   MJZ_CX_FN self_t &to_substring(uintlen_t byte_offset,
                                  uintlen_t byte_count) noexcept {
     if (m.no_destroy()) {
@@ -925,8 +979,7 @@ struct basic_str_t : void_struct_t {
       return true;
     }
     str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-    if (!hm.template u_malloc<props_v.has_alloc>(
-            uintlen_t(props_v.has_null) + mincap, round_up))
+    if (!hm.u_malloc(uintlen_t(props_v.has_null) + mincap, round_up))
       MJZ_IS_UNLIKELY {
         hm.unsafe_clear();
         return false;
@@ -952,6 +1005,10 @@ struct basic_str_t : void_struct_t {
     return u_consider_stack(stack_buffer);
   }
 
+  MJZ_CX_FN success_t u_consider_stack_pv_(
+      const dont_mess_up_t &, owned_stack_buffer &stack_buffer) noexcept {
+    return u_consider_stack(  stack_buffer);
+  }
  private:
   MJZ_CX_FN success_t
   u_consider_stack(owned_stack_buffer &stack_buffer) noexcept {
@@ -983,14 +1040,13 @@ struct basic_str_t : void_struct_t {
     if (m.template has_room_for<when_t::relax>(where.buffer_size, false)) {
       return true;
     }
-    return u_consider_stack( where);
+    return u_consider_stack(where);
   }
   MJZ_CX_FN success_t shrink_to_fit(bool force_ownership = false) noexcept {
     if (!force_ownership && !m.is_owner()) return true;
     if (!m.is_heap()) return true;  // we werent on heap to begin with
     str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-    if (!hm.template u_malloc<props_v.has_alloc>(
-            uintlen_t(props_v.has_null) + m.get_length(), false))
+    if (!hm.u_malloc(uintlen_t(props_v.has_null) + m.get_length(), false))
       MJZ_IS_UNLIKELY {
         hm.unsafe_clear();
         return false;
@@ -1151,9 +1207,7 @@ struct basic_str_t : void_struct_t {
         continue;
       }
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-      if (!hm.template u_malloc<props_v.has_alloc>(uintlen_t(props_v.has_null) +
-                                                   new_len))
-        MJZ_IS_UNLIKELY {
+      if (!hm.u_malloc(uintlen_t(props_v.has_null) + new_len)) MJZ_IS_UNLIKELY {
           hm.unsafe_clear();
           return false;
         }
@@ -1667,7 +1721,7 @@ struct basic_str_t : void_struct_t {
     return ret;
   }
   template <partial_same_as<self_t> R_t, partial_same_as<self_t> L_t>
-  MJZ_CX_FN friend self_t operator+(R_t &&rhs, L_t &lhs) noexcept {
+  MJZ_CX_FN friend self_t operator+(R_t &&rhs, L_t &&lhs) noexcept {
     return operator_add(std::forward<R_t>(rhs), std::forward<L_t>(lhs));
   }
 
@@ -1833,7 +1887,7 @@ MJZ_CONSTANT(version_t) version_V_var1_{};
  *makes a gengeric basic_str_t  that views the string
  */
 template <str_litteral_t L, version_t vr = version_t{},
-          props_t props_v = props_t{}>
+          basic_str_props_t<vr> props_v = basic_str_props_t<vr>{}>
 MJZ_CE_FN decltype(auto) operator_str() noexcept
   requires(!std::is_empty_v<basic_str_t<vr, props_v>>)
 {
@@ -1845,6 +1899,9 @@ MJZ_CE_FN decltype(auto) operator_str() noexcept
     });
   }
 };
+template <int = 0>
+using default_str_t_ =
+    basic_str_t<version_V_var1_, basic_str_props_t<version_V_var1_>{}>;
 /*
  *specialized operator for newest version
  */
@@ -1852,17 +1909,38 @@ MJZ_CE_FN decltype(auto) operator_str() noexcept
  *makes a basic_str_t(with custom allocator feature) that views the string
  */
 template <str_litteral_t L>
-MJZ_CX_FN decltype(auto) operator""_str() noexcept
-  requires(!std::is_empty_v<basic_str_t<version_V_var1_, props_t{}>>)
+MJZ_CX_FN const default_str_t_<> &operator_cxstr_() noexcept
+  requires(!std::is_empty_v<default_str_t_<>>)
 {
   return make_static_data([]() noexcept {
-    return basic_str_t<version_V_var1_, props_t{}>(
-        operator_view<L, version_V_var1_>());
+    return default_str_t_<>(operator_view<L, version_V_var1_>());
   });
+}
+template <str_litteral_t L>
+MJZ_CX_FN auto operator""_cxstr() noexcept -> const default_str_t_<> & {
+  return operator_cxstr_<L>();
+}
+template <str_litteral_t L>
+MJZ_CX_FN auto operator""_str() noexcept -> default_str_t_<> {
+  using ret_t = default_str_t_<>;
+  constexpr const auto &m =
+      operator_cxstr_<L>().unsafe_handle_pv_(unsafe_ns::unsafe_v);
+  ret_t ret{};
+  /* assert that we strat with sso*/
+  /* assert that string is not self referential , and its address is not part
+   * of its identity*/
+  auto &m_ret = ret.unsafe_handle_pv_(unsafe_ns::unsafe_v);
+  MJZ_IF_CONSTEVAL { m_ret = m; }
+  else {
+    memcpy(reinterpret_cast<char *>(&m_ret), reinterpret_cast<const char *>(&m),
+           sizeof(ret_t));
+  }
+  return ret;
 }
 };  // namespace litteral_ns
 };  // namespace mjz::bstr_ns
-template <mjz::version_t version_v, mjz::bstr_ns::props_t props_v>
+template <mjz::version_t version_v,
+          mjz::bstr_ns::basic_str_props_t<version_v> props_v>
 struct std::hash<mjz::bstr_ns::basic_str_t<version_v, props_v>> {
   std::size_t operator()(const auto &s) const noexcept {
     return std::size_t(s.hash());

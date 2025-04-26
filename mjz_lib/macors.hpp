@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 
 #ifndef mjz_string_lib_HPP_FILE_
@@ -53,16 +75,15 @@
  *  log allocations in the allocators when using new.
  */
 
-
 #ifndef MJZ_LOG_ALLOC_ALLOCATIONS_
 #define MJZ_LOG_ALLOC_ALLOCATIONS_ false
 #endif  // !MJZ_LOG_ALLOC_ALLOCATIONS_
 #ifndef MJZ_LOG_NEW_ALLOCATIONS_
 #define MJZ_LOG_NEW_ALLOCATIONS_ false
 #endif  // !MJZ_LOG_NEW_ALLOCATIONS_
- 
+
 #define MJZ_LOG_ALLOCATIONS_ \
-  (MJZ_LOG_NEW_ALLOCATIONS_ || MJZ_LOG_ALLOC_ALLOCATIONS_) 
+  (MJZ_LOG_NEW_ALLOCATIONS_ || MJZ_LOG_ALLOC_ALLOCATIONS_)
 /*
  * dosent work in gcc :( , we shoud wait till c++26 to get
  * https://en.cppreference.com/w/cpp/language/structured_binding auto [...args]
@@ -416,6 +437,32 @@ active union member... IF the first statement is true
   MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&) noexcept = default; \
   MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept = default;
 
+#define MJZ_ASSIGN_LIKE_CONSTRUCT(CLASS_NAME)                           \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&src_0_) noexcept {       \
+    if (this == &src_0_) return *this;                                  \
+    std::destroy_at(this);                                              \
+    std::construct_at(this, std::move(src_0_));                         \
+    return *this;                                                       \
+  }                                                                     \
+  MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &&src_0_) noexcept { \
+    if (this == &src_0_) return *this;                                  \
+    std::destroy_at(this);                                              \
+    std::construct_at(this, (const CLASS_NAME &&)(src_0_));             \
+    return *this;                                                       \
+  }                                                                     \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &src_0_) noexcept {        \
+    if (this == &src_0_) return *this;                                  \
+    std::destroy_at(this);                                              \
+    std::construct_at(this, src_0_);                                    \
+    return *this;                                                       \
+  }                                                                     \
+  MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &src_0_) noexcept {  \
+    if (this == &src_0_) return *this;                                  \
+    std::destroy_at(this);                                              \
+    std::construct_at(this, src_0_);                                    \
+    return *this;                                                       \
+  }
+
 #define MJZ_UNSAFE_UNION(CLASS_NAME)                             \
   MJZ_CX_FN CLASS_NAME(const CLASS_NAME &) noexcept {}           \
   MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept { \
@@ -533,21 +580,17 @@ active union member... IF the first statement is true
 #define MJZ_SASSERT(EXPRESTION_) \
   MJZ_MSASSERT(EXPRESTION_, "  requremets are not met ")
 
-
 #define MJZ_NUMBEROF(Array_) (sizeof(Array_) / sizeof(Array_[0]))
-
-
 
 #define MJZ_CX_AL_FN                                 \
   MJZ_MAYBE_UNUSED                                   \
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
   MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__forceinline)
 
-#define MJZ_CX_NL_FN                                 \
-  MJZ_MAYBE_UNUSED                                   \
+#define MJZ_CX_NL_FN                            \
+  MJZ_MAYBE_UNUSED                              \
   MJZ_GCC_ONLY_CODE_(__attribute__((noinline))) \
   MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__declspec(noinline))
-
 
 #define MJZ_CX_AL_A_FN(X) X MJZ_CX_AL_FN
 

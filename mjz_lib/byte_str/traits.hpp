@@ -1,3 +1,25 @@
+/*MIT License
+
+Copyright (c) 2025 Mjz86
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 #ifdef __cpp_lib_to_chars
 #include <charconv>
 #endif
@@ -347,7 +369,7 @@ struct byte_traits_t {
     if (36 < raidex || !ptr || !len || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
     constexpr UT max_v = UT(-1);
-    constexpr UT sign_bit = std::same_as<T, UT> ? 0 : ~(UT(-1) >> 1);
+    constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT( ~(UT(-1) >> 1));
     const UT pre_max_v = UT(max_v / UT(raidex));
 
     bool is_neg{};
@@ -1357,7 +1379,7 @@ struct byte_traits_t {
     if (len) {
       ptr++;
       len--;
-      if (!len) return do_ret(0);
+      if (!len) return do_ret(T(0));
     }
     raidex_ = 8;
     if (len && (*ptr == 'X' || *ptr == 'x')) {
