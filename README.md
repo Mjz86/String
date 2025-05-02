@@ -93,11 +93,11 @@ size_t  reference_count;
 char padding [is_threaded?std::hardware_destructive_interference_size-8:0];
  alignas(is_threaded?std::hardware_destructive_interference_size :8 )  char heap_buffer[capacity];
 } cow_heap;
-struct can_share_false_t{
-//assertions of is_threaded for picking this layout. 
+struct can_share_false_t{ 
 alignas(std::hardware_destructive_interference_size )  char heap_buffer[capacity];
 }owned_heap;
 };
+// active member is picked by the 'can_share()' function
 ```
 
 # Invariants
