@@ -245,7 +245,6 @@ and no allocation would be made.
 this is safe raii wrapper that ensures that the stack buffer is managed without user mental overhead. 
 
 # easy conversions  :
-- will be supported soon.
 you may convert from any mjz string with any properties to any other properties, 
 usually the conversions are cheap , but if some requirements were placed,  some of the conversions may allocate .
 this allows for use of any desired  string in any place.
