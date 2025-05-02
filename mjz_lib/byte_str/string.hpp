@@ -31,6 +31,16 @@ SOFTWARE.
 #define MJZ_BYTE_STRING_string_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
 
+
+
+
+
+
+
+
+template <auto = 0>
+struct useless_tag_t_ {};
+
 template <class T, class self_str_t_>
 concept str_c_ = requires() {
   { version_t{std::remove_cvref_t<T>::Version_v_} } noexcept;
@@ -38,7 +48,12 @@ concept str_c_ = requires() {
            std::remove_cvref_t<self_str_t_>::Version_v_);
   typename std::remove_cvref_t<T>::str_t_indentity_t_;
 };
-template <version_t version_v_>
+
+template <class T, class self_str_t_>
+concept str_forward_c_ = str_c_<T, self_str_t_>&& forward_like_c<T, self_str_t_>;
+
+
+  template <version_t version_v_>
 struct basic_str_props_t {
   uintlen_t sso_min_cap{};
   bool has_alloc{};
@@ -50,6 +65,8 @@ struct basic_str_props_t {
 template <version_t version_v_, basic_str_props_t<version_v_> props_v_ =
                                     basic_str_props_t<version_v_>{}>
 struct basic_str_t : void_struct_t {
+  template <version_t version_v_0_, basic_str_props_t<version_v_0_>>
+  friend struct basic_str_t;
   MJZ_CONSTANT(version_t)
   version_v = version_v_;
   MJZ_CONSTANT(basic_str_props_t<version_v_>)
@@ -301,7 +318,7 @@ struct basic_str_t : void_struct_t {
       }
     }
     if constexpr (std::remove_cvref_t<T>::sso_cap <= sso_cap) {
-      if (str.m.get_length()<= sso_cap) {
+      if (str.m.get_length() <= sso_cap) {
         if constexpr (when_v) {
           m.destruct_to_invalid();
         }
@@ -363,7 +380,7 @@ struct basic_str_t : void_struct_t {
       return true;
     }
 
-    str_heap_manager hm = obj.m.non_sso_my_heap_manager_no_own();
+    auto hm = obj.m.non_sso_my_heap_manager_no_own();
     if (!hm.can_add_shareholder()) {
       return memcopy_assign_<when_v>(obj, no_allocate, offset, count);
     }
@@ -499,25 +516,30 @@ struct basic_str_t : void_struct_t {
         "&,uintlen_t , uintlen_t,bool) : cannot add null , init fail ");
   }
 
- public:
-  MJZ_CX_FN ~basic_str_t() noexcept { m.destruct_to_invalid(); }
-  MJZ_CX_FN basic_str_t() noexcept { m.invalid_to_empty(); }
-  MJZ_CX_FN basic_str_t(self_t &&src) noexcept : basic_str_t() {
+ private:
+  MJZ_CX_FN basic_str_t(str_forward_c_<self_t> auto &&src,
+                        useless_tag_t_<>) noexcept
+      : basic_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         move_init_<when_t::as_sso>(std::move(src)),
         "[Error]basic_str_t(basic_str_t&&):couldn't move string!");
   }
-  MJZ_CX_FN basic_str_t(self_t const &src) noexcept : basic_str_t() {
+  MJZ_CX_FN basic_str_t(str_forward_c_<self_t const&> auto&&src,
+                        useless_tag_t_<>) noexcept
+      : basic_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         copy_assign_<when_t::as_sso>(src),
         "[Error]basic_str_t(const basic_str_t&):couldn't copy string!");
   }
-  MJZ_CX_FN basic_str_t(self_t const &&src) noexcept : basic_str_t() {
+  MJZ_CX_FN basic_str_t(str_forward_c_<self_t const> auto &&src,
+                        useless_tag_t_<>) noexcept
+      : basic_str_t() {
     reset_to_error_on_fail_<when_t::as_sso>(
         share_init_<when_t::as_sso>(src),
         "[Error]basic_str_t(const basic_str_t&&):couldn't share string!");
   }
-  MJZ_CX_FN basic_str_t &operator=(self_t &&src) noexcept {
+  MJZ_CX_FN basic_str_t &operator_assign_(str_forward_c_<self_t> auto &&src,
+                                          useless_tag_t_<>) noexcept {
     if (void_struct_cast_t::up_cast(this) == &void_struct_cast_t::up_cast(src))
       return *this;
     if (m.no_destroy()) {
@@ -533,7 +555,9 @@ struct basic_str_t : void_struct_t {
     }
     return *this;
   }
-  MJZ_CX_FN basic_str_t &operator=(self_t const &src) noexcept {
+  MJZ_CX_FN basic_str_t &operator_assign_(
+      str_forward_c_<self_t const &> auto &&src,
+                                          useless_tag_t_<>) noexcept {
     if (void_struct_cast_t::up_cast(this) == &void_struct_cast_t::up_cast(src))
       return *this;
     if (m.no_destroy()) {
@@ -549,7 +573,8 @@ struct basic_str_t : void_struct_t {
     }
     return *this;
   }
-  MJZ_CX_FN basic_str_t &operator=(self_t const &&src) noexcept {
+  MJZ_CX_FN basic_str_t &operator_assign_(str_forward_c_<const self_t> auto &&src,
+                                          useless_tag_t_<>) noexcept {
     if (void_struct_cast_t::up_cast(this) == &void_struct_cast_t::up_cast(src))
       return *this;
     if (m.no_destroy()) {
@@ -565,6 +590,68 @@ struct basic_str_t : void_struct_t {
     }
     return *this;
   };
+  MJZ_CX_ND_FN basic_str_t(str_forward_c_<self_t const &> auto &&obj,
+                           cheap_str_info info,
+                           useless_tag_t_<>) noexcept
+      : basic_str_t(&info) {
+    if (m.no_destroy()) {
+      reset_to_error_on_fail_<when_t::no_heap>(
+          copy_assign_<when_t::no_heap>(obj),
+          "[Error]basic_str_t(const basic_str_t& "
+          "obj,cheap_str_info):couldn't copy string!");
+    } else {
+      reset_to_error_on_fail_<when_t::relax>(
+          copy_assign_<when_t::relax>(obj),
+          "[Error]basic_str_t(const basic_str_t& "
+          "obj,cheap_str_info):couldn't copy string!");
+    }
+  }
+
+ public:
+  MJZ_CX_FN ~basic_str_t() noexcept { m.destruct_to_invalid(); }
+  MJZ_CX_FN basic_str_t() noexcept { m.invalid_to_empty(); }
+  MJZ_CX_FN basic_str_t(basic_str_t &&val) noexcept
+      : basic_str_t(std::move(val), useless_tag_t_<>{}) {}
+
+  MJZ_CX_ND_FN basic_str_t(self_t const &obj, cheap_str_info info) noexcept
+      : basic_str_t(obj, info, useless_tag_t_<>{}) {}
+
+  MJZ_CX_FN basic_str_t(const basic_str_t &&val) noexcept
+      : basic_str_t((const basic_str_t &&)(val), useless_tag_t_<>{}) {}
+  MJZ_CX_FN basic_str_t(const basic_str_t &val) noexcept
+      : basic_str_t(val, useless_tag_t_<>{}) {}
+  MJZ_CX_FN basic_str_t &operator=(basic_str_t &&val) noexcept {
+    return operator_assign_(std::forward<basic_str_t>(val),
+                            useless_tag_t_<>{});
+  }
+  MJZ_CX_FN basic_str_t &operator=(const basic_str_t &&val) noexcept {
+    return operator_assign_(std::forward<const basic_str_t>(val),
+                            useless_tag_t_<>{});
+  }
+  MJZ_CX_FN basic_str_t &operator=(basic_str_t &val) noexcept {
+    return operator_assign_(std::forward<basic_str_t &>(val),
+                            useless_tag_t_<>{});
+  }
+
+  
+  template <str_c_<self_t> T>
+    requires(!partial_same_as<T,self_t>)
+  MJZ_CX_ND_FN basic_str_t(T &&obj, cheap_str_info info) noexcept
+      : basic_str_t(std::forward<T>(obj), info, useless_tag_t_<>{}) {}
+  template <str_c_<self_t> T>
+    requires(!partial_same_as<T, self_t>)
+  MJZ_CX_ND_FN basic_str_t(T &&obj) noexcept
+      : basic_str_t(std::forward<T>(obj), useless_tag_t_<>{}) {}
+
+
+
+  template <class T>
+    requires requires(basic_str_t &str) {
+      str.operator_assign_(just_some_invalid_obj<T &&>(), useless_tag_t_<>{});
+    }
+  MJZ_CX_FN basic_str_t &operator=(T &&val) noexcept {
+    return operator_assign_(std::forward<T>(val), useless_tag_t_<>{});
+  }
 
  public:
   MJZ_CX_ND_FN basic_str_t(cheap_str_info *info) noexcept : basic_str_t() {
@@ -688,20 +775,7 @@ struct basic_str_t : void_struct_t {
    *safely copies the data without allocation of the obj if possible, if not
    *,shares it if possible, if not copies it with an allocation.
    */
-  MJZ_CX_ND_FN basic_str_t(const basic_str_t &obj, cheap_str_info info) noexcept
-      : basic_str_t(&info) {
-    if (m.no_destroy()) {
-      reset_to_error_on_fail_<when_t::no_heap>(
-          copy_assign_<when_t::no_heap>(obj),
-          "[Error]basic_str_t(const basic_str_t& "
-          "obj,cheap_str_info):couldn't copy string!");
-    } else {
-      reset_to_error_on_fail_<when_t::relax>(
-          copy_assign_<when_t::relax>(obj),
-          "[Error]basic_str_t(const basic_str_t& "
-          "obj,cheap_str_info):couldn't copy string!");
-    }
-  }
+
   MJZ_DEPRECATED_R("the cheap_str_info is used but discarded afterwards")
   MJZ_CX_FN basic_str_t(basic_str_t &&obj,
                         cheap_str_info &&info) noexcept = delete;
@@ -745,7 +819,7 @@ struct basic_str_t : void_struct_t {
   }
   /*similar to make_substring but gives range from [begin_i,end_i) */
   MJZ_CX_ND_FN self_t operator()(uintlen_t begin_i = 0,
-                                 uintlen_t end_i = nops)const noexcept {
+                                 uintlen_t end_i = nops) const noexcept {
     return make_substring(begin_i, end_i - begin_i);
   }
   MJZ_CX_FN success_t as_substring(uintlen_t byte_offset,
@@ -1007,8 +1081,9 @@ struct basic_str_t : void_struct_t {
 
   MJZ_CX_FN success_t u_consider_stack_pv_(
       const dont_mess_up_t &, owned_stack_buffer &stack_buffer) noexcept {
-    return u_consider_stack(  stack_buffer);
+    return u_consider_stack(stack_buffer);
   }
+
  private:
   MJZ_CX_FN success_t
   u_consider_stack(owned_stack_buffer &stack_buffer) noexcept {

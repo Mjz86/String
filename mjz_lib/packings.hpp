@@ -168,18 +168,18 @@ MJZ_BAD_COMPILER(alignof(char) <= alignof(uint32_t));
 MJZ_BAD_COMPILER(sizeof(padding_test_unpacked_t_) ==
                  alignof(uint32_t) + sizeof(uint32_t));
 MJZ_BAD_COMPILER(alignof(padding_test_unpacked_t_) == alignof(uint32_t));
-
+MJZ_DISABLE_ALL_WANINGS_START_;
 struct bit_field_test_t_ {
   char b0 : 1;
-  char b1 : 1;
+const  char b1 : 1;
   char b2 : 1;
-  char b3 : 1;
+const char b3 : 1;
   char b4 : 1;
-  char b5 : 1;
+const char b5 : 1;
   char b6 : 1;
-  char b7 : 1;
+const char b7 : 1;
 };
-
+MJZ_DISABLE_ALL_WANINGS_END_;
 MJZ_BAD_COMPILER(sizeof(bit_field_test_t_) == 1);
 
 };  // namespace raw_string_object_laoyouts_maybe_

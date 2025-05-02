@@ -124,6 +124,7 @@ class iterator_t {
   MJZ_CX_ND_FN difference_type
   operator-(const iterator_t &Right) const noexcept {
     MJZ_UNUSED auto checker = check();
+    MJZ_UNUSED auto checker2 = Right.check();
     asserts(asserts.assume_rn, Right.str == str);
     return difference_type(index) - difference_type(Right.index);
   }
@@ -132,23 +133,25 @@ class iterator_t {
     return *(*this + Off);
   }
   MJZ_CX_ND_FN bool operator==(const iterator_t &Right) const noexcept {
-    MJZ_UNUSED auto checker = check();
+    MJZ_UNUSED auto checker = check() ;
+    MJZ_UNUSED auto checker2 = Right.check();
     return str == Right.str && index == Right.index;
   }
   MJZ_CX_ND_FN std::strong_ordering operator<=>(
       const iterator_t &Right) const noexcept {
     MJZ_UNUSED auto checker = check();
-    asserts(asserts.assume_rn, Right.str == str);
+    MJZ_UNUSED auto checker2 = Right.check();
+    asserts(asserts.expect_rn, Right.str == str);
     return index <=> Right.index;
   }
 
  private:
   MJZ_CX_ND_FN auto check(bool extra = false) const noexcept {
-    auto fn = [this, extra]() mutable noexcept -> void {
-      asserts(asserts.assume_rn, [&]() noexcept {
-        return str && str->data() && index <= str->length() &&
-               (!extra || index != str->length());
-      });
+    auto fn = [this, extra]() noexcept -> void {
+      auto len = str->length();
+      constexpr auto max_len = Str_t::max_size();
+      asserts(asserts.expect_rn, str && index <= max_len && len <= max_len &&
+                                     str->data() && index <= len && (!extra || index != len));
     };
     fn();
     return releaser_t{std::move(fn)};
@@ -639,7 +642,7 @@ struct buffer_out_buf_t : void_struct_t {
   MJZ_CX_FN success_t reserve(uintlen_t new_cap) noexcept {
     if (new_cap <= capacity) return true;
     if ((uintlen_t(-1) >> 1) < capacity) return false;
-    new_cap = uintlen_t(1)<<log2_ceil_of_val_create(new_cap);
+    new_cap = uintlen_t(1) << log2_ceil_of_val_create(new_cap);
     allocs_ns::block_info_t<version_v> blk =
         alloc.allocate_bytes(new_cap, info);
     uintlen_t len = length;

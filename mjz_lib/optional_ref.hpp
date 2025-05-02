@@ -31,23 +31,12 @@ SOFTWARE.
 namespace mjz {
 template <typename T>
 struct optional_ref_t {
-  MJZ_CONSTANT(bool) as_noexcept = true;
-  MJZ_CX_FN void throw_if_exceptions() const noexcept(as_noexcept) {
-    if (!ptr) {
-      if constexpr (!as_noexcept) {
-        throw std::bad_optional_access{};
-      } else {
-        asserts(asserts.assume_rn, false);
-      }
-    }
-  }
+   
   single_object_pointer_t<T> ptr{};
-  MJZ_CX_ND_FN T &operator*() const noexcept(as_noexcept) {
-    throw_if_exceptions();
+  MJZ_CX_ND_FN T &operator*() const noexcept { 
     return *ptr;
   }
-  MJZ_CX_ND_FN T &value() const noexcept(as_noexcept) {
-    throw_if_exceptions();
+  MJZ_CX_ND_FN T &value() const noexcept { 
     return *ptr;
   }
   MJZ_CX_ND_FN T &value_or(T &&) const noexcept = delete;
@@ -58,8 +47,7 @@ struct optional_ref_t {
     return other;
   }
   MJZ_CX_ND_FN
-  single_object_pointer_t<T> operator->() const noexcept(as_noexcept) {
-    throw_if_exceptions();
+  single_object_pointer_t<T> operator->() const noexcept { 
     return ptr;
   }
   MJZ_CX_ND_FN explicit operator bool() const noexcept { return !!ptr; }
@@ -72,9 +60,7 @@ struct optional_ref_t {
   single_object_pointer_t<T> get() const noexcept { return ptr; }
 
   template <typename U>
-  MJZ_CX_ND_FN decltype(auto) operator->*(U &&arg) const noexcept(as_noexcept) {
-    throw_if_exceptions();
-    asserts(!!ptr);
+  MJZ_CX_ND_FN decltype(auto) operator->*(U &&arg) const noexcept { 
     return ptr->*std::forward<U>(arg);
   }
   MJZ_CX_FN optional_ref_t(single_object_pointer_t<T> ptr_ = nullptr) noexcept

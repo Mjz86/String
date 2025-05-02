@@ -55,7 +55,7 @@ struct implace_string_data_t<version_v, props_v, stack_cap>
   } m_stack_buffer_{};
 };
 template <version_t version_v,
-          uintlen_t stack_cap = 1024 - 4 * sizeof(uintlen_t),
+          uintlen_t stack_cap = 256 - 4 * sizeof(uintlen_t),
           basic_str_props_t<version_v> props_v = basic_str_props_t<version_v>{}>
 struct implace_str_t
     : public implace_string_data_t<version_v, props_v, stack_cap> {

@@ -434,5 +434,42 @@ MJZ_CX_FN void cpy_bitcast(char *dest, const T &src) noexcept {
   memcpy(dest, buf.data(), sizeof(T));
   return;
 }
+
+
+
+template <class Like_what_t_, class U>
+MJZ_CX_AL_FN auto &&forward_like(U &&x) noexcept {
+  constexpr bool is_adding_const =
+      std::is_const_v<std::remove_reference_t<Like_what_t_>>;
+  if constexpr (std::is_lvalue_reference_v<Like_what_t_ &&>) {
+    if constexpr (is_adding_const) {
+      return std::as_const(x);
+    } else {
+      return static_cast<U &>(x);
+    }
+  } else {
+    if constexpr (is_adding_const) {
+      return std::move(std::as_const(x));
+    } else {
+      return std::move(x);
+    }
+  }
+}
+
+
+template <class Like_what_t_, class T>
+using forward_like_t=decltype(forward_like<Like_what_t_>(std::declval<T>()));
+
+
+
+template <class T, class Like_what_t_>
+concept forward_like_c =
+    std::same_as<T&&, forward_like_t<Like_what_t_, std::remove_cvref_t<T>>>;
+
+
+template <class From_, class Like_to_what_t_>
+concept forward_convert_like_c = std::convertible_to<
+    From_&&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>; 
+
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_
