@@ -43,6 +43,25 @@ struct parse_context_t;
 template <version_t version_v>
 struct format_context_t;
 
+template <version_t version_v>
+struct base_string_view_arg_t : base_lazy_view_t<version_v> {
+  MJZ_CX_FN base_string_view_arg_t(auto &&view) noexcept
+      : base_lazy_view_t<version_v>{
+            view.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)} {}
+
+  MJZ_CX_FN base_lazy_view_t<version_v> to_base_lazy_pv_fn_(
+      unsafe_ns::i_know_what_im_doing_t) const noexcept {
+    return *this;
+  }
+};
+
+template <version_t version_v>
+using basic_formatted_types_t = void(base_string_view_arg_t<version_v>,
+                                     const void *, long long, long, int, short,
+                                     signed char, unsigned long long,
+                                     unsigned long, unsigned int,
+                                     unsigned short, unsigned char, nullptr_t);
+
 template <typename F_t, version_t version_v, typename T>
 concept valid_format_c = requires(F_t obj, const F_t cobj, T &&arg,
                                   parse_context_t<version_v> &pctx,
@@ -149,29 +168,119 @@ struct argument_name_t {
   hash_bytes_t<version_v> hash{};
   basic_string_view_t<version_v> name_str{};
 };
+
+// configurable
+template <version_t version_v>
+static const constexpr uintlen_t format_basic_buffer_size_v = 64;
+// configurable
+template <version_t version_v>
+static const constexpr uintlen_t format_stack_size_v =
+    format_basic_buffer_size_v<version_v> * 32;
+
 template <version_t version_v>
 struct base_context_t : void_struct_t {
+  using stack_alloc_t =
+      allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
+  static_assert(format_basic_buffer_size_v<version_v> <
+                format_stack_size_v<version_v>);
+  static_assert(stack_alloc_t::align * 2 <=
+                format_basic_buffer_size_v<version_v>);
+  // alignment
+  static_assert(
+      !((format_stack_size_v<version_v> |
+         format_basic_buffer_size_v<version_v>)&(stack_alloc_t::align - 1)));
+
+  MJZ_NO_MV_NO_CPY_DC(base_context_t);
   template <class>
   friend class mjz_private_accessed_t;
   using out_it_t = base_out_it_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
-  out_it_t err_output{};
-  view_t err_content{};
-  uintlen_t err_index{};
+  using name_t = argument_name_t<version_v>;
+  std::span<char> format_cache_ref{};
+  stack_base_out_buffer_t<version_v> buf_view{};
+  stack_alloc_t stack_alloc{};
   alloc_ref_t alloc{};
+  parse_and_format_data_t<version_v> *parse_and_format_data_ptr{};
   const raw_storage_ref_u<version_v> *data_of_args{};
   const parse_and_format_fn_t<version_v> *parse_and_format_fn_of_args{};
   uintlen_t number_of_args{};
   view_t format_string{};
-  using name_t = argument_name_t<version_v>;
   const name_t *name_ptr{};
   uintlen_t max_recursion_depth{16};
   uintlen_t recursion_depth{};
+  static_string_view_t<version_v> err_content_bfr_{nullopt};
+  out_it_t err_output_bfr_{};
+  out_it_t err_output{};
+  view_t err_content{};
+  uintlen_t err_index{};
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN std::span<char> fn_alloca(uintlen_t min_size,
+                                      uintlen_t align) noexcept {
+    allocs_ns::block_info_t<version_v> blk =
+        alloc.alloca_bytes(stack_alloc, min_size, align);
+    return {blk.ptr, blk.length};
+  }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN void fn_dealloca(std::span<char> &&blk, uintlen_t align) noexcept {
+    return alloc.dealloca_bytes(
+        stack_alloc, allocs_ns::block_info_t<version_v>{blk.data(), blk.size()},
+        align);
+  }
+
+  struct parse_and_format_call_one_at_non_virt_impl_t_ {
+    typeless_arg_ref_t<version_v> obj{};
+    parse_and_format_data_t<version_v> *This{};
+    success_t ret{};
+  };
+  MJZ_CX_FN static success_t parse_and_format_call_at_virt_impl_(
+      parse_and_format_call_one_at_non_virt_impl_t_ &ret) noexcept {
+    return (*ret.obj.parse_and_format)(ret.obj, *ret.This);
+  }
+  MJZ_CX_FN success_t parse_and_format_call_at(uintlen_t index) noexcept {
+    parse_and_format_call_one_at_non_virt_impl_t_ ret0{};
+    ret0.This = parse_and_format_data_ptr;
+    auto args = data_of_args;
+    typeless_arg_ref_t<version_v> &obj = ret0.obj;
+    obj.m = args ? args[index] : raw_storage_ref_u<version_v>{};
+    obj.parse_and_format = parse_and_format_fn_of_args[index];
+    if (parse_and_format_call_at_non_virt_impl_(
+            ret0, alias_t<basic_formatted_types_t<version_v> *>{}))
+      return ret0.ret;
+    return parse_and_format_call_at_virt_impl_(ret0);
+  }
+  template <typename T>
+  MJZ_CX_FN static bool parse_and_format_call_one_at_non_virt_impl_(
+      parse_and_format_call_one_at_non_virt_impl_t_ &ret) noexcept;
+  template <typename... Ts>
+  MJZ_CX_FN static bool parse_and_format_call_at_non_virt_impl_(
+      parse_and_format_call_one_at_non_virt_impl_t_ &ret,
+      void (*)(Ts...)) noexcept {
+    return ((parse_and_format_call_one_at_non_virt_impl_<const Ts &>(ret)) ||
+            ...);
+  }
 };
 
 template <version_t version_v>
 struct parse_context_t : void_struct_t {
+  using stack_alloc_t =
+      allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
   template <class>
   friend class mjz_private_accessed_t;
 
@@ -189,7 +298,6 @@ struct parse_context_t : void_struct_t {
   using err_it_t = base_out_it_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   base_context_t<version_v> &base;
-  parse_and_format_data_t<version_v> *parse_and_format_data_ptr{};
   view_t remaining_format_string{};
   // uintlen_t(-1) means manual mode!
   uintlen_t next_arg_index{};
@@ -219,16 +327,13 @@ struct parse_context_t : void_struct_t {
 
 #endif
   }
-
- public:
-  MJZ_CX_FN explicit operator bool() const noexcept {
-    return !base.err_content;
-  }
-  MJZ_CX_FN err_it_t
-  as_error(static_string_view_t<version_v> error_description) noexcept {
+  MJZ_CX_NL_FN void as_error_impl_() noexcept {
+    static_string_view_t<version_v> error_description = base.err_content_bfr_;
     if (base.err_content) {
       // double errors only caputre the first error!
-      return nullptr;
+      base.err_output_bfr_ = nullptr;
+    } else {
+      base.err_output_bfr_ = base.err_output;
     }
     erred_cx();
     base.err_index =
@@ -237,8 +342,43 @@ struct parse_context_t : void_struct_t {
     base.err_content = error_description;
     asserts(asserts.assume_rn, remaining_format_string.remove_prefix(
                                    remaining_format_string.length()));
+  }
 
-    return base.err_output;
+ public:
+  MJZ_CX_FN explicit operator bool() const noexcept {
+    return !base.err_content;
+  }
+
+  MJZ_CX_FN err_it_t &as_error(
+      static_string_view_t<version_v> error_description) noexcept {
+    base.err_content_bfr_ = error_description;
+    as_error_impl_();
+    return base.err_output_bfr_;
+  }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN std::span<char> fn_alloca(uintlen_t min_size,
+                                      uintlen_t align) noexcept {
+    return base.fn_alloca(min_size, align);
+  }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN void fn_dealloca(std::span<char> &&blk, uintlen_t align) noexcept {
+    return base.fn_dealloca(std::move(blk), align);
   }
   MJZ_CX_FN encodings_e encoding() const noexcept {
     return base.format_string.get_encoding();
@@ -267,6 +407,16 @@ struct parse_context_t : void_struct_t {
     if (!amount || !remaining_format_string.remove_prefix(*amount)) {
       as_error(
           "[Error]parse_context_t::advance_amount(std::optional<uintlen_t>): "
+          "couldn't "
+          "advance ,(maybe parse funtion failed)");
+      return false;
+    }
+    return true;
+  }
+  MJZ_CX_FN success_t advance_amount(uintlen_t amount) noexcept {
+    if (!remaining_format_string.remove_prefix(amount)) {
+      as_error(
+          "[Error]parse_context_t::advance_amount(uintlen_t): "
           "couldn't "
           "advance ,(maybe parse funtion failed)");
       return false;
@@ -356,6 +506,8 @@ concept is_formatted_exact_c =
 
 template <version_t version_v>
 struct format_context_t : void_struct_t {
+  using stack_alloc_t =
+      allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
   template <class>
   friend class mjz_private_accessed_t;
   template <version_t>
@@ -395,25 +547,52 @@ struct format_context_t : void_struct_t {
  public:
   MJZ_CX_FN basic_arg_ref_t<version_v> arg(uintlen_t id) noexcept;
   MJZ_CX_FN encodings_e encoding() const noexcept { return parser.encoding(); }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+
+  MJZ_CX_FN std::span<char> fn_alloca(uintlen_t min_size,
+                                      uintlen_t align) noexcept {
+    return parser.fn_alloca(min_size, align);
+  }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+
+  MJZ_CX_FN void fn_dealloca(std::span<char> &&blk, uintlen_t align) noexcept {
+    return parser.fn_dealloca(std::move(blk), align);
+  }
   MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &allocator()
       const noexcept {
     return parser.allocator();
   }
   MJZ_CX_FN iterator out() noexcept { return output_it; }
   MJZ_CX_FN success_t advance_to(iterator it) noexcept {
-    if (!it) {
+    if (!it || !(output_it.operator=(std::move(it))) ||
+        !output_it.entangle_to_manual_buffer(parser.base.buf_view)) {
       as_error(
           "[Error]format_context_t::advance_to(const_iterator): couldn't "
           "advance "
           "to nullptr,(maybe format funtion failed)(maybe output iterator "
           "failed)");
       return false;
-    }
-    output_it = std::move(it);
+    };
     return true;
   }
-  MJZ_CX_FN err_it_t
-  as_error(static_string_view_t<version_v> error_description) noexcept {
+  MJZ_CX_FN err_it_t &as_error(
+      static_string_view_t<version_v> error_description) noexcept {
     MJZ_RELEASE { output_it = out_it_t{}; };
     return parser.as_error(error_description);
   }
@@ -422,6 +601,8 @@ struct format_context_t : void_struct_t {
 
 template <version_t version_v>
 struct hash_context_t : void_struct_t {
+  using stack_alloc_t =
+      allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
   template <class>
   friend class mjz_private_accessed_t;
 
@@ -447,13 +628,38 @@ struct hash_context_t : void_struct_t {
   using char_type = char;
 
  public:
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN std::span<char> fn_alloca(uintlen_t min_size,
+                                      uintlen_t align) noexcept {
+    return parser.fn_alloca(min_size, align);
+  }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN void fn_dealloca(std::span<char> &&blk, uintlen_t align) noexcept {
+    return parser.fn_dealloca(std::move(blk), align);
+  }
   MJZ_CX_FN encodings_e encoding() const noexcept { return parser.encoding(); }
   MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &allocator()
       const noexcept {
     return parser.allocator();
   }
-  MJZ_CX_FN err_it_t
-  as_error(static_string_view_t<version_v> error_description) noexcept {
+  MJZ_CX_FN err_it_t &as_error(
+      static_string_view_t<version_v> error_description) noexcept {
     return parser.as_error(error_description);
   }
   MJZ_CX_FN optional_ref_t<typename base_context_t<version_v>::name_t const>
@@ -492,7 +698,7 @@ struct parse_and_format_data_t : void_struct_t {
       : base_context(base_context_),
         parse_context(base_context_),
         format_context(parse_context, std::move(output_it_)) {
-    parse_context.parse_and_format_data_ptr = this;
+    base_context.parse_and_format_data_ptr = this;
   }
 
  public:
@@ -1082,6 +1288,26 @@ MJZ_CX_FN basic_arg_ref_t<version_v> format_context_t<version_v>::arg(
   obj.m = args ? args[id] : raw_storage_ref_u<version_v>{};
   obj.parse_and_format = fn;
   return basic_arg_ref_t<version_v>(obj);
+}
+
+template <version_t version_v>
+template <typename T>
+MJZ_CX_FN bool
+base_context_t<version_v>::parse_and_format_call_one_at_non_virt_impl_(
+    parse_and_format_call_one_at_non_virt_impl_t_ &ret) noexcept {
+  if constexpr (is_formatted_exact_c<T, version_v>) {
+      if constexpr(partial_same_as<typed_arg_ref_decay_type_t<version_v,T>,T>){
+      if (ret.obj.parse_and_format !=
+          &original_typed_arg_ref_t<version_v, T>::parse_and_format_outer_fn) {
+        return false;
+      }
+      ret.ret =
+          original_typed_arg_ref_t<version_v, T>::parse_and_format_outer_fn(
+              ret.obj, *ret.This);
+      return true;
+    }
+  }
+  return false;
 }
 };  // namespace mjz::bstr_ns::format_ns
 #endif  // MJZ_BYTE_FORMATTING_base_abi_LIB_HPP_FILE_

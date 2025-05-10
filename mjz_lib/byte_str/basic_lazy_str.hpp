@@ -39,7 +39,7 @@ template <version_t version_v>
 struct basic_lazy_vtable_t {
   using obj = basic_lazy_str_t<version_v>;
   success_t (*iterate_fnp)(const obj&, uintlen_t offset, uintlen_t length,
-                           lazy_reader_fn<version_v> lazy_reader) noexcept {};
+                           lazy_reader_fn_t<version_v> lazy_reader) noexcept {};
   success_t (*copy_move_destroy_fnp)(obj* dest /*nullptr means destroy src*/,
                                      const obj& src,
                                      bool move_const_cast) noexcept {};
@@ -124,7 +124,7 @@ struct basic_lazy_str_t {
   struct vtable_t : basic_lazy_vtable_t<version_v> {
     MJZ_CX_FN static success_t iterate_fn_(
         const basic_lazy_str_t& object, uintlen_t offset, uintlen_t length,
-        lazy_reader_fn<version_v> lazy_reader) noexcept {
+        lazy_reader_fn_t<version_v> lazy_reader) noexcept {
       return ref(object)(
           offset, length,
           [&lazy_reader](

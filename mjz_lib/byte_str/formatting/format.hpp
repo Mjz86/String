@@ -28,15 +28,28 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_format_HPP_FILE_
 namespace mjz::bstr_ns::format_ns {
 namespace print_ns {
+
+
+template <version_t version_v>
+MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(basic_str_t<version_v>&ret,const status_view_t<version_v>&opt) noexcept {
+  ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
+}
+
+template <version_t version_v>
+MJZ_CX_FN void vformat_err_handle_pv_(
+    basic_str_t<version_v> &ret, const status_view_t<version_v> &opt) noexcept {
+  if (!opt) MJZ_IS_UNLIKELY{
+    vformat_err_handle_impl_pv_(ret, opt);
+  }
+}
+
 template <version_t version_v, typename... Ts>
 MJZ_CX_FN static auto vformat(basic_string_view_t<version_v> fmt,
                               Ts &&...args) noexcept {
   basic_str_t<version_v> ret{};
   auto opt =
       print_t<version_v>::vformat_to(ret, fmt, std::forward<Ts>(args)...);
-  if (!opt) {
-    ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
-  }
+  vformat_err_handle_pv_(ret, opt);
   return ret;
 }
 template <typename... Ts>
@@ -45,9 +58,8 @@ MJZ_CX_FN static auto format(auto fmt, Ts &&...args) noexcept {
       std::remove_cvref_t<decltype(fmt())>::Version_v};
   basic_str_t<version_v> ret{};
   auto opt = print_t<version_v>::format_to(ret, fmt, std::forward<Ts>(args)...);
-  if (!opt) {
-    ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
-  }
+
+  vformat_err_handle_pv_(ret, opt);
   return ret;
 }
 
@@ -57,9 +69,7 @@ MJZ_CX_FN static auto vformatln(basic_string_view_t<version_v> fmt,
   basic_str_t<version_v> ret{};
   auto opt =
       print_t<version_v>::vformatln_to(ret, fmt, std::forward<Ts>(args)...);
-  if (!opt) {
-    ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
-  }
+  vformat_err_handle_pv_(ret, opt);
   return ret;
 }
 template <typename... Ts>
@@ -70,9 +80,7 @@ MJZ_CX_FN static auto formatln(auto fmt, Ts &&...args) noexcept {
   basic_str_t<version_v> ret{};
   auto opt =
       print_t<version_v>::formatln_to(ret, fmt, std::forward<Ts>(args)...);
-  if (!opt) {
-    ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
-  }
+  vformat_err_handle_pv_(ret, opt);
   return ret;
 }
 }  // namespace print_ns

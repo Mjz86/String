@@ -31,7 +31,7 @@ MJZ_CONSTANT(uintlen_t)
 std_view_max_size{uintlen_t(
     std::min(static_cast<size_t>(PTRDIFF_MAX), static_cast<size_t>(-1)))};
 
-enum class encodings_e : uint8_t { 
+enum class encodings_e : uint8_t {
   ascii,
   utf8,      // UTF8
   utf16_le,  // little endian UTF16
@@ -65,7 +65,7 @@ enum class encodings_e : uint8_t {
   usr_23,
   usr_24,
   //--the string error type--// ,
-  err_ascii ,  // we have only 5 bits for the encoding
+  err_ascii,  // we have only 5 bits for the encoding
 };
 
 template <version_t version_v>
@@ -258,7 +258,7 @@ struct replace_flags_t {
            could_change_threaded(already_has_alloc);
   }
   MJZ_CX_FN uintlen_t new_cap_calc(uintlen_t mincap) const noexcept {
-    return  uintlen_t(!dont_add_null)+mincap;
+    return uintlen_t(!dont_add_null) + mincap;
   }
 };
 
@@ -301,14 +301,31 @@ template <version_t version_v>
 using lazy_reader_fnt =
     alias_t<success_t(base_string_view_t<version_v> read_slice) noexcept>;
 template <version_t version_v>
-using lazy_reader_fn =
+using lazy_reader_fn_base_t_ =
     no_type_ns::typeless_function_t<lazy_reader_fnt<version_v>>;
+template <version_t version_v>
+struct lazy_reader_fn_t : lazy_reader_fn_base_t_<version_v> {
+  using base_t = lazy_reader_fn_base_t_<version_v>;
+  optional_ref_t<char *> shortcut_dest{};
+  MJZ_CX_FN lazy_reader_fn_t(
+      base_t base, optional_ref_t<char *> shortcut_dest_ = nullptr) noexcept
+      : base_t(base), shortcut_dest{shortcut_dest_} {}
+  MJZ_CX_FN success_t run(base_string_view_t<version_v> read_slice) noexcept {
+    if (shortcut_dest) {
+      memcpy(*shortcut_dest, read_slice.ptr, read_slice.len);
+      *shortcut_dest += read_slice.len;
+      return true;
+    }
+    return base_t::run(read_slice);
+  }
+};
+
 template <version_t version_v>
 struct base_lazy_view_t;
 template <version_t version_v>
 struct base_lazy_view_data_t {
   success_t (*get_value_fnp)(const base_lazy_view_t<version_v> &self,
-                             lazy_reader_fn<version_v> reader) noexcept;
+                             lazy_reader_fn_t<version_v> reader) noexcept;
   const void_struct_t *obj;
 };
 template <version_t version_v>
@@ -346,8 +363,7 @@ struct base_lazy_view_t : void_struct_t {
   to_base_lazy_pv_fn_(unsafe_ns::i_know_what_im_doing_t) const noexcept {
     return *this;
   }
-  MJZ_CX_FN success_t
-  get_value_fn_pv_(lazy_reader_fn<version_v> reader) const noexcept {
+  MJZ_CX_FN success_t get_value_fn_pv_(auto &&reader) const noexcept {
     base_string_view_t<version_v> me{};
     switch (state_type) {
       case sso_se:
@@ -366,18 +382,22 @@ struct base_lazy_view_t : void_struct_t {
 
         me.ptr += self.offset;
         me.len = uintlen_t(self.len);
-        return reader.run(me);
+        return reader(me);
       } break;
       case lazy_se:
-        return data.lazy.get_value_fnp(*this, reader);
+        return data.lazy.get_value_fnp(
+            *this, +no_type_ns::make<lazy_reader_fnt<version_v>>(reader));
         break;
       case char_se: {
-        base_string_view_t<version_v> view{};
-        view.len = 1;
-        view.ptr = &data.ch;
-        view.encodings = encodings;
-        for (uintlen_t i{}; i < len; i++) {
-          if (!reader.run(view)) return false;
+        char buf_ch_[hardware_constructive_interference_size]{};
+        memset(buf_ch_, sizeof(buf_ch_), data.ch);
+        for (uintlen_t i{}; i < len;) {
+          base_string_view_t<version_v> view{};
+          view.len = std::min(sizeof(buf_ch_), len - i);
+          view.ptr = &buf_ch_[0];
+          view.encodings = encodings;
+          if (!reader(view)) return false;
+          i += view.len;
         }
         return true;
       } break;
@@ -394,10 +414,72 @@ struct base_lazy_view_t : void_struct_t {
     return false;
   }
 
+  MJZ_CX_FN char * /*destination+len , or null*/ get_value(
+      char *destination) const noexcept {
+    auto reader = [&destination](base_string_view_t<version_v> val) noexcept {
+      memcpy(destination, val.ptr, val.len);
+      destination += val.len;
+      return true;
+    };
+    char *const old = destination;
+    base_string_view_t<version_v> me{};
+    switch (state_type) {
+      case sso_se:
+        me.ptr = data.sso;
+        me.len = sizeof(data.sso);
+        me.encodings = encodings;
+        MJZ_FALLTHROUGH;
+      case view_se: {
+        base_lazy_view_t self{*this};
+        if (view_se == state_type) {
+          me = self.data.view;
+        }
+        self.offset = std::min(self.offset, me.len);
+        self.len = std::min(self.offset + self.len, me.len) - self.offset;
+        me.has_null_v &= self.offset + self.len == me.len;
+
+        me.ptr += self.offset;
+        me.len = uintlen_t(self.len);
+        if (!reader(me)) return nullptr;
+      } break;
+      case char_se: {
+        char buf_ch_[hardware_constructive_interference_size]{};
+        memset(buf_ch_, sizeof(buf_ch_), data.ch);
+        for (uintlen_t i{}; i < len;) {
+          base_string_view_t<version_v> view{};
+          view.len = std::min(sizeof(buf_ch_), len - i);
+          view.ptr = &buf_ch_[0];
+          view.encodings = encodings;
+          if (!reader(view)) return nullptr;
+          i += view.len;
+        } 
+      } break;
+      case lazy_se:
+        if (!data.lazy.get_value_fnp(
+                *this, lazy_reader_fn_t<version_v>{
+                           +no_type_ns::make<lazy_reader_fnt<version_v>>(
+                               std::move(reader)),
+                           destination})) {
+          return nullptr;
+        }
+        break;
+      case resurve_se:
+        return destination;
+        break;
+      case invalid_se:
+        return nullptr;
+        break;
+      default:
+        return nullptr;
+        break;
+    }
+    asserts(asserts.assume_rn, destination == old + len);
+    return old + len;
+  }
+
   MJZ_CX_FN success_t get_value(
       callable_c<lazy_reader_fnt<version_v>> auto &&reader) const noexcept {
-    return get_value_fn_pv_(
-        +no_type_ns::make<lazy_reader_fnt<version_v>>(reader));
+    return get_value_fn_pv_(reader);
   }
 };
 

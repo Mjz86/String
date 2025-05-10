@@ -36,7 +36,9 @@ struct standard_output_it_t : file_output_it_t<version_v> {
 #if MJZ_WITH_iostream
 
   threads_ns::bit_mutex_t<> &output_muext() noexcept {
- alignas(hardware_destructive_interference_size)   static threads_ns::bit_mutex_t<> mutex{};
+    alignas(
+        hardware_destructive_interference_size) static threads_ns::bit_mutex_t<>
+        mutex{};
     return mutex;
   }
   MJZ_CX_FN standard_output_it_t(bool &&p = bool{}) noexcept
@@ -70,28 +72,71 @@ struct standard_output_it_t : file_output_it_t<version_v> {
 };
 template <version_t version_v>
 struct print_t {
+  using format_obj_t = formatting_object_t<version_v>;
   using alloc_ref = allocs_ns::alloc_base_ref_t<version_v>;
   struct meta_data_t {
     bool has_new_line{};
     alloc_ref alloc{};
+    uintlen_t cache_size{
+        std::max(format_stack_size_v<version_v>, sizeof(format_obj_t)*2) -
+        sizeof(format_obj_t)};
+    bool use_thread_local_stack {true};
     bool log_print_failure{MJZ_LOG_PRINT_FAILURE_};
   };
   MJZ_CX_FN static status_view_t<version_v> generic_format_to(
       meta_data_t meta_data_, base_out_it_t<version_v> out,
       no_type_ns::typeless_function_t<
-          success_t(formatting_object_t<version_v> &,
-                    base_out_it_t<version_v> out_it) noexcept>
+          success_t(format_obj_t &, base_out_it_t<version_v> out_it) noexcept>
           format_fn) noexcept {
-    formatting_object_t<version_v> obj{};
-    obj.base_context.alloc = meta_data_.alloc;
-    char buf2[1024]{};
-    out_buf_it_t<version_v> out_it{out, buf2, /*always null*/ sizeof(buf2) - 1,
-                                   encodings_e::ascii};
-    success_t succuss = format_fn.run(obj, out_it);
+  const  alloc_ref &alloc_ = meta_data_.alloc;
+    allocs_ns::block_info_t<version_v> storage_resurve_{};
+  typename  alloc_ref::thread_local_stack_ref_t thread_local_stack_ {};
+    if (meta_data_.use_thread_local_stack) {
+      thread_local_stack_ = alloc_.thread_local_stack();
+    }
+    format_obj_t *ptr_{};
+    constexpr auto align_v_ = std::max<uintlen_t>(
+        allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align,
+        alignof(format_obj_t));
+    meta_data_.cache_size = std::max(meta_data_.cache_size, align_v_ * 2);
+    meta_data_.cache_size += sizeof(format_obj_t);
+    storage_resurve_ = alloc_.alloca_bytes(thread_local_stack_.get(),
+                                           meta_data_.cache_size, align_v_);
+    if (!storage_resurve_.ptr) {
+      return "[Error]generic_format_to : out of memory";
+    }
+    storage_resurve_.length -= sizeof(format_obj_t);
+    storage_resurve_.ptr += sizeof(format_obj_t);
+    MJZ_RELEASE {
+      storage_resurve_.length += sizeof(format_obj_t);
+      storage_resurve_.ptr -= sizeof(format_obj_t);
+      alloc_.dealloca_bytes(thread_local_stack_.get(),
+                            std::move(storage_resurve_),
+                            align_v_);
+    };
+    MJZ_IF_CONSTEVAL {
+      ptr_ = alloc_.template allocate_node_uninit<format_obj_t>(false);
+      if (!ptr_) return "[Error]generic_format_to : out of memory";
+    }
+    else {
+      ptr_ = reinterpret_cast<format_obj_t *>(std::assume_aligned<align_v_>(
+          storage_resurve_.ptr - sizeof(format_obj_t)));
+    }
+    ptr_= std::construct_at(
+        ptr_, alloc_,
+                      std::span{storage_resurve_.ptr, storage_resurve_.length},
+                      align_v_);
+    MJZ_RELEASE {
+      std::destroy_at(ptr_);
+      MJZ_IF_CONSTEVAL { alloc_.deallocate_node_uninit(ptr_, false); }
+    };
+    format_obj_t &obj{*ptr_};
+    success_t succuss = format_fn.run(obj, out);
+    base_out_it_t<version_v> out_it = obj.context_data.format_context.out();
     if (meta_data_.has_new_line) {
       base_out_it_t<version_v>(out_it).push_back('\n', encodings_e::ascii);
     }
-    if (succuss && out_it.flush()) return status_view_t<version_v>{};
+    if (succuss && out_it.flush_buffer()) return status_view_t<version_v>{};
     status_view_t<version_v> err_view{};
     err_view.unsafe_handle() = obj.base_context.err_content.unsafe_handle();
     if (err_view) {
@@ -104,18 +149,16 @@ struct print_t {
     uintlen_t index = obj.base_context.err_index;
     obj.reset();
     out_errored_it_t<version_v> err_it{};
-    err_it.it = out;
-    out_it = out_buf_it_t<version_v>{err_it, buf2, sizeof(buf2) - 1,
-                                     encodings_e::ascii};
+    err_it.it = out_it;
     std::ignore = obj.format_to(err_it,
                                 fmt_litteral_ns::operator_fmt<
                                     version_v,
                                     "\n\n{0}:\n\n{1;[:{2}]:}\n\n<<VV-----["
                                     "ERROR]----------here\n\n{1;[{2}:]:}\n">(),
                                 err_view, format_text, index);
-    std::ignore = out_it.flush();
+    std::ignore = out_it.flush_buffer();
     return err_view;
-  }
+  }  // namespace mjz::bstr_ns::format_ns
 
   template <typename... Ts>
   MJZ_CX_FN static status_view_t<version_v> format_to(

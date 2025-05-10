@@ -141,7 +141,7 @@ parse_context_t<version_v>::parse_arg_index() noexcept {
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::find_name_index(
     hash_bytes_t<version_v> name, view_t name_str) noexcept {
-  if (!parse_and_format_data_ptr) {
+  if (!base.parse_and_format_data_ptr) {
     as_error(
         "[Error]find_name_index:unexpected intanceiation of parse_context_t "
         "outside parse_and_format_data_t");
@@ -151,12 +151,7 @@ MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::find_name_index(
   typename base_context_t<version_v>::name_t name_v{name, name_str};
   base.name_ptr = &name_v;
   for (uintlen_t i{}; i < base.number_of_args; i++) {
-    auto fn = base.parse_and_format_fn_of_args[i];
-    auto args = base.data_of_args;
-    typeless_arg_ref_t<version_v> obj{};
-    obj.m = args ? args[i] : raw_storage_ref_u<version_v>{};
-    obj.parse_and_format = fn;
-    if (!((*fn)(obj, *parse_and_format_data_ptr))) return nullopt;
+    if (!base.parse_and_format_call_at(i)) return nullopt;
     if (&name_v != base.name_ptr) return i;
   }
   if (parse_only()) {
@@ -472,27 +467,27 @@ parse_and_format_data_t<version_v>::get_parse_filter_numeric(
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::get_numeric(
     uintlen_t defult) noexcept {
-  if (!this->parse_and_format_data_ptr) {
+  if (!base.parse_and_format_data_ptr) {
     as_error(
         "parse_context_t::get_numeric:unexpected intanceiation of "
         "parse_context_t "
         "outside parse_and_format_data_t");
     return nullopt;
   }
-  return this->parse_and_format_data_ptr->get_parse_filter_numeric(defult);
+  return base.parse_and_format_data_ptr->get_parse_filter_numeric(defult);
 }
 template <version_t version_v>
 MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
 
 parse_context_t<version_v>::get_slice() noexcept {
-  if (!this->parse_and_format_data_ptr) {
+  if (!base. parse_and_format_data_ptr) {
     as_error(
         "parse_context_t::get_slice:unexpected intanceiation of "
         "parse_context_t "
         "outside parse_and_format_data_t");
     return nullopt;
   }
-  return this->parse_and_format_data_ptr->get_slice_parse_filter(false);
+  return base.parse_and_format_data_ptr->get_slice_parse_filter(false);
 }
 
 template <version_t version_v>
@@ -626,12 +621,7 @@ parse_and_format_data_t<version_v>::append_text(view_t text) noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
     uintlen_t id) noexcept {
-  auto fn = base_context.parse_and_format_fn_of_args[id];
-  auto args = base_context.data_of_args;
-  typeless_arg_ref_t<version_v> obj{};
-  obj.m = args ? args[id] : raw_storage_ref_u<version_v>{};
-  obj.parse_and_format = fn;
-  if (!((*fn)(obj, *this))) return false;
+  if (!parse_context.base.parse_and_format_call_at(id)) return false;
   if (auto c = parse_context.front(); !c || *c == '}') {
     return !c || parse_context.advance_amount(1);
   }
@@ -641,19 +631,39 @@ MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
   return false;
 }
 template <version_t version_v>
-struct formatting_object_t : void_struct_t {
+struct alignas(
+    allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align)
+    formatting_object_t : void_struct_t {
   MJZ_NO_MV_NO_CPY(formatting_object_t);
   template <class>
   friend class mjz_private_accessed_t;
   using out_it_t = base_out_it_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
+  using stack_alloc_t =
+      allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
   using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
   base_context_t<version_v> base_context{};
   parse_and_format_data_t<version_v> context_data{};
 
-  MJZ_CX_FN formatting_object_t(alloc_ref_t alloc = alloc_ref_t{}) noexcept
+  MJZ_CX_FN formatting_object_t(alloc_ref_t alloc ,
+                                std::span<char> cache_ref,
+                                uintlen_t cache_ref_align) noexcept
       : base_context{}, context_data{base_context} {
+    asserts(asserts.expect_rn, stack_alloc_t::align <= cache_ref_align &&
+                stack_alloc_t::align * 2 <= cache_ref.size());
     base_context.alloc = std::move(alloc);
+    base_context.format_cache_ref = cache_ref;
+    base_context.stack_alloc =
+        stack_alloc_t{base_context.format_cache_ref, stack_alloc_t::align
+        };
+    std::span<char> blk = base_context.stack_alloc.fn_alloca(cache_ref.size()>>1);
+    asserts(asserts.assume_rn, !!blk.size());
+    base_context.buf_view.begin_ptr = blk.data();
+  base_context.buf_view.capacity = blk.size();
+  }
+  MJZ_CX_FN ~formatting_object_t() noexcept {
+    base_context.stack_alloc.fn_dealloca(std::span<char>{
+        base_context.buf_view.begin_ptr, base_context.buf_view.capacity});
   }
 
   MJZ_CX_FN void reset() noexcept {
@@ -726,7 +736,12 @@ struct formatting_object_t : void_struct_t {
   template <typename L_v, is_formatted_c<version_v>... Ts>
   MJZ_CX_FN success_t format_to_pv(out_it_t iter, L_v, Ts &&...args) noexcept;
   MJZ_CX_FN success_t run_format() noexcept {
-    return context_data.parse_formating_string();
+    base_context.buf_view.encoding =
+        base_context.format_string.get_encoding();
+    base_context.buf_view.length = 0;
+    return context_data.format_context
+        .advance_to(context_data.format_context.out())
+            &&context_data.parse_formating_string();
   }
   template <version_t, typename...>
   friend struct cx_parser_t;
@@ -744,8 +759,12 @@ struct cx_parser_t : public formatting_object_t<version_v> {
   using formatting_object_t<version_v>::context_data;
   success_t successful{true};
   MJZ_NO_MV_NO_CPY(cx_parser_t);
-  MJZ_CX_FN cx_parser_t(view_t fmt_str) noexcept
-      : formatting_object_t<version_v>{} {
+  MJZ_CX_FN cx_parser_t(view_t fmt_str, alloc_ref_t alloc,
+                        std::span<char> cache_ref,
+                        uintlen_t cache_ref_align) noexcept
+      : formatting_object_t<version_v>{std::move(alloc), cache_ref,
+                                       cache_ref_align
+        } {
     if constexpr (sizeof...(Ts)) {
       basic_format_args_t<version_v, sizeof...(Ts)> buf{
           basic_format_args_parse_tag{}, alias_t<void (*)(Ts &&...)>{}};
@@ -783,7 +802,11 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
       }, "see if you used \"...\"_fmt or not (you should) ");
   auto failure_f =
       []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
-    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{view_t(L_v()())};
+    constexpr auto align_v_ =
+        allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
+    alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+        view_t(L_v()()), alloc_ref_t{}, buffer_, align_v_};
     if (checker.successful) return nullopt;
     return std::pair<uintlen_t, view_t>{checker.base_context.err_index,
                                         checker.base_context.err_content};

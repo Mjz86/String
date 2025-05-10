@@ -123,7 +123,7 @@ SOFTWARE.
    (MJZ_CONTROL_IN_DEBUG_MODE_ && (_CONTAINER_DEBUG_LEVEL > 0)))
 
 #ifndef MJZ_WITH_iostream
-#define MJZ_WITH_iostream MJZ_IN_DEBUG_MODE
+#define MJZ_WITH_iostream true
 #endif  // !MJZ_WITH_iostream
 
 #ifndef MJZ_uintlen_t_as_64_bit

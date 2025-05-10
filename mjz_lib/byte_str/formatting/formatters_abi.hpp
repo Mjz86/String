@@ -47,7 +47,7 @@ struct default_formatter_t<version_v, T, 20>
     : formatter_type_t<version_v, void_struct_t> {};
 template <version_t version_v, typename>
 MJZ_CONSTANT(uintlen_t)
-basic_format_specs_conversion_buffer_size_v{1024};
+basic_format_specs_conversion_buffer_size_v{format_basic_buffer_size_v<version_v>};
 
 template <version_t version_v>
 struct basic_format_specs_format_fn_obj_t {
@@ -165,6 +165,7 @@ concept uses_basic_spec_c =
                          long double, nullptr_t> ||
      std::is_pointer_v<std::remove_cvref_t<T>>);
 
+
 template <version_t version_v, uses_basic_spec_c<version_v> T>
 struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
@@ -203,17 +204,6 @@ concept mjz_str_c = requires(const T &obj) {
   {
     obj.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)
   } noexcept -> std::same_as<base_lazy_view_t<version_v>>;
-};
-template <version_t version_v>
-struct base_string_view_arg_t : base_lazy_view_t<version_v> {
-  MJZ_CX_FN base_string_view_arg_t(auto &&view) noexcept
-      : base_lazy_view_t<version_v>{
-            view.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)} {}
-
-  MJZ_CX_FN base_lazy_view_t<version_v> to_base_lazy_pv_fn_(
-      unsafe_ns::i_know_what_im_doing_t) const noexcept {
-    return *this;
-  }
 };
 template <version_t version_v, class T>
   requires mjz_str_c<version_v, std::remove_cvref_t<T>>

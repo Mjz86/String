@@ -51,8 +51,7 @@ struct easy_output_it {
 template <version_t version_v>
 struct easy_output_data_t {
   MJZ_CX_FN easy_output_data_t(format_context_t<version_v> &ctx) noexcept
-      : iter(ctx.out(), buffer, ctx.encoding()), encoding{ctx.encoding()} {}
-  MJZ_CX_FN ~easy_output_data_t() noexcept { iter.flush(); }
+      : iter(ctx.out()), encoding{ctx.encoding()} {}
   MJZ_CX_FN easy_output_it<version_v> it() noexcept {
     easy_output_it<version_v> ret{};
     ret.ptr = this;
@@ -68,9 +67,8 @@ struct easy_output_data_t {
   }
 
  protected:
-  MJZ_NO_MV_NO_CPY(easy_output_data_t);
-  char buffer[1024]{};
-  out_buf_it_t<version_v> iter{};
+  MJZ_NO_MV_NO_CPY(easy_output_data_t); 
+  base_out_it_t<version_v> iter{};
   encodings_e encoding{};
 };
 

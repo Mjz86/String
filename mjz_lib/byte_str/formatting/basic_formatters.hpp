@@ -465,10 +465,16 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
   if (!this->in_range(ctx, arg)) {
     return false;
   }
-  char obj_buf[std::max<uintlen_t>(8, conversion_buffer_size_v<T>)]{};
+ auto blk_0_= ctx.fn_alloca(conversion_buffer_size_v<T>, alignof(uintlen_t));
+  if (!blk_0_.size()) {
+   ctx.as_error("[Error]basic_format_specs_t::format_specs:cannot allocate more memory");
+   return false;
+  }
+  MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t));
+  };
   format_fn_obj stack{};
-  stack.buf_arr = obj_buf;
-  stack.buf_size = sizeof(obj_buf);
+  stack.buf_arr = blk_0_.data();
+  stack.buf_size = blk_0_.size();
   if (!format_specs_start(ctx, stack)) return false;
   if constexpr (partial_same_as<T, bview>) {
     stack.as_string = arg;
@@ -619,13 +625,9 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     }
     *stack.length += stack.offset - (stack.buf - stack.buf_arr);
   }
-
-  char *empty_part_end{stack.buf_arr + stack.buf_size};
-  char *empty_part_begin{stack.buf + *stack.length};
+   
   base_out_it_t<version_v> actual_it = ctx.out();
-  out_buf_it_t<version_v> output{actual_it, empty_part_begin,
-                                 uintlen_t(empty_part_end - empty_part_begin),
-                                 ctx.encoding()};
+  auto &output = actual_it;
   base_out_it_t<version_v> it{output};
   if (stack.is_string) {
     *stack.length = stack.as_string.len;
@@ -653,8 +655,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     std::ignore = it.multi_push_back(fill_char, std::exchange(rigth_delta, {}),
                                      ctx.encoding());
   }
-
-  std::ignore = output.flush();
+   
   if (stack.is_string) {
     std::ignore = actual_it.format_back_insert_append_pv_fn_(
         unsafe_ns::unsafe_v, stack.as_string);
@@ -666,7 +667,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     std::ignore =
         it.multi_push_back(fill_char, std::exchange(delta, {}), ctx.encoding());
   }
-  if (output.flush() && actual_it) {
+  if ( actual_it) {
     return true;
   }
   return ctx.advance_to(nullptr);
@@ -723,8 +724,16 @@ MJZ_CX_FN base_out_it_t<version_v> basic_format_specs_t<version_v>::format_fill(
     MJZ_CX_FN Place_t(decltype(function) ptr) noexcept : function(ptr) {}
   };
   Place_t p{&place_stuff};
-  char buffer[std::max<uintlen_t>(8, conversion_buffer_size_v<T>)]{};
-  return format_fill_pv(Place_t::place_fn, p, buffer, sizeof(buffer), ctx);
+  auto blk_0_ = ctx.fn_alloca(conversion_buffer_size_v<T>, alignof(uintlen_t));
+  if (!blk_0_.size()) {
+    ctx.as_error(
+        "[Error]basic_format_specs_t::format_fill:cannot allocate more "
+        "memory");
+    return nullptr;
+  }
+  MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
+  return format_fill_pv(Place_t::place_fn, p, blk_0_.data(), blk_0_.size(),
+                        ctx);
 }
 
 template <version_t version_v>
@@ -753,21 +762,19 @@ basic_format_specs_t<version_v>::format_fill_pv(
   buffer_out_buf_t<version_v> output_buffer{};
   if (my_width) {
     output_buffer.encoding = ctx.encoding();
-    output_buffer.buffer = buffer;
+    output_buffer.begin_ptr = buffer;
     output_buffer.capacity = buffer_size >> 1;
     buffer += output_buffer.capacity;
     buffer_size -= output_buffer.capacity;
     output_buffer.info.is_thread_safe = false;
-    output_buffer.alloc = ctx.allocator();
-    out_buf_it_t<version_v> output_iter{output_buffer, buffer, buffer_size,
-                                        ctx.encoding()};
+    output_buffer.alloc = ctx.allocator();  
     my_width = width;
     auto output = ctx.out();
     MJZ_RELEASE {
       if (ctx.out()) ctx.advance_to(output);
     };
 
-    if (!ctx.advance_to(output_iter)) return nullptr;
+    if (!ctx.advance_to(output_buffer)) return nullptr;
     if (!place_stuff()) return nullptr;
     output_buffer_was_used = true;
   };
@@ -778,8 +785,7 @@ basic_format_specs_t<version_v>::format_fill_pv(
     return nullptr;
   }
   base_out_it_t<version_v> actual_it = ctx.out();
-  out_buf_it_t<version_v> output{actual_it, buffer, buffer_size,
-                                 ctx.encoding()};
+auto  &output = actual_it;
   uintlen_t length = output_buffer.length;
   my_width = std::max(my_width, length);
   it = output;
@@ -798,11 +804,8 @@ basic_format_specs_t<version_v>::format_fill_pv(
   }
   if (alignment == align_e::left || alignment == align_e::center) {
     std::ignore = it.multi_push_back(fill_char, delta, ctx.encoding());
-  }
-  if (output.flush() && actual_it) {
-    return actual_it;
-  }
-  return nullptr;
+  } 
+    return actual_it; 
 }
 
 };  // namespace mjz::bstr_ns::format_ns

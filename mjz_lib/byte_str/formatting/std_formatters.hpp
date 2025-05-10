@@ -79,10 +79,20 @@ struct default_formatter_t<version_v, T_, 90> {
       const std::remove_reference_t<T_> &arg,
       format_context_t<version_v> &ctx) const noexcept {
     bool good{true};
+    auto blk_0_ =
+        ctx.fn_alloca(format_stack_size_v<T_>, alignof(uintlen_t));
+    if (!blk_0_.size()) {
+      ctx.as_error(
+          "[Error]default_formatter_t<is_std_formatter_c>::format:cannot allocate "
+          "more "
+          "memory");
+      return nullptr;
+    }
+    MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
     good &= MJZ_NOEXCEPT {
-      allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()};
-      char buff[1024]{};
-      std::pmr::monotonic_buffer_resource mbr{buff, sizeof(buff), &alloc};
+      allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()}; 
+      std::pmr::monotonic_buffer_resource mbr{blk_0_.data(), blk_0_.size(),
+                                              &alloc};
       std::pmr::polymorphic_allocator<char> pmr{&mbr};
       std::pmr::string buffer{pmr};
       std::string_view fmt{parse_content.data(), parse_content.length()};

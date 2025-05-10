@@ -132,9 +132,10 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
 
   MJZ_CX_FN success_t as_subview(uintlen_t offset,
                                  uintlen_t count = nops) noexcept {
-    if (!data()) return false;
-    this->has_null_v =
-        make_right_then_give_has_null(offset, count) ? this->has_null_v : false;
+    bool bad = !data();
+    offset = alias_t<uintlen_t[2]>{offset, 0}[bad];
+    count = alias_t<uintlen_t[2]>{count, 0}[bad];
+    this->has_null_v &= make_right_then_give_has_null(offset, count);
     this->ptr += offset;
     this->len = count;
     return true;
@@ -150,11 +151,11 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
     return make_subview(begin_i, end_i - std::min(end_i, begin_i));
   }
   MJZ_CX_FN success_t remove_prefix(uintlen_t n) noexcept {
-    return bool(*this = make_subview(n, npos));
+    return as_subview(n, npos);
   }
 
   MJZ_CX_FN success_t remove_suffix(uintlen_t n) noexcept {
-    return bool(*this = make_subview(0, n));
+    return as_subview(0, n);
   }
   MJZ_CX_FN std::optional<char> pop_back() noexcept {
     if (auto v = back()) {
@@ -372,17 +373,16 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
   /*
    *calculates the hash
    */
-  MJZ_CX_ND_FN hash_t hash() const noexcept {
-    return hash_t{data(), length()}; }
+  MJZ_CX_ND_FN hash_t hash() const noexcept { return hash_t{data(), length()}; }
   MJZ_CX_ND_FN concatabe_hash_t<version_v> concatable_hash() const noexcept {
-    return concatabe_hash_t<version_v>{data(), length()}; 
-  } 
-  
+    return concatabe_hash_t<version_v>{data(), length()};
+  }
+
   /*
-     *copies the substring in buf.
-     * buf must at least be of  min(byte_count,length)+ uintlen_t(add_null) in
-     *size. if add_null then we add a null terminatior.
-     */
+   *copies the substring in buf.
+   * buf must at least be of  min(byte_count,length)+ uintlen_t(add_null) in
+   *size. if add_null then we add a null terminatior.
+   */
   MJZ_CX_FN success_t copy_bytes(uintlen_t byte_offset, uintlen_t byte_count,
                                  char *buf,
                                  bool add_null = false) const noexcept {
@@ -502,7 +502,7 @@ struct owned_stack_buffer_t {
 };
 namespace litteral_ns {
 template <std::size_t N>
-struct str_litteral_t { 
+struct str_litteral_t {
   template <std::size_t... I>
   MJZ_CX_FN str_litteral_t(const char8_t (&r)[N],
                            std::index_sequence<I...>) noexcept
@@ -520,7 +520,7 @@ struct str_litteral_t {
   bool was_unicode{};
   MJZ_CX_ND_FN const char *c_str() const noexcept { return s; }
   MJZ_CX_ND_FN const char *data() const noexcept { return s; }
-  MJZ_CX_ND_FN uintlen_t length() const noexcept { return N-1; }
+  MJZ_CX_ND_FN uintlen_t length() const noexcept { return N - 1; }
   using value_type = char;
   using pointer = const char *;
   using const_pointer = const char *;
@@ -571,8 +571,6 @@ struct str_litteral_t {
   MJZ_CX_ND_FN std::optional<char> at(const uintlen_t i) const noexcept {
     return i < length() ? std::optional<char>(data()[i]) : std::nullopt;
   }
-
-
 };
 template <char... cs>
 MJZ_CX_FN auto &operator""_cs() noexcept {

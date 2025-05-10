@@ -133,7 +133,7 @@ class iterator_t {
     return *(*this + Off);
   }
   MJZ_CX_ND_FN bool operator==(const iterator_t &Right) const noexcept {
-    MJZ_UNUSED auto checker = check() ;
+    MJZ_UNUSED auto checker = check();
     MJZ_UNUSED auto checker2 = Right.check();
     return str == Right.str && index == Right.index;
   }
@@ -151,7 +151,8 @@ class iterator_t {
       auto len = str->length();
       constexpr auto max_len = Str_t::max_size();
       asserts(asserts.expect_rn, str && index <= max_len && len <= max_len &&
-                                     str->data() && index <= len && (!extra || index != len));
+                                     str->data() && index <= len &&
+                                     (!extra || index != len));
     };
     fn();
     return releaser_t{std::move(fn)};
@@ -232,13 +233,45 @@ concept base_out_it_lazy_viawble_c =
       } noexcept -> std::same_as<success_t>;
       void_struct_cast_t::down_cast<T>(vp);
     };
+
+template <version_t version_v>
+using base_out_it_fnp_t_ = funcptr_of_t<success_t(
+    void_struct_t &obj,
+    base_lazy_view_t<version_v> opt_view_or_reserve) noexcept>;
+
+template <version_t version_v>
+struct base_out_buffer_t : public void_struct_t {
+  using bview = base_string_view_t<version_v>;
+  using blazy = base_lazy_view_t<version_v>;
+  using fn_t = base_out_it_fnp_t_<version_v>;
+  uintlen_t length{};
+  uintlen_t capacity{};
+  char *begin_ptr{};
+  encodings_e encoding{};
+
+ private:
+  void_struct_t *obj{};
+  fn_t function_ptr{};
+  template <version_t>
+  friend class base_out_it_t;
+
+ protected:
+  MJZ_CX_FN ~base_out_buffer_t() noexcept = default;
+  MJZ_NO_MV_NO_CPY_DC(base_out_buffer_t);
+};
+template <version_t version_v>
+struct stack_base_out_buffer_t : public base_out_buffer_t<version_v> {
+  MJZ_CX_FN ~stack_base_out_buffer_t() noexcept = default;
+  MJZ_NO_MV_NO_CPY_DC(stack_base_out_buffer_t);
+};
+
 template <version_t version_v>
 class base_out_it_t : public void_struct_t {
  public:
   using bview = base_string_view_t<version_v>;
   using blazy = base_lazy_view_t<version_v>;
-  using fn_t = funcptr_of_t<success_t(void_struct_t &obj,
-                                      blazy opt_view_or_reserve) noexcept>;
+  using fn_t = base_out_it_fnp_t_<version_v>;
+  using buffer_t = base_out_buffer_t<version_v>;
   using it_t = base_out_it_t;
   using iterator_category = std::output_iterator_tag;
   using value_type = void;
@@ -326,16 +359,145 @@ class base_out_it_t : public void_struct_t {
     }
     return !opt_view_or_reserve.len;
   }
+  MJZ_CX_FN success_t flush_buffer() noexcept {
+    if (auto opt = needs_flush(); !opt.has_value() || !*opt) {
+      return opt.has_value();
+    }
+    if (!function_ptr(*obj, bview::make(buf_ptr->begin_ptr, buf_ptr->length,
+                                        buf_ptr->encoding)
+                                .to_base_lazy_pv_fn_(unsafe_ns::unsafe_v))) {
+      return !!reset();
+    }
+    buf_ptr->length = 0;
+    return true;
+  }
+  MJZ_CX_FN success_t
+  entangle_to_manual_buffer(optional_ref_t<buffer_t> buf_) noexcept {
+    if (buf_.get() == buf_ptr) return true;
+    if (!flush_buffer()) return false;
+    buf_ptr = buf_.get();
+    buf_ptr->obj = obj;
+    buf_ptr->function_ptr = function_ptr;
+    return true;
+  }
+  MJZ_CX_FN bool operator==(const base_out_it_t &other) const noexcept {
+    return function_ptr == other.function_ptr && obj == other.obj;
+  }
 
  protected:
-  MJZ_CX_FN it_t &fn(blazy opt_view_or_reserve) noexcept {
-    if (!obj || !function_ptr) return *this;
-    if (!opt_view_or_reserve.is_invalid() && !opt_view_or_reserve.len)
-      return *this;
-    if (obj && function_ptr(*obj, opt_view_or_reserve)) return *this;
+  MJZ_CX_FN std::optional<bool> needs_flush() noexcept {
+    if (!obj) return {};
+    if (!owns_buffer()) return false;
+    if (!buf_ptr->length) return false;
+    return true;
+  }
+  MJZ_CX_FN it_t &reset() noexcept {
     obj = nullptr;
     function_ptr = nullptr;
+    buf_ptr = nullptr;
     return *this;
+  }
+  MJZ_CX_FN bool owns_buffer() noexcept {
+    if (buf_ptr && buf_ptr->obj == obj &&
+        buf_ptr->function_ptr == function_ptr) {
+      return true;
+    }
+    buf_ptr = nullptr;
+    return false;
+  }
+  MJZ_CX_FN success_t data_to_buffer_nfn(blazy &opt_view_or_reserve) noexcept {
+    if (opt_view_or_reserve.is_resurve()) return true; 
+    if (opt_view_or_reserve.get_value(buf_ptr->begin_ptr + buf_ptr->length)) { 
+      buf_ptr->length += opt_view_or_reserve.len;
+      return true;
+    }
+    return false;
+  }
+  MJZ_CX_FN success_t flush_and_fn(blazy &opt_view_or_reserve) noexcept {
+    if (!buf_ptr->length) return no_buffer_to_fn(opt_view_or_reserve);
+    if (opt_view_or_reserve.is_resurve())
+      return resurve_to_fn(opt_view_or_reserve);
+    auto fn_with_ctx =
+        [&](const base_lazy_view_t<version_v> &self_idk,
+            lazy_reader_fn_t<version_v> reader_) noexcept -> success_t {
+      base_lazy_view_t<version_v> self_ = self_idk;
+      blazy opt_view_or_reserve_slice = opt_view_or_reserve;
+      if (self_.offset < this->buf_ptr->length) {
+        uintlen_t used_len =
+            std::min(this->buf_ptr->length - self_.offset, self_.len);
+        if (!reader_.run(bview::make(this->buf_ptr->begin_ptr + self_.offset,
+                                     used_len, this->buf_ptr->encoding))) {
+          return false;
+        }
+        self_.len -= used_len;
+        self_.offset += used_len;
+      }
+      self_.offset -= this->buf_ptr->length;
+      if (!self_.len) {
+        return true;
+      }
+      opt_view_or_reserve_slice.offset += self_.offset;
+      opt_view_or_reserve_slice.len = self_.len;
+      if (opt_view_or_reserve_slice.lazy_se ==
+          opt_view_or_reserve_slice.state_type) {
+        return opt_view_or_reserve_slice.data.lazy.get_value_fnp(
+            opt_view_or_reserve_slice, reader_);
+      }
+      return opt_view_or_reserve_slice.get_value(
+          [&](bview view_) noexcept -> success_t {
+            return reader_.run(view_);
+          });
+    };
+    struct state_catcher_helper_ : void_struct_t {
+      using fn_t_0_ = std::remove_cvref_t<decltype(fn_with_ctx)>;
+      fn_t_0_ fn_;
+      MJZ_NO_MV_NO_CPY(state_catcher_helper_);
+      MJZ_CX_FN state_catcher_helper_(fn_t_0_ &&val) noexcept
+          : fn_(std::move(val)) {}
+    } context_{std::move(fn_with_ctx)};
+    base_lazy_view_data_t<version_v> send_to_upstream{
+        +[](const base_lazy_view_t<version_v> &self_,
+            lazy_reader_fn_t<version_v> reader_) noexcept -> success_t {
+          return static_cast<const state_catcher_helper_ *>(self_.data.lazy.obj)
+              ->fn_(self_, reader_);
+        },
+        &context_};
+    blazy upstreamer_{};
+    upstreamer_.encodings = opt_view_or_reserve.encodings;
+    upstreamer_.len = buf_ptr->length + opt_view_or_reserve.len;
+    upstreamer_.state_type = upstreamer_.lazy_se;
+    upstreamer_.data.lazy = send_to_upstream;
+    if (function_ptr(*obj, upstreamer_)) {
+      buf_ptr->length = 0;
+      return true;
+    }
+    return false;
+  }
+  MJZ_CX_FN success_t resurve_to_fn(blazy &opt_view_or_reserve) {
+    if (buf_ptr) opt_view_or_reserve.len += buf_ptr->length;
+    return function_ptr(*obj, opt_view_or_reserve);
+  }
+  MJZ_CX_FN success_t no_buffer_to_fn(blazy &opt_view_or_reserve) {
+    return function_ptr(*obj, opt_view_or_reserve);
+  }
+
+  MJZ_CX_FN it_t &fn(blazy opt_view_or_reserve) noexcept {
+    if (fn_impl_(opt_view_or_reserve)) MJZ_IS_LIKELY {
+        return *this;
+      }
+    return reset();
+  }
+  MJZ_CX_FN success_t fn_impl_(blazy opt_view_or_reserve) noexcept {
+    if (!(obj && (opt_view_or_reserve.is_invalid() || opt_view_or_reserve.len)))
+      return true;
+    if (!owns_buffer()) {
+      return no_buffer_to_fn(opt_view_or_reserve);
+    }
+    if (buf_ptr->capacity - buf_ptr->length < opt_view_or_reserve.len) {
+      return flush_and_fn(opt_view_or_reserve);
+    }
+    if (opt_view_or_reserve.is_resurve()) return true;
+    return data_to_buffer_nfn(opt_view_or_reserve);
   }
   MJZ_CX_FN it_t &fn(bview opt_view_or_reserve) noexcept {
     return fn(opt_view_or_reserve.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v));
@@ -345,6 +507,7 @@ class base_out_it_t : public void_struct_t {
 
   void_struct_t *obj{};
   fn_t function_ptr{};
+  buffer_t *buf_ptr{};
 };
 
 template <version_t version_v>
@@ -368,156 +531,57 @@ struct count_out_buf_t : void_struct_t {
 };
 
 template <version_t version_v>
-struct out_buf_t : void_struct_t {
+struct out_buf_t : base_out_buffer_t<version_v> {
+  MJZ_NO_MV_NO_CPY(out_buf_t);
+
  private:
+  using Base = base_out_buffer_t<version_v>;
   using bview = base_string_view_t<version_v>;
-  char *buf{};
-  uintlen_t size_left{};
-  uintlen_t len{};
-  encodings_e encoding{};
 
  public:
   using blazy = base_lazy_view_t<version_v>;
   MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
       unsafe_ns::i_know_what_im_doing_t, blazy view) noexcept {
-    if (!buf) return false;
+    if (!this->begin_ptr) return false;
 
-    if (size_left < view.len || view.get_encoding() != encoding ||
-        view.is_invalid()) {
-      buf = nullptr;
-      len = 0;
-      size_left = 0;
+    if (this->capacity - this->length() < view.len ||
+        view.get_encoding() != this->encoding || view.is_invalid()) {
+      this->begin_ptr = nullptr;
+      Base::length = 0;
+      this->capacity = 0;
       return false;
     }
     return view.get_value_fn(
         view, +no_type_ns::make<lazy_reader_fnt<version_v>>(
                   [this](base_string_view_t<version_v> read_slice) noexcept
                       -> success_t {
-                    size_left -= read_slice.len;
-                    memcpy(buf + len, read_slice.ptr, read_slice.len);
-                    len += read_slice.len;
+                    memcpy(this->begin_ptr + Base::length, read_slice.ptr,
+                           read_slice.len);
+                    Base::length += read_slice.len;
                     return true;
                   }));
   }
 
-  MJZ_CX_ND_FN const char *data() const noexcept { return this->buf; }
-  MJZ_CX_ND_FN uintlen_t size() const noexcept { return this->len; }
-  MJZ_CX_ND_FN uintlen_t length() const noexcept { return this->len; }
+  MJZ_CX_ND_FN const char *data() const noexcept { return this->begin_ptr; }
+  MJZ_CX_ND_FN uintlen_t size() const noexcept { return Base::length; }
+  MJZ_CX_ND_FN uintlen_t length() const noexcept { return Base::length; }
   MJZ_CX_ND_FN encodings_e get_encoding() const noexcept {
     return this->encoding;
   }
 
  public:
   MJZ_CX_FN out_buf_t(char *buf_, uintlen_t size_,
-                      encodings_e encoding_) noexcept
-      : buf{buf_}, size_left{size_}, encoding{encoding_} {}
+                      encodings_e encoding_) noexcept {
+    this->begin_ptr = buf_;
+    this->encoding = encoding_;
+    this->capacity = size_;
+  }
   template <size_t N>
-  MJZ_CX_FN out_buf_t(char (&a)[N], encodings_e encoding_) noexcept
-      : buf{a}, size_left{N}, encoding{encoding_} {}
-};
-
-template <version_t version_v>
-struct out_buf_it_t : void_struct_t {
- private:
-  using bview = base_string_view_t<version_v>;
-  base_out_it_t<version_v> it{};
-  char *buf{};
-  uintlen_t cap{};
-  uintlen_t len{};
-  encodings_e encoding{};
-
- public:
-  using blazy = base_lazy_view_t<version_v>;
-  MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
-      unsafe_ns::i_know_what_im_doing_t idk, blazy view) noexcept {
-    if (!buf || !it) return false;
-    if (view.is_invalid()) return fail();
-    if (!opt_flush(bview::make(nullptr, view.len, encoding))) return false;
-    if (view.is_resurve()) return true;
-    if (cap < view.len + len) {
-      if (!flush()) return false;
-      return it.format_back_insert_append_pv_fn_(idk, view) || fail();
-    }
-    return view.get_value([&](base_string_view_t<version_v> read_slice) noexcept
-                              -> success_t { return opt_flush(read_slice); }) ||
-           fail();
+  MJZ_CX_FN out_buf_t(char (&a)[N], encodings_e encoding_) noexcept {
+    this->begin_ptr = a;
+    this->capacity = N;
+    this->encoding = encoding_;
   }
-  MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
-      unsafe_ns::i_know_what_im_doing_t, bview view) noexcept {
-    if (!buf || !it) return false;
-    return opt_flush(view);
-  }
-
-  MJZ_CX_FN success_t flush() noexcept {
-    return write(bview::make("", 0, encoding));
-  }
-
- private:
-  MJZ_CX_FN success_t opt_flush(bview view) noexcept {
-    if (!buf || encoding != view.get_encoding() ||
-        (!view.ptr && view.has_null_v))
-      return fail();
-    if (cap < view.len + len) return write(view);
-    if (!view.ptr) return true;
-    memcpy(buf + len, view.ptr, view.len);
-    len += view.len;
-    return true;
-  }
-
-  MJZ_CX_FN success_t fail() noexcept {
-    it.format_back_insert_append_pv_fn_(
-        unsafe_ns::unsafe_v, bview::make(nullptr, 0, encoding, true));
-
-    it = base_out_it_t<version_v>{};
-    cap = 0;
-    buf = nullptr;
-    len = 0;
-    return false;
-  }
-  MJZ_CX_FN success_t write(bview view) noexcept {
-    if (!buf || (!view.ptr && view.has_null_v)) return fail();
-    if (len) {
-      auto len_buf = std::exchange(len, 0);
-      if (!write(bview::make(nullptr, len_buf + view.len, encoding)))
-        return false;
-
-      if (!view.ptr) {
-        len = len_buf;
-        return true;
-      }
-      if (!write(bview::make(buf, len_buf, encoding))) return false;
-    }
-    if (view.get_encoding() != encoding ||
-        !it.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v, view)) {
-      return fail();
-    }
-    return true;
-  }
-
- public:
-  MJZ_NO_CPY(out_buf_it_t);
-  MJZ_CX_FN out_buf_it_t(out_buf_it_t &&obj) noexcept {
-    *this = std::move(obj);
-  }
-  MJZ_CX_FN out_buf_it_t &operator=(out_buf_it_t &&obj) noexcept {
-    if (this == &obj) return *this;
-    flush();
-    it = std::exchange(obj.it, {});
-    buf = std::exchange(obj.buf, {});
-    cap = std::exchange(obj.cap, {});
-    encoding = std::exchange(obj.encoding, {});
-
-    len = std::exchange(obj.len, {});
-    return *this;
-  }
-  MJZ_CX_FN ~out_buf_it_t() noexcept { flush(); }
-  MJZ_CX_FN out_buf_it_t(base_out_it_t<version_v> out, char *buf_,
-                         uintlen_t size_, encodings_e encoding_) noexcept
-      : it{out}, buf{buf_}, cap{size_}, encoding{encoding_} {}
-  template <size_t N>
-  MJZ_CX_FN out_buf_it_t(base_out_it_t<version_v> out, char (&a)[N],
-                         encodings_e encoding_) noexcept
-      : it{out}, buf{a}, cap{N}, encoding{encoding_} {}
 };
 
 template <version_t version_v>
@@ -590,95 +654,77 @@ struct out_errored_it_t : void_struct_t {
  *a minimal output buffer
  */
 template <version_t version_v>
-struct buffer_out_buf_t : void_struct_t {
+struct buffer_out_buf_t : base_out_buffer_t<version_v> {
   MJZ_NO_MV_NO_CPY(buffer_out_buf_t);
   allocs_ns::alloc_base_ref_t<version_v> alloc{};
-  char *buffer{};
-  uintlen_t capacity{};
-  uintlen_t length{};
-  encodings_e encoding{};
+  allocs_ns::alloc_info_t<version_v> info{};
   bool invalid{};
   bool was_allocated{};
-  replace_flags_t<version_v> rp{};
-  allocs_ns::alloc_info_t<version_v> info{};
   using blazy = base_lazy_view_t<version_v>;
   MJZ_CX_FN buffer_out_buf_t() noexcept = default;
 
   MJZ_CX_FN ~buffer_out_buf_t() noexcept { free(); }
   MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
       unsafe_ns::i_know_what_im_doing_t, blazy opt_view_or_reserve) noexcept {
-    if (invalid || encoding != opt_view_or_reserve.get_encoding() ||
+    if (invalid || this->encoding != opt_view_or_reserve.get_encoding() ||
         opt_view_or_reserve.is_invalid()) {
       invalid = true;
       return false;
     }
     if ((uintlen_t(-1) >> 1) < opt_view_or_reserve.len) return false;
-    if (!reserve(length + opt_view_or_reserve.len)) {
+    if (!reserve(this->length + opt_view_or_reserve.len)) {
       return false;
     }
-    if (opt_view_or_reserve.is_resurve()) return true;
-    uintlen_t at_offset{length};
-    uintlen_t offset_of_substr{};
-    char *append_begin = at_offset + buffer;
+    if (opt_view_or_reserve.is_resurve()) return true; 
+    char *append_begin = this->length + this->begin_ptr;
     success_t succsess{true};
     MJZ_RELEASE {
       if (!succsess) return;
-      asserts(asserts.condition_rn,
-              offset_of_substr == opt_view_or_reserve.len);
-      length += opt_view_or_reserve.len;
+      this->length += opt_view_or_reserve.len;
     };
-    succsess = opt_view_or_reserve.get_value(
-        [&](base_string_view_t<version_v> read_slice) noexcept -> success_t {
-          uintlen_t new_offset_of_substr{offset_of_substr + read_slice.len};
-          asserts(asserts.condition_rn,
-                  new_offset_of_substr <= opt_view_or_reserve.len);
-          memcpy(&append_begin[offset_of_substr], read_slice.ptr,
-                 read_slice.len);
-          offset_of_substr = new_offset_of_substr;
-          return true;
-        });
+    succsess = !!opt_view_or_reserve.get_value(append_begin);
     return succsess;
   }
   MJZ_CX_FN success_t reserve(uintlen_t new_cap) noexcept {
-    if (new_cap <= capacity) return true;
-    if ((uintlen_t(-1) >> 1) < capacity) return false;
+    if (new_cap <= this->capacity) return true;
+    if ((uintlen_t(-1) >> 1) < this->capacity) return false;
     new_cap = uintlen_t(1) << log2_ceil_of_val_create(new_cap);
     allocs_ns::block_info_t<version_v> blk =
         alloc.allocate_bytes(new_cap, info);
-    uintlen_t len = length;
+    uintlen_t len = this->length;
     if (!blk.ptr) {
       free();
       invalid = true;
       return false;
     }
-    memcpy(blk.ptr, buffer, length);
+    memcpy(blk.ptr, this->begin_ptr, this->length);
     free();
-    length = len;
-    capacity = blk.length;
-    buffer = blk.ptr;
+    this->length = len;
+    this->capacity = blk.length;
+    this->begin_ptr = blk.ptr;
     was_allocated = true;
     return true;
   }
 
   MJZ_CX_FN void free() noexcept {
     MJZ_RELEASE {
-      length = 0;
-      capacity = 0;
-      buffer = nullptr;
+      this->length = 0;
+      this->capacity = 0;
+      this->begin_ptr = nullptr;
       was_allocated = false;
     };
     if (!was_allocated) return;
     allocs_ns::block_info_t<version_v> blk{};
-    blk.length = capacity;
-    blk.ptr = buffer;
+    blk.length = this->capacity;
+    blk.ptr = this->begin_ptr;
     asserts(asserts.assume_rn, alloc.deallocate_bytes(std::move(blk), info));
   }
 
   MJZ_CX_FN base_string_view_t<version_v> bview() const noexcept {
     base_string_view_t<version_v> ret{};
-    ret.encodings = uint8_t(encoding);
-    ret.len = length;
-    ret.ptr = buffer;
+    ret.encodings = uint8_t(this->encoding);
+    ret.len = this->length;
+    ret.ptr = this->begin_ptr;
     return ret;
   }
   using lazy_t = base_lazy_view_t<version_v>;
@@ -706,7 +752,7 @@ struct generic_base_output_it_t : void_struct_t {
       return false;
     }
 
-    char buffer[1024]{};
+    char buffer[64]{};
     uintlen_t length{};
     auto flush_fn = [&]() noexcept {
       output_fn(buffer, length);
@@ -716,7 +762,6 @@ struct generic_base_output_it_t : void_struct_t {
     failed |= !view.get_value(
         [&](base_string_view_t<version_v> read_slice) noexcept -> success_t {
           bool first_time{true};
-
           do {
             if (length + read_slice.len < sizeof(buffer)) {
               memcpy(&buffer[length], read_slice.ptr, read_slice.len);

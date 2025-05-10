@@ -341,12 +341,14 @@ struct default_formatter_t<version_v, T, 50> {
       uintlen_t len{};
       uintlen_t slice_index_var{slice_index};
       uintlen_t slice_index_len{slice_length};
+    
       if constexpr (std::ranges::sized_range<T>) {
         uintlen_t length_of_range = uintlen_t(std::ranges::distance(arg));
         slice_index_var = std::min(slice_index_var, length_of_range);
         slice_index_len =
             std::min(slice_index_var + slice_index_len, length_of_range) -
             slice_index_var;
+        it.reserve(slice_index_len * sizeof(uintlen_t), ctx.encoding());
       }
       if constexpr (std::integral<std::remove_cvref_t<
                         std::ranges::range_difference_t<T>>>) {

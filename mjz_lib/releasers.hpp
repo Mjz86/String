@@ -286,8 +286,7 @@ MJZ_CONSTANT(success_t) success_v = true;
 MJZ_CONSTANT(success_t) failiure_v = false;
 
 template <class Lmabda_t, bool no_exeptions = false>
-MJZ_CX_FN success_t run_and_block_exeptions(
-    Lmabda_t &&code) noexcept {
+MJZ_CX_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
   if constexpr (requires(Lmabda_t &&code_) {
                   { std::forward<Lmabda_t>(code_)() } noexcept;
                 }) {
@@ -448,14 +447,16 @@ MJZ_CX_FN void raii_try_catch_rethrow(lambda_try_function &&try_func,
 
 /* do not use in production */
 MJZ_DISABLE_WANINGS_START_;
-MJZ_NCX_FN void just_do_ptr(volatile void *arg) noexcept {
+MJZ_CX_NL_FN volatile void *just_do_ptr(volatile void *ptr_) noexcept {
   MJZ_DISABLE_WANINGS_END_;
-  MJZ_UNUSED static thread_local volatile auto p =
-      const_cast<volatile void *>(arg);
-  p = arg;
+  MJZ_IF_CONSTEVAL { return nullptr; }
+  return [ptr_]() noexcept {
+    thread_local volatile std::atomic<volatile void *> val{};
+    return val.exchange(ptr_, std::memory_order_seq_cst);
+  }();
 };
 template <typename... Ts>
-MJZ_NCX_FN void just_do(Ts &&...args) noexcept {  //-V3541 //-V2565
+MJZ_CX_FN void just_do(Ts &&...args) noexcept {  //-V3541 //-V2565
   MJZ_UNUSED totally_empty_type_t a[]{
       (just_do_ptr(std::addressof(args)),
        totally_empty_type)...};  //-V3519 //-V2528
