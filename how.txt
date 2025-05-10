@@ -1,5 +1,5 @@
 git clone https://github.com/Mjz86/String.git
 cd String/tests
-g++ -std=c++2a  -Wall -Wextra  -O3 main.cpp -o main2 
-clang -std=c++2a  -Wall -Wextra  -O3 main.cpp -o main2 
+g++ -std=c++2a  -Wall -Wextra  -O3 main.cpp -o main2 -fconstexpr-ops-limit=127124200
+clang -std=c++2a  -Wall -Wextra  -O3 main.cpp -o main2 -fconstexpr-steps=127124200
 ./main2
