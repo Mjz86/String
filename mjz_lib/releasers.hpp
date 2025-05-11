@@ -139,11 +139,21 @@ using uint_sizeof_t =
                     uint64_t, uint64_t, uint64_t, uint64_t>;
 template <size_t S>
 using uint_size_of_t = uint_sizeof_t<S>; 
+/*this actually performas better in general cases than forced_branchless_teranary  */
 template <class T>
 MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
                                  const T &then_val,
-                                 const T &else_val) noexcept { 
-  return if_expression ? then_val : else_val; 
+                                 const T &else_val) noexcept {
+  const T &then_val_ = *std::launder(&then_val);
+  const T &else_val_ = *std::launder(&else_val);
+  return if_expression ? then_val_ : else_val_;
+}
+
+template <class T>
+MJZ_CX_FN T(forced_branchless_teranary)(std::same_as<bool> auto if_expression,
+                                 const T &then_val,
+                                 const T &else_val) noexcept {
+  return alias_t<T[2]>{else_val, then_val}[if_expression];
 }
 
 template <class>
