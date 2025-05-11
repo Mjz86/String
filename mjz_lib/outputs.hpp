@@ -31,7 +31,7 @@ SOFTWARE.
 namespace mjz {
 namespace defualt_mjz_cout_namespace_stuff {
 struct MY_cout_t {
-  MJZ_CONSTANT(bool) log { MJZ_IN_DEBUG_MODE };
+  MJZ_CONSTANT(bool) log { MJZ_DO_DEBUG_COUT };
   template <typename T>
 #if MJZ_WITH_iostream
     requires requires(T &&arg) { std::cout << std::forward<T>(arg); }

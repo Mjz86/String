@@ -49,7 +49,7 @@ struct bucket_alloc_info_t {
     };
     m_t m{};
     MJZ_NO_MV_NO_CPY(obj_t);
-    MJZ_CX_FN obj_t(alloc_t &&o) noexcept {
+    MJZ_CX_FN obj_t(alloc_t &&o, alloc_base&) noexcept {
       if (!o.ptr) {
         return;
       }
@@ -84,9 +84,9 @@ struct bucket_alloc_info_t {
                             MJZ_MAYBE_UNUSED alloc_info ai) const noexcept {
       auto l = lock_gaurd(ai.is_thread_safe);
       if (!l) return {};
-      return memory_has_overlap(
-          blk.ptr, blk.length, this->m.data_buffer,
-          this->m.blk_size * this->m.blk_states.num_blocks);
+      return memory_is_inside(this->m.data_buffer,
+                              this->m.blk_size * this->m.blk_states.num_blocks,
+                              blk.ptr, blk.length);
     }
 
     template <class>

@@ -48,9 +48,9 @@ MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
   MJZ_IF_CONSTEVAL {
     if (b_len && a_len) {
       const char *a_ptr{a_ptr_};
-      for (uintlen_t i{1}; i < a_len; a_ptr++, i++) {  //-V2528
+      for (uintlen_t i{}; i < a_len; a_ptr++, i++) {  //-V2528
         const char *b_ptr{b_ptr_};
-        for (uintlen_t j{1}; j < b_len; b_ptr++, j++) {  //-V2528
+        for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
           if (b_ptr == a_ptr) {
             return true;
           }
@@ -59,7 +59,7 @@ MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
     } else if (!a_len) {
       const char *const a_ptr{a_ptr_};
       const char *b_ptr{b_ptr_};
-      for (uintlen_t j{1}; j < b_len; b_ptr++, j++) {  //-V2528
+      for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
@@ -67,7 +67,7 @@ MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
     } else if (!b_len) {
       const char *a_ptr{a_ptr_};
       const char *const b_ptr{b_ptr_};
-      for (uintlen_t j{1}; j < a_len; a_ptr++, j++) {  //-V2528
+      for (uintlen_t j{}; j < a_len; a_ptr++, j++) {  //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
@@ -102,6 +102,29 @@ MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
   }
 }
 
+MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
+                                   uintlen_t hey_len, const char *const needle,
+                                   uintlen_t needle_len) noexcept {
+  MJZ_IFN_CONSTEVAL {
+    const uintlen_t hey_stack_{std::bit_cast<uintptr_t>(hey_stack)};
+    const uintlen_t needle_{std::bit_cast<uintptr_t>(needle)};
+    bool good= hey_stack_ <= needle_;
+    good&= needle_ + needle_len <= hey_len + hey_stack_;
+    return good;
+  }
+  uintlen_t i{};
+  for (; i < hey_len; i++) {
+      if(i + hey_stack == needle){
+      break;
+    }
+  }
+  if (i + hey_stack != needle) {
+    return false;
+  }
+  return needle + needle_len <= hey_len + hey_stack;
+
+
+} 
 template <typename T>
   requires(std::is_trivially_copy_constructible_v<T> &&
            std::is_trivially_default_constructible_v<T> &&
@@ -435,8 +458,6 @@ MJZ_CX_FN void cpy_bitcast(char *dest, const T &src) noexcept {
   return;
 }
 
-
-
 template <class Like_what_t_, class U>
 MJZ_CX_AL_FN auto &&forward_like(U &&x) noexcept {
   constexpr bool is_adding_const =
@@ -456,20 +477,16 @@ MJZ_CX_AL_FN auto &&forward_like(U &&x) noexcept {
   }
 }
 
-
 template <class Like_what_t_, class T>
-using forward_like_t=decltype(forward_like<Like_what_t_>(std::declval<T>()));
-
-
+using forward_like_t = decltype(forward_like<Like_what_t_>(std::declval<T>()));
 
 template <class T, class Like_what_t_>
 concept forward_like_c =
-    std::same_as<T&&, forward_like_t<Like_what_t_, std::remove_cvref_t<T>>>;
-
+    std::same_as<T &&, forward_like_t<Like_what_t_, std::remove_cvref_t<T>>>;
 
 template <class From_, class Like_to_what_t_>
 concept forward_convert_like_c = std::convertible_to<
-    From_&&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>; 
+    From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>;
 
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

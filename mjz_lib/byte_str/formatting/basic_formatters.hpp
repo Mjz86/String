@@ -465,13 +465,14 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
   if (!this->in_range(ctx, arg)) {
     return false;
   }
- auto blk_0_= ctx.fn_alloca(conversion_buffer_size_v<T>, alignof(uintlen_t));
+  auto blk_0_ = ctx.fn_alloca(conversion_buffer_size_v<T>, alignof(uintlen_t));
   if (!blk_0_.size()) {
-   ctx.as_error("[Error]basic_format_specs_t::format_specs:cannot allocate more memory");
-   return false;
+    ctx.as_error(
+        "[Error]basic_format_specs_t::format_specs:cannot allocate more "
+        "memory");
+    return false;
   }
-  MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t));
-  };
+  MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
   format_fn_obj stack{};
   stack.buf_arr = blk_0_.data();
   stack.buf_size = blk_0_.size();
@@ -599,44 +600,64 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
   if (*stack.length) {
     bool is_neg{};
     auto raidex = uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_));
-    if (!stack.add_preffix) raidex = 0;
-    if (stack.check_neg && stack.buf[0] == '-') {
-      numeric_begin++;
-      stack.buf++;
-      is_neg = true;
+    raidex = alias_t<uint8_t[2]>{raidex, 0}[!stack.add_preffix];
+    {
+      bool branch = stack.check_neg;
+      branch &= stack.buf[0] == '-';
+      numeric_begin += branch;
+      stack.buf += branch;
+      is_neg = branch;
     }
-    if (type == type_e::Hex_float) {
-      numeric_begin += uintlen_t(alt) << 1;
+    numeric_begin += alias_t<uintlen_t[2]>{
+        0, uintlen_t(alt) << 1}[type == type_e::Hex_float];
+    {
+      int b8 = raidex == 8;
+      int b16 = raidex == 16;
+      int b2 = raidex == 2;
+      char dummy_0_{};
+      bool branch = !!(b16 | b2);
+      char x_ch = alias_t<char[2]>{'X', 'x'}[!uppser_case];
+      char b_ch = alias_t<char[2]>{'B', 'b'}[!uppser_case];
+      char *ch_ptr_ =
+          alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+      stack.buf -= branch;
+      *ch_ptr_ = alias_t<char[2]>{x_ch, b_ch}[b2];
+
+      branch = !!(b8 | b16 | b2);
+
+      char *zero_ptr_ =
+          alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+      stack.buf -= branch;
+      *zero_ptr_ = '0';
     }
-    if (raidex == 8) {
-      *--stack.buf = '0';
-    } else if (raidex == 16) {
-      *--stack.buf = uppser_case ? 'X' : 'x';
-      *--stack.buf = '0';
-    } else if (raidex == 2) {
-      *--stack.buf = uppser_case ? 'B' : 'b';
-      *--stack.buf = '0';
-    }
-    if (is_neg) {
-      *--stack.buf = '-';
-    } else if (stack.check_neg) {
-      if (sign == sign_e::plus) *--stack.buf = '+';
-      if (sign == sign_e::space) *--stack.buf = ' ';
-    }
+
+    bool branch = is_neg;
+    char dummy_0_{};
+    char *ch_ptr_ =
+        alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+    *ch_ptr_ = '-';
+    stack.buf -= branch;
+    branch = !branch;
+    branch &= stack.check_neg;
+    int b_plus = sign == sign_e::plus;
+    int b_space = sign == sign_e::space;
+    branch &= !!(b_plus | b_space);
+    ch_ptr_ = alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+    *ch_ptr_ = alias_t<char[2]>{' ', '+'}[b_plus];
+    stack.buf -= branch;
+
     *stack.length += stack.offset - (stack.buf - stack.buf_arr);
   }
-   
-  base_out_it_t<version_v> actual_it = ctx.out();
-  auto &output = actual_it;
-  base_out_it_t<version_v> it{output};
+
+  base_out_it_t<version_v> it = ctx.out();
   if (stack.is_string) {
     *stack.length = stack.as_string.len;
   }
   width = std::max(width, *stack.length);
-  std::ignore = actual_it.reserve(width, ctx.encoding());
+  std::ignore = it.reserve(width, ctx.encoding());
   uintlen_t delta{};
-  if (this->leading_zero &&
-      (alignment == align_e::right || alignment == align_e::none)) {
+  if (bool(int(!!this->leading_zero) & (int(alignment == align_e::right) |
+                                        int(alignment == align_e::none)))) {
     uintlen_t prefix_len = uintlen_t(numeric_begin - stack.buf);
     std::ignore =
         it.append(bcview::make(stack.buf, prefix_len, ctx.encoding()));
@@ -649,28 +670,27 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     numeric_begin = stack.buf;
     delta = width - *stack.length;
   }
-  if (delta && (alignment == align_e::right || alignment == align_e::center)) {
+  if (bool(int(!!delta) & (int(alignment == align_e::right) |
+                           int(alignment == align_e::center)))) {
     uintlen_t rigth_delta{delta >> uint8_t(alignment == align_e::center)};
     delta -= rigth_delta;
     std::ignore = it.multi_push_back(fill_char, std::exchange(rigth_delta, {}),
                                      ctx.encoding());
   }
-   
+
   if (stack.is_string) {
-    std::ignore = actual_it.format_back_insert_append_pv_fn_(
-        unsafe_ns::unsafe_v, stack.as_string);
+    std::ignore = it.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
+                                                      stack.as_string);
   } else {
-    std::ignore = actual_it.append(
-        bcview::make(numeric_begin, *stack.length, ctx.encoding()));
+    std::ignore =
+        it.append(bcview::make(numeric_begin, *stack.length, ctx.encoding()));
   }
-  if (delta && (alignment == align_e::left || alignment == align_e::center)) {
+  if (bool(int(!!delta) & (int(alignment == align_e::left )| int(alignment == align_e::center)))) {
     std::ignore =
         it.multi_push_back(fill_char, std::exchange(delta, {}), ctx.encoding());
   }
-  if ( actual_it) {
-    return true;
-  }
-  return ctx.advance_to(nullptr);
+
+  return true;
 }
 
 template <version_t version_v>
@@ -767,7 +787,7 @@ basic_format_specs_t<version_v>::format_fill_pv(
     buffer += output_buffer.capacity;
     buffer_size -= output_buffer.capacity;
     output_buffer.info.is_thread_safe = false;
-    output_buffer.alloc = ctx.allocator();  
+    output_buffer.alloc = ctx.allocator();
     my_width = width;
     auto output = ctx.out();
     MJZ_RELEASE {
@@ -785,7 +805,7 @@ basic_format_specs_t<version_v>::format_fill_pv(
     return nullptr;
   }
   base_out_it_t<version_v> actual_it = ctx.out();
-auto  &output = actual_it;
+  auto &output = actual_it;
   uintlen_t length = output_buffer.length;
   my_width = std::max(my_width, length);
   it = output;
@@ -804,8 +824,8 @@ auto  &output = actual_it;
   }
   if (alignment == align_e::left || alignment == align_e::center) {
     std::ignore = it.multi_push_back(fill_char, delta, ctx.encoding());
-  } 
-    return actual_it; 
+  }
+  return actual_it;
 }
 
 };  // namespace mjz::bstr_ns::format_ns

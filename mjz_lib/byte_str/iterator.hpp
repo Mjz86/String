@@ -863,14 +863,15 @@ struct file_output_it_t : generic_base_output_it_t<version_v> {
   MJZ_CX_FN file_output_it_t(auto *ptr) noexcept : file_output_it_t() {
     Stream = ptr;
   }
-  MJZ_NCX_FN success_t back_insert(const char *ptr, uintlen_t len) {
+  MJZ_CX_FN success_t back_insert(const char *ptr, uintlen_t len) {
+    MJZ_IF_CONSTEVAL { return false; }
 #if MJZ_WITH_iostream
     return len == std::fwrite(ptr, 1, std::size_t(len), Stream);
 #else
     return false;
 #endif
   };
-  MJZ_NCX_FN success_t reserve(uintlen_t) { return true; };
+  MJZ_CX_FN success_t reserve(uintlen_t) { return true; };
 };
 #if MJZ_WITH_iostream
 template <version_t version_v>

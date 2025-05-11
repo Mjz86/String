@@ -120,8 +120,8 @@ struct data_meta_t {
 
   MJZ_CX_FN bool is_owner(std::span<char> real_meta) const noexcept {
     return real_meta.size() &&
-           memory_has_overlap(real_meta.data(), 1, pages.data(),
-                              pages.size_bytes());
+           memory_is_inside( pages.data(), pages.size_bytes() ,real_meta.data(),
+                            1 );
   }
 };
 
@@ -172,8 +172,8 @@ struct stack_allocator_meta_t {
     const bool bad_align = !!(size & (align - 1));
     size &= ~(align - 1);
     size += alias_t<uintlen_t[2]>{0, align}[bad_align];
-    const bool bad =
-        bool(int(uintlen_t(send - sptr) < size) | int(align < align_));
+    const bool bad = bool(int(uintlen_t(send - sptr) < size) |
+                          int(align < align_) | int(!size));
     const std::span<char> dummy[2]{
         std::span<char>{std::assume_aligned<align>(sptr), size}};
     const auto ret = dummy[bad];
@@ -248,5 +248,109 @@ struct areana_t : stack_allocator_meta_t<version_v, align_v> {
 };
 
 }  // namespace stack_alloc_ns
+
+template <version_t version_v>
+struct fast_alloc_chache_t {
+  uintlen_t stack_left : sizeof(uintlen_t) * 8 - 8 {};
+  uintlen_t stack_log2_align : 7 {};
+  uintlen_t can_use_stack : 1 {};
+  uintlen_t monotonic_left : sizeof(uintlen_t) * 8 - 8 {};
+  uintlen_t monotonic_log2_align : 7 {};
+  uintlen_t can_use_monotonic : 1 {};
+  char* monotonic_ptr{};
+  char* stack_ptr{};
+  char* stack_begin{};
+  char* monotonic_begin{};
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN std::span<char> fn_alloca(const uintlen_t min_size,
+                                      const uintlen_t align_) noexcept {
+    uintlen_t align = uintlen_t(1) << stack_log2_align;
+    uintlen_t size = min_size;
+    const bool bad_align = !!(size & (align - 1));
+    size &= ~(align - 1);
+    size += alias_t<uintlen_t[2]>{0, align}[bad_align];
+    const bool bad = bool(int(stack_left < size) | int(align < align_) |
+                          int(!size) | int(!can_use_stack));
+    const std::span<char> dummy[2]{std::span<char>{stack_ptr, size}};
+    const auto ret = dummy[bad];
+    stack_ptr += ret.size();
+    stack_left -= ret.size();
+    return ret;
+  }
+  /*CATION !!!!!!!!!!!!!
+   *WILL LEAD TO UB IF THE STACK IS MISUSED,
+   * USE THE FOLLOWING TO ENSURE SAFE USE
+   * blk=alloca_bytes(...);
+   * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+   * ...
+   * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
+   * ...
+   */
+  MJZ_CX_FN success_t fn_try_dealloca(
+      std::span<char>&& blk, MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
+    bool good = (blk.data() + blk.size()) == stack_ptr;
+    good &= can_use_stack;
+    char* new_stack_ptr =
+        alias_t<alias_t<char*>[2]>{stack_ptr, blk.data()}[good];
+    stack_left += uintlen_t(stack_ptr - new_stack_ptr);
+    stack_ptr = new_stack_ptr;
+    good |= !blk.data();
+    return good ;
+  }
+
+  MJZ_CX_FN void fn_dealloca(std::span<char>&& blk,
+                             MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
+    asserts(asserts.assume_rn, fn_try_dealloca(std::move(blk), align_));
+  }
+
+  MJZ_CX_FN std::span<char> monotonic_allocate(const uintlen_t min_size,
+                                               uintlen_t align_) noexcept {
+    asserts(asserts.assume_rn,
+            align_ == (uintlen_t(1) << log2_of_val_create(align_)));
+    uintlen_t size = min_size;
+    const bool bad = bool(int(monotonic_left < size) |
+                          int((uintlen_t(1) << monotonic_log2_align) < align_) | int(!can_use_monotonic));
+    align_ = alias_t<uintlen_t[2]>{align_, 1}[bad];
+    uintlen_t modular_math_op = align_ - 1;
+    uintlen_t distance_align =
+        uintlen_t(monotonic_ptr - monotonic_begin) & modular_math_op;
+    distance_align = (align_ - distance_align) & modular_math_op;
+    monotonic_ptr += distance_align;
+    monotonic_left -= distance_align;
+    const std::span<char> dummy[2]{std::span<char>{monotonic_ptr, size}};
+    const auto ret = dummy[bad];
+    monotonic_ptr += ret.size();
+    monotonic_left -= ret.size();
+    return ret;
+  }
+  MJZ_CX_FN bool is_monotonic(const std::span<char>& blk,
+                              MJZ_MAYBE_UNUSED const uintlen_t
+                                  align_)const noexcept {
+
+    bool ret = memory_is_inside(monotonic_begin,
+                              uintlen_t(monotonic_ptr - monotonic_begin),
+                              blk.data(), blk.size());
+    ret &= can_use_monotonic;
+    return ret;
+  }
+  MJZ_CX_FN bool is_stack(const std::span<char>& blk,
+                              MJZ_MAYBE_UNUSED const uintlen_t
+                              align_) const noexcept {
+    bool ret = memory_is_inside(stack_begin,
+                                  uintlen_t(stack_ptr - stack_left),
+                                  blk.data(), blk.size());
+    ret &= can_use_stack;
+    return ret;
+  }
+};
+
 };  // namespace mjz::allocs_ns
 #endif  // MJZ_ALLOCS_bump_alloc_FILE_HPP_

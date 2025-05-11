@@ -55,7 +55,7 @@ struct stack_alloc_t {
    public:
     MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
                                strategy_t) const& noexcept {
-      return mjz::memory_has_overlap(stack_begin_ptr, stack_length, blk.ptr,
+      return mjz::memory_is_inside(stack_begin_ptr, stack_length, blk.ptr,
                                      uintlen_t(!!blk.length));
     }
     MJZ_CX_ND_FN success_t deallocate(heap_block_t&&, strategy_t) & noexcept {
@@ -80,7 +80,7 @@ struct stack_alloc_t {
     }
 
    public:
-    MJZ_CX_FN obj_t(alloc_t a) noexcept {
+    MJZ_CX_FN obj_t(alloc_t a, alloc_base&) noexcept {
       if (!a.stack_refrence) return;
       this->stack_refrence = a.stack_refrence;
       this->stack_begin_ptr = a.stack_refrence->sptr;
@@ -119,7 +119,7 @@ struct page_alloc_t {
    public:
     MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
                                strategy_t) const& noexcept {
-      return mjz::memory_has_overlap(data_begin_ptr, data_length, blk.ptr,
+      return mjz::memory_is_inside(data_begin_ptr, data_length, blk.ptr,
                                      uintlen_t(!!blk.length));
     }
     MJZ_CX_ND_FN success_t deallocate(heap_block_t&& blk,
@@ -154,7 +154,7 @@ struct page_alloc_t {
     }
 
    public:
-    MJZ_CX_FN obj_t(alloc_t a) noexcept {
+    MJZ_CX_FN obj_t(alloc_t a, alloc_base&) noexcept {
       if (!a.meta_refrence) return;
       this->meta_refrence = a.meta_refrence;
       this->data_begin_ptr = a.meta_refrence->data_ptr.pages.data();

@@ -443,16 +443,8 @@ struct base_lazy_view_t : void_struct_t {
         if (!reader(me)) return nullptr;
       } break;
       case char_se: {
-        char buf_ch_[hardware_constructive_interference_size]{};
-        memset(buf_ch_, sizeof(buf_ch_), data.ch);
-        for (uintlen_t i{}; i < len;) {
-          base_string_view_t<version_v> view{};
-          view.len = std::min(sizeof(buf_ch_), len - i);
-          view.ptr = &buf_ch_[0];
-          view.encodings = encodings;
-          if (!reader(view)) return nullptr;
-          i += view.len;
-        } 
+        memset(destination, len, data.ch);
+        destination += len;
       } break;
       case lazy_se:
         if (!data.lazy.get_value_fnp(

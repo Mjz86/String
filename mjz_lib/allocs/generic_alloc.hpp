@@ -81,7 +81,7 @@ struct generic_alloc_t : alloc_base_t<version_v> {
                             bool fast_table = false) noexcept
       : alloc_base{vtable_val_f(fast_table)},
         upstream{std::move(upstream_alloc)} {
-    std::construct_at(&data.obj, std::forward<T>(ai));
+    std::construct_at(&data.obj, std::forward<T>(ai),*this);
   }
   MJZ_CX_FN ~generic_alloc_t() noexcept {
     asserts(asserts.condition_rn, 0 == reference_count,
@@ -217,8 +217,8 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   friend class mjz_private_accessed_t;
 
  private:
-  using blk_t_ = typename alloc_base_ref_t<version_v>::template block_info_ot<
-      generic_alloc>;
+  using blk_t_ =  block_info_t<version_v, generic_alloc_t>;
+
 
  public:
   MJZ_CX_FN static void ref_call(alloc_base *This,

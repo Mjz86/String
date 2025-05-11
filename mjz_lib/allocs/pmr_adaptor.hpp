@@ -186,8 +186,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   friend class mjz_private_accessed_t;
 
  private:
-  using blk_t_ =
-      typename alloc_base_ref_t<version_v>::template block_info_ot<pmr_alloc>;
+  using blk_t_ =  block_info_t<version_v, pmr_alloc>;
 
  public:
   MJZ_NCX_FN static void ref_call(alloc_base *This,

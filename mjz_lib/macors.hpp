@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #ifndef mjz_string_lib_HPP_FILE_
 #define mjz_string_lib_HPP_FILE_
 
@@ -75,7 +74,6 @@ SOFTWARE.
  *  log allocations in the allocators when using new.
  */
 
-
 #ifndef MJZ_PMR_GLOBAL_ALLOCATIONS_
 #define MJZ_PMR_GLOBAL_ALLOCATIONS_ false
 #endif  // !MJZ_PMR_GLOBAL_ALLOCATIONS_
@@ -118,12 +116,18 @@ SOFTWARE.
 #define _CONTAINER_DEBUG_LEVEL 0
 #endif  // !_CONTAINER_DEBUG_LEVEL
 
+#ifndef MJZ_IN_DEBUG_MODE
 #define MJZ_IN_DEBUG_MODE \
   (MJZ_TEST_MODE_ ||      \
    (MJZ_CONTROL_IN_DEBUG_MODE_ && (_CONTAINER_DEBUG_LEVEL > 0)))
+#endif  // !MJZ_IN_DEBUG_MODE
+
+#ifndef MJZ_DO_DEBUG_COUT
+#define MJZ_DO_DEBUG_COUT (MJZ_IN_DEBUG_MODE || MJZ_LOG_ALLOCATIONS_)
+#endif  // !MJZ_DO_DEBUG_COUT
 
 #ifndef MJZ_WITH_iostream
-#define MJZ_WITH_iostream true
+#define MJZ_WITH_iostream MJZ_DO_DEBUG_COUT
 #endif  // !MJZ_WITH_iostream
 
 #ifndef MJZ_uintlen_t_as_64_bit
@@ -265,14 +269,16 @@ SOFTWARE.
   if (MJZ_STD_is_constant_evaluated_FUNCTION_RET_) MJZ_IS_UNLIKELY
 #define MJZ_IFN_CONSTEVAL_ \
   if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET_) MJZ_IS_LIKELY
-
-#define MJZ_STD_is_constant_evaluated_FUNCTION_RET \
-  []() noexcept -> bool {                          \
-    MJZ_IF_CONSTEVAL_ { return true; }             \
-    else {                                         \
-      return false;                                \
-    }                                              \
-  }()
+namespace mjz {
+static constexpr const inline auto is_at_consteval_= []() noexcept -> bool {
+  MJZ_IF_CONSTEVAL_ { return true; }
+  else {
+    MJZ_IN_DEBUG_MODE_CODE(static) bool debug_helper = false;
+    return debug_helper;
+  }
+};
+};  // namespace mjz
+#define MJZ_STD_is_constant_evaluated_FUNCTION_RET ::mjz::is_at_consteval_()
 
 #define MJZ_IF_CONSTEVAL if (MJZ_STD_is_constant_evaluated_FUNCTION_RET)
 #define MJZ_IFN_CONSTEVAL if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET)

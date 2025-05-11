@@ -38,14 +38,9 @@ struct stack_alloc_t {
   char *buffer;
   uintlen_t size;
   uintlen_t align;
-  struct m_t {
-    char *stack_buffer_ptr{};
-    uintlen_t stack_buffer_align{};
-    uintlen_t stack_buffer_len{};
-    uintlen_t index_of_last_end{};
-  };
   struct obj_t {
-    m_t m{};
+    MJZ_NO_MV_NO_CPY(obj_t);
+    fast_alloc_chache_t<version_v> &m;
 
     template <class>
     friend class mjz_private_accessed_t;
@@ -58,7 +53,7 @@ struct stack_alloc_t {
     MJZ_CX_FN char *mutex_byte() const noexcept
       requires(has_lock)
     {
-      return m.stack_buffer_ptr ? m.stack_buffer_ptr + m.stack_buffer_len : 0;
+      return m.monotonic_ptr ? m.monotonic_ptr + m.monotonic_left : nullptr;
     }
 
     MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
@@ -66,60 +61,61 @@ struct stack_alloc_t {
 
    public:
     MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
-                               strategy_t) const & noexcept {
-      return mjz::memory_has_overlap(blk.ptr, blk.length, m.stack_buffer_ptr,
-                                     m.stack_buffer_len);
+                               strategy_t ) const & noexcept { 
+      return memory_is_inside(m.monotonic_begin,
+                                uintlen_t(m.monotonic_ptr - m.monotonic_begin),
+                                blk.ptr, blk.length);
     }
     MJZ_CX_ND_FN success_t deallocate(heap_block_t &&, strategy_t) & noexcept {
       return true;
     }
     MJZ_CX_ND_FN heap_block_t allocate(uintlen_t minsize,
                                        strategy_t strategy) & noexcept {
-      auto l = lock_gaurd(strategy.is_thread_safe);
-      heap_block_t ret{};
+      auto l = lock_gaurd(strategy.is_thread_safe); 
       if (!minsize || !l) {
-        return ret;
+        return {};
       }
-
-      auto align_v = strategy.cant_bother_with_good_size().get_alignof_z(); 
-          
-      if (!strategy.uses_munual_alignment && align_v < 2) {
-        return ret;
-      }
-      uintptr_t r{};
-      MJZ_IFN_CONSTEVAL {
-        r = (reinterpret_cast<uintptr_t>(m.stack_buffer_ptr) +
-             m.index_of_last_end) %
-            align_v;
-      }
-      else {
-        if (align_v > m.stack_buffer_align) return ret;
-        r = m.index_of_last_end % align_v;
-      }
-      m.index_of_last_end += r ? align_v - r : 0;
-      if (m.index_of_last_end > m.stack_buffer_len) {
-        m.index_of_last_end = m.stack_buffer_len;
-      }
-      if (m.index_of_last_end + minsize > m.stack_buffer_len) {
-        return ret;
-      }
-      ret.length = minsize;
-      ret.ptr = &m.stack_buffer_ptr[m.index_of_last_end];
-      m.index_of_last_end += minsize;
-      return ret;
+      m.can_use_monotonic = true;
+      std::span<char> ret_ =
+          m.monotonic_allocate(minsize, strategy.get_alignof_z());
+      m.can_use_monotonic = false;
+      return {ret_.data(), std::min(minsize, ret_.size())};
     }
 
    public:
-    MJZ_CX_FN obj_t(alloc_t a) noexcept {
-      if (!(a.buffer && a.size)) return;
-      m.stack_buffer_len = a.size;
-      m.stack_buffer_ptr = a.buffer;
-      m.stack_buffer_align = log2_of_val_to_val(log2_of_val_create(a.align));
-      if constexpr (has_lock) {
-        m.stack_buffer_len--;
-        *mutex_byte() = 0;
-      }
-    }
+    MJZ_CX_FN obj_t(alloc_t a, alloc_base &self) noexcept
+        : m{[&self, &a]() noexcept -> auto & {
+            if (!(a.buffer && a.size)) return self.alloc_chache;
+            alloc_vtable_t<version_v> table = self.vtable;
+            table.default_info.time_threshold = 0;
+            table.default_info.is_thread_safe = 0;
+            fast_alloc_chache_t<version_v> cache_{};
+
+            cache_.can_use_stack = true;
+            cache_.can_use_monotonic = true;
+            cache_.monotonic_begin = a.buffer;
+            cache_.monotonic_ptr = a.buffer;
+            cache_.monotonic_left = a.size;
+            cache_.monotonic_log2_align = log2_of_val_create(a.align);
+            cache_.stack_log2_align = cache_.monotonic_log2_align;
+
+            if constexpr (has_lock) {
+              cache_.monotonic_ptr[--cache_.monotonic_left] = 0;
+              cache_.can_use_stack = false;
+              cache_.can_use_monotonic = false;
+            } else {
+              std::span<char> stack_ = cache_.monotonic_allocate(
+                  cache_.monotonic_left >> 1, uintlen_t(1)
+                                                  << cache_.stack_log2_align);
+              cache_.stack_left = stack_.size();
+              cache_.stack_ptr = stack_.data();
+              cache_.stack_begin = stack_.data();
+              
+            }
+            std::destroy_at(&self);
+            std::construct_at(&self, table)->alloc_chache = cache_;
+            return self.alloc_chache;
+          }()} {}
   };
 };
 };  // namespace mjz::allocs_ns
