@@ -138,13 +138,20 @@ using uint_sizeof_t =
     type_at_index_t<size_of_myt, uint8_t, uint8_t, uint16_t, uint32_t, uint32_t,
                     uint64_t, uint64_t, uint64_t, uint64_t>;
 template <size_t S>
-using uint_size_of_t = uint_sizeof_t<S>;
+using uint_size_of_t = uint_sizeof_t<S>; 
+template <class T>
+MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
+                                 const T &then_val,
+                                 const T &else_val) noexcept { 
+  return if_expression ? then_val : else_val; 
+}
+
 template <class>
 class my_totatlly_empty_template1_class_t {};
 MJZ_CX_AL_ND_FN static uint8_t log2_of_val_create(
     std::integral auto val) noexcept {
   uint8_t ret = uint8_t(std::bit_width(val));
-  return alias_t<uint8_t[2]>{uint8_t(ret - 1), 0}[ret == 0];
+  return branchless_teranary<uint8_t>(ret == 0, 0, uint8_t(ret - 1));
 }
 MJZ_CX_AL_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
   return static_cast<uint64_t>(1ull << log2_val);

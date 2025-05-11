@@ -95,8 +95,7 @@ class str_heap_manager_t {
   MJZ_CX_FN void init_heap() noexcept {
     alignas(non_threaded_rf_block) char dummy[sizeof(non_threaded_rf_block)]{};
     char *rc_ptr = std::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr);
-    rc_ptr =
-        alias_t<alias_t<char *>[2]>{&dummy[0], rc_ptr}[can_add_shareholder()];
+    rc_ptr = branchless_teranary<char*>(!can_add_shareholder(), &dummy[0], rc_ptr);
     MJZ_IF_CONSTEVAL {
       mjz::memset(rc_ptr, non_threaded_rf_block, 0);
       char_storage_as_temp_t<uintlen_t> var{rc_ptr, non_threaded_rf_block,
@@ -162,17 +161,17 @@ class str_heap_manager_t {
     min_size_tr = (min_size_tr / threaded_rf_block) +
                   uintlen_t(!!(min_size_tr % threaded_rf_block));
     min_size_tr *= threaded_rf_block;
-    min_size_tr += alias_t<uintlen_t[2]>{
-        0, threaded_rf_block}[cow_threaded_threshold() < min_size_tr];
+    min_size_tr += branchless_teranary<uintlen_t>(
+        !(cow_threaded_threshold() < min_size_tr), 0, threaded_rf_block);
     uintlen_t min_size_ntr{min_size};
     min_size_ntr = (min_size_ntr / non_threaded_rf_block) +
                    uintlen_t(!!(min_size_ntr % non_threaded_rf_block));
     min_size_ntr *= non_threaded_rf_block;
     min_size_ntr += non_threaded_rf_block;
     min_size =
-        alias_t<uintlen_t[2]>{min_size_ntr, min_size_tr}[get_is_threaded()];
-    min_size = alias_t<uintlen_t[2]>{
-        min_size, uintlen_t(1) << log2_ceil_of_val_create(min_size)}[round_up];
+        branchless_teranary(!get_is_threaded(), min_size_ntr, min_size_tr);
+    min_size = branchless_teranary(
+        !round_up, min_size, uintlen_t(1) << log2_ceil_of_val_create(min_size));
     return min_size;
   }
 

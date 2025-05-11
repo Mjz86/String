@@ -508,15 +508,15 @@ struct blk_state_t {
               min_number_of_blocks <= currant_index - begin_index;
           local_currant_index++;
           local_begin_index = local_currant_index;
-          local_currant_index = alias_t<uintlen_t[2]>{
-              local_currant_index, currant_index}[return_if_not_free];
-          local_begin_index = alias_t<uintlen_t[2]>{
-              local_begin_index, begin_index}[return_if_not_free];
+          local_currant_index =  branchless_teranary(!return_if_not_free,
+              local_currant_index, currant_index);
+          local_begin_index = branchless_teranary(
+              !return_if_not_free, local_begin_index, begin_index);
 
-          currant_index = alias_t<uintlen_t[2]>{local_currant_index,
-                                                currant_index + 1}[is_free];
+          currant_index = branchless_teranary(!is_free, local_currant_index,
+                                              currant_index + 1);
           begin_index =
-              alias_t<uintlen_t[2]>{local_begin_index, begin_index}[is_free];
+              branchless_teranary(!is_free, local_begin_index, begin_index);
         }
       }
       if (min_number_of_blocks <= currant_index - begin_index) {

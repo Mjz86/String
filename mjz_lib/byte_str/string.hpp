@@ -779,8 +779,8 @@ struct basic_str_t : void_struct_t {
       : basic_str_t([&info, &view]() noexcept {
           bool do_alloc_ = props_v.is_ownerized;
           do_alloc_ |= !!(info.reserve_capacity);
-          info.reserve_capacity = alias_t<uintlen_t[2]>{
-              0, std::max(view.size(), info.reserve_capacity)}[do_alloc_];
+          info.reserve_capacity = branchless_teranary<uintlen_t>(
+              !do_alloc_, 0, std::max(view.size(), info.reserve_capacity));
           return info;
         }()) {
     if (m.no_destroy()) {
@@ -971,14 +971,14 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_ND_FN optional_ref_t<const char> at(const uintlen_t i) const noexcept {
     bool bad = (i < length());
     auto ptr = data();
-    ptr = alias_t<const_pointer[2]>{ptr, nullptr}[bad];
-    return ptr + alias_t<uintlen_t[2]>{i, 0}[bad];
+    ptr = branchless_teranary<const char *>(!bad, ptr, nullptr);
+    return ptr + branchless_teranary<uintlen_t>(!bad, i, 0);
   }
   MJZ_CX_ND_FN optional_ref_t<mut_type> at(const uintlen_t i) noexcept {
     bool bad = (i < length());
     auto ptr = data();
-    ptr = alias_t<pointer[2]>{ptr, nullptr}[bad];
-    return ptr + alias_t<uintlen_t[2]>{i, 0}[bad];
+    ptr = branchless_teranary<mut_type *>(!bad, ptr, nullptr);
+    return ptr + branchless_teranary<uintlen_t>(!bad, i, 0);
   }
 
   MJZ_CX_ND_FN optional_ref_t<const char> operator[](
@@ -1234,7 +1234,7 @@ struct basic_str_t : void_struct_t {
 
   MJZ_CX_FN const char *as_c_str() & noexcept {
     bool good = add_null();
-    return alias_t<alias_t<const char *>[2]>{nullptr, data()}[good];
+    return branchless_teranary(!good, nullptr, data());
   }
   /*
    *calculates the hash
@@ -1310,7 +1310,7 @@ struct basic_str_t : void_struct_t {
         choose_both &= choose_front;
         bool temp_choose_front = offset + byte_count < len - offset;
         choose_front =
-            alias_t<bool[2]>{choose_front, temp_choose_front}[choose_both];
+            branchless_teranary(!choose_both, choose_front, temp_choose_front);
         if (choose_front) {
           beg = memomve_overlap(beg - del, beg, offset);
           return true;
@@ -1322,7 +1322,8 @@ struct basic_str_t : void_struct_t {
         }
         uintlen_t delta_count =
             m.s_buffer_offset(m.get_capacity(), new_len, align);
-        delta_count = alias_t<uintlen_t[2]>{delta_count, 0}[m.is_sso()];
+        delta_count =
+            branchless_teranary<uintlen_t>(!m.is_sso(), delta_count, 0);
         char *old_beg{beg};
         beg = buf + delta_count;
         bool shift_begin_first{beg <= old_beg};
@@ -1576,8 +1577,8 @@ struct basic_str_t : void_struct_t {
   resize(uintlen_t new_len, std::optional<char> val = std::nullopt) noexcept {
     uintlen_t old_len = length();
     intlen_t del = intlen_t(new_len) - intlen_t(old_len);
-    intlen_t pdel = alias_t<intlen_t[2]>{del, 0}[del < 0];
-    intlen_t ndel = alias_t<intlen_t[2]>{-del, 0}[del > 0];
+    intlen_t pdel = branchless_teranary<intlen_t>(!(del < 0), del, 0);
+    intlen_t ndel = branchless_teranary<intlen_t>(!(del > 0), -del, 0);
     return replace_data_with_char(new_len, uintlen_t(ndel), uintlen_t(pdel),
                                   val);
   }
@@ -1839,7 +1840,9 @@ struct basic_str_t : void_struct_t {
     bool both_can_fit = can_fit_lhs;
     both_can_fit |= can_fit_rhs;
     bool rhs_is_better = m.get_capacity() < str.m.get_capacity();
-    can_fit_rhs = alias_t<bool[2]>{can_fit_rhs, rhs_is_better}[both_can_fit];
+    can_fit_rhs = branchless_teranary(!both_can_fit, can_fit_rhs, rhs_is_better
+
+    );
     if (can_fit_rhs) {
       if (!str.insert_data(0, *this)) {
         return false;

@@ -70,7 +70,8 @@ struct pages_meta_t {
     for (uintlen_t& page : pages) {
       for (uintlen_t i{}; i < val_page; i++) {
         bool bad{page_room <= i};
-        uintlen_t page_mask_shift = alias_t<uintlen_t[2]>{page_mask, 0}[bad]
+        uintlen_t page_mask_shift =
+            branchless_teranary<uintlen_t>(!bad, page_mask, 0)
                                     << i;
         bad |= uintlen_t(page_mask_shift & page) != page_mask_shift;
         if (bad) {
@@ -120,8 +121,8 @@ struct data_meta_t {
 
   MJZ_CX_FN bool is_owner(std::span<char> real_meta) const noexcept {
     return real_meta.size() &&
-           memory_is_inside( pages.data(), pages.size_bytes() ,real_meta.data(),
-                            1 );
+           memory_is_inside(pages.data(), pages.size_bytes(), real_meta.data(),
+                            1);
   }
 };
 
@@ -171,12 +172,13 @@ struct stack_allocator_meta_t {
     uintlen_t size = min_size;
     const bool bad_align = !!(size & (align - 1));
     size &= ~(align - 1);
-    size += alias_t<uintlen_t[2]>{0, align}[bad_align];
+    size += branchless_teranary<uintlen_t>(!bad_align, 0, align);
+
     const bool bad = bool(int(uintlen_t(send - sptr) < size) |
                           int(align < align_) | int(!size));
-    const std::span<char> dummy[2]{
-        std::span<char>{std::assume_aligned<align>(sptr), size}};
-    const auto ret = dummy[bad];
+    const auto ret = branchless_teranary<std::span<char>>(
+        !bad, std::span<char>{std::assume_aligned<align>(sptr), size},
+        std::span<char>{});
     sptr += ret.size();
     return ret;
   }
@@ -191,7 +193,7 @@ struct stack_allocator_meta_t {
    */
   MJZ_CX_FN void fn_dealloca(std::span<char>&& blk) noexcept {
     sptr = std::assume_aligned<align>(
-        alias_t<alias_t<char*>[2]>{sptr, blk.data()}[!!blk.size()]);
+        branchless_teranary(!blk.size(), sptr, blk.data()));
   }
 
  private:
@@ -276,11 +278,11 @@ struct fast_alloc_chache_t {
     uintlen_t size = min_size;
     const bool bad_align = !!(size & (align - 1));
     size &= ~(align - 1);
-    size += alias_t<uintlen_t[2]>{0, align}[bad_align];
+    size += branchless_teranary<uintlen_t>(!bad_align, 0, align);
     const bool bad = bool(int(stack_left < size) | int(align < align_) |
                           int(!size) | int(!can_use_stack));
-    const std::span<char> dummy[2]{std::span<char>{stack_ptr, size}};
-    const auto ret = dummy[bad];
+    const auto ret = branchless_teranary(!bad, std::span<char>{stack_ptr, size},
+                                         std::span<char>{});
     stack_ptr += ret.size();
     stack_left -= ret.size();
     return ret;
@@ -298,12 +300,11 @@ struct fast_alloc_chache_t {
       std::span<char>&& blk, MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
     bool good = (blk.data() + blk.size()) == stack_ptr;
     good &= can_use_stack;
-    char* new_stack_ptr =
-        alias_t<alias_t<char*>[2]>{stack_ptr, blk.data()}[good];
+    char* new_stack_ptr = branchless_teranary(!good, stack_ptr, blk.data());
     stack_left += uintlen_t(stack_ptr - new_stack_ptr);
     stack_ptr = new_stack_ptr;
     good |= !blk.data();
-    return good ;
+    return good;
   }
 
   MJZ_CX_FN void fn_dealloca(std::span<char>&& blk,
@@ -317,8 +318,9 @@ struct fast_alloc_chache_t {
             align_ == (uintlen_t(1) << log2_of_val_create(align_)));
     uintlen_t size = min_size;
     const bool bad = bool(int(monotonic_left < size) |
-                          int((uintlen_t(1) << monotonic_log2_align) < align_) | int(!can_use_monotonic));
-    align_ = alias_t<uintlen_t[2]>{align_, 1}[bad];
+                          int((uintlen_t(1) << monotonic_log2_align) < align_) |
+                          int(!can_use_monotonic));
+    align_ = branchless_teranary<uintlen_t>(!bad, align_, 1);
     uintlen_t modular_math_op = align_ - 1;
     uintlen_t distance_align =
         uintlen_t(monotonic_ptr - monotonic_begin) & modular_math_op;
@@ -333,20 +335,18 @@ struct fast_alloc_chache_t {
   }
   MJZ_CX_FN bool is_monotonic(const std::span<char>& blk,
                               MJZ_MAYBE_UNUSED const uintlen_t
-                                  align_)const noexcept {
-
+                                  align_) const noexcept {
     bool ret = memory_is_inside(monotonic_begin,
-                              uintlen_t(monotonic_ptr - monotonic_begin),
-                              blk.data(), blk.size());
+                                uintlen_t(monotonic_ptr - monotonic_begin),
+                                blk.data(), blk.size());
     ret &= can_use_monotonic;
     return ret;
   }
   MJZ_CX_FN bool is_stack(const std::span<char>& blk,
-                              MJZ_MAYBE_UNUSED const uintlen_t
+                          MJZ_MAYBE_UNUSED const uintlen_t
                               align_) const noexcept {
-    bool ret = memory_is_inside(stack_begin,
-                                  uintlen_t(stack_ptr - stack_left),
-                                  blk.data(), blk.size());
+    bool ret = memory_is_inside(stack_begin, uintlen_t(stack_ptr - stack_left),
+                                blk.data(), blk.size());
     ret &= can_use_stack;
     return ret;
   }

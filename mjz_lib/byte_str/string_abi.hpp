@@ -379,7 +379,8 @@ struct str_abi_t_ {
         }
         return get_non_sso_capacity();
       }
-      return alias_t<uintlen_t[2]>{get_non_sso_capacity(), sso_cap}[is_sso()];
+
+      return branchless_teranary(!is_sso(), get_non_sso_capacity(), sso_cap); 
     }
 
     MJZ_CX_FN void set_invalid_to_sso(const char* non_overlapping_ptr,
@@ -424,8 +425,9 @@ struct str_abi_t_ {
       // no need to write same stuff
       return const_cast<char*>(std::as_const(*this).get_buffer_ptr());
     }
-    MJZ_CX_FN char* get_mut_begin() noexcept {
-      return alias_t<alias_t<char*>[2]>{nullptr, u_get_mut_begin()}[has_mut()];
+     MJZ_CX_FN char* get_mut_begin() noexcept {
+     
+      return branchless_teranary(!has_mut(), nullptr, u_get_mut_begin());
     }
     MJZ_CX_FN bool has_mut() const noexcept { return !!get_buffer_ptr(); }
     MJZ_CX_FN bool has_null() const noexcept { 
@@ -534,8 +536,8 @@ struct str_abi_t_ {
       is_owner |= is_ownerized;
       bool no_check = is_owner;
       no_check |= !has_mut_;
-      auto ret = alias_t<may_bool_t[2]>{may_bool_t::idk,
-                                        may_bool_t(char(is_owner))}[no_check];
+      auto ret = branchless_teranary(!no_check,may_bool_t::idk,
+                                        may_bool_t(char(is_owner)));
       if constexpr (is_ownerized_v_) {
         asserts(asserts.assume_rn, ret == may_bool_t::yes);
       }
@@ -559,7 +561,7 @@ struct str_abi_t_ {
       }
       may_bool_t ret = is_owner_no_heap();
       bool has_room = uintlen_t(with_null) + new_size <= get_capacity();
-      ret = alias_t<may_bool_t[2]>{may_bool_t::no, ret}[has_room];
+      ret = branchless_teranary(!has_room, may_bool_t::no, ret);
       if constexpr (when_v) {
         if (may_bool_t::idk == ret) {
           return is_heap_owner<when_v>();

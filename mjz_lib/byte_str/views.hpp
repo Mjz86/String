@@ -133,8 +133,8 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
   MJZ_CX_FN success_t as_subview(uintlen_t offset,
                                  uintlen_t count = nops) noexcept {
     bool bad = !data();
-    offset = alias_t<uintlen_t[2]>{offset, 0}[bad];
-    count = alias_t<uintlen_t[2]>{count, 0}[bad];
+    offset = branchless_teranary<uintlen_t>(!bad, offset, 0);
+    count = branchless_teranary<uintlen_t>(!bad, count, 0);
     this->has_null_v &= make_right_then_give_has_null(offset, count);
     this->ptr += offset;
     this->len = count;

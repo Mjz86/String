@@ -488,5 +488,7 @@ template <class From_, class Like_to_what_t_>
 concept forward_convert_like_c = std::convertible_to<
     From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>;
 
+
+
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

@@ -600,7 +600,9 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
   if (*stack.length) {
     bool is_neg{};
     auto raidex = uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_));
-    raidex = alias_t<uint8_t[2]>{raidex, 0}[!stack.add_preffix];
+    raidex =
+        branchless_teranary<uint8_t>(!!stack.add_preffix, raidex, 0);
+
     {
       bool branch = stack.check_neg;
       branch &= stack.buf[0] == '-';
@@ -608,33 +610,34 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
       stack.buf += branch;
       is_neg = branch;
     }
-    numeric_begin += alias_t<uintlen_t[2]>{
-        0, uintlen_t(alt) << 1}[type == type_e::Hex_float];
+    numeric_begin += branchless_teranary<uintlen_t>(type != type_e::Hex_float,
+                                                    0,
+                                         uintlen_t(alt) << 1);
     {
       int b8 = raidex == 8;
       int b16 = raidex == 16;
       int b2 = raidex == 2;
       char dummy_0_{};
       bool branch = !!(b16 | b2);
-      char x_ch = alias_t<char[2]>{'X', 'x'}[!uppser_case];
-      char b_ch = alias_t<char[2]>{'B', 'b'}[!uppser_case];
+      char x_ch = branchless_teranary(uppser_case, 'X', 'x');
+      char b_ch = branchless_teranary(uppser_case, 'B', 'b');
       char *ch_ptr_ =
-          alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+          branchless_teranary<char *>(!branch, &dummy_0_, stack.buf - 1);
       stack.buf -= branch;
-      *ch_ptr_ = alias_t<char[2]>{x_ch, b_ch}[b2];
+      *ch_ptr_ = branchless_teranary(!b2, x_ch, b_ch);
 
       branch = !!(b8 | b16 | b2);
 
       char *zero_ptr_ =
-          alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+          branchless_teranary<char *>(!branch, &dummy_0_, stack.buf - 1);
       stack.buf -= branch;
       *zero_ptr_ = '0';
     }
 
     bool branch = is_neg;
     char dummy_0_{};
-    char *ch_ptr_ =
-        alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
+    char *ch_ptr_ = branchless_teranary<char*>(!branch, &dummy_0_, stack.buf - 1);
+
     *ch_ptr_ = '-';
     stack.buf -= branch;
     branch = !branch;
@@ -642,8 +645,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     int b_plus = sign == sign_e::plus;
     int b_space = sign == sign_e::space;
     branch &= !!(b_plus | b_space);
-    ch_ptr_ = alias_t<alias_t<char *>[2]>{&dummy_0_, stack.buf - 1}[branch];
-    *ch_ptr_ = alias_t<char[2]>{' ', '+'}[b_plus];
+    ch_ptr_ = branchless_teranary<char *>(!branch, &dummy_0_, stack.buf - 1);
+    *ch_ptr_ = branchless_teranary(!b_plus, ' ', '+');
     stack.buf -= branch;
 
     *stack.length += stack.offset - (stack.buf - stack.buf_arr);
@@ -685,7 +688,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     std::ignore =
         it.append(bcview::make(numeric_begin, *stack.length, ctx.encoding()));
   }
-  if (bool(int(!!delta) & (int(alignment == align_e::left )| int(alignment == align_e::center)))) {
+  if (bool(int(!!delta) & (int(alignment == align_e::left) |
+                           int(alignment == align_e::center)))) {
     std::ignore =
         it.multi_push_back(fill_char, std::exchange(delta, {}), ctx.encoding());
   }

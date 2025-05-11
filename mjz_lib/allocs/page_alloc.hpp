@@ -73,8 +73,8 @@ struct stack_alloc_t {
       }
       std::span<char> ret_ = stack_refrence->fn_alloca(minsize);
       ret.ptr = ret_.data();
-      minsize = alias_t<uintlen_t[2]>{
-          ret_.size(), minsize}[strategy.allocate_exactly_minsize];
+      minsize = branchless_teranary(!strategy.allocate_exactly_minsize,
+                                    ret_.size(), minsize);
       ret.length = std::min(minsize, ret_.size());
       return ret;
     }
@@ -147,8 +147,8 @@ struct page_alloc_t {
       std::span<char> ret_ =
           meta_refrence->allocate(minsize, strategy.get_alignof_z());
       ret.ptr = ret_.data();
-      minsize = alias_t<uintlen_t[2]>{
-          ret_.size(), minsize}[strategy.allocate_exactly_minsize];
+      minsize = branchless_teranary(
+          !strategy.allocate_exactly_minsize ret_.size(), minsize);
       ret.length = std::min(minsize, ret_.size());
       return ret;
     }
