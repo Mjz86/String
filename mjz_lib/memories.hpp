@@ -108,13 +108,13 @@ MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
   MJZ_IFN_CONSTEVAL {
     const uintlen_t hey_stack_{std::bit_cast<uintptr_t>(hey_stack)};
     const uintlen_t needle_{std::bit_cast<uintptr_t>(needle)};
-    bool good= hey_stack_ <= needle_;
-    good&= needle_ + needle_len <= hey_len + hey_stack_;
+    bool good = hey_stack_ <= needle_;
+    good &= needle_ + needle_len <= hey_len + hey_stack_;
     return good;
   }
   uintlen_t i{};
   for (; i < hey_len; i++) {
-      if(i + hey_stack == needle){
+    if (i + hey_stack == needle) {
       break;
     }
   }
@@ -122,9 +122,7 @@ MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
     return false;
   }
   return needle + needle_len <= hey_len + hey_stack;
-
-
-} 
+}
 template <typename T>
   requires(std::is_trivially_copy_constructible_v<T> &&
            std::is_trivially_default_constructible_v<T> &&
@@ -210,8 +208,6 @@ MJZ_CX_AL_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
 
 /*
 O(len) time complexity .
-NOTE:
-use memmove for potentialy overlaping memory.
 */
 MJZ_CX_AL_FN char *memcpy_swap(char *dest, char *src, uintlen_t len) noexcept {
   char *d = dest;
@@ -221,6 +217,28 @@ MJZ_CX_AL_FN char *memcpy_swap(char *dest, char *src, uintlen_t len) noexcept {
   }
   return dest;
 }
+MJZ_CX_AL_FN char *mem_byteswap(char *dest, const uintlen_t len) noexcept {
+  for (uintlen_t i{}; i < len >> 1; i++) {
+    std::swap(dest[i], dest[len - 1 - i]);
+  }
+  return dest;
+}
+MJZ_CX_AL_FN char *mem_flip_endian(char *dest,const uintlen_t len) noexcept {
+  char *d = dest;
+  uintlen_t len_ = len;
+  while (len_--) {
+    char &ch = *d++;
+    int byte = uint8_t(ch);
+    int fliped{};
+    for (int8_t i{}; i < 8; i++) {
+      fliped <<= 1;
+      fliped |= (byte >> i) & 1;
+    }
+    ch = char(uint8_t(fliped));
+  } 
+  return mem_byteswap(dest,len);
+}
+
 /*
 O(len) time complexity in runtime
 O(len^2)  time complexity in compile-time.
@@ -270,49 +288,6 @@ MJZ_CX_AL_FN char *memmove(char *const dest, const char *const src,
   }
 }
 
-/*
-O(len) time complexity in runtime
-O(len^2)  time complexity in compile-time.
-NOTE:
-diffrence is due to constexpr's pointer comparason limitation.
-*/
-MJZ_CX_AL_FN char *memmove_swap(char *const dest, char *const src,
-                                const uintlen_t len) noexcept {
-  char *from = src;
-  char *to = dest;
-  if (from == to || len == 0) {
-    return dest;
-  }
-  if (!memory_has_overlap(dest, len, src, len)) {
-    return memcpy_swap(dest, src, len);
-  } else {
-    const ptrdiff_t n = static_cast<ptrdiff_t>(len);
-    if (to > from && to - from < n) {
-      /* to overlaps with from */
-      /*  <from......>         */
-      /*         <to........>  */
-      /* copy in reverse, to avoid overwriting from */
-      ptrdiff_t i{};
-      for (i = n - 1; i >= 0; i--) {
-        std::swap(to[i], from[i]);
-      }
-      return dest;  //-V2547
-    }
-    if (from > to && from - to < n) {
-      /* to overlaps with from */
-      /*        <from......>   */
-      /*  <to........>         */
-      /* copy forwards, to avoid overwriting from */
-      uintlen_t i{};
-      for (i = 0; i < len; i++) {
-        std::swap(to[i], from[i]);
-      }
-      return dest;
-    }
-    memcpy_swap(dest, src, len);
-    return dest;
-  }
-}
 template <typename T>
 MJZ_CX_FN static auto mjz_memset_lambda_createor(T val) noexcept {
   return [val = std::move(val)](
@@ -487,8 +462,6 @@ concept forward_like_c =
 template <class From_, class Like_to_what_t_>
 concept forward_convert_like_c = std::convertible_to<
     From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>;
-
-
 
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

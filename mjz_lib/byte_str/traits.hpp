@@ -36,7 +36,9 @@ enum class floating_format_e : uint8_t {
   general = fixed | scientific,
 };
 template <version_t version_v>
-struct byte_traits_t {
+struct byte_traits_t : parse_math_helper_t_<version_v> {
+  using  parse_math_helper_t_<version_v>::divide_modulo;
+  using  parse_math_helper_t_<version_v>::signed_divide_modulo;
   using enum floating_format_e;
   template <class>
   friend class mjz_private_accessed_t;
@@ -54,7 +56,6 @@ struct byte_traits_t {
     }
     return 0;
   }
-
   MJZ_CX_ND_FN uintlen_t pv_strlen(const char *begin) const noexcept {
     if (!begin) return 0;
     MJZ_IFN_CONSTEVAL { return std::strlen(begin); }
@@ -369,8 +370,8 @@ struct byte_traits_t {
     if (36 < raidex || !ptr || !len || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
     constexpr UT max_v = UT(-1);
-    constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT( ~(UT(-1) >> 1));
-    const UT pre_max_v = UT(max_v / UT(raidex));
+    constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT(~(UT(-1) >> 1));
+    const UT pre_max_v = UT(divide_modulo(max_v, UT(raidex)).first);
 
     bool is_neg{};
 
@@ -689,14 +690,13 @@ struct byte_traits_t {
     uintlen_t n{};
     uintlen_t i{len - 1};
     for (; n < len && val; i--) {
-      auto r = val % UT(raidex);
+      auto [ mul,r] = divide_modulo(val, UT(raidex));
+      val = UT(mul);
       auto v = num_to_ascii(uint8_t(r), upper_case);
       if (!v) {
         return std::nullopt;
       }
       buf[i] = *v;
-      val -= r;
-      val /= UT(raidex);
       n++;
     }
     if (val) return std::nullopt;
@@ -744,14 +744,13 @@ struct byte_traits_t {
     uintlen_t n{};
     uintlen_t i{len - 1};
     for (; n < len && val; i--) {
-      UT r = UT(UT(val) % UT(raidex));
+      auto [mul,r] = divide_modulo(UT(val), UT(raidex));
+      val = UT(mul);
       auto v = num_to_ascii(uint8_t(r), upper_case);
       if (!v) {
         return std::nullopt;
       }
       buf[i] = *v;
-      val -= r;
-      val /= UT(raidex);
       n++;
     }
     if (val) return std::nullopt;
@@ -888,7 +887,9 @@ struct byte_traits_t {
       int64_t max_log2 =
           log2_ceil_of_val_create(uint64_t(fractionic_val.m_coeffient)) +
           fractionic_val.m_exponent;
-      int64_t max_log{max_log2 / log2_ceil_of_val_create(raidex)};
+      int64_t max_log{
+          signed_divide_modulo(max_log2, log2_ceil_of_val_create(raidex))
+              .first};
       if (accuracacy < uint64_t(-max_log)) {
         fractionic_val.m_coeffient = 0;
       }
@@ -1056,7 +1057,12 @@ struct byte_traits_t {
     auto limit_num = [&]() noexcept {
       int64_t max_log2 = log2_ceil_of_val_create(uint64_t(value.m_coeffient)) +
                          value.m_exponent;
-      int64_t max_log{max_log2 / log2_ceil_of_val_create(raidex)};
+      bool neg_ = max_log2 < 0;
+      max_log2 = neg_ ? -max_log2 : max_log2;
+      int64_t max_log{int64_t(
+          divide_modulo(uint64_t(max_log2), log2_ceil_of_val_create(raidex))
+              .first)};
+      max_log = neg_ ? -max_log : max_log;
       if (accuracacy < uint64_t(-max_log)) {
         value.m_coeffient = 0;
       }
@@ -1166,62 +1172,61 @@ struct byte_traits_t {
 #ifdef __cpp_lib_to_chars
     MJZ_IFN_CONSTEVAL {
       char *buf_c_ = f_buf;
-        bool add_prefix_ = add_prefix;
-        add_prefix = false;
-        std::to_chars_result res{
+      bool add_prefix_ = add_prefix;
+      add_prefix = false;
+      std::to_chars_result res{
 
-        };
-        switch (floating_format) {
-          case floating_format_e::fixed:
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                                std::chars_format::fixed, int(f_accuracacy));
-            break;
-          case floating_format_e::hex:
-            add_prefix = add_prefix_;
-            if (add_prefix) {
-              if (f_len < 2) return {};
-              f_buf += 2;
-              f_len -= 2;
-            }
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                                std::chars_format::hex, int(f_accuracacy));
-            break;
-          case floating_format_e::general:
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                                std::chars_format::general, int(f_accuracacy));
-            break;
-          case floating_format_e::scientific:
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                              std::chars_format::scientific, int(f_accuracacy));
-            break;
-          default:
-            return nullopt;
-            break;
-        }
-        if (res.ec != std::errc{}) {
-          return {};
-        }
-
-        if (point_ch != '.') {
-          uintlen_t v = find_ch(f_buf, f_len, 0, '.');
-          if (v < f_len) f_buf[v] = point_ch;
-        }
-        if (add_prefix) {
-          if (*f_buf == '+' || *f_buf == ' ' || *f_buf == '-') {
-            *(f_buf - 2) = *f_buf;
-            f_buf++;
+      };
+      switch (floating_format) {
+        case floating_format_e::fixed:
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::fixed, int(f_accuracacy));
+          break;
+        case floating_format_e::hex:
+          add_prefix = add_prefix_;
+          if (add_prefix) {
+            if (f_len < 2) return {};
+            f_buf += 2;
+            f_len -= 2;
           }
-          f_buf -= 2;
-          f_buf[0] = '0';
-          f_buf[1] = upper_case ? 'X' : 'x';
-          f_len += 2;
-          if (upper_case) {
-            uintlen_t v = find_ch(f_buf, f_len, 0, 'p');
-            if (v < f_len) f_buf[v] = 'P';
-          };
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::hex, int(f_accuracacy));
+          break;
+        case floating_format_e::general:
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::general, int(f_accuracacy));
+          break;
+        case floating_format_e::scientific:
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::scientific, int(f_accuracacy));
+          break;
+        default:
+          return nullopt;
+          break;
+      }
+      if (res.ec != std::errc{}) {
+        return {};
+      }
+
+      if (point_ch != '.') {
+        uintlen_t v = find_ch(f_buf, f_len, 0, '.');
+        if (v < f_len) f_buf[v] = point_ch;
+      }
+      if (add_prefix) {
+        if (*f_buf == '+' || *f_buf == ' ' || *f_buf == '-') {
+          *(f_buf - 2) = *f_buf;
+          f_buf++;
         }
-        return uintlen_t(res.ptr - buf_c_);
-      
+        f_buf -= 2;
+        f_buf[0] = '0';
+        f_buf[1] = upper_case ? 'X' : 'x';
+        f_len += 2;
+        if (upper_case) {
+          uintlen_t v = find_ch(f_buf, f_len, 0, 'p');
+          if (v < f_len) f_buf[v] = 'P';
+        };
+      }
+      return uintlen_t(res.ptr - buf_c_);
     }
 #endif
 
@@ -1236,6 +1241,8 @@ struct byte_traits_t {
       if (f_accuracacy < uintlen_t(log)) return;
       floating_format = floating_format_e::fixed;
     }();
+    constexpr auto val_min_f_accuracacy =
+        sizeof(T) * 8 / log2_ceil_of_val_create(10u);
     switch (floating_format) {
       case floating_format_e::fixed:
         return from_float_fill_fixed(f_buf, f_len, f_val, f_accuracacy,
@@ -1249,11 +1256,11 @@ struct byte_traits_t {
 
         MJZ_FALLTHROUGH;
       case floating_format_e::scientific:
+
         return from_float_fill_sientific(
             f_buf, f_len, f_val,
-            uint8_t(std::min(f_accuracacy,
-                             sizeof(T) * 8 / log2_ceil_of_val_create(10u))),
-            upper_case, 10, 10, point_ch, upper_case ? 'E' : 'e');
+            uint8_t(std::min(f_accuracacy, val_min_f_accuracacy)), upper_case,
+            10, 10, point_ch, upper_case ? 'E' : 'e');
       default:
         return nullopt;
         break;

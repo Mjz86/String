@@ -25,6 +25,7 @@ SOFTWARE.
 #define MJZ_RELEASER_LIB_HPP_FILE_
 #include <array>
 #include <bit>
+#include<optional>
 #include <concepts>
 namespace mjz {
 template <class unique_accessor_id_t>
@@ -172,7 +173,7 @@ MJZ_CX_AL_ND_FN static uint8_t log2_ceil_of_val_create(
 {
   auto log2v = log2_of_val_create(val);
   return uint8_t(uint64_t(log2v) +
-                 uint64_t(log2_of_val_to_val(log2v) != uint64_t(val)));
+      uint64_t(int(log2_of_val_to_val(log2v) != uint64_t(val)) & int(!!val)));
 }
 
 template <uint64_t max_val>

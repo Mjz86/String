@@ -1,4 +1,4 @@
-/*MIT License
+﻿/*MIT License
 
 Copyright (c) 2025 Mjz86
 
@@ -29,14 +29,555 @@ MJZ_DISABLE_ALL_WANINGS_START_;
 #include <cfloat>
 #include <cmath>
 MJZ_DISABLE_ALL_WANINGS_END_;
+#include <bit>
 namespace mjz {
 
+template <version_t version_v, uintlen_t n_bits>
+  requires(64 * (n_bits / 64) == n_bits && !!n_bits)
+struct uintN_t {
+  MJZ_CONSTANT(uintlen_t) word_count = n_bits / 64;
+  alignas(std::min(hardware_constructive_interference_size,
+                   log2_of_val_to_val(log2_of_val_create(word_count * 8))))
+      uint64_t words[word_count]{};
+  MJZ_DISABLE_ALL_WANINGS_START_;
+  MJZ_DEFAULTED_CLASS(uintN_t);
+  MJZ_DISABLE_ALL_WANINGS_END_;
 
-template <version_t version_v = version_t{}>
-struct big_float_t {
+ private:
+  MJZ_CX_FN uintN_t(void_struct_t, uintlen_t) noexcept : uintN_t{} {}
+  template <std::integral T, std::integral... Ts>
+  MJZ_CX_FN uintN_t(void_struct_t, const uintlen_t i, T lowest,
+                    Ts... args) noexcept
+      : uintN_t{void_struct_t{}, i + 1, args...} {
+    nth_word(i) = lowest;
+  }
+
+ public:
+  template <std::integral... Ts>
+    requires(sizeof...(Ts) <= word_count)
+  MJZ_CX_FN explicit uintN_t(/*low to high*/ Ts... args) noexcept
+      : uintN_t{void_struct_t{}, 0, uint64_t(args)...} {}
+
+  MJZ_CX_FN uint64_t& nth_word(auto i) noexcept {
+    if constexpr (version_v.is_LE()) {
+      return words[size_t(i)];
+    } else {
+      return words[size_t((word_count - 1) - i)];
+    }
+  }
+  MJZ_CX_FN const uint64_t& nth_word(auto i) const noexcept {
+    if constexpr (version_v.is_LE()) {
+      return words[size_t(i)];
+    } else {
+      return words[size_t((word_count - 1) - i)];
+    }
+  }
+  MJZ_CX_FN bool nth_bit(auto i) const noexcept {
+    return !!(nth_word(i >> 6) & (uint64_t(1) << (i & 63)));
+  }
+  MJZ_CX_FN void set_nth_bit(auto i, bool val) noexcept {
+    uint64_t mask = uint64_t(1) << (i & 63);
+    uint64_t& word = nth_word(i >> 6);
+    word &= ~mask;
+    word |= val ? mask : 0;
+  }
+  MJZ_CX_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
+    intlen_t abs_amount = intlen_t(amount);
+    intlen_t internal_amount{abs_amount & 63};
+    intlen_t external_amount{abs_amount >> 6};
+
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      uint64_t temps[2]{nth_word(i), nth_word(i)};
+      nth_word(i) = 0;
+      temps[1] >>= internal_amount;
+      temps[0] ^= temps[1] << internal_amount;
+      temps[0] <<= (64 - internal_amount) & 63;
+      intlen_t j = i - external_amount;
+      {
+        bool branch = 0 <= j;
+        intlen_t index_ = branchless_teranary<intlen_t>(branch, j, 0);
+        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[1], 0);
+      }
+      {
+        bool branch = 0 < j;
+        intlen_t index_ = branchless_teranary<intlen_t>(branch, j - 1, 0);
+        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[0], 0);
+      }
+    }
+
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
+    intlen_t abs_amount = intlen_t(amount);
+    intlen_t internal_amount{abs_amount & 63};
+    intlen_t external_amount{abs_amount >> 6};
+    for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
+      uint64_t temps[2]{nth_word(i), nth_word(i)};
+      nth_word(i) = 0;
+      temps[0] <<= internal_amount;
+      temps[1] ^= temps[0] >> internal_amount;
+      temps[1] >>= (64 - internal_amount) & 63;
+      intlen_t j = i + external_amount;
+      {
+        bool branch = j + 1 < intlen_t(word_count);
+        intlen_t index_ = branchless_teranary<intlen_t>(branch, j + 1, 0);
+        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[1], 0);
+      }
+      {
+        bool branch = j < intlen_t(word_count);
+        intlen_t index_ = branchless_teranary<intlen_t>(branch, j, 0);
+        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[0], 0);
+      }
+    }
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator&=(const uintN_t& amount) noexcept {
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      nth_word(i) &= amount.nth_word(i);
+    }
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator|=(const uintN_t& amount) noexcept {
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      nth_word(i) &= amount.nth_word(i);
+    }
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator^=(const uintN_t& amount) noexcept {
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      nth_word(i) &= amount.nth_word(i);
+    }
+    return *this;
+  }
+
+  MJZ_CX_FN uintN_t& flip() noexcept {
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      nth_word(i) = ~nth_word(i);
+    }
+    return *this;
+  }
+
+  MJZ_CX_FN bool add(const uintN_t& amount, bool carry = false) noexcept {
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      uint64_t rhs = nth_word(i);
+      uint64_t lhs = amount.nth_word(i);
+      uintlen_t min_rhs = rhs;
+      rhs += carry;
+      bool overflow = rhs < min_rhs;
+      min_rhs = rhs;
+      rhs += lhs;
+      overflow |= rhs < min_rhs;
+      carry = overflow;
+      nth_word(i) = rhs;
+    }
+    return carry;
+  }
+  MJZ_CX_FN uintN_t& negate() noexcept {
+    // twos compliment (~*this + 1)
+    bool carry = true;
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      uint64_t rhs = ~nth_word(i);
+      bool perv_carry = carry;
+      carry &= rhs == uintlen_t(-1);
+      rhs += perv_carry;
+      nth_word(i) = rhs;
+    }
+    return *this;
+  }
+  MJZ_CX_FN bool minus(const uintN_t& amount, bool carry = false) noexcept {
+    bool negate_carry = true;
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      uint64_t rhs = nth_word(i);
+      uint64_t lhs = ~amount.nth_word(i);
+      bool negate_perv_carry = negate_carry;
+      negate_carry &= lhs == uintlen_t(-1);
+      lhs += negate_perv_carry;
+
+      uintlen_t min_rhs = rhs;
+      rhs += carry;
+      bool overflow = rhs < min_rhs;
+      min_rhs = rhs;
+      rhs += lhs;
+      overflow |= rhs < min_rhs;
+      carry = overflow;
+      nth_word(i) = rhs;
+    }
+    return carry;
+  }
+  MJZ_CX_FN uintN_t& operator-=(const uintN_t& amount) noexcept {
+    minus(amount);
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator+=(const uintN_t& amount) noexcept {
+    add(amount);
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator*=(const uintN_t& amount) noexcept {
+    if constexpr (word_count == 2) {
+      // https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B17/uint128_t.h
+      const uint64_t x = nth_word(0);
+      const uint64_t y = amount.nth_word(0);
+      const uint64_t xl = x & 0xffffffff;
+      const uint64_t xh = x >> 32;
+      const uint64_t yl = y & 0xffffffff;
+      const uint64_t yh = y >> 32;
+      const uint64_t ll = xl * yl;
+      const uint64_t lh = xl * yh;
+      const uint64_t hl = xh * yl;
+      const uint64_t hh = xh * yh;
+      const uint64_t m = (ll >> 32) + lh + (hl & 0xffffffff);
+      const uint64_t l = (ll & 0xffffffff) | (m << 32);
+      const uint64_t h = (m >> 32) + (hl >> 32) + hh;
+      nth_word(1) = h + x * amount.nth_word(1) + nth_word(1) * y;
+      nth_word(0) = l;
+      return *this;
+    }
+    uintN_t ret{};
+    for (uintlen_t i{}; i < n_bits; i++) {
+      if (nth_bit(i)) {
+        ret += amount << i;
+      }
+    }
+    return *this = ret;
+  }
+  MJZ_CX_FN std::strong_ordering operator<=>(
+      const uintN_t& rhs) const noexcept {
+    for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
+      std::strong_ordering order = nth_word(i) <=> rhs.nth_word(i);
+      if (order != std::strong_ordering::equal) {
+        return order;
+      }
+    }
+    return std::strong_ordering::equal;
+  }
+
+  MJZ_CX_FN bool operator==(const uintN_t& rhs) const noexcept = default;
+
+  MJZ_CX_FN std::optional<uintlen_t> floor_log2() const noexcept {
+    for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
+      uint64_t word = nth_word(i);
+      if (!word) continue;
+      return uintlen_t(log2_of_val_create(word)) + i * 64;
+    }
+    return {};
+  }
+  MJZ_CX_FN std::optional<uintlen_t> ceil_log2() const noexcept {
+    intlen_t i{intlen_t(word_count) - 1};
+    for (; 0 <= i; i--) {
+      uint64_t word = nth_word(i);
+      if (!word) continue;
+      uintlen_t awnser = uintlen_t(log2_of_val_create(word));
+      bool ceil_ = (uintlen_t(1) << awnser) != word;
+      awnser += i * 64;
+      i--;
+      for (; 0 <= i; i--) {
+        ceil_ |= !!nth_word(i);
+      }
+      awnser += ceil_;
+      return awnser;
+    }
+    return {};
+  }
+
+  MJZ_CX_FN uintN_t to_modulo_ret_devide(const uintN_t& rhs) noexcept {
+    uintN_t intermidiate{};
+    std::optional<uintlen_t> clog2_lhs_ = ceil_log2();
+    if (!clog2_lhs_) {
+      return intermidiate;
+    }
+    intlen_t clog2_lhs = intlen_t(*clog2_lhs_);
+    intlen_t flog2_rhs = intlen_t(*rhs.floor_log2());
+    intlen_t clog2_ret =
+        std::min<intlen_t>(intlen_t(n_bits - 1), clog2_lhs) - flog2_rhs;
+    if (clog2_ret < 0) {
+      return intermidiate;
+    }
+    uintN_t temp = rhs << uintlen_t(clog2_ret);
+    for (intlen_t i{clog2_ret}; 0 <= i; i--) {
+      bool is_bigger{temp <= *this};
+      intermidiate.set_nth_bit(i, is_bigger);
+      if (is_bigger) {
+        *this -= temp;
+      }
+      temp >>= 1;
+    }
+    return intermidiate;
+  }
+
+  MJZ_CX_FN uintN_t& operator%=(const uintN_t& rhs) noexcept {
+    to_modulo_ret_devide(rhs);
+    return *this;
+  }
+  MJZ_CX_FN uintN_t& operator/=(const uintN_t& rhs) noexcept {
+    return *this = to_modulo_ret_devide(rhs);
+  }
+  MJZ_CX_FN uintN_t& operator_assign_devide_up(const uintN_t& rhs) noexcept {
+    uintN_t temp = to_modulo_ret_devide(rhs);
+    temp.add(uintN_t(), *this != uintN_t());
+    return *this = temp;
+  }
+  MJZ_CX_FN friend uintN_t operator_devide_up(uintN_t x,
+                                              const uintN_t& y) noexcept {
+    x.operator_assign_devide_up(y);
+    return x;
+  }
+  MJZ_CX_FN explicit operator bool() const noexcept { return *this != 0; }
+
+  template <std::integral T>
+  MJZ_CX_FN explicit operator T() const noexcept {
+    static_assert(sizeof(T) <= sizeof(uint64_t));
+    return static_cast<T>(nth_word(0));
+  }
+
+  MJZ_CX_FN friend uintN_t operator&(uintN_t x, const uintN_t& y) noexcept {
+    x &= y;
+    return x;
+  }
+  MJZ_CX_FN friend uintN_t operator^(uintN_t x, const uintN_t& y) noexcept {
+    x ^= y;
+    return x;
+  }
+
+  MJZ_CX_FN friend uintN_t operator|(uintN_t x, const uintN_t& y) noexcept {
+    x |= y;
+    return x;
+  }
+
+  MJZ_CX_FN friend uintN_t operator<<(uintN_t x, uintlen_t y) noexcept {
+    x <<= y;
+    return x;
+  }
+
+  MJZ_CX_FN friend uintN_t operator>>(uintN_t x, uintlen_t y) noexcept {
+    x >>= y;
+    return x;
+  }
+
+  MJZ_CX_FN uintN_t operator~() const noexcept {
+    uintN_t x = *this;
+    x.flip();
+    return x;
+  }
+
+  MJZ_CX_FN uintN_t operator-() const noexcept {
+    uintN_t x = *this;
+    x.negate();
+    return x;
+  }
+
+  MJZ_CX_FN friend uintN_t operator+(uintN_t x, const uintN_t& y) noexcept {
+    x += y;
+    return x;
+  }
+
+  MJZ_CX_FN friend uintN_t operator-(uintN_t x, const uintN_t& y) noexcept {
+    x -= y;
+    return x;
+  }
+  MJZ_CX_FN friend uintN_t operator*(uintN_t x, const uintN_t& y) noexcept {
+    x *= y;
+    return x;
+  }
+  MJZ_CX_FN friend uintN_t operator/(uintN_t x, const uintN_t& y) noexcept {
+    x /= y;
+    return x;
+  }
+
+  MJZ_CX_FN friend uintN_t operator%(uintN_t x, const uintN_t& y) noexcept {
+    x %= y;
+    return x;
+  }
+
+  MJZ_CX_FN uintN_t& operator--() noexcept { return *this -= 1; }
+
+  MJZ_CX_FN uintN_t& operator++() noexcept { return *this += 1; }
+
+  MJZ_CX_FN uintN_t operator++(int) noexcept {
+    uintN_t temp{*this};
+    *this -= 1;
+    return temp;
+  }
+
+  MJZ_CX_FN uintN_t operator--(int) noexcept {
+    uintN_t temp{*this};
+    *this += 1;
+    return temp;
+  }
+};
+
+template <version_t version_v>
+struct devide_fast_t {
+  uint64_t devide_val{};
+  uint64_t inverse{};
+  MJZ_DEFAULTED_CLASS(devide_fast_t);
+  using uint128_t_mjz_ = uintN_t<version_v, 128>;
+  MJZ_CX_FN static uint64_t devide_with_inverse_impl_(
+      const uint64_t amount, const uint64_t inverse_) noexcept {
+    // https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B17/uint128_t.h
+    const uint64_t x = amount;
+    const uint64_t y = inverse_;
+    const uint64_t xl = x & 0xffffffff;
+    const uint64_t xh = x >> 32;
+    const uint64_t yl = y & 0xffffffff;
+    const uint64_t yh = y >> 32;
+    const uint64_t ll = xl * yl;
+    const uint64_t lh = xl * yh;
+    const uint64_t hl = xh * yl;
+    const uint64_t hh = xh * yh;
+    const uint64_t m = (ll >> 32) + lh + (hl & 0xffffffff);
+    const uint64_t h = (m >> 32) + (hl >> 32) + hh;
+    return h;
+  }
+
+  MJZ_CX_FN devide_fast_t(void_struct_t, uint64_t devidition_mount) noexcept
+      : devide_val(devidition_mount), inverse([devidition_mount]() noexcept {
+          asserts(asserts.assume_rn, 2 <= devidition_mount);
+          return uint64_t(operator_devide_up(uint128_t_mjz_{0, 1},
+                                             uint128_t_mjz_(devidition_mount)));
+        }()) {}
+  MJZ_CE_FN devide_fast_t(uint64_t devidition_mount) noexcept
+      : devide_fast_t(void_struct_t{}, devidition_mount) {}
+  MJZ_CX_FN friend uint64_t operator/(const uint64_t amount,
+                                      const devide_fast_t rhs) noexcept {
+    return devide_with_inverse_impl_(amount, rhs.inverse);
+  }
+  MJZ_CX_FN std::pair<uint64_t, uint64_t> divide_modulo(
+      const uint64_t amount) const noexcept {
+    const uint64_t value = devide_with_inverse_impl_(amount, inverse);
+    const uint64_t modulo = amount - value * devide_val;
+    return {value, modulo};
+  }
+};
+
+template <version_t version_v, uint64_t devidition_mount>
+  requires(!!devidition_mount)
+MJZ_CX_FN uint64_t devide_with_inverse(const uint64_t amount) noexcept {
+  if constexpr (devidition_mount == 1) {
+    return amount;
+  } else {
+    constexpr auto rhs = devide_fast_t<version_v>(devidition_mount);
+    return amount / rhs;
+  }
+}
+template <version_t version_v, bool shifts_before = true,
+          uintlen_t cached_count = 16>
+alignas(hardware_constructive_interference_size) static inline constexpr const
+    std::array<uint64_t, cached_count> math_helper_t_cached_vals_ =
+        []() noexcept {
+          std::array<uint64_t, cached_count> ret{};
+          for (uint64_t i{}; i < cached_count; i++) {
+            uint64_t rhs{};
+            if constexpr (shifts_before) {
+              rhs = (i + 1) * 2 + 1;
+            } else {
+              rhs = i + 2;
+            }
+            ret[i] = devide_fast_t<version_v>{void_struct_t{}, rhs}.inverse;
+          }
+          return ret;
+        }();
+
+template <version_t version_v, bool shifts_before = true,
+          uintlen_t cached_count = 16>
+struct math_helper_t_ {
+  MJZ_CX_FN static std::pair<uint64_t, uint64_t> divide_modulo(
+      const uint64_t lhs, const uint64_t rhs) noexcept {
+    asserts(asserts.assume_rn, rhs != 0);
+    constexpr auto&& cached_inverses =
+        math_helper_t_cached_vals_<version_v, shifts_before, cached_count>;
+    if constexpr (!shifts_before) {
+      if (rhs == 1) {
+        return {lhs, 0};
+      }
+      const uint64_t index_cache = rhs - 2;
+      if (cached_count <= index_cache) {
+        return {lhs / rhs, lhs % rhs};
+      }
+      devide_fast_t<version_v> div_{};
+      div_.devide_val = rhs;
+      div_.inverse = cached_inverses[index_cache];
+      return div_.divide_modulo(lhs);
+    }
+    const int num_zero_bits = std::countr_zero(rhs);
+    const uint64_t rhs_reduced = rhs >> num_zero_bits;
+    const uint64_t lhs_reduced = lhs >> num_zero_bits;
+    const uint64_t round_val = (lhs_reduced << num_zero_bits) ^ lhs;
+    if (rhs_reduced == 1) {
+      return {lhs_reduced, round_val};
+    }
+    const uint64_t index_cache = (rhs_reduced >> 1) - 1;
+    if (cached_count <= index_cache) {
+      return {lhs_reduced / rhs_reduced,
+              ((lhs_reduced % rhs_reduced) << num_zero_bits) + round_val};
+    }
+    devide_fast_t<version_v> div_{};
+    div_.devide_val = rhs_reduced;
+    div_.inverse = cached_inverses[index_cache];
+    auto [mul, r] = div_.divide_modulo(lhs_reduced);
+    return {mul, (r << num_zero_bits) + round_val};
+  }
+
+  MJZ_CX_ND_FN static std::pair<int64_t, int64_t> signed_divide_modulo(
+      int64_t lhs, int64_t rhs) noexcept {
+    bool is_neg = int(lhs < 0) != int(rhs < 0);
+    lhs = std::max(lhs, -lhs);
+    rhs = std::max(rhs, -rhs);
+    auto [mul, r] = divide_modulo(uint64_t(lhs), uint64_t(rhs));
+    lhs = int64_t(r);
+    rhs = int64_t(mul);
+    rhs = is_neg ? -rhs : rhs;
+    lhs = is_neg ? -lhs : lhs;
+    return {rhs, lhs};
+  }
+};
+
+template <version_t version_v, uint64_t ...exclude_>
+struct exclusive_math_helper_t_ {
+
+   template <devide_fast_t<version_v> rhs_v>
+   MJZ_CX_FN static bool divide_modulo_impl(std::pair<uint64_t,uint64_t>&ret,
+                                           const uint64_t lhs,
+                                           const uint64_t rhs) noexcept {
+    if (rhs != rhs_v.devide_val) {
+       return false;
+    }
+    if constexpr (std::has_single_bit(rhs_v.devide_val)) {
+      ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v.devide_val,
+                                          lhs % rhs_v.devide_val};
+      return true;
+    }
+    ret = rhs_v.divide_modulo(lhs);
+    return true;
+  }
+
+  MJZ_CX_FN static std::pair<uint64_t, uint64_t> divide_modulo(
+      const uint64_t lhs, const uint64_t rhs) noexcept {
+    std::pair<uint64_t, uint64_t> ret{};
+    if ((divide_modulo_impl<exclude_>(ret, lhs, rhs)||...)) return ret;
+    return {lhs / rhs, lhs % rhs};
+  }
+  MJZ_CX_ND_FN static std::pair<int64_t, int64_t> signed_divide_modulo(
+      int64_t lhs, int64_t rhs) noexcept {
+    bool is_neg = int(lhs < 0) != int(rhs < 0);
+    lhs = std::max(lhs, -lhs);
+    rhs = std::max(rhs, -rhs);
+    auto [mul, r] = divide_modulo(uint64_t(lhs), uint64_t(rhs));
+    lhs = int64_t(r);
+    rhs = int64_t(mul);
+    rhs = is_neg ? -rhs : rhs;
+    lhs = is_neg ? -lhs : lhs;
+    return {rhs, lhs};
+  }
+};
+template <version_t version_v> 
+using parse_math_helper_t_=exclusive_math_helper_t_<version_v, 10, 2, 4, 8, 16, 32>;
+  template <version_t version_v = version_t{}>
+struct big_float_t : parse_math_helper_t_<version_v> {
+  using parse_math_helper_t_<version_v>::divide_modulo;
+  using  parse_math_helper_t_<version_v>::signed_divide_modulo;
   template <class>
   friend class mjz_private_accessed_t;
-
+  
  private:
   template <std::floating_point T>
   MJZ_CX_FN static std::optional<bit_range_t> get_sign_range() noexcept {
@@ -124,7 +665,7 @@ struct big_float_t {
   }
   template <std::floating_point T>
   MJZ_CX_FN static std::optional<bool> set_exponent_get_normaity(
-      MJZ_MAYBE_UNUSED T &val, int64_t exp) noexcept {
+      MJZ_MAYBE_UNUSED T& val, int64_t exp) noexcept {
     constexpr std::optional<bit_range_t> exp_range =
         get_exponent_bit_range<T>();
     if constexpr (!exp_range) {
@@ -245,7 +786,7 @@ struct big_float_t {
       uint64_t i{coeffient_range->i + ip};
       uint8_t bit = uint8_t(uint8_t(1) << (i % 8));
       bool bit_on = !!(uint64_t(m_coeffient) & (uint64_t(1) << (ip)));
-      char &c = a[uintptr_t(i / 8)];
+      char& c = a[uintptr_t(i / 8)];
       c &= ~bit;
       c |= char(bit_on ? bit : uint8_t());
     }
@@ -286,7 +827,7 @@ struct big_float_t {
                                                   big_float_t rhs) noexcept {
     if (!lhs.m_coeffient) return rhs;
     if (!rhs.m_coeffient) return lhs;
-    auto f = [](big_float_t &hs) noexcept {
+    auto f = [](big_float_t& hs) noexcept {
       bool is_neg{};
       if (hs.m_coeffient < 0) {
         is_neg = true;
@@ -295,12 +836,12 @@ struct big_float_t {
       hs.normalize<61>();
       return std::tuple(is_neg, uint64_t(hs.m_coeffient), hs.m_exponent);
     };
-    //https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
+    // https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
     auto sb1_ = f(rhs);
     auto sb2_ = f(lhs);
     auto fn = [&]() noexcept {
-      auto &&[r_ng, r_ce, r_xp] = sb1_;
-      auto &&[l_ng, l_ce, l_xp] = sb2_; 
+      auto&& [r_ng, r_ce, r_xp] = sb1_;
+      auto&& [l_ng, l_ce, l_xp] = sb2_;
       int64_t delta = l_xp - r_xp;
       if (delta < 64) {
         r_ce >>= delta;
@@ -314,8 +855,8 @@ struct big_float_t {
       ret.m_exponent = int64_t(l_xp);
       return ret;
     };
-    auto &&[r_ng, r_ce, r_xp] = sb1_;
-    auto &&[l_ng, l_ce, l_xp] = sb2_; 
+    auto&& [r_ng, r_ce, r_xp] = sb1_;
+    auto&& [l_ng, l_ce, l_xp] = sb2_;
     if (r_xp < l_xp) {
       return fn();
     }
@@ -393,9 +934,9 @@ struct big_float_t {
     lhs.normalize<62>();
     rhs.normalize<32>();
 
-    int64_t round((rhs.m_coeffient >> 1) <=
-                  (lhs.m_coeffient % rhs.m_coeffient));
-    lhs.m_coeffient /= rhs.m_coeffient;
+    auto [coff_, rem_] = signed_divide_modulo(lhs.m_coeffient, rhs.m_coeffient);
+    int64_t round((rhs.m_coeffient >> 1) <= (rem_));
+    lhs.m_coeffient = coff_;
     lhs.m_coeffient += round;
     lhs.m_coeffient = is_neg ? -lhs.m_coeffient : lhs.m_coeffient;
     lhs.m_exponent -= rhs.m_exponent;
@@ -483,7 +1024,7 @@ struct big_float_t {
   }
 
   MJZ_CX_FN std::strong_ordering operator<=>(
-      const big_float_t &lhs) const noexcept {
+      const big_float_t& lhs) const noexcept {
     auto r = add(*this, -lhs);
     return r->m_coeffient <=> int64_t(0);
   }
@@ -492,7 +1033,7 @@ struct big_float_t {
     return (!!rhs && !!lhs) ? (*rhs == *lhs) : nullopt;
   }
 
-  MJZ_CX_FN bool operator==(const big_float_t &lhs) const noexcept {
+  MJZ_CX_FN bool operator==(const big_float_t& lhs) const noexcept {
     auto r = add(*this, -lhs);
     return r->m_coeffient == int64_t(0);
   }
@@ -512,7 +1053,7 @@ struct big_float_t {
       is_negative = true;
       ret.m_coeffient = -ret.m_coeffient;
     }
-    int64_t &exponent = ret.m_exponent;
+    int64_t& exponent = ret.m_exponent;
     constexpr uint64_t sign_bit = ~(uint64_t(-1) >> 1);
     uint64_t integral_coeffient{uint64_t(ret.m_coeffient)};
     while (!(integral_coeffient & sign_bit) && integral_coeffient && exponent) {
@@ -542,7 +1083,8 @@ struct big_float_t {
     big_float_t fractionic_val{};
     int64_t ceil_log2 = log2_ceil_of_val_create(uint64_t(me.m_coeffient)) +
                         int64_t(me.m_exponent);
-    ceil_log = ceil_log2 / log2_of_val_create(exp_base);
+    ceil_log =
+        signed_divide_modulo(ceil_log2, log2_of_val_create(exp_base)).first;
     uint64_t pow = uint64_t(ceil_log < 0 ? -ceil_log : ceil_log);
 
     big_float_t one = big_float_t::float_from_i(1);
@@ -763,6 +1305,5 @@ template <std::floating_point f_t>
 MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
   return f_t(x);
 }
-
 }  // namespace mjz
 #endif  // MJZ_MATHS_LIB_HPP_FILE_
