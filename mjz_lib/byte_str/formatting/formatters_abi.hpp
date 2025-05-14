@@ -62,7 +62,7 @@ struct basic_format_specs_format_fn_obj_t {
   bool add_preffix{};
   bool check_neg{};
   uint8_t my_type{};
-  byte_traits_t<version_t{}> bt{};
+  byte_traits_t<version_v> bt{};
 };
 template <version_t version_v>
 struct basic_format_specs_t {

@@ -25,8 +25,8 @@ SOFTWARE.
 #define MJZ_RELEASER_LIB_HPP_FILE_
 #include <array>
 #include <bit>
-#include<optional>
 #include <concepts>
+#include <optional>
 namespace mjz {
 template <class unique_accessor_id_t>
 class mjz_private_accessed_t {};
@@ -139,8 +139,9 @@ using uint_sizeof_t =
     type_at_index_t<size_of_myt, uint8_t, uint8_t, uint16_t, uint32_t, uint32_t,
                     uint64_t, uint64_t, uint64_t, uint64_t>;
 template <size_t S>
-using uint_size_of_t = uint_sizeof_t<S>; 
-/*this actually performas better in general cases than forced_branchless_teranary  */
+using uint_size_of_t = uint_sizeof_t<S>;
+/*this actually performas better in general cases than
+ * forced_branchless_teranary  */
 template <class T>
 MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
                                  const T &then_val,
@@ -152,8 +153,8 @@ MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
 
 template <class T>
 MJZ_CX_FN T(forced_branchless_teranary)(std::same_as<bool> auto if_expression,
-                                 const T &then_val,
-                                 const T &else_val) noexcept {
+                                        const T &then_val,
+                                        const T &else_val) noexcept {
   return alias_t<T[2]>{else_val, then_val}[if_expression];
 }
 
@@ -172,7 +173,8 @@ MJZ_CX_AL_ND_FN static uint8_t log2_ceil_of_val_create(
   requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
 {
   auto log2v = log2_of_val_create(val);
-  return uint8_t(uint64_t(log2v) +
+  return uint8_t(
+      uint64_t(log2v) +
       uint64_t(int(log2_of_val_to_val(log2v) != uint64_t(val)) & int(!!val)));
 }
 
@@ -314,24 +316,18 @@ MJZ_CX_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
     std::forward<Lmabda_t>(code)();
     return true;
   } else {
-    MJZ_COMMENT("compiler code  is  noexcept.   ");
-    MJZ_IF_CONSTEVAL {
-      std::forward<Lmabda_t>(code)();
-      return true;
-    }
-    else {
-      MJZ_DISABLE_ALL_WANINGS_START_;
+    MJZ_DISABLE_ALL_WANINGS_START_;
 #if MJZ_CATCHES_EXCEPTIONS_
-      try {
-        std::forward<Lmabda_t>(code)();
-      } catch (...) {
-        return false;
-      }
-#else
+    try {
       std::forward<Lmabda_t>(code)();
-#endif
-      MJZ_DISABLE_ALL_WANINGS_END_;
+    } catch (...) {
+      return false;
     }
+#else
+    std::forward<Lmabda_t>(code)();
+#endif
+    MJZ_DISABLE_ALL_WANINGS_END_;
+
     return true;
   }
 }
