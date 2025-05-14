@@ -47,7 +47,7 @@ template <version_t version_v, is_tuple_c T_>
 struct default_formatter_t<version_v, T_, 60> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using T = std::remove_cvref_t<T_>;
   MJZ_CONSTANT(bool) a_tuple_thingy_v { true };
   using sview = static_string_view_t<version_v>;
@@ -135,7 +135,7 @@ struct default_formatter_t<version_v, T_, 60> {
     if (ch && *ch == 'n') {
       open_braket = sview("");
       close_braket = sview("");
-      if (!ctx.advance_amount(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
       ch = ctx.front();
     }
     if (is_m || (ch && *ch == 'm')) {
@@ -151,7 +151,7 @@ struct default_formatter_t<version_v, T_, 60> {
       close_braket = sview("");
       separator = sview(": ");
       if (!is_m) {
-        if (!ctx.advance_amount(1)) return nullptr;
+        if (!ctx.unchecked_advance_amount_(1)) return nullptr;
         ch = ctx.front();
       }
     }
@@ -159,7 +159,7 @@ struct default_formatter_t<version_v, T_, 60> {
       open_braket = sview("");
       close_braket = sview("");
       separator = sview("");
-      if (!ctx.advance_amount(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
       ch = ctx.front();
     }
 
@@ -174,7 +174,7 @@ struct default_formatter_t<version_v, T_, 60> {
           }
           bool had_scope{};
           if (ch == '{') {
-            if (!ctx.advance_amount(1)) return false;
+            if (!ctx.unchecked_advance_amount_(1)) return false;
             ch = ctx.front();
             had_scope = true;
           }
@@ -187,7 +187,7 @@ struct default_formatter_t<version_v, T_, 60> {
             return false;
           }
           if (had_scope) {
-            if (!ctx.advance_amount(1)) return false;
+            if (!ctx.unchecked_advance_amount_(1)) return false;
           }
           return true;
         }))
@@ -239,6 +239,7 @@ struct default_formatter_t<version_v, T, 50> {
   MJZ_CONSTANT(bool)
   no_perfect_forwarding_v = std::is_const_v<CT_range>;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using sview = static_string_view_t<version_v>;
   using view = basic_string_view_t<version_v>;
   using value_t =
@@ -286,7 +287,7 @@ struct default_formatter_t<version_v, T, 50> {
     if (ch && *ch == 'n') {
       open_braket = sview("");
       close_braket = sview("");
-      if (!ctx.advance_amount(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
       ch = ctx.front();
     }
     if (ch && *ch == 'm') {
@@ -307,18 +308,18 @@ struct default_formatter_t<version_v, T, 50> {
 
       open_braket = sview("{");
       close_braket = sview("}");
-      if (!ctx.advance_amount(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
       ch = ctx.front();
     }
     if (ch && *ch == 's') {
       open_braket = sview("");
       close_braket = sview("");
       separator = sview("");
-      if (!ctx.advance_amount(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
       ch = ctx.front();
     }
     if (ch && *ch == ':') {
-      if (!ctx.advance_amount(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
       ch = ctx.front();
     } else if (ch && *ch != '}') {
       ctx.as_error(
@@ -406,6 +407,7 @@ template <version_t version_v, typename T>
 struct default_formatter_t<version_v, T, 40> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   // this is an empty forwarding implementation
   using decay_optimize_to_t =
       std::span<std::remove_reference_t<typename decltype(std::span(

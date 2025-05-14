@@ -33,6 +33,7 @@ template <version_t version_v, partial_same_as<void_struct_t> T>
 struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
       parse_context_t<version_v> &ctx) noexcept {
     return ctx.begin();
@@ -170,6 +171,7 @@ template <version_t version_v, uses_basic_spec_c<version_v> T>
 struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using decay_optimize_to_t = std::conditional_t<
       std::is_pointer_v<std::remove_cvref_t<T>> ||
           partial_same_as<nullptr_t, T>,
@@ -210,6 +212,7 @@ template <version_t version_v, class T>
 struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
 
   using decay_optimize_to_t = base_string_view_arg_t<version_v>;
   basic_format_specs_t<version_v> data{};

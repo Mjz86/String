@@ -50,6 +50,7 @@ template <version_t version_v, typename T>
 struct default_formatter_t<version_v, T, 15> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using sview_t = static_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   view_t input{};

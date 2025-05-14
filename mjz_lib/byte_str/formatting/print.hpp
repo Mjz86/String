@@ -137,21 +137,21 @@ struct print_t {
     };
     format_obj_t &obj{*ptr_};
     success_t succuss = format_fn.run(obj, out);
-    base_out_it_t<version_v> out_it = obj.context_data.format_context.out();
+    base_out_it_t<version_v> out_it = obj.main_ctx().format_ctx().out();
     if (meta_data_.has_new_line) {
       base_out_it_t<version_v>(out_it).push_back('\n', encodings_e::ascii);
     }
     if (succuss && out_it.flush_buffer()) return status_view_t<version_v>{};
     status_view_t<version_v> err_view{};
-    err_view.unsafe_handle() = obj.base_context.err_content.unsafe_handle();
+    err_view.unsafe_handle() = obj.main_ctx().base_ctx().err_content.unsafe_handle();
     if (err_view) {
       err_view =
           "[Error]status_view_t<version_v>print_t::format_to: failed to output";
       return err_view;
     }
     if (!meta_data_.log_print_failure) return err_view;
-    basic_string_view_t<version_v> format_text = obj.base_context.format_string;
-    uintlen_t index = obj.base_context.err_index;
+    basic_string_view_t<version_v> format_text = obj.base_ctx().format_string;
+    uintlen_t index = obj.base_ctx().err_index;
     obj.reset();
     out_errored_it_t<version_v> err_it{};
     err_it.it = out_it;

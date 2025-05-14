@@ -43,95 +43,96 @@ namespace mjz ::bstr_ns::format_ns {
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_context_t<version_v>::parse_starting_ulen() noexcept {
-  if (encoding() != encodings_e::ascii) {
-    as_error(
-        "[Error]parse_starting_ulen:only ascii is suppoerted!(note that this "
-        "may change in later versions)");
-    return nullopt;
-  }
-  if (!front()) {
-    as_error("[Error]parse_starting_ulen:expected an unsigned integer");
-    return nullopt;
-  }
+  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      as_error(
+          "[Error]parse_starting_ulen:only ascii is suppoerted!(note that this "
+          "may change in later versions)");
+      return nullopt;
+    }
+  if (!front()) MJZ_IS_UNLIKELY {
+      as_error("[Error]parse_starting_ulen:expected an unsigned integer");
+      return nullopt;
+    }
 
   constexpr auto max_val = uintlen_t(std::numeric_limits<intlen_t>::max());
   constexpr auto before_max_val = max_val / uintlen_t(10);
   uintlen_t value{};
   for (auto digit = front(); digit && '0' <= *digit && *digit <= '9';
-       advance_amount(1), digit = front()) {
+       unchecked_advance_amount_(1), digit = front()) {
     if (value > before_max_val) {
       value = max_val + 1;
       break;
     }
     value = value * 10 + uintlen_t(*digit - '0');
   }
-  if (value > max_val) {
-    as_error("[Error]parse_starting_ulen:too many digits,big number!");
-    return nullopt;
-  }
+  if (value > max_val) MJZ_IS_UNLIKELY {
+      as_error("[Error]parse_starting_ulen:too many digits,big number!");
+      return nullopt;
+    }
   return value;
 }
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<hash_bytes_t<version_v>>
 parse_context_t<version_v>::parse_starting_name() noexcept {
-  if (encoding() != encodings_e::ascii) {
-    as_error(
-        "[Error]parse_starting_name:only ascii is suppoerted!(note that this "
-        "may change in later versions)");
-    return nullopt;
-  }
-  if (!front()) {
-    as_error("[Error]parse_starting_name:expected a name");
-    return nullopt;
-  }
+  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      as_error(
+          "[Error]parse_starting_name:only ascii is suppoerted!(note that this "
+          "may change in later versions)");
+      return nullopt;
+    }
+  if (!front()) MJZ_IS_UNLIKELY {
+      as_error("[Error]parse_starting_name:expected a name");
+      return nullopt;
+    }
 
   uintlen_t name_len{};
   for (auto digit = at(name_len); digit && !(*digit == '}' || *digit == ':' ||
                                              *digit == ';' || *digit == ']');
        name_len++, digit = at(name_len)) {
   }
-  view_t name = remaining_format_string.make_subview(0, name_len);
-  if (!advance_amount(name_len)) {
-    as_error("[Error]parse_starting_name:expected an ending to name");
-    return nullopt;
-  }
+  view_t name = view().make_subview(0, name_len);
+  if (!advance_amount(name_len)) MJZ_IS_UNLIKELY {
+      as_error("[Error]parse_starting_name:expected an ending to name");
+      return nullopt;
+    }
   hash_bytes_t<version_v> ret(name.data(), name.length());
   return hash_bytes_t<version_v>{ret};
 }
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_context_t<version_v>::parse_arg_index() noexcept {
-  if (encoding() != encodings_e::ascii) {
-    as_error(
-        "[Error]parse_arg_index:only ascii is suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return nullopt;
-  }
+  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      as_error(
+          "[Error]parse_arg_index:only ascii is suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return nullopt;
+    }
   auto charechter = front();
   if (!charechter || *charechter == '}' || *charechter == ':' ||
       *charechter == ';') {
     return next_arg_id();
   }
-  if (*charechter < '0' && *charechter > '9') {
-    as_error("[Error]parse_arg_index:expected an integer for id");
-    return nullopt;
-  }
+  if (*charechter < '0' && *charechter > '9') MJZ_IS_UNLIKELY {
+      as_error("[Error]parse_arg_index:expected an integer for id");
+      return nullopt;
+    }
   uintlen_t id{};
   if (*charechter != '0') {
     auto id_ = parse_starting_ulen();
     if (!id_) return nullopt;
     id = *id_;
   } else {
-    if (!advance_amount(1)) return nullopt;
+    if (!unchecked_advance_amount_(1)) return nullopt;
   }
   charechter = front();
   if (charechter && *charechter != '}' && *charechter != ':' &&
-      *charechter != ';') {
-    as_error("[Error]parse_arg_index:expected an ending for id");
-    return nullopt;
-  }
+      *charechter != ';')
+    MJZ_IS_UNLIKELY {
+      as_error("[Error]parse_arg_index:expected an ending for id");
+      return nullopt;
+    }
   if (!check_arg_id(id)) {
     return nullopt;
   }
@@ -141,18 +142,12 @@ parse_context_t<version_v>::parse_arg_index() noexcept {
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::find_name_index(
     hash_bytes_t<version_v> name, view_t name_str) noexcept {
-  if (!base.parse_and_format_data_ptr) {
-    as_error(
-        "[Error]find_name_index:unexpected intanceiation of parse_context_t "
-        "outside parse_and_format_data_t");
-    return nullopt;
-  }
-  MJZ_RELEASE { base.name_ptr = nullptr; };
+  MJZ_RELEASE { main_ctx().name_ptr = nullptr; };
   typename base_context_t<version_v>::name_t name_v{name, name_str};
-  base.name_ptr = &name_v;
-  for (uintlen_t i{}; i < base.number_of_args; i++) {
-    if (!base.parse_and_format_call_at(i)) return nullopt;
-    if (&name_v != base.name_ptr) return i;
+  main_ctx().name_ptr = &name_v;
+  for (uintlen_t i{}; i < main_ctx().number_of_args; i++) {
+    if (!main_ctx().parse_and_format_call_at(i)) return nullopt;
+    if (&name_v != main_ctx().name_ptr) return i;
   }
   if (parse_only()) {
     as_error(
@@ -169,13 +164,13 @@ MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::find_name_index(
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_context_t<version_v>::parse_arg_id() noexcept {
-  if (encoding() != encodings_e::ascii) {
-    as_error(
-        "[Error]parse_arg_id:only ascii is suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return nullopt;
-  }
+  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      as_error(
+          "[Error]parse_arg_id:only ascii is suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return nullopt;
+    }
   auto charechter = front();
   if (!charechter || *charechter == '}' || *charechter == ':' ||
       *charechter == ';') {
@@ -188,10 +183,10 @@ parse_context_t<version_v>::parse_arg_id() noexcept {
     if (!ret) return nullopt;
     return *ret;
   }
-  view_t name_str = remaining_format_string;
+  view_t name_str = view();
   auto name = parse_starting_name();
   if (!name) return nullopt;
-  auto name_len = uintlen_t(remaining_format_string.data() - name_str.data());
+  auto name_len = uintlen_t(data_left() - name_str.data());
   std::ignore = name_str.as_subview(0, name_len);
 
   auto ret = find_name_index(*name, name_str);
@@ -201,29 +196,30 @@ parse_context_t<version_v>::parse_arg_id() noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
-  if (parse_context.encoding() != encodings_e::ascii) {
-    format_context.as_error(
-        "[Error]parse_format_replacement_field:only ascii is "
-        "suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return false;
-  }
-  auto charechter = parse_context.front();
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]parse_format_replacement_field:only ascii is "
+          "suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return false;
+    }
+  auto charechter = parse_ctx().front();
   if (charechter == '{') {
-    return parse_context.advance_amount(1) && append_text(sview_t{"{"});
+    return parse_ctx().unchecked_advance_amount_(1) &&
+           append_text(sview_t{"{"});
   }
   if (!charechter || *charechter == '}') {
     // string was "{}", and we have a replacement field
-    auto id = parse_context.next_arg_id();
+    auto id = parse_ctx().next_arg_id();
     return id && call_argument_formatter(*id);
   }
-  auto id = parse_context.parse_arg_id();
+  auto id = parse_ctx().parse_arg_id();
   if (!id) return false;
-  charechter = parse_context.front();
+  charechter = parse_ctx().front();
   std::optional<sub_out_iter_t<version_v>> outer_sub_out_it{};
   std::optional<sub_out_iter_t<version_v>> inner_sub_out_it{};
-  auto &actual_out = format_context.output_it;
+  auto &actual_out = main_ctx().output_it;
   // this is the output iterator before all of the optional wrapping takes
   // place.
   out_it_t actual_out_buf = actual_out;
@@ -232,16 +228,17 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
     if (has_filter) actual_out = actual_out_buf;
   };
   if (charechter && *charechter == ';') {
-    base_context.recursion_depth++;
-    if (base_context.max_recursion_depth < base_context.recursion_depth) {
-      format_context.as_error(
-          "[Error]parse_format_replacement_field:max "
-          "recursion depth reached try "
-          "reducing the nested filters");
-      return false;
-    }
+    base_ctx().recursion_depth++;
+    if (base_ctx().max_recursion_depth < base_ctx().recursion_depth)
+      MJZ_IS_UNLIKELY {
+        format_ctx().as_error(
+            "[Error]parse_format_replacement_field:max "
+            "recursion depth reached try "
+            "reducing the nested filters");
+        return false;
+      }
     has_filter = true;
-    if (!parse_context.advance_amount(1)) return false;
+    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
     outer_sub_out_it = call_slice_parse_filter();
     if (!outer_sub_out_it) return false;
     if (*outer_sub_out_it) {
@@ -253,26 +250,28 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
     if (*inner_sub_out_it) {
       actual_out = out_it_t(*inner_sub_out_it);
     }
-    charechter = parse_context.front();
-    if (charechter && *charechter != ':') {
-      format_context.as_error(
-          "[Error]parse_format_replacement_field:unexpected symbol as ending "
-          "of "
-          "filter  note that ONLY "
-          "{ID;[outer_slice]restricted_format_strings...[inner_slice]:SPEC} is "
-          "valid ");
-      return false;
-    }
+    charechter = parse_ctx().front();
+    if (charechter && *charechter != ':') MJZ_IS_UNLIKELY {
+        format_ctx().as_error(
+            "[Error]parse_format_replacement_field:unexpected symbol as ending "
+            "of "
+            "filter  note that ONLY "
+            "{ID;[outer_slice]restricted_format_strings...[inner_slice]:SPEC} "
+            "is "
+            "valid ");
+        return false;
+      }
   }
-  charechter = parse_context.front();
+  charechter = parse_ctx().front();
   if (charechter && *charechter == ':') {
-    return parse_context.advance_amount(1) && call_argument_formatter(*id);
+    return parse_ctx().unchecked_advance_amount_(1) &&
+           call_argument_formatter(*id);
   }
-  if (!charechter || *charechter == '}') {
-    return call_argument_formatter(*id);
-  }
+  if (!charechter || *charechter == '}') MJZ_IS_LIKELY {
+      return call_argument_formatter(*id);
+    }
 
-  format_context.as_error(
+  format_ctx().as_error(
       "[Error]parse_format_replacement_field:expected an replacement field "
       "end");
   return false;
@@ -281,31 +280,37 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
-  if (parse_context.encoding() != encodings_e::ascii) {
-    format_context.as_error(
-        "[Error]parse_formating_string:only ascii is suppoerted!(note "
-        "that this "
-        "may change in later versions)");
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]parse_formating_string:only ascii is suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return false;
+    }
+  base_ctx().buf_view.encoding = base_ctx().format_string.get_encoding();
+  base_ctx().buf_view.length = 0;
+  if (!format_ctx().advance_to(format_ctx().out())) {
     return false;
   }
-
-  out_it_t /*the  copy is intentional */ output = format_context.out();
+  out_it_t /*the  copy is intentional */ output = format_ctx().out();
   MJZ_RELEASE {
-    if (format_context) {
-      format_context.advance_to(output);
+    if (format_ctx()) {
+      format_ctx().advance_to(output);
     }
   };
-  if (!parse_context.parse_only() &&
-      !output.reserve(base_context.format_string.length(),
-                      format_context.encoding())) {
-    parse_context.as_error(
-        "[Error]parse_formating_string: could't reserve an aproximation of the "
-        "output buffer");
-    return false;
-  }
-  for (auto charechter = parse_context.front(); output && charechter;
-       charechter = parse_context.front()) {
-    view_t remains = parse_context.remaining_format_string;
+  if (!parse_ctx().parse_only() &&
+      !output.reserve(base_ctx().format_string.length(),
+                      format_ctx().encoding()))
+    MJZ_IS_UNLIKELY {
+      parse_ctx().as_error(
+          "[Error]parse_formating_string: could't reserve an aproximation of "
+          "the "
+          "output buffer");
+      return false;
+    }
+  for (auto charechter = parse_ctx().front(); output && charechter;
+       charechter = parse_ctx().front()) {
+    view_t remains = parse_ctx().view();
     const char *ptr = remains.data();
     const char *end = remains.data() + remains.length();
     for (;;) {
@@ -315,48 +320,48 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
     uintlen_t braket_location = uintlen_t(ptr - remains.data());
     std::ignore =
         output.append(remains.make_subview(0, braket_location).unsafe_handle());
-    std::ignore = parse_context.advance_amount(braket_location);
+    std::ignore = parse_ctx().unchecked_advance_amount_(braket_location);
     if (ptr == end) break;
     charechter = *ptr;
-    if (!parse_context.advance_amount(1)) return false;
+    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
     if (*charechter == '{') {
       if (!parse_format_replacement_field()) return false;
       // the output must match the original to avoid conflicts
-      format_context.advance_to(output);
+      format_ctx().advance_to(output);
       continue;
     }
     asserts(asserts.assume_rn, *charechter == '}');
-    auto c = parse_context.front();
-    if (!c || *c != '}') {
-      parse_context.as_error(
-          "[Error]parse_formating_string: unmatched '}' , expected '}' "
-          "here "
-          "as an escape sequence");
-      return false;
-    }
-    if (!parse_context.advance_amount(1)) return false;
-    output.push_back('}', parse_context.encoding());
+    auto c = parse_ctx().front();
+    if (!c || *c != '}') MJZ_IS_UNLIKELY {
+        parse_ctx().as_error(
+            "[Error]parse_formating_string: unmatched '}' , expected '}' "
+            "here "
+            "as an escape sequence");
+        return false;
+      }
+    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
+    output.push_back('}', parse_ctx().encoding());
   }
-  return output && !base_context.err_content;
+  return output && !base_ctx().err_content;
 }
 
 template <version_t version_v>
 MJZ_CX_FN success_t parse_and_format_data_t<version_v>::parse_formating_filter(
     bool &has_filter) noexcept {
-  if (parse_context.encoding() != encodings_e::ascii) {
-    format_context.as_error(
-        "[Error]parse_formating_filter:only ascii is suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return false;
-  }
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]parse_formating_filter:only ascii is suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return false;
+    }
 
   out_it_t
       & /*the  ref is intentional, we want propgation of output iterators */
-          output = format_context.output_it;
-  for (auto charechter = parse_context.front(); output && charechter;
-       charechter = parse_context.front()) {
-    view_t remains = parse_context.remaining_format_string;
+          output = main_ctx().output_it;
+  for (auto charechter = parse_ctx().front(); output && charechter;
+       charechter = parse_ctx().front()) {
+    view_t remains = parse_ctx().view();
     const char *ptr = remains.data();
     const char *end = remains.data() + remains.length();
     for (;;) {
@@ -368,206 +373,206 @@ MJZ_CX_FN success_t parse_and_format_data_t<version_v>::parse_formating_filter(
     uintlen_t braket_location = uintlen_t(ptr - remains.data());
     std::ignore =
         output.append(remains.make_subview(0, braket_location).unsafe_handle());
-    std::ignore = parse_context.advance_amount(braket_location);
+    std::ignore = parse_ctx().unchecked_advance_amount_(braket_location);
     if (ptr == end) break;
     charechter = *ptr;
     // [[=>[ or ]]=>] as escape of slices and :: to secape : beacaue ':' is used
     // as the terminator of the filter
     if (*charechter == '[' || *charechter == ']' || *charechter == ':') {
-      std::optional<char> escape{parse_context.at(1)};
-      if (!escape) {
-        parse_context.as_error(
-            "[Error]parse_formating_filter: slice vs terminator vs text "
-            "ambigouity");
-        return false;
-      }
+      std::optional<char> escape{parse_ctx().at(1)};
+      if (!escape) MJZ_IS_UNLIKELY {
+          parse_ctx().as_error(
+              "[Error]parse_formating_filter: slice vs terminator vs text "
+              "ambigouity");
+          return false;
+        }
       if (*charechter != *escape) {
         has_filter = false;
         // go and parse the slice
         return true;
       }
-      if (!parse_context.advance_amount(2)) return false;
-      output.push_back(*escape, parse_context.encoding());
+      if (!parse_ctx().unchecked_advance_amount_(2)) return false;
+      output.push_back(*escape, parse_ctx().encoding());
       continue;
     }
-    if (!parse_context.advance_amount(1)) return false;
+    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
     if (*charechter == '{') {
       if (!parse_format_replacement_field()) return false;
       continue;
     }
     asserts(asserts.assume_rn, *charechter == '}');
-    auto c = parse_context.front();
-    if (!c || *c != '}') {
-      parse_context.as_error(
-          "[Error]parse_formating_filter: unmatched '}' , expected '}' "
-          "here "
-          "as an escape sequence");
-      return false;
-    }
-    if (!parse_context.advance_amount(1)) return false;
-    output.push_back('}', parse_context.encoding());
+    auto c = parse_ctx().front();
+    if (!c || *c != '}') MJZ_IS_UNLIKELY {
+        parse_ctx().as_error(
+            "[Error]parse_formating_filter: unmatched '}' , expected '}' "
+            "here "
+            "as an escape sequence");
+        return false;
+      }
+    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
+    output.push_back('}', parse_ctx().encoding());
   }
-  return output && !base_context.err_content;
+  return output && !base_ctx().err_content;
 }
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_and_format_data_t<version_v>::get_parse_filter_numeric(
     uintlen_t defult) noexcept {
-  if (parse_context.encoding() != encodings_e::ascii) {
-    format_context.as_error(
-        "[Error]get_parse_filter_numeric:only ascii is "
-        "suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return nullopt;
-  }
-  auto charechter = parse_context.front();
-  if (!charechter) {
-    format_context.as_error(
-        "[Error]get_parse_filter_numeric:unexpected end of feild");
-    return nullopt;
-  }
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]get_parse_filter_numeric:only ascii is "
+          "suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return nullopt;
+    }
+  auto charechter = parse_ctx().front();
+  if (!charechter) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]get_parse_filter_numeric:unexpected end of feild");
+      return nullopt;
+    }
   std::optional<uintlen_t> ret{};
   if ('0' <= *charechter && *charechter <= '9') {
-    return parse_context.parse_starting_ulen();
+    return parse_ctx().parse_starting_ulen();
   }
   if (*charechter != '{') return defult;
-  if (!parse_context.advance_amount(1)) return nullopt;
-  auto ret_id = parse_context.parse_arg_id();
+  if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+  auto ret_id = parse_ctx().parse_arg_id();
   if (!ret_id) return nullopt;
-  charechter = parse_context.front();
-  if (!charechter || *charechter != '}') {
-    format_context.as_error(
-        "[Error]get_parse_filter_numeric:expected '}' for the dynamic "
-        "filter_numeric argument id end");
-    return nullopt;
-  }
-  if (!parse_context.advance_amount(1)) return nullopt;
-  if (!parse_context.type_v(*ret_id)
-           .template is_one_of_xcr<uint8_t, uint16_t, uint32_t, uintlen_t>()) {
-    format_context.as_error(
-        "[Error]basic_format_specs_t::get_parse_filter_numeric():invalid "
-        "dynamic filter_numeric "
-        "type(must be unsigned integral (of type uintlen_t))");
-    return nullopt;
-  }
-  if (!parse_context.parse_only() &&
-      !format_context.arg(*ret_id)
+  charechter = parse_ctx().front();
+  if (!charechter || *charechter != '}') MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]get_parse_filter_numeric:expected '}' for the dynamic "
+          "filter_numeric argument id end");
+      return nullopt;
+    }
+  if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+  if (!parse_ctx()
+           .type_v(*ret_id)
+           .template is_one_of_xcr<uint8_t, uint16_t, uint32_t, uintlen_t>())
+    MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]basic_format_specs_t::get_parse_filter_numeric():invalid "
+          "dynamic filter_numeric "
+          "type(must be unsigned integral (of type uintlen_t))");
+      return nullopt;
+    }
+  if (!parse_ctx().parse_only() &&
+      !format_ctx()
+           .arg(*ret_id)
            .template visit_xcr<uint8_t, uint16_t, uint32_t, uintlen_t>(
-               [&](uintlen_t val) noexcept { ret = uintlen_t(val); })) {
-    format_context.as_error(
-        "[Error]basic_format_specs_t::get_parse_filter_numeric():couldnt get "
-        "filter_numeric");
-    return nullopt;
-  }
+               [&](uintlen_t val) noexcept { ret = uintlen_t(val); }))
+    MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]basic_format_specs_t::get_parse_filter_numeric():couldnt get "
+          "filter_numeric");
+      return nullopt;
+    }
   if (!ret) ret = defult;
   return ret;
 }
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::get_numeric(
     uintlen_t defult) noexcept {
-  if (!base.parse_and_format_data_ptr) {
-    as_error(
-        "parse_context_t::get_numeric:unexpected intanceiation of "
-        "parse_context_t "
-        "outside parse_and_format_data_t");
-    return nullopt;
-  }
-  return base.parse_and_format_data_ptr->get_parse_filter_numeric(defult);
+  if (!main_ctx().parse_and_format_data_ptr) MJZ_IS_UNLIKELY {
+      as_error(
+          "parse_context_t::get_numeric:unexpected intanceiation of "
+          "parse_context_t "
+          "outside parse_and_format_data_t");
+      return nullopt;
+    }
+  return main_ctx().parse_and_format_data_ptr->get_parse_filter_numeric(defult);
 }
 template <version_t version_v>
 MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
 
 parse_context_t<version_v>::get_slice() noexcept {
-  if (!base. parse_and_format_data_ptr) {
-    as_error(
-        "parse_context_t::get_slice:unexpected intanceiation of "
-        "parse_context_t "
-        "outside parse_and_format_data_t");
-    return nullopt;
-  }
-  return base.parse_and_format_data_ptr->get_slice_parse_filter(false);
+  return main_ctx().get_slice_parse_filter(false);
 }
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
 parse_and_format_data_t<version_v>::get_slice_parse_filter(
     bool check_after_slice) noexcept {
-  if (parse_context.encoding() != encodings_e::ascii) {
-    format_context.as_error(
-        "[Error]call_slice_parse_filter:only ascii is "
-        "suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return nullopt;
-  }
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]call_slice_parse_filter:only ascii is "
+          "suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return nullopt;
+    }
 
-  auto charechter = parse_context.front();
+  auto charechter = parse_ctx().front();
   std::optional<uintlen_t> beg_loc = nullopt;
   std::optional<uintlen_t> end_loc = nullopt;
-  if (!charechter) {
-    format_context.as_error("[Error]call_slice_parse_filter: unexpected end");
-    return nullopt;
-  }
+  if (!charechter) MJZ_IS_UNLIKELY {
+      format_ctx().as_error("[Error]call_slice_parse_filter: unexpected end");
+      return nullopt;
+    }
   if (*charechter != '[') {
     return std::pair<uintlen_t, uintlen_t>{0, uintlen_t(-1)};
   }
-  if (!parse_context.advance_amount(1)) return nullopt;
-  charechter = parse_context.front();
-  if (!charechter) {
-    format_context.as_error("[Error]call_slice_parse_filter: unexpected end");
-    return nullopt;
-  }
+  if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+  charechter = parse_ctx().front();
+  if (!charechter) MJZ_IS_UNLIKELY {
+      format_ctx().as_error("[Error]call_slice_parse_filter: unexpected end");
+      return nullopt;
+    }
   if (*charechter == ']') {
-    if (!parse_context.advance_amount(1)) return nullopt;
+    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
     //"[]"no output at all
     return std::pair<uintlen_t, uintlen_t>{uintlen_t(-1), uintlen_t(0)};
   }
   beg_loc = get_parse_filter_numeric(uintlen_t(0));
   if (!beg_loc) return nullopt;
-  charechter = parse_context.front();
-  if (!charechter) {
-    format_context.as_error("[Error]call_slice_parse_filter: unexpected end");
-    return nullopt;
-  }
+  charechter = parse_ctx().front();
+  if (!charechter) MJZ_IS_UNLIKELY {
+      format_ctx().as_error("[Error]call_slice_parse_filter: unexpected end");
+      return nullopt;
+    }
   if (*charechter == ']') {
-    if (!parse_context.advance_amount(1)) return nullopt;
+    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
     //"[i]" index
     return std::pair<uintlen_t, uintlen_t>{*beg_loc, uintlen_t(1)};
   }
-  if (*charechter != ':') {
-    format_context.as_error(
-        "[Error]call_slice_parse_filter: expected slice symbol(':') for range "
-        "or end symbol (']') for indexed");
-    return nullopt;
-  }
-  if (!parse_context.advance_amount(1)) return nullopt;
+  if (*charechter != ':') MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]call_slice_parse_filter: expected slice symbol(':') for "
+          "range "
+          "or end symbol (']') for indexed");
+      return nullopt;
+    }
+  if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   end_loc = get_parse_filter_numeric(uintlen_t(-1));
   if (!end_loc) return nullopt;
-  charechter = parse_context.front();
-  if (!charechter || *charechter != ']') {
-    format_context.as_error(
-        "[Error]call_slice_parse_filter: expected ']' as slice end");
-    return nullopt;
-  }
-  if (!parse_context.advance_amount(1)) return nullopt;
-  charechter = parse_context.front();
+  charechter = parse_ctx().front();
+  if (!charechter || *charechter != ']') MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]call_slice_parse_filter: expected ']' as slice end");
+      return nullopt;
+    }
+  if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+  charechter = parse_ctx().front();
   if (check_after_slice &&
       (!charechter ||
-       (*charechter != ':' && *charechter != '{' && *charechter != '['))) {
-    format_context.as_error(
-        "[Error]call_slice_parse_filter:unexpected symbol in filter ");
-    return nullopt;
-  }
+       (*charechter != ':' && *charechter != '{' && *charechter != '[')))
+    MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]call_slice_parse_filter:unexpected symbol in filter ");
+      return nullopt;
+    }
   beg_loc = beg_loc ? *beg_loc : 0;
   end_loc = end_loc ? *end_loc : uintlen_t(-1);
-  if (*end_loc < *beg_loc) {
-    format_context.as_error(
-        "[Error]call_slice_parse_filter: end index must not be less than begin "
-        "index ");
-    return nullopt;
-  }
+  if (*end_loc < *beg_loc) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]call_slice_parse_filter: end index must not be less than "
+          "begin "
+          "index ");
+      return nullopt;
+    }
   return std::pair<uintlen_t, uintlen_t>{*beg_loc, *end_loc - *beg_loc};
 }
 template <version_t version_v>
@@ -577,26 +582,25 @@ parse_and_format_data_t<version_v>::call_slice_parse_filter() noexcept {
       get_slice_parse_filter();
   if (!slice) return nullopt;
   if (!slice->first && slice->second == uintlen_t(-1)) {
-    return sub_out_iter_t<version_v>{nullptr, parse_context.encoding()};
+    return sub_out_iter_t<version_v>{nullptr, parse_ctx().encoding()};
   }
-  return sub_out_iter_t<version_v>{format_context.out(),
-                                   parse_context.encoding(), slice->first,
-                                   slice->second};
+  return sub_out_iter_t<version_v>{format_ctx().out(), parse_ctx().encoding(),
+                                   slice->first, slice->second};
 }
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::call_formatted_parse_filters() noexcept {
-  if (parse_context.encoding() != encodings_e::ascii) {
-    format_context.as_error(
-        "[Error]call_formatted_parse_filters:only ascii is "
-        "suppoerted!(note "
-        "that this "
-        "may change in later versions)");
-    return false;
-  }
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]call_formatted_parse_filters:only ascii is "
+          "suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return false;
+    }
   bool has_filter{true};
-  auto charechter = parse_context.front();
-  for (; charechter && has_filter; charechter = parse_context.front()) {
+  auto charechter = parse_ctx().front();
+  for (; charechter && has_filter; charechter = parse_ctx().front()) {
     /*this is the filter replacement feild,
      * this can be used to swap the perivous output_it(initially
      * outer_slice.output_it) with another wrapper that filters it before giving
@@ -613,27 +617,53 @@ template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::append_text(view_t text) noexcept {
   bool success{true};
-  out_it_t it = format_context.out();
+  out_it_t it = format_ctx().out();
   it.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
                                       text.unsafe_handle());
-  return success && format_context.advance_to(it) && !base_context.err_content;
+  return success && format_ctx().advance_to(it) && !base_ctx().err_content;
 }
 template <version_t version_v>
 MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
     uintlen_t id) noexcept {
-  if (!parse_context.base.parse_and_format_call_at(id)) return false;
-  if (auto c = parse_context.front(); !c || *c == '}') {
-    return !c || parse_context.advance_amount(1);
-  }
-  format_context.as_error(
+  if (!parse_ctx().main_ctx().parse_and_format_call_at(id)) return false;
+  if (auto c = parse_ctx().front(); !c || *c == '}') MJZ_IS_LIKELY {
+      return !c || parse_ctx().unchecked_advance_amount_(1);
+    }
+  format_ctx().as_error(
       "[Error]call_argument_formatter(): expected '}' at the end of "
       "replacement feild ");
   return false;
 }
 template <version_t version_v>
-struct alignas(
-    allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align)
-    formatting_object_t : void_struct_t {
+struct 
+    formatting_object_t : parse_and_format_data_t<version_v> {
+  MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
+      const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept {
+    return *this;
+  }
+  MJZ_CX_FN const parse_context_t<version_v> &parse_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN parse_context_t<version_v> &parse_ctx() noexcept { return *this; }
+
+  MJZ_CX_FN const hash_context_t<version_v> &hash_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN hash_context_t<version_v> &hash_ctx() noexcept { return *this; }
+
+  MJZ_CX_FN const format_context_t<version_v> &format_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN format_context_t<version_v> &format_ctx() noexcept { return *this; }
+
+  MJZ_CX_FN const base_context_t<version_v> &base_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
+
   MJZ_NO_MV_NO_CPY(formatting_object_t);
   template <class>
   friend class mjz_private_accessed_t;
@@ -642,42 +672,40 @@ struct alignas(
   using stack_alloc_t =
       allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
   using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
-  base_context_t<version_v> base_context{};
-  parse_and_format_data_t<version_v> context_data{};
 
-  MJZ_CX_FN formatting_object_t(alloc_ref_t alloc ,
-                                std::span<char> cache_ref,
-                                uintlen_t cache_ref_align) noexcept
-      : base_context{}, context_data{base_context} {
-    asserts(asserts.expect_rn, stack_alloc_t::align <= cache_ref_align &&
+  MJZ_CX_FN formatting_object_t(alloc_ref_t alloc, std::span<char> cache_ref,
+                                uintlen_t cache_ref_align) noexcept {
+    asserts(asserts.expect_rn,
+            stack_alloc_t::align <= cache_ref_align &&
                 stack_alloc_t::align * 2 <= cache_ref.size());
-    base_context.alloc = std::move(alloc);
-    base_context.format_cache_ref = cache_ref;
-    base_context.stack_alloc =
-        stack_alloc_t{base_context.format_cache_ref, stack_alloc_t::align
-        };
-    std::span<char> blk = base_context.stack_alloc.fn_alloca(cache_ref.size()>>1);
+    base_ctx().alloc = std::move(alloc);
+    base_ctx().format_cache_ref = cache_ref;
+    base_ctx().stack_alloc =
+        stack_alloc_t{base_ctx().format_cache_ref, stack_alloc_t::align};
+    std::span<char> blk =
+        base_ctx().stack_alloc.fn_alloca(cache_ref.size() >> 1);
     asserts(asserts.assume_rn, !!blk.size());
-    base_context.buf_view.begin_ptr = blk.data();
-  base_context.buf_view.capacity = blk.size();
+    base_ctx().buf_view.begin_ptr = blk.data();
+    base_ctx().buf_view.capacity = blk.size();
   }
   MJZ_CX_FN ~formatting_object_t() noexcept {
-    base_context.stack_alloc.fn_dealloca(std::span<char>{
-        base_context.buf_view.begin_ptr, base_context.buf_view.capacity});
+    base_ctx().stack_alloc.fn_dealloca(std::span<char>{
+        base_ctx().buf_view.begin_ptr, base_ctx().buf_view.capacity});
   }
 
   MJZ_CX_FN void reset() noexcept {
-    context_data.parse_context.remaining_format_string = view_t{};
-    context_data.parse_context.next_arg_index = 0;
-    context_data.format_context.output_it = out_it_t{};
-    context_data.base_context.err_output = out_it_t{};
-    context_data.base_context.err_content = view_t{};
-    context_data.base_context.err_index = 0;
-    context_data.base_context.data_of_args = nullptr;
-    context_data.base_context.parse_and_format_fn_of_args = nullptr;
-    context_data.base_context.number_of_args = 0;
-    context_data.base_context.format_string = view_t{};
-    context_data.base_context.name_ptr = nullptr;
+    main_ctx().remaining_format_string_index = 0;
+    main_ctx().next_arg_index = 0;
+    main_ctx().output_it = out_it_t{};
+    main_ctx().err_output = out_it_t{};
+    main_ctx().err_content = view_t{};
+    main_ctx().err_index = 0;
+    main_ctx().data_of_args = nullptr;
+    main_ctx().cx_parse_storage_of_args = nullptr;
+    main_ctx().parse_and_format_fn_of_args = nullptr;
+    main_ctx().number_of_args = 0;
+    main_ctx().format_string = view_t{};
+    main_ctx().name_ptr = nullptr;
   }
 
   template <typename... Ts>
@@ -704,31 +732,32 @@ struct alignas(
     if constexpr ((!!sizeof...(Ts))) {
       MJZ_IF_CONSTEVAL {
         basic_cx_format_args_t<version_v, Ts...> buf{std::forward<Ts>(args)...};
-        base_context.number_of_args = buf.arg_no_typed.count_args;
-        base_context.data_of_args = buf.arg_no_typed.data_of_args;
-        base_context.parse_and_format_fn_of_args =
+        base_ctx().number_of_args = buf.arg_no_typed.count_args;
+        base_ctx().data_of_args = buf.arg_no_typed.data_of_args;
+        base_ctx().parse_and_format_fn_of_args =
             buf.arg_no_typed.parse_and_format_fn_of_args;
-        base_context.format_string = format_str;
-        context_data.parse_context.remaining_format_string = format_str;
-        context_data.format_context.output_it = iter;
+        // base_ctx().cx_parse_storage_of_args
+        base_ctx().format_string = format_str;
+
+        main_ctx().main_ctx().output_it = iter;
         return run_format();
       }
       else {
         basic_format_args_t<version_v, sizeof...(Ts)> buf{
             basic_format_args_ncx_tag{}, std::forward<Ts>(args)...};
-        base_context.number_of_args = buf.count_args;
-        base_context.data_of_args = buf.data_of_args;
-        base_context.parse_and_format_fn_of_args =
+        base_ctx().number_of_args = buf.count_args;
+        base_ctx().data_of_args = buf.data_of_args;
+        base_ctx().parse_and_format_fn_of_args =
             buf.parse_and_format_fn_of_args;
-        base_context.format_string = format_str;
-        context_data.parse_context.remaining_format_string = format_str;
-        context_data.format_context.output_it = iter;
+        // base_ctx().cx_parse_storage_of_args
+        base_ctx().format_string = format_str;
+        main_ctx().main_ctx().output_it = iter;
         return run_format();
       }
     } else {
-      base_context.format_string = format_str;
-      context_data.parse_context.remaining_format_string = format_str;
-      context_data.format_context.output_it = iter;
+      base_ctx().format_string = format_str;
+
+      main_ctx().main_ctx().output_it = iter;
       return run_format();
     }
   }
@@ -736,53 +765,77 @@ struct alignas(
   template <typename L_v, is_formatted_c<version_v>... Ts>
   MJZ_CX_FN success_t format_to_pv(out_it_t iter, L_v, Ts &&...args) noexcept;
   MJZ_CX_FN success_t run_format() noexcept {
-    base_context.buf_view.encoding =
-        base_context.format_string.get_encoding();
-    base_context.buf_view.length = 0;
-    return context_data.format_context
-        .advance_to(context_data.format_context.out())
-            &&context_data.parse_formating_string();
+    return main_ctx().parse_formating_string();
   }
   template <version_t, typename...>
   friend struct cx_parser_t;
+  MJZ_DISABLE_ALL_WANINGS_START_;
 };
+MJZ_DISABLE_ALL_WANINGS_END_;
 
 template <version_t version_v, typename... Ts>
 struct cx_parser_t : public formatting_object_t<version_v> {
+  MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
+      const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept {
+    return *this;
+  }
+  MJZ_CX_FN const parse_context_t<version_v> &parse_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN parse_context_t<version_v> &parse_ctx() noexcept { return *this; }
+
+  MJZ_CX_FN const hash_context_t<version_v> &hash_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN hash_context_t<version_v> &hash_ctx() noexcept { return *this; }
+
+  MJZ_CX_FN const format_context_t<version_v> &format_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN format_context_t<version_v> &format_ctx() noexcept { return *this; }
+
+  MJZ_CX_FN const base_context_t<version_v> &base_ctx() const noexcept {
+    return *this;
+  }
+  MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
   template <class>
   friend class mjz_private_accessed_t;
   using out_it_t = base_out_it_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
   count_out_buf_t<version_v> out{};
-  using formatting_object_t<version_v>::base_context;
-  using formatting_object_t<version_v>::context_data;
   success_t successful{true};
   MJZ_NO_MV_NO_CPY(cx_parser_t);
-  MJZ_CX_FN cx_parser_t(view_t fmt_str, alloc_ref_t alloc,
-                        std::span<char> cache_ref,
-                        uintlen_t cache_ref_align) noexcept
+  template <size_t... Is>
+    requires(sizeof...(Is) == sizeof...(Ts))
+  MJZ_CX_FN cx_parser_t(cx_formatter_storages_t<version_v, Ts &&...> &cx_store,
+                        view_t fmt_str, alloc_ref_t alloc,
+                        std::span<char> cache_ref, uintlen_t cache_ref_align,
+                        std::index_sequence<Is...>) noexcept
       : formatting_object_t<version_v>{std::move(alloc), cache_ref,
-                                       cache_ref_align
-        } {
+                                       cache_ref_align} {
     if constexpr (sizeof...(Ts)) {
       basic_format_args_t<version_v, sizeof...(Ts)> buf{
           basic_format_args_parse_tag{}, alias_t<void (*)(Ts &&...)>{}};
-      base_context.number_of_args = buf.count_args;
-      base_context.parse_and_format_fn_of_args =
-          buf.parse_and_format_fn_of_args;
-      base_context.err_index = uintlen_t(-1);
-      base_context.format_string = fmt_str;
-      context_data.parse_context.remaining_format_string =
-          base_context.format_string;
-      context_data.format_context.output_it = out;
+      base_ctx().number_of_args = buf.count_args;
+      base_ctx().parse_and_format_fn_of_args = buf.parse_and_format_fn_of_args;
+      cx_formatter_storage_ref_t<version_v>
+          cx_parse_storage_of_args_buf[sizeof...(Ts)]{
+              cx_formatter_storage_ref_t<version_v>(std::get<Is>(cx_store))...};
+      base_ctx().cx_parse_storage_of_args = cx_parse_storage_of_args_buf;
+      base_ctx().err_index = uintlen_t(-1);
+      base_ctx().format_string = fmt_str;
+
+      main_ctx().main_ctx().output_it = out;
       successful = this->run_format();
     } else {
-      base_context.err_index = uintlen_t(-1);
-      base_context.format_string = fmt_str;
-      context_data.parse_context.remaining_format_string =
-          base_context.format_string;
-      context_data.format_context.output_it = out;
+      base_ctx().err_index = uintlen_t(-1);
+      base_ctx().format_string = fmt_str;
+
+      main_ctx().main_ctx().output_it = out;
       successful = this->run_format();
     }
 
@@ -800,16 +853,37 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
       requires() {
         { view_t(L_v()()) } noexcept;
       }, "see if you used \"...\"_fmt or not (you should) ");
-  auto failure_f =
-      []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
+  auto run_function_cx_f =
+      []() noexcept -> std::pair<cx_formatter_storages_t<version_v, Ts &&...>,
+                                 std::optional<std::pair<uintlen_t, view_t>>> {
     constexpr auto align_v_ =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
     alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+    cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
     MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-        view_t(L_v()()), alloc_ref_t{}, buffer_, align_v_};
-    if (checker.successful) return nullopt;
-    return std::pair<uintlen_t, view_t>{checker.base_context.err_index,
-                                        checker.base_context.err_content};
+        cx_store, view_t(L_v()()), alloc_ref_t{},
+        buffer_,  align_v_,        std::make_index_sequence<sizeof...(Ts)>{}};
+    if (checker.successful) return {std::move(cx_store), nullopt};
+    return {std::move(cx_store),
+            std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
+                                         checker.base_ctx().err_content}};
+  };
+  using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;
+  std::ignore = run_function_cx_ft{}().first;
+  auto cx_table_f = []() noexcept {
+    return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
+      constexpr const std::array<cx_formatter_storage_ref_t<version_v>,
+                                 sizeof...(Ts)>
+          ret{cx_formatter_storage_ref_t<version_v>(
+              &std::get<Is>(run_function_cx_ft{}().first))...};
+      return ret;
+    }(std::make_index_sequence<sizeof...(Ts)>{});
+  };
+  using cx_table_ft = static_data_t<decltype(cx_table_f)>;
+  base_ctx().cx_parse_storage_of_args = cx_table_ft{}().data();
+  auto failure_f =
+      []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
+    return run_function_cx_ft{}().second;
   };
   using failure_ft = static_data_t<decltype(failure_f)>;
 #if MJZ_VERBOSE_FORMAT_ERROR

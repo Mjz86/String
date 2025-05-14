@@ -48,6 +48,7 @@ template <version_t version_v, class T_>
 struct default_formatter_t<version_v, T_, 90> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using bview_t = base_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   using sview_t = static_string_view_t<version_v>;

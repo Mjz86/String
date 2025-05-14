@@ -40,6 +40,7 @@ template <version_t version_v, class T>
 struct default_formatter_t<version_v, T, 30> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using decay_optimize_to_t = const std::exception &;
   using view_t = base_string_view_t<version_v>;
   using CVT_pv = const view_t &;
@@ -71,6 +72,7 @@ template <version_t version_v, partial_same_as<std::error_code> T>
 struct default_formatter_t<version_v, T, 30> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using view_t = base_string_view_t<version_v>;
   using CVT_pv = const view_t &;
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv>(

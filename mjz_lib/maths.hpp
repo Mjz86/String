@@ -545,8 +545,11 @@ struct exclusive_math_helper_t_ {
       ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v.devide_val,
                                           lhs % rhs_v.devide_val};
       return true;
+    } else if constexpr (MJZ_MSVC_ONLY_CODE_(true) MJZ_GCC_ONLY_CODE_(false)) {
+      ret = rhs_v.divide_modulo(lhs);
     }
-    ret = rhs_v.divide_modulo(lhs);
+      ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v.devide_val,
+                                        lhs % rhs_v.devide_val};
     return true;
   }
 

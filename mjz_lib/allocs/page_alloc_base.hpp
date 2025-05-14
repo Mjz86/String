@@ -71,8 +71,7 @@ struct pages_meta_t {
       for (uintlen_t i{}; i < val_page; i++) {
         bool bad{page_room <= i};
         uintlen_t page_mask_shift =
-            branchless_teranary<uintlen_t>(!bad, page_mask, 0)
-                                    << i;
+            branchless_teranary<uintlen_t>(!bad, page_mask, 0) << i;
         bad |= uintlen_t(page_mask_shift & page) != page_mask_shift;
         if (bad) {
           continue;
@@ -327,8 +326,10 @@ struct fast_alloc_chache_t {
     distance_align = (align_ - distance_align) & modular_math_op;
     monotonic_ptr += distance_align;
     monotonic_left -= distance_align;
-    const std::span<char> dummy[2]{std::span<char>{monotonic_ptr, size}};
-    const auto ret = dummy[bad];
+    std::span<char> ret= branchless_teranary<std::span<char>>(
+        bad, std::span<char>{},
+                                         std::span<char>{monotonic_ptr, size});
+    
     monotonic_ptr += ret.size();
     monotonic_left -= ret.size();
     return ret;

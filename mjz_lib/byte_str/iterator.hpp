@@ -383,21 +383,25 @@ class base_out_it_t : public void_struct_t {
   MJZ_CX_FN bool operator==(const base_out_it_t &other) const noexcept {
     return function_ptr == other.function_ptr && obj == other.obj;
   }
+  MJZ_CX_FN bool strict_equal(const base_out_it_t &other) const noexcept {
+    return function_ptr == other.function_ptr && obj == other.obj &&
+           buf_ptr == other.buf_ptr;
+  }
 
  protected:
-  MJZ_CX_FN std::optional<bool> needs_flush() noexcept {
+  MJZ_CX_AL_FN std::optional<bool> needs_flush() noexcept {
     if (!obj) return {};
     if (!owns_buffer()) return false;
     if (!buf_ptr->length) return false;
     return true;
   }
-  MJZ_CX_FN it_t &reset() noexcept {
+  MJZ_CX_AL_FN it_t &reset() noexcept {
     obj = nullptr;
     function_ptr = nullptr;
     buf_ptr = nullptr;
     return *this;
   }
-  MJZ_CX_FN bool owns_buffer() noexcept {
+  MJZ_CX_AL_FN bool owns_buffer() noexcept {
     if (buf_ptr && buf_ptr->obj == obj &&
         buf_ptr->function_ptr == function_ptr) {
       return true;
@@ -406,8 +410,8 @@ class base_out_it_t : public void_struct_t {
     return false;
   }
   MJZ_CX_FN success_t data_to_buffer_nfn(blazy &opt_view_or_reserve) noexcept {
-    if (opt_view_or_reserve.is_resurve()) return true; 
-    if (opt_view_or_reserve.get_value(buf_ptr->begin_ptr + buf_ptr->length)) { 
+    if (opt_view_or_reserve.is_resurve()) return true;
+    if (opt_view_or_reserve.get_value(buf_ptr->begin_ptr + buf_ptr->length)) {
       buf_ptr->length += opt_view_or_reserve.len;
       return true;
     }
@@ -675,7 +679,7 @@ struct buffer_out_buf_t : base_out_buffer_t<version_v> {
     if (!reserve(this->length + opt_view_or_reserve.len)) {
       return false;
     }
-    if (opt_view_or_reserve.is_resurve()) return true; 
+    if (opt_view_or_reserve.is_resurve()) return true;
     char *append_begin = this->length + this->begin_ptr;
     success_t succsess{true};
     MJZ_RELEASE {

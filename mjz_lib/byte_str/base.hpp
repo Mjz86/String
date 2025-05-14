@@ -483,13 +483,9 @@ base_string_view_t<version_v>::to_base_lazy_pv_fn_(
   lazy.encodings = encodings;
   lazy.len = uintlen_t(len);
   lazy.data.view = *this;
-  lazy.state_type = lazy.view_se;
-  if (!ptr && len) {
-    lazy.state_type = lazy.resurve_se;
-  }
-  if (!ptr && has_null_v) {
-    lazy.state_type = lazy.invalid_se;
-  }
+  lazy.state_type = !ptr && len ? lazy.resurve_se : lazy.view_se;
+  lazy.state_type =
+      !ptr && has_null_v ? uint8_t(lazy.invalid_se) : lazy.state_type;
   return lazy;
 }
 

@@ -94,6 +94,7 @@ struct default_formatter_t<version_v, T_, 20> {
   using T = typename is_named_arg_t<version_v, std::remove_cvref_t<T_>>::type;
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<T>;
   Formatter formatter{};

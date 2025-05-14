@@ -105,7 +105,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_type(
   if (!ch || *ch == '}') {
     return true;
   }
-  if (!cntx.advance_amount(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1)) return false;
   char c = *ch;
   if (c >= 'A' && c <= 'Z') {
     uppser_case = true;
@@ -218,7 +218,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_width(
   if (*ch != '{') {
     return true;
   }
-  if (!cntx.advance_amount(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1)) return false;
   ch = cntx.front();
   if (ch) {
     auto width_id = cntx.parse_arg_id();
@@ -240,7 +240,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_width(
         "width/feild");
     return false;
   }
-  return cntx.advance_amount(1);
+  return cntx.unchecked_advance_amount_(1);
 }
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
@@ -255,11 +255,11 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
   auto ch = cntx.front();
   if (!ch || *ch == '}') return true;
   if (*ch != '.') return true;
-  if (!cntx.advance_amount(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1)) return false;
   ch = cntx.front();
   auto consume_braket = [&](bool bad = false) noexcept {
     ch = cntx.front();
-    if (!bad && *ch == '}') return cntx.advance_amount(1);
+    if (!bad && *ch == '}') return cntx.unchecked_advance_amount_(1);
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_precision(): expected end of "
         "precision/feild with '}'");
@@ -274,7 +274,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
   if (*ch != '{') {
     return consume_braket(true);
   }
-  if (!cntx.advance_amount(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1)) return false;
   if (!cntx.front()) {
     return consume_braket(true);
   }
@@ -310,15 +310,15 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_specs(
   switch (*ch) {
     case '+':
       sign = sign_e::plus;
-      if (!cntx.advance_amount(1)) return false;
+      if (!cntx.unchecked_advance_amount_(1)) return false;
       break;
     case '-':
       sign = sign_e::minus;
-      if (!cntx.advance_amount(1)) return false;
+      if (!cntx.unchecked_advance_amount_(1)) return false;
       break;
     case ' ':
       sign = sign_e::space;
-      if (!cntx.advance_amount(1)) return false;
+      if (!cntx.unchecked_advance_amount_(1)) return false;
       break;
     default:
       break;
@@ -328,14 +328,14 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_specs(
 
   if (*ch == '#') {
     alt = true;
-    if (!cntx.advance_amount(1)) return false;
+    if (!cntx.unchecked_advance_amount_(1)) return false;
     ch = cntx.front();
     if (!ch) return true;
   }
 
   if (*ch == '0') {
     leading_zero = true;
-    if (!cntx.advance_amount(1)) return false;
+    if (!cntx.unchecked_advance_amount_(1)) return false;
     ch = cntx.front();
     if (!ch) return true;
   }

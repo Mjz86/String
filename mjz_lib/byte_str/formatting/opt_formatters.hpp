@@ -87,6 +87,7 @@ struct default_formatter_t<version_v, T_, 20> {
   using T = const std::remove_const_t<T1>;
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
   using CVT_pv = const std::remove_reference_t<T> &;
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<CVT_pv>;
