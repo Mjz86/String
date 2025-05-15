@@ -486,15 +486,19 @@ the string class in integrated  with my highly customizable allocator module tha
 
 - reasons for my polymorphic allocator design,  that gives almost all control of heap management to the implementation of the allocator( the criticism of the standard allocator) :
 1. no constexpr support for pmr .
-2. cannot tell the Allocator to allocate more than needed, ( the exact size is usually rounded,  but the delta is wasted).
-3. cannot grantee thread-safety. 
-4. has no notion of owning a block ( chained allocators are very hard).
-5. has no idea of the property of the allocated block ( we cant fail fast , we cant say that this is a common size of our nodes , we cant say that we can afford more time for less fragmentation,  ect...).
-7. no alignment requirement for `char`.
-8. is a template pram,  the types are always different, so much workaround for nonexistent problems ( a memory resource handle throwing exception on move or copy ) .
-9. the Allocator type ( template pram) has unpredictable size.
-10. compiler cannot Optimize  try and catch away, because they rely on the stack unwinder , but nullptr checks are easy. 
-11. my library cant throw exceptions in some platforms that i use it in ( esp32 , ect) , ( platform doesn't matter for the code tho, only endian-ness ). 
+2. the pmr monotonic allocator has virtual call indirections ( my base allocator has a "monotonic-cache", this is basically some pointers that point to a continuous memory region , almost always , we can allocate in that region without a virtual call, but occasionally, the region gets full and we do a call , and in that call , the "monotonic-cache" would be replaced with a new one , and the old one would go back to the  allocator for management).
+3. no nothion of `allocator.alloca(...)`,`allocator.freea(...)` .
+4. pmr allocators dont propagate on move and copy (mine dose propgate ).
+5. the deafult vtable entries cant be null ( in my vtable, a null entry meanas a default inline implementation of that entry , a common case for example would be `is_equal(other)` , that almost always compares the pointers , and if it didnt , it could do a virtual call )
+6. cannot tell the Allocator to allocate more than needed, ( the exact size is usually rounded,  but the delta is wasted).
+7. cannot grantee thread-safety. 
+8. has no notion of owning a block ( chained allocators are very hard).
+9. has no idea of the property of the allocated block ( we cant fail fast , we cant say that this is a common size of our nodes , we cant say that we can afford more time for less fragmentation,  ect...).
+10. no alignment requirement for `char`.
+11. is a template pram,  the types are always different, so much workaround for nonexistent problems ( a memory resource handle throwing exception on move or copy ) .
+12. the Allocator type ( template pram) has unpredictable size.
+13. compiler cannot Optimize  try and catch away, because they rely on the stack unwinder , but nullptr checks are easy. 
+14. my library cant throw exceptions in some platforms that i use it in ( esp32 , ect) , ( platform doesn't matter for the code tho, only endian-ness ). 
 
 
 **important note**:
