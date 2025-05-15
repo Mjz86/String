@@ -1,4 +1,6 @@
 
+
+
 # A Modern C++20 String Implementation
 
 **tl;dr:**
@@ -486,10 +488,19 @@ the string class in integrated  with my highly customizable allocator module tha
 
 - reasons for my polymorphic allocator design,  that gives almost all control of heap management to the implementation of the allocator( the criticism of the standard allocator) :
 1. no constexpr support for pmr .
-2. the pmr monotonic allocator has virtual call indirections ( my base allocator has a "monotonic-cache", this is basically some pointers that point to a continuous memory region , almost always , we can allocate in that region without a virtual call, but occasionally, the region gets full and we do a call , and in that call , the "monotonic-cache" would be replaced with a new one , and the old one would go back to the  allocator for management).
-3. no nothion of `allocator.alloca(...)`,`allocator.freea(...)` .
+2. the pmr monotonic allocator has virtual call indirections :
+ my base allocator has a "monotonic-cache", this is basically some pointers that point to a continuous memory region , almost always , we can allocate in that region without a virtual call, but occasionally, the region gets full and we do a call , and in that call , the "monotonic-cache" would be replaced with a new one , and the old one would go back to the  allocator for management.
+3. no nothion of `allocator.alloca(...)`,`allocator.freea(...)` :
+my base allocator has an "stack-like-cache", it doesn't allocate on the stack directly,  but instead,  uses a preallocated memory region in the base class to use as stack ,
+almost always this is inline , unless if the stack frills up , as a fallback , the virtual allocate would be called, 
+this too can work like the monotonic cache where it replaces the region with a fresh one ,  and gets back  the old one to manage.
+a very important note about these two functions is that  the call order of them  Matters ,
+any `freea` should always free the last thing that `alloca` returned ,
+but this is an ok restrictions,  because the normal allocate methods dont have such restrictions. 
+an important thing is that the failure of the `alloca` function is perfectly valid,  unlike the unsafe program stack functions. 
 4. pmr allocators dont propagate on move and copy (mine dose propgate ).
-5. the deafult vtable entries cant be null ( in my vtable, a null entry meanas a default inline implementation of that entry , a common case for example would be `is_equal(other)` , that almost always compares the pointers , and if it didnt , it could do a virtual call )
+5. the deafult vtable entries cant be null :
+ in my vtable, a null entry meanas a default inline implementation of that entry , a common case for example would be `is_equal(other)` , that almost always compares the pointers , and if it didnt , it could do a virtual call .
 6. cannot tell the Allocator to allocate more than needed, ( the exact size is usually rounded,  but the delta is wasted).
 7. cannot grantee thread-safety. 
 8. has no notion of owning a block ( chained allocators are very hard).
@@ -499,7 +510,6 @@ the string class in integrated  with my highly customizable allocator module tha
 12. the Allocator type ( template pram) has unpredictable size.
 13. compiler cannot Optimize  try and catch away, because they rely on the stack unwinder , but nullptr checks are easy. 
 14. my library cant throw exceptions in some platforms that i use it in ( esp32 , ect) , ( platform doesn't matter for the code tho, only endian-ness ). 
-
 
 **important note**:
  the cow threashold can be configured in the Allocator virtual table at runtime , but custom Allocators must be used for configuration.
@@ -512,8 +522,7 @@ the string class in integrated  with my highly customizable allocator module tha
 *  all of the above are not present in my allocator.
 
  - downsides:
- 1. less inlining. 
- 2. virtual function call cost
+ 2. virtual function call cost for a allocation-cache miss or a non-monotonic allocator type
  3. Allocators  that have reference counting enabled have more contention in their thread safe mode.
  4. Allocators without reference counting  need to manage lifetimes
 
@@ -522,7 +531,11 @@ the string class in integrated  with my highly customizable allocator module tha
  i refer you to  John Lakos “Local ('Arena') Memory Allocators":
  " compated to the global allocator,  the virtual call overhead is just noise".
  
-
+ 
+ * when to use alloca:
+ only use it in cases where you would make an object  on the stack ,
+ but that object was not small enough to be optimal to fit in thr stack.
+ 
 # Value Semantics
 
 The string is a value type. In my library, all of the move and copy functions
