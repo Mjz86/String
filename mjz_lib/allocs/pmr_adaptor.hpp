@@ -92,12 +92,14 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   MJZ_NCX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
       return {alloc_info{}, cow_threashold_v<version_v>,
-              &alloc_call,  nullptr,
+              &allocate_call, &deallocate_call,
+              nullptr,
               &is_equal,    nullptr,
               nullptr};
     } else {
       return {alloc_info{}, cow_threashold_v<version_v>,
-              &alloc_call,  &ref_call,
+              &allocate_call, &deallocate_call,
+              &ref_call,
               &is_equal,    nullptr,
               nullptr};
     }
@@ -174,14 +176,14 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
                                          alloc_info ai) noexcept {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
-  MJZ_NCX_FN static void alloc_call(alloc_base *This, block_info &blk,
-                                    alloc_info ai) noexcept {
-    if (blk.ptr) {
-      asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
-      return;
-    }
-    blk = allocate(This, blk.length, ai);
+  MJZ_CX_FN static void deallocate_call(alloc_base *This, block_info blk,
+                                        alloc_info ai) noexcept {
+    asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
     return;
+  }
+  MJZ_CX_FN static block_info allocate_call(alloc_base *This,uintlen_t minsize,
+                                            alloc_info ai) noexcept {
+    return allocate(This, minsize, ai);
   }
 
   template <class>

@@ -235,18 +235,21 @@ struct alloc_vtable_t {
     using is_owner =
         F_t<may_bool_t(const block_info &, alloc_info) const noexcept>;
     using is_equal = F_t<alloc_relations_e(const alloc_ref &) const noexcept>;
-    using alloc_call = F_t<void(block_info &blk, alloc_info) noexcept>;
     using ref_call = F_t<void(bool add_vs_destroy) noexcept>;
     using handle =
         F_t<const void_struct_t *(const void_struct_t *) const noexcept>;
-
+    using refresh_call =
+        F_t<success_t(uintlen_t monotonic_minsize,
+                      uintlen_t monotonic_min_align, uintlen_t stack_minsize,
+                      uintlen_t stack_min_align, bool release_all) noexcept>;
+    using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
+    using deallocate = F_t<void(block_info, alloc_info) noexcept>;
     template <class>
     friend class mjz_private_accessed_t;
 
    private:  // not useful rn.
-    using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
-    using deallocate = F_t<success_t(block_info &&, alloc_info) noexcept>;
     using add_ref = F_t<success_t(intlen_t) noexcept>;
+    using alloc_call = F_t<void(block_info &blk, alloc_info) noexcept>;
     using num_ref = F_t<ref_count(std::memory_order) const noexcept>;
     using destroy_obj = F_t<success_t() noexcept>;
     using compare =
@@ -287,32 +290,35 @@ struct alloc_vtable_t {
     typename funcs_t::remove_super_alloc remove_super_alloc;
     typename funcs_t::could_use_super_alloc could_use_super_alloc;
     typename funcs_t::could_use_sub_alloc could_use_sub_alloc;
-    typename funcs_t::allocate allocate;
-    typename funcs_t::deallocate deallocate;
     typename funcs_t::add_ref add_ref;
     typename funcs_t::num_ref num_ref;
     typename funcs_t::destroy_obj destroy_obj;
+    typename funcs_t::alloc_call alloc_call;
   };
   static_assert(std::gcd(cow_threashold_v<version_v>,
                          hardware_destructive_interference_size) ==
                 hardware_destructive_interference_size);
 
  public:
-  alignas(16) alloc_info default_info{};//2w
+  alloc_info default_info{};  // 2w
   //--end first 8words--//
+  //--start second 8words--//
   uintlen_t cow_threashold{cow_threashold_v<version_v>};
-  typename funcs_t::alloc_call alloc_call{};
+  typename funcs_t::allocate allocate{};
+  typename funcs_t::deallocate deallocate{};
   typename funcs_t::ref_call ref_call{};
   typename funcs_t::is_equal is_equal{};
   typename funcs_t::is_owner is_owner{};
   typename funcs_t::handle handle{};
+  typename funcs_t::refresh_call refresh_call{};
+  //--end second 8words--//
   MJZ_CX_FN bool operator==(const alloc_vtable_t &rhs) const noexcept = default;
 };
 
 template <version_t version_v>
 struct alloc_base_t : void_struct_t {
-    //--start first 8words--//
-  alignas(16) fast_alloc_chache_t<version_v> alloc_chache{};//6w
+  //--start first 8words--//
+  fast_alloc_chache_t<version_v> alloc_chache{};  // 6w
   const alloc_vtable_t<version_v> vtable{};
   MJZ_NO_MV_NO_CPY(alloc_base_t);
   MJZ_CX_FN alloc_base_t() noexcept = default;
@@ -721,8 +727,7 @@ class alloc_base_ref_t {
                                    alloc_info ai) const noexcept {
     block_info blk{};
     if (!minsize) return blk;
-    blk.length = minsize;
-    run(get_vtbl().alloc_call, blk, ai);
+    blk = run(get_vtbl().allocate, minsize, ai);
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
     MJZ_NOEXCEPT { mjz_debug_cout::print("[alloc:", blk.length, "]"); };
 #endif
@@ -735,7 +740,7 @@ class alloc_base_ref_t {
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
     MJZ_NOEXCEPT { mjz_debug_cout::print("[dealloc:", blk.length, "]"); };
 #endif
-    run(get_vtbl().alloc_call, blk, ai);
+    run(get_vtbl().deallocate, blk, ai);
     blk = block_info{};
     return;
   }
@@ -753,7 +758,7 @@ class alloc_base_ref_t {
     return block_info{ret.data(), ret.size()};
   }
   MJZ_CX_FN
-  success_t monotonic_deallocate_bytes_cache_(block_info blk, alloc_info ai, 
+  success_t monotonic_deallocate_bytes_cache_(block_info blk, alloc_info ai,
                                               bool bad) const noexcept {
     bad |= !!!(ai.allocation_mode_val &
                uint16_t(allocation_mode_e::monotonic_mode));
@@ -802,7 +807,7 @@ class alloc_base_ref_t {
     if (success) {
       return blk;
     }
-    if (!get_vtbl().alloc_call) {
+    if (!get_vtbl().allocate) {
       return global_allocator_t<version_v>::global_alloc(minsize, ai);
     }
     return local_alloc(minsize, ai);
@@ -816,11 +821,16 @@ class alloc_base_ref_t {
     if (success) {
       return true;
     }
-    if (!get_vtbl().alloc_call) {
-      global_allocator_t<version_v>::global_dealloc(blk, ai);
+    const auto vtable_ = get_vtbl();
+    if (vtable_.deallocate) {
+      local_dealloc(blk, ai);
       return true;
     }
-    local_dealloc(blk, ai);
+    if (vtable_.allocate) {
+      // monotonic
+      return true;
+    }
+    global_allocator_t<version_v>::global_dealloc(blk, ai);
     return true;
   }
 
@@ -1318,6 +1328,38 @@ class alloc_base_ref_t {
 
   template <class>
   friend class mjz_private_accessed_t;
+
+ public:
+  MJZ_CX_FN success_t release_all(uintlen_t monotonic_minsize,
+                                  uintlen_t monotonic_min_align,
+                                  uintlen_t stack_minsize,
+                                  uintlen_t stack_min_align) const noexcept {
+    return refresh_call_impl_(monotonic_minsize, monotonic_min_align,
+                              stack_minsize, stack_min_align, true);
+  }
+  MJZ_CX_FN success_t refresh_cache(uintlen_t monotonic_minsize,
+                                    uintlen_t monotonic_min_align,
+                                    uintlen_t stack_minsize,
+                                    uintlen_t stack_min_align) const noexcept {
+    return refresh_call_impl_(monotonic_minsize, monotonic_min_align,
+                              stack_minsize, stack_min_align, false);
+  }
+
+ private:
+  MJZ_CX_FN success_t refresh_call_impl_(uintlen_t monotonic_minsize,
+                                         uintlen_t monotonic_min_align,
+                                         uintlen_t stack_minsize,
+                                         uintlen_t stack_min_align,
+                                         bool release_all) const noexcept {
+    asserts(asserts.assume_rn, std::has_single_bit(monotonic_min_align) &&
+                                   std::has_single_bit(stack_min_align));
+    const auto refresh_call_fn = get_vtbl().refresh_call;
+    if (!refresh_call_fn) {
+      return false;
+    }
+    return run(refresh_call_fn, monotonic_minsize, monotonic_min_align,
+               stack_minsize, stack_min_align, release_all);
+  }
 
  private:
   template <typename T>

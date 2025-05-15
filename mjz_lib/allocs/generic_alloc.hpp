@@ -67,13 +67,15 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_CX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
-      return {alloc_info{}, cow_threashold_v<version_v>,          &alloc_call,
-              nullptr,      Const_inequals ? nullptr : &is_equal, &is_owner,
-              nullptr};
+      return {alloc_info{},   cow_threashold_v<version_v>,
+              &allocate_call, &deallocate_call,
+              nullptr,        Const_inequals ? nullptr : &is_equal,
+              &is_owner,      nullptr};
     } else {
-      return {alloc_info{}, cow_threashold_v<version_v>,          &alloc_call,
-              &ref_call,    Const_inequals ? nullptr : &is_equal, &is_owner,
-              nullptr};
+      return {alloc_info{},   cow_threashold_v<version_v>,
+              &allocate_call, &deallocate_call,
+              &ref_call,      Const_inequals ? nullptr : &is_equal,
+              &is_owner,      nullptr};
     }
   }
 
@@ -196,16 +198,15 @@ struct generic_alloc_t : alloc_base_t<version_v> {
                                         alloc_info ai) noexcept {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
-  MJZ_CX_FN static void alloc_call(alloc_base *This, block_info &blk,
-                                   alloc_info ai) noexcept {
-    if (blk.ptr) {
-      asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
-      return;
-    }
-    blk = allocate(This, blk.length, ai);
+  MJZ_CX_FN static void deallocate_call(alloc_base *This, block_info blk,
+                                        alloc_info ai) noexcept {
+    asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
     return;
   }
-
+  MJZ_CX_FN static block_info allocate_call(alloc_base *This, uintlen_t minsize,
+                                            alloc_info ai) noexcept {
+    return allocate(This, minsize, ai);
+  }
   MJZ_CX_FN
   static const void_struct_t *handle(const alloc_base *This,
                                      const void_struct_t *ptr) noexcept {
@@ -214,7 +215,13 @@ struct generic_alloc_t : alloc_base_t<version_v> {
     }
     return nullptr;
   }
-
+  MJZ_CX_FN static success_t refresh_call(MJZ_MAYBE_UNUSED uintlen_t monotonic_minsize,
+      MJZ_MAYBE_UNUSED uintlen_t monotonic_min_align,
+      MJZ_MAYBE_UNUSED uintlen_t stack_minsize,
+      MJZ_MAYBE_UNUSED uintlen_t stack_min_align,
+      MJZ_MAYBE_UNUSED bool release_all) noexcept {
+    return false; /*not implemented , cause im lazy*/
+  }
   template <class>
   friend class mjz_private_accessed_t;
 
