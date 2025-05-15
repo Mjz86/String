@@ -91,19 +91,22 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_NCX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
-      return {&alloc_call, nullptr, &is_equal,nullptr,   nullptr, cow_threashold_v<version_v>};
+      return {alloc_info{}, cow_threashold_v<version_v>,
+              &alloc_call,  nullptr,
+              &is_equal,    nullptr,
+              nullptr};
     } else {
-      return {&alloc_call, &ref_call, &is_equal,
-              nullptr,     nullptr,   cow_threashold_v<version_v>};
+      return {alloc_info{}, cow_threashold_v<version_v>,
+              &alloc_call,  &ref_call,
+              &is_equal,    nullptr,
+              nullptr};
     }
   }
-
 
  public:
   MJZ_NCX_FN pmr_alloc_t(std::pmr::polymorphic_allocator<char> pmr,
                          bool fast_table = false) noexcept
-      : alloc_base{*vtable_val_f(fast_table)},
-        undelying{std::move(pmr)} {}
+      : alloc_base{*vtable_val_f(fast_table)}, undelying{std::move(pmr)} {}
   MJZ_NCX_FN ~pmr_alloc_t() noexcept {
     asserts(asserts.condition_rn, 0 == reference_count,
             "the ref count must be 0 (deleted) , there is still an alive "
@@ -153,8 +156,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     return true;
   }
 
- public: 
-
+ public:
   MJZ_NCX_FN
   alloc_relations_e static is_equal(const alloc_base *This,
                                     const alloc_ref &other) noexcept {
@@ -173,7 +175,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     return As(This).obj_deallocate(std::move(blk), ai);
   }
   MJZ_NCX_FN static void alloc_call(alloc_base *This, block_info &blk,
-                                   alloc_info ai) noexcept {
+                                    alloc_info ai) noexcept {
     if (blk.ptr) {
       asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
       return;
@@ -186,11 +188,11 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   friend class mjz_private_accessed_t;
 
  private:
-  using blk_t_ =  block_info_t<version_v, pmr_alloc>;
+  using blk_t_ = block_info_t<version_v, pmr_alloc>;
 
  public:
   MJZ_NCX_FN static void ref_call(alloc_base *This,
-                                    bool add_vs_destroy) noexcept {
+                                  bool add_vs_destroy) noexcept {
     threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
 
     if (add_vs_destroy) {
@@ -199,14 +201,14 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     }
     if (2 <= rc.fetch_sub(2, std::memory_order_acq_rel)) {
       return;
-    } 
+    }
     if (rc.load(std::memory_order_relaxed) == 1) {
       std::destroy_at(This);
       std::pmr::polymorphic_allocator<char> upstream = As(This).undelying;
       MJZ_NOEXCEPT { upstream.deallocate_object(std::addressof(As(This)), 1); };
     }
     rc.store(0, std::memory_order_relaxed);
-    return  ;
+    return;
   }
 
   template <class>
@@ -238,7 +240,6 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
 
   template <class>
   friend class mjz_private_accessed_t;
-
 };
 
 template <version_t version_v>

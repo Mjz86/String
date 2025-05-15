@@ -68,7 +68,8 @@ constexpr static const bool force_deafult_alloc_v{false};
 // configurable
 template <version_t version_v>
 MJZ_CONSTANT(uintlen_t)
-thread_local_stack_size_v{force_deafult_alloc_v<version_v> ? 0 : 1024 * 16};
+thread_local_stack_size_v{
+    0 /*force_deafult_alloc_v<version_v> ? 0 : 1024 * 16*/};
 
 // configurable
 
@@ -87,7 +88,13 @@ struct alloc_info_t {
   friend class mjz_private_accessed_t;
   template <class>
   friend class mjz_private_accessed_t;
-
+  enum class allocation_mode_e : uint16_t {
+    // dont change the values!
+    relaxed_mode = 0b00,
+    monotonic_mode = 0b01,
+    alloca_mode = 0b10,
+    alloca_or_monotonic_mode = 0b11
+  };
   MJZ_CX_FN bool operator==(const alloc_info_t &) const noexcept = default;
 
  private:
@@ -102,7 +109,7 @@ struct alloc_info_t {
  public:
   uintlen_t size_multiplier{1};
   uint16_t log2_of_align_val : 6 {0};
-  uint16_t time_threshold : 2 {3};
+  uint16_t /*allocation_mode_e*/ allocation_mode_val : 2 {};
   uint16_t uses_upstream_forwarding : 1 {1};
   uint16_t uses_default_upstream_forwarding : 1 {1};
   uint16_t allocate_exactly_minsize : 1 {0};
@@ -110,7 +117,8 @@ struct alloc_info_t {
   uint16_t is_thread_safe : 1 {1};
   uint16_t uses_best_fit : 1 {1};
   uint16_t is_one_of_many_nodes : 1 {0};
-  uint16_t can_do_allocator_regrowth : 1 {1};
+  // side-note: always fails for the default constructed allocator
+  uint16_t cache_only_allocation : 1 {0};
 
  public:
   template <class T>
@@ -290,20 +298,22 @@ struct alloc_vtable_t {
                 hardware_destructive_interference_size);
 
  public:
+  alignas(16) alloc_info default_info{};//2w
+  //--end first 8words--//
+  uintlen_t cow_threashold{cow_threashold_v<version_v>};
   typename funcs_t::alloc_call alloc_call{};
   typename funcs_t::ref_call ref_call{};
   typename funcs_t::is_equal is_equal{};
   typename funcs_t::is_owner is_owner{};
   typename funcs_t::handle handle{};
-  uintlen_t cow_threashold{cow_threashold_v<version_v>};
-  alloc_info default_info{};
   MJZ_CX_FN bool operator==(const alloc_vtable_t &rhs) const noexcept = default;
 };
 
 template <version_t version_v>
 struct alloc_base_t : void_struct_t {
+    //--start first 8words--//
+  alignas(16) fast_alloc_chache_t<version_v> alloc_chache{};//6w
   const alloc_vtable_t<version_v> vtable{};
-  fast_alloc_chache_t<version_v> alloc_chache{};
   MJZ_NO_MV_NO_CPY(alloc_base_t);
   MJZ_CX_FN alloc_base_t() noexcept = default;
   MJZ_CX_FN alloc_base_t(const alloc_vtable_t<version_v> &vtable_val) noexcept
@@ -314,8 +324,7 @@ struct alloc_base_t : void_struct_t {
               uintlen_t align_log2 = log2_ceil_of_val_create(min);
               vtable_.cow_threashold >>= align_log2;
               vtable_.cow_threashold <<= align_log2;
-              vtable_.cow_threashold +=
-                  branchless_teranary<uintlen_t>(
+              vtable_.cow_threashold += branchless_teranary<uintlen_t>(
                   vtable_.cow_threashold != vtable_val.cow_threashold, min, 0);
               return vtable_;
             },
@@ -589,14 +598,12 @@ class alloc_base_ref_t {
  public:
   MJZ_CX_FN alloc_vtable_t<version_v> get_vtbl() const noexcept {
     constexpr const alloc_base dummy{};
-    bptr_t vptr =
-        branchless_teranary<bptr_t>(!this->ref, &dummy, this->ref); 
+    bptr_t vptr = branchless_teranary<bptr_t>(!this->ref, &dummy, this->ref);
     return vptr->vtable;
   }
   MJZ_CX_FN alloc_cache_ref get_cache() const noexcept {
     alloc_base dummy{};
-    return branchless_teranary(!this->ref, nullptr,
-                                       get_cache_impl(dummy));
+    return branchless_teranary(!this->ref, nullptr, get_cache_impl(dummy));
   }
   MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
   MJZ_CX_FN alloc_base &get_ref() const noexcept {
@@ -701,7 +708,7 @@ class alloc_base_ref_t {
     is_eq |= !get_vtbl().is_equal;
     if (no_call) {
       return branchless_teranary(!is_eq, alloc_relations_e::none,
-                                           alloc_relations_e::equal);
+                                 alloc_relations_e::equal);
     }
     return run(get_vtbl().is_equal, ar);
   }
@@ -732,11 +739,12 @@ class alloc_base_ref_t {
     blk = block_info{};
     return;
   }
-
+  using allocation_mode_e = typename alloc_info::allocation_mode_e;
   MJZ_CX_FN
-  block_info allocate_bytes_cache_(uintlen_t minsize,
-                                   alloc_info ai) const noexcept {
-    bool bad = !!ai.time_threshold;
+  block_info monotonic_allocate_bytes_cache_(uintlen_t minsize, alloc_info ai,
+                                             bool bad) const noexcept {
+    bad |= !!!(ai.allocation_mode_val &
+               uint16_t(allocation_mode_e::monotonic_mode));
     bad |= !!ai.is_thread_safe;
     alloc_base dummy_{};
     alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
@@ -745,20 +753,53 @@ class alloc_base_ref_t {
     return block_info{ret.data(), ret.size()};
   }
   MJZ_CX_FN
-  success_t deallocate_bytes_cache_(block_info blk,
-                                    alloc_info ai) const noexcept {
-    bool bad = !!ai.time_threshold;
+  success_t monotonic_deallocate_bytes_cache_(block_info blk, alloc_info ai, 
+                                              bool bad) const noexcept {
+    bad |= !!!(ai.allocation_mode_val &
+               uint16_t(allocation_mode_e::monotonic_mode));
     bad |= !!ai.is_thread_safe;
     alloc_base dummy_{};
     alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
     return cache->is_monotonic(std::span<char>{blk.ptr, blk.length},
                                ai.get_alignof_z());
   }
+  MJZ_CX_FN
+  block_info alloca_bytes_cache_(uintlen_t minsize, alloc_info ai,
+                                 bool bad) const noexcept {
+    bad |=
+        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode));
+    bad |= !!ai.is_thread_safe;
+    alloc_base dummy_{};
+    alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
+    const std::span<char> ret = cache->fn_alloca(minsize, ai.get_alignof_z());
+    return block_info{
+        ret.data(),
+        branchless_teranary(!!ai.allocate_exactly_minsize,
+                            std::min(ret.size(), minsize), ret.size())};
+  }
+  MJZ_CX_FN
+  success_t dealloca_bytes_cache_(block_info blk, alloc_info ai,
+                                  bool bad) const noexcept {
+    bad |=
+        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode));
+    bad |= !!ai.is_thread_safe;
+    alloc_base dummy_{};
+    alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
+    return cache->fn_try_dealloca(std::span<char>{blk.ptr, blk.length},
+                                  ai.get_alignof_z());
+  }
 
   MJZ_CX_FN
   block_info allocate_bytes_impl_(uintlen_t minsize,
                                   alloc_info ai) const noexcept {
-    if (block_info blk = allocate_bytes_cache_(minsize, ai); blk.ptr) {
+    const block_info blk1 = alloca_bytes_cache_(minsize, ai, false);
+    bool success = !!blk1.ptr;
+    const block_info blk2 =
+        monotonic_allocate_bytes_cache_(minsize, ai, success);
+    const block_info blk = success ? blk1 : blk2;
+    success = !!blk.ptr;
+    success |= !!ai.cache_only_allocation;
+    if (success) {
       return blk;
     }
     if (!get_vtbl().alloc_call) {
@@ -769,7 +810,10 @@ class alloc_base_ref_t {
   MJZ_CX_FN
   success_t deallocate_bytes_impl_(block_info blk,
                                    alloc_info ai) const noexcept {
-    if (deallocate_bytes_cache_(blk, ai)) {
+    bool success = dealloca_bytes_cache_(blk, ai, false);
+    success |= monotonic_deallocate_bytes_cache_(blk, ai, success);
+    success |= ai.cache_only_allocation;
+    if (success) {
       return true;
     }
     if (!get_vtbl().alloc_call) {
@@ -1139,23 +1183,6 @@ class alloc_base_ref_t {
     deallocate_singular<T>(ptr, thread_safe, false);
   }
 
- private:
-  MJZ_CX_FN
-  block_info alloca_bytes_cache_(uintlen_t minsize,
-                                 uintlen_t align) const noexcept {
-    alloc_base dummy_{};
-    alloc_cache_ref cache = get_cache_impl(&dummy_);
-    std::span<char> ret = cache->fn_alloca(minsize, align);
-    return block_info{ret.data(), ret.size()};
-  }
-  MJZ_CX_FN
-  success_t dealloca_bytes_cache_(block_info blk,
-                                  uintlen_t align) const noexcept {
-    alloc_base dummy_{};
-    alloc_cache_ref cache = get_cache_impl(&dummy_);
-    return cache->fn_try_dealloca(std::span<char>{blk.ptr, blk.length}, align);
-  }
-
  public:
   /*CATION !!!!!!!!!!!!!
    *WILL LEAD TO UB IF THE STACK IS MISUSED,
@@ -1168,12 +1195,9 @@ class alloc_base_ref_t {
    */
   MJZ_CX_FN void dealloca_bytes(block_info &&blk,
                                 uintlen_t align) const noexcept {
-    if (dealloca_bytes_cache_(blk, align)) {
-      blk = block_info{};
-      return;
-    }
     alloc_info info = get_default_info();
     info.is_thread_safe = false;
+    info.allocation_mode_val |= uint16_t(allocation_mode_e::alloca_mode);
     info.set_alignof_z(align);
     asserts(asserts.assume_rn, deallocate_bytes(std::move(blk), info));
   }
@@ -1188,11 +1212,9 @@ class alloc_base_ref_t {
    */
   MJZ_CX_FN block_info alloca_bytes(uintlen_t min_size,
                                     uintlen_t align) const noexcept {
-    if (block_info blk = alloca_bytes_cache_(min_size, align); blk.ptr) {
-      return blk;
-    }
     alloc_info info = get_default_info();
     info.is_thread_safe = false;
+    info.allocation_mode_val |= uint16_t(allocation_mode_e::alloca_mode);
     info.set_alignof_z(align);
     return allocate_bytes(min_size, info);
   }

@@ -70,27 +70,31 @@ struct standard_output_it_t : file_output_it_t<version_v> {
                                  void *Stream_ = nullptr) noexcept {}
 #endif
 };
-
-// configurable
-template <version_t version_v>
-constexpr static const bool use_thread_local_stack_in_generic_format_to_v{true};
+ 
 
 template <version_t version_v>
 struct print_t {
   using format_obj_t = formatting_object_t<version_v>;
   using alloc_ref = allocs_ns::alloc_base_ref_t<version_v>;
+  static const constexpr uintlen_t buffer_raw_size_v_ =
+      format_stack_size_v<version_v>;
   struct meta_data_t {
-    bool has_new_line{};
     alloc_ref alloc{};
-    uintlen_t cache_size{
-        std::max(format_stack_size_v<version_v>, sizeof(format_obj_t) * 2) -
+    uintlen_t cache_size{buffer_raw_size_v_ -
         sizeof(format_obj_t)};
-    bool use_thread_local_stack{
-        use_thread_local_stack_in_generic_format_to_v<version_v>};
+    bool has_new_line{}; 
     bool log_print_failure{MJZ_LOG_PRINT_FAILURE_};
+    MJZ_DEFAULTED_CLASS(meta_data_t);
+    MJZ_CX_FN meta_data_t(bool has_new_line_, alloc_ref alloc_) noexcept
+        : alloc{std::move(alloc_)}, has_new_line{has_new_line_} {
+
+    }
   };
 
  private:
+  static constexpr auto align_v_ = std::max<uintlen_t>(
+      allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align,
+      alignof(format_obj_t));
   struct generic_format_to_t_helper_ {
     MJZ_NO_MV_NO_CPY(generic_format_to_t_helper_);
     meta_data_t &meta_data_{};
@@ -98,30 +102,22 @@ struct print_t {
     // return
     status_view_t<version_v> &err_view{};
     const alloc_ref &alloc_{};
+    std::span<char> aliged_stack_{};
     format_obj_t *ptr_{};
     allocs_ns::block_info_t<version_v> storage_resurve_{};
-    typename alloc_ref::thread_local_stack_ref_t thread_local_stack_{};
     enum class out_of_memory_e_ { good, no_alloc, one_alloc } out_of_memory_{};
     success_t succuss{};
-    static constexpr auto align_v_ = std::max<uintlen_t>(
-        allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align,
-        alignof(format_obj_t));
 
     MJZ_CX_FN generic_format_to_t_helper_(
         meta_data_t &meta_data_0_, base_out_it_t<version_v> &out_0_,
-        status_view_t<version_v> &return_0_) noexcept
+        status_view_t<version_v> &return_0_,std::span<char>aliged_stack_resurve) noexcept
         : meta_data_(meta_data_0_),
           out(out_0_),
           err_view(return_0_),
-          alloc_(meta_data_.alloc) {
+          alloc_(meta_data_.alloc),
+          aliged_stack_{aliged_stack_resurve} {
       MJZ_RELEASE { succuss = out_of_memory_ == out_of_memory_e_::good; };
-      if (meta_data_.use_thread_local_stack) {
-        thread_local_stack_ = alloc_.thread_local_stack();
-      }
-      meta_data_.cache_size = std::max(meta_data_.cache_size, align_v_ * 2);
-      meta_data_.cache_size += sizeof(format_obj_t);
-      storage_resurve_ = alloc_.alloca_bytes(thread_local_stack_.get(),
-                                             meta_data_.cache_size, align_v_);
+      allocate_formatter_0_();
       if (!storage_resurve_.ptr) {
         //   return "[Error]generic_format_to : out of memory";
         out_of_memory_ = out_of_memory_e_::no_alloc;
@@ -205,10 +201,28 @@ struct print_t {
     }
 
    private:
+    MJZ_CX_FN void allocate_formatter_0_() noexcept 
+    {
+      meta_data_.cache_size = std::max(meta_data_.cache_size, align_v_ * 2);
+      meta_data_.cache_size += sizeof(format_obj_t);
+      if (meta_data_.cache_size <= aliged_stack_.size_bytes()) {
+        asserts(asserts.assume_rn, !!aliged_stack_.data());
+        storage_resurve_.ptr =
+            std::assume_aligned<align_v_>(aliged_stack_.data());
+        storage_resurve_.length = aliged_stack_.size_bytes();
+        return;
+      }
+     
+      storage_resurve_ = alloc_.alloca_bytes(
+                                             meta_data_.cache_size, align_v_);
+    }
     MJZ_CX_FN void releser_1_() noexcept {
+      if (meta_data_.cache_size <= aliged_stack_.size_bytes()) {
+        return;
+      }
       storage_resurve_.length += sizeof(format_obj_t);
       storage_resurve_.ptr -= sizeof(format_obj_t);
-      alloc_.dealloca_bytes(thread_local_stack_.get(),
+      alloc_.dealloca_bytes(
                             std::move(storage_resurve_), align_v_);
     }
     MJZ_CX_FN void releser_2_() noexcept {
@@ -218,24 +232,43 @@ struct print_t {
   };
 
  public:
-  MJZ_CX_FN static status_view_t<version_v> generic_format_to(
-      meta_data_t meta_data_, base_out_it_t<version_v> out,
+ 
+  MJZ_CX_FN static status_view_t<version_v> generic_format_to_impl_(
+      meta_data_t &meta_data_, base_out_it_t<version_v> out,
       callable_c<success_t(format_obj_t &,
                            base_out_it_t<version_v> out_it) noexcept> auto
-          &&format_fn) noexcept {
+          &&format_fn,
+      std::span<char> stack_opt_ = std::span<char>{}) noexcept {
     status_view_t<version_v> ret{};
     {
-      generic_format_to_t_helper_ function_stack{meta_data_, out, ret};
-      if (function_stack.succuss) MJZ_IS_LIKELY {
-        function_stack.succuss =
-            format_fn(*function_stack.ptr_, function_stack.out);
-      }
+      generic_format_to_t_helper_ function_stack{meta_data_, out, ret,
+                                                 stack_opt_};
+      if (function_stack.succuss) {
+          function_stack.succuss =
+              format_fn(*function_stack.ptr_, function_stack.out);
+        }
     };
     return ret;
+  } 
+
+  MJZ_CX_AL_FN static status_view_t<version_v> generic_format_to(
+      meta_data_t& meta_data_, base_out_it_t<version_v>& out,
+      callable_c<success_t(format_obj_t &,
+                           base_out_it_t<version_v> out_it) noexcept> auto
+          &&format_fn) noexcept { 
+    MJZ_IFN_CONSTEVAL {
+      alignas(align_v_) char buffer_[buffer_raw_size_v_];
+      return generic_format_to_impl_(meta_data_, out, format_fn, buffer_);
+        
+    }
+    else {
+      alignas(align_v_) char buffer_[buffer_raw_size_v_]{};
+      return generic_format_to_impl_(meta_data_, out, format_fn,buffer_);
+    }
   }  // namespace mjz::bstr_ns::format_ns
 
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> format_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> format_to(
       meta_data_t meta_data_, base_out_it_t<version_v> out, auto fmt,
       Ts &&...args) noexcept {
     return generic_format_to(
@@ -246,7 +279,7 @@ struct print_t {
         });
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vformat_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> vformat_to(
       meta_data_t meta_data_, base_out_it_t<version_v> out,
       basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     return generic_format_to(
@@ -257,52 +290,52 @@ struct print_t {
         });
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> format_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> format_to(
       base_out_it_t<version_v> out, auto fmt, Ts &&...args) noexcept {
     return format_to(meta_data_t{}, out, fmt, std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vformat_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> vformat_to(
       base_out_it_t<version_v> out, basic_string_view_t<version_v> fmt,
       Ts &&...args) noexcept {
     return vformat_to(meta_data_t{}, out, fmt, std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vformatln_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> vformatln_to(
       base_out_it_t<version_v> out, basic_string_view_t<version_v> fmt,
       Ts &&...args) noexcept {
     return vformat_to(meta_data_t{true, nullptr}, out, fmt,
                       std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> formatln_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> formatln_to(
       base_out_it_t<version_v> out, auto fmt, Ts &&...args) noexcept {
     return format_to(meta_data_t{true, nullptr}, out, fmt,
                      std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> formata_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> formata_to(
       alloc_ref alloc, base_out_it_t<version_v> out, auto fmt,
       Ts &&...args) noexcept {
     return format_to(meta_data_t{false, alloc}, out, fmt,
                      std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vformata_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> vformata_to(
       alloc_ref alloc, base_out_it_t<version_v> out,
       basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     return vformat_to(meta_data_t{false, alloc}, out, fmt,
                       std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vformatlna_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> vformatlna_to(
       alloc_ref alloc, base_out_it_t<version_v> out,
       basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     return vformat_to(meta_data_t{true, alloc}, out, fmt,
                       std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> formatlna_to(
+  MJZ_CX_AL_FN static status_view_t<version_v> formatlna_to(
       alloc_ref alloc, base_out_it_t<version_v> out, auto fmt,
       Ts &&...args) noexcept {
     return format_to(meta_data_t{true, alloc}, out, fmt,
@@ -313,7 +346,7 @@ struct print_t {
   MJZ_CONSTANT(ret_t)
   output_timeout{static_string_view_t<version_v>{"[Error]:output timeout"}};
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vprint(
+  MJZ_CX_AL_FN static status_view_t<version_v> vprint(
       basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
@@ -321,7 +354,7 @@ struct print_t {
     return vformat_to(out, fmt, std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> print(auto fmt,
+  MJZ_CX_AL_FN static status_view_t<version_v> print(auto fmt,
                                                   Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
@@ -330,7 +363,7 @@ struct print_t {
   }
 
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> vprintln(
+  MJZ_CX_AL_FN static status_view_t<version_v> vprintln(
       basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
@@ -338,7 +371,7 @@ struct print_t {
     return vformatln_to(out, fmt, std::forward<Ts>(args)...);
   }
   template <typename... Ts>
-  MJZ_CX_FN static status_view_t<version_v> println(auto fmt,
+  MJZ_CX_AL_FN static status_view_t<version_v> println(auto fmt,
                                                     Ts &&...args) noexcept {
     bool good{};
     standard_output out{good};
@@ -349,72 +382,77 @@ struct print_t {
 
 namespace print_ns {
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vprint(basic_string_view_t<version_v> fmt,
+MJZ_CX_AL_FN static auto vprint(basic_string_view_t<version_v> fmt,
                              Ts &&...args) noexcept {
   return print_t<version_v>::vprint(fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto print(auto fmt, Ts &&...args) noexcept {
+MJZ_CX_AL_FN static auto print(auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::print(
       fmt, std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vprintln(basic_string_view_t<version_v> fmt,
+MJZ_CX_AL_FN static auto vprintln(basic_string_view_t<version_v> fmt,
                                Ts &&...args) noexcept {
   return print_t<version_v>::vprintln(fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto println(auto fmt, Ts &&...args) noexcept {
+MJZ_CX_AL_FN static auto println(auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::println(
       fmt, std::forward<Ts>(args)...);
 }
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformat_to(auto &out, basic_string_view_t<version_v> fmt,
+MJZ_CX_AL_FN static auto vformat_to(auto &out,
+                                    basic_string_view_t<version_v> fmt,
                                  Ts &&...args) noexcept {
   return print_t<version_v>::vformat_to(out, fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto format_to(auto &out, auto fmt, Ts &&...args) noexcept {
+MJZ_CX_AL_FN static auto format_to(auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::format_to(
       out, fmt, std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformatln_to(auto &out,
+MJZ_CX_AL_FN static auto vformatln_to(auto &out,
                                    basic_string_view_t<version_v> fmt,
                                    Ts &&...args) noexcept {
   return print_t<version_v>::vformat_to(out, fmt, std::forward<Ts>(args)...);
 }
 template <typename... Ts>
-MJZ_CX_FN static auto formatln_to(auto &out, auto fmt, Ts &&...args) noexcept {
+MJZ_CX_AL_FN static auto formatln_to(auto &out, auto fmt,
+                                     Ts &&...args) noexcept {
   return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::formatln_to(
       out, fmt, std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformata_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
+MJZ_CX_AL_FN static auto vformata_to(
+    allocs_ns::alloc_base_ref_t<version_v> alloc,
                                   auto &out, basic_string_view_t<version_v> fmt,
                                   Ts &&...args) noexcept {
   return print_t<version_v>::vformata_to(alloc, out, fmt,
                                          std::forward<Ts>(args)...);
 }
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto formata_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
+MJZ_CX_AL_FN static auto formata_to(
+    allocs_ns::alloc_base_ref_t<version_v> alloc,
                                  auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<version_v>::formata_to(alloc, out, fmt,
                                         std::forward<Ts>(args)...);
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformatlna_to(
+MJZ_CX_AL_FN static auto vformatlna_to(
     allocs_ns::alloc_base_ref_t<version_v> alloc, auto &out,
     basic_string_view_t<version_v> fmt, Ts &&...args) noexcept {
   return print_t<version_v>::vformata_to(alloc, out, fmt,
                                          std::forward<Ts>(args)...);
 }
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto formatlna_to(allocs_ns::alloc_base_ref_t<version_v> alloc,
+MJZ_CX_AL_FN static auto formatlna_to(
+    allocs_ns::alloc_base_ref_t<version_v> alloc,
                                    auto &out, auto fmt, Ts &&...args) noexcept {
   return print_t<version_v>::formatlna_to(alloc, out, fmt,
                                           std::forward<Ts>(args)...);

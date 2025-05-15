@@ -297,7 +297,9 @@ struct fast_alloc_chache_t {
    */
   MJZ_CX_FN success_t fn_try_dealloca(
       std::span<char>&& blk, MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
-    bool good = (blk.data() + blk.size()) == stack_ptr;
+    bool good = memory_is_inside(stack_begin,
+                                 uintlen_t(stack_ptr + stack_left - stack_begin),
+                         blk.data(), blk.size());
     good &= can_use_stack;
     char* new_stack_ptr = branchless_teranary(!good, stack_ptr, blk.data());
     stack_left += uintlen_t(stack_ptr - new_stack_ptr);

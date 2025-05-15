@@ -185,8 +185,7 @@ template <version_t version_v>
 static const constexpr uintlen_t format_basic_buffer_size_v = 64;
 // configurable
 template <version_t version_v>
-static const constexpr uintlen_t format_stack_size_v =
-    format_basic_buffer_size_v<version_v> * 32;
+static const constexpr uintlen_t format_stack_size_v = 128*sizeof(uintlen_t);
 
 template <version_t version_v>
 struct alignas(
@@ -194,8 +193,6 @@ struct alignas(
     base_context_t : void_struct_t {
   using stack_alloc_t =
       allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
-  static_assert(format_basic_buffer_size_v<version_v> <
-                format_stack_size_v<version_v>);
   static_assert(stack_alloc_t::align * 2 <=
                 format_basic_buffer_size_v<version_v>);
   // alignment

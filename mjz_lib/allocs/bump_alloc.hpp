@@ -87,7 +87,9 @@ struct stack_alloc_t {
         : m{[&self, &a]() noexcept -> auto & {
             if (!(a.buffer && a.size)) return self.alloc_chache;
             alloc_vtable_t<version_v> table = self.vtable;
-            table.default_info.time_threshold = 0;
+            table.default_info.allocation_mode_val =
+            uint16_t    (alias_t<
+                    typename alloc_info::allocation_mode_e>::monotonic_mode);
             table.default_info.is_thread_safe = 0;
             fast_alloc_chache_t<version_v> cache_{};
 

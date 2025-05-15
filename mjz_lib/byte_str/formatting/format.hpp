@@ -36,7 +36,7 @@ MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(basic_str_t<version_v>&ret,const s
 }
 
 template <version_t version_v>
-MJZ_CX_FN void vformat_err_handle_pv_(
+MJZ_CX_AL_FN void vformat_err_handle_pv_(
     basic_str_t<version_v> &ret, const status_view_t<version_v> &opt) noexcept {
   if (!opt) MJZ_IS_UNLIKELY{
     vformat_err_handle_impl_pv_(ret, opt);
@@ -44,7 +44,7 @@ MJZ_CX_FN void vformat_err_handle_pv_(
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformat(basic_string_view_t<version_v> fmt,
+MJZ_CX_AL_FN static auto vformat(basic_string_view_t<version_v> fmt,
                               Ts &&...args) noexcept {
   basic_str_t<version_v> ret{};
   auto opt =
@@ -53,7 +53,7 @@ MJZ_CX_FN static auto vformat(basic_string_view_t<version_v> fmt,
   return ret;
 }
 template <typename... Ts>
-MJZ_CX_FN static auto format(auto fmt, Ts &&...args) noexcept {
+MJZ_CX_AL_FN static auto format(auto fmt, Ts &&...args) noexcept {
   constexpr version_t version_v{
       std::remove_cvref_t<decltype(fmt())>::Version_v};
   basic_str_t<version_v> ret{};
@@ -64,7 +64,7 @@ MJZ_CX_FN static auto format(auto fmt, Ts &&...args) noexcept {
 }
 
 template <version_t version_v, typename... Ts>
-MJZ_CX_FN static auto vformatln(basic_string_view_t<version_v> fmt,
+MJZ_CX_AL_FN static auto vformatln(basic_string_view_t<version_v> fmt,
                                 Ts &&...args) noexcept {
   basic_str_t<version_v> ret{};
   auto opt =
@@ -73,7 +73,7 @@ MJZ_CX_FN static auto vformatln(basic_string_view_t<version_v> fmt,
   return ret;
 }
 template <typename... Ts>
-MJZ_CX_FN static auto formatln(auto fmt, Ts &&...args) noexcept {
+MJZ_CX_AL_FN static auto formatln(auto fmt, Ts &&...args) noexcept {
   constexpr version_t version_v{
       std::remove_cvref_t<decltype(fmt())>::Version_v};
 

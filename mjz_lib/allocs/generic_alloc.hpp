@@ -63,15 +63,17 @@ struct generic_alloc_t : alloc_base_t<version_v> {
    * the first bit is used to determine if its heap allocated or not.
    */
   MJZ_DISABLE_ALL_WANINGS_START_;
-  alignas(hardware_destructive_interference_size)  uintlen_t reference_count{};
+  alignas(hardware_destructive_interference_size) uintlen_t reference_count{};
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_CX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
-      return {&alloc_call, nullptr, Const_inequals ? nullptr : &is_equal,
-              &is_owner, nullptr,cow_threashold_v<version_v>};
+      return {alloc_info{}, cow_threashold_v<version_v>,          &alloc_call,
+              nullptr,      Const_inequals ? nullptr : &is_equal, &is_owner,
+              nullptr};
     } else {
-      return {&alloc_call, &ref_call, Const_inequals ? nullptr : &is_equal,
-              &is_owner,   nullptr,   cow_threashold_v<version_v>};
+      return {alloc_info{}, cow_threashold_v<version_v>,          &alloc_call,
+              &ref_call,    Const_inequals ? nullptr : &is_equal, &is_owner,
+              nullptr};
     }
   }
 
@@ -81,7 +83,7 @@ struct generic_alloc_t : alloc_base_t<version_v> {
                             bool fast_table = false) noexcept
       : alloc_base{vtable_val_f(fast_table)},
         upstream{std::move(upstream_alloc)} {
-    std::construct_at(&data.obj, std::forward<T>(ai),*this);
+    std::construct_at(&data.obj, std::forward<T>(ai), *this);
   }
   MJZ_CX_FN ~generic_alloc_t() noexcept {
     asserts(asserts.condition_rn, 0 == reference_count,
@@ -181,7 +183,7 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   alloc_relations_e static is_equal(const alloc_base *This,
                                     const alloc_ref &other) noexcept {
     if (This == other.get_ptr()) return alloc_relations_e::equal;
-    if (!other || This->vtable != other .get_vtbl() || inequals(other, This)) {
+    if (!other || This->vtable != other.get_vtbl() || inequals(other, This)) {
       return alloc_relations_e::none;
     }
     return alloc_relations_e::equal;
@@ -217,8 +219,7 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   friend class mjz_private_accessed_t;
 
  private:
-  using blk_t_ =  block_info_t<version_v, generic_alloc_t>;
-
+  using blk_t_ = block_info_t<version_v, generic_alloc_t>;
 
  public:
   MJZ_CX_FN static void ref_call(alloc_base *This,
