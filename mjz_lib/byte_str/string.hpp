@@ -281,7 +281,7 @@ struct basic_str_t : void_struct_t {
         return true;
       }
     }
-    char *buf = m.m_v().raw_data.sso_buffer;
+    char *buf = m.m_sso_buffer_();
     memomve_overlap(buf, buf + byte_offset, byte_count);
     buf[byte_count] = '\0';
     m.set_sso_length(byte_count);

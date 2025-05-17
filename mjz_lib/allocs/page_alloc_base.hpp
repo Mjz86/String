@@ -272,14 +272,14 @@ struct fast_alloc_chache_t {
    * ...
    */
   MJZ_CX_FN std::span<char> fn_alloca(const uintlen_t min_size,
-                                      const uintlen_t align_) noexcept {
+                                      const uintlen_t align_,const bool bad_=false) noexcept {
     uintlen_t align = uintlen_t(1) << stack_log2_align;
     uintlen_t size = min_size;
     const bool bad_align = !!(size & (align - 1));
     size &= ~(align - 1);
     size += branchless_teranary<uintlen_t>(!bad_align, 0, align);
     const bool bad = bool(int(stack_left < size) | int(align < align_) |
-                          int(!size) | int(!can_use_stack));
+                          int(!size) | int(!can_use_stack) | int(bad_));
     const auto ret = branchless_teranary(!bad, std::span<char>{stack_ptr, size},
                                          std::span<char>{});
     stack_ptr += ret.size();
@@ -295,11 +295,13 @@ struct fast_alloc_chache_t {
    * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
    * ...
    */
-  MJZ_CX_FN success_t fn_try_dealloca(
-      std::span<char>&& blk, MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
+  MJZ_CX_FN success_t fn_try_dealloca(std::span<char>&& blk,
+                                      MJZ_MAYBE_UNUSED const uintlen_t align_,
+                                      const bool bad_ = false) noexcept {
     bool good = memory_is_inside(stack_begin,
                                  uintlen_t(stack_ptr + stack_left - stack_begin),
                          blk.data(), blk.size());
+    good &= !bad_;
     good &= can_use_stack;
     char* new_stack_ptr = branchless_teranary(!good, stack_ptr, blk.data());
     stack_left += uintlen_t(stack_ptr - new_stack_ptr);
@@ -309,18 +311,19 @@ struct fast_alloc_chache_t {
   }
 
   MJZ_CX_FN void fn_dealloca(std::span<char>&& blk,
-                             MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
-    asserts(asserts.assume_rn, fn_try_dealloca(std::move(blk), align_));
+                             MJZ_MAYBE_UNUSED const uintlen_t align_,
+                             const bool bad_ = false) noexcept {
+    asserts(asserts.assume_rn, fn_try_dealloca(std::move(blk), align_,bad_));
   }
 
-  MJZ_CX_FN std::span<char> monotonic_allocate(const uintlen_t min_size,
-                                               uintlen_t align_) noexcept {
+  MJZ_CX_FN std::span<char> monotonic_allocate(const uintlen_t min_size, uintlen_t align_,
+      const bool bad_ = false) noexcept {
     asserts(asserts.assume_rn,
             align_ == (uintlen_t(1) << log2_of_val_create(align_)));
     uintlen_t size = min_size;
     const bool bad = bool(int(monotonic_left < size) |
                           int((uintlen_t(1) << monotonic_log2_align) < align_) |
-                          int(!can_use_monotonic));
+                          int(!can_use_monotonic)|int(bad_));
     align_ = branchless_teranary<uintlen_t>(!bad, align_, 1);
     uintlen_t modular_math_op = align_ - 1;
     uintlen_t distance_align =
@@ -337,20 +340,22 @@ struct fast_alloc_chache_t {
     return ret;
   }
   MJZ_CX_FN bool is_monotonic(const std::span<char>& blk,
-                              MJZ_MAYBE_UNUSED const uintlen_t
-                                  align_) const noexcept {
+                              MJZ_MAYBE_UNUSED const uintlen_t align_,
+                              const bool bad_ = false) const noexcept {
     bool ret = memory_is_inside(monotonic_begin,
                                 uintlen_t(monotonic_ptr - monotonic_begin),
                                 blk.data(), blk.size());
+    ret &= !bad_;
     ret &= can_use_monotonic;
     return ret;
   }
   MJZ_CX_FN bool is_stack(const std::span<char>& blk,
-                          MJZ_MAYBE_UNUSED const uintlen_t
-                              align_) const noexcept {
+                          MJZ_MAYBE_UNUSED const uintlen_t align_,
+                          const bool bad_ = false) const noexcept {
     bool ret = memory_is_inside(stack_begin, uintlen_t(stack_ptr - stack_left),
                                 blk.data(), blk.size());
     ret &= can_use_stack;
+    ret &= !bad_;
     return ret;
   }
 };

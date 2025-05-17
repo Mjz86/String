@@ -273,8 +273,10 @@ namespace mjz {
 static constexpr const inline auto is_at_consteval_= []() noexcept -> bool {
   MJZ_IF_CONSTEVAL_ { return true; }
   else {
-    MJZ_IN_DEBUG_MODE_CODE(static) bool debug_helper = false;
-    return debug_helper;
+    return []() noexcept {
+      MJZ_IN_DEBUG_MODE_CODE(static) bool debug_helper = false;
+      return debug_helper;
+    }();
   }
 };
 };  // namespace mjz

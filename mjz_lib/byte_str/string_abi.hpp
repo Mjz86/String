@@ -71,10 +71,10 @@ struct str_abi_t_ {
   MJZ_PACKING_START_;
   static_assert(sizeof(str_data_t) == sizeof(uintlen_t));
   struct non_sso_t {
-    char raw_capacity[sizeof(uintlen_t) - 1]{};
-    str_data_t str_data{};
     const char* begin_ptr{};
     char* data_block{};
+    str_data_t str_data{};
+    char raw_capacity[sizeof(uintlen_t) - 1]{};
   };
   union alignas(1) raw_data_u {
     non_sso_t non_sso{};
@@ -96,14 +96,16 @@ struct str_abi_t_ {
       std::destroy_at(this);
       return *std::construct_at(this, src);
     }
+    MJZ_CX_FN bool operator==(const control_byte_t&) const noexcept = default;
   };
   struct raw_data_t {
     static_assert(sizeof(control_byte_t) == sizeof(uint8_t));
-    control_byte_t control_byte{};
     raw_data_u raw_data{};
+    control_byte_t control_byte{};
   };
   MJZ_PACKING_END_;
-  static_assert(sizeof(raw_data_t) == sizeof(raw_data_u) + sizeof(uint8_t));
+  static_assert(sizeof(raw_data_t) == sizeof(raw_data_u) + sizeof(uint8_t) &&
+                sizeof(raw_data_u) == buffer_size);
   struct data_t : abi_ns_::alloc_t<version_v, has_alloc_v_> {
    public:
     MJZ_CONSTANT(uintlen_t) sso_cap = buffer_size - sizeof(cap_mins_length_t);
@@ -177,7 +179,7 @@ struct str_abi_t_ {
       return m_v().control_byte;
     }
     MJZ_CX_FN control_byte_t& cntrl() noexcept { return m_v().control_byte; }
-    MJZ_CX_FN bool is_sso() const noexcept {    return cntrl().is_sso; }
+    MJZ_CX_FN bool is_sso() const noexcept { return cntrl().is_sso; }
 
     MJZ_CX_FN bool is_ownerized() const noexcept {
       if constexpr (is_ownerized_v_) {
@@ -208,40 +210,32 @@ struct str_abi_t_ {
         cntrl().is_ownerized = var;
       }
     }
+    MJZ_CX_FN static auto m_sso_buffer_(
+        partial_same_as<data_t> auto&& self_) noexcept {
+      const auto This_ =
+          std::launder(std::assume_aligned<alignof(uintlen_t)>(&self_));
+      const auto ptr_ = This_->m_v().raw_data.sso_buffer;
+      return std::assume_aligned<alignof(uintlen_t)>(ptr_);
+    }
 
+    MJZ_CX_FN char* m_sso_buffer_() noexcept { return m_sso_buffer_(*this); }
+    MJZ_CX_FN const char* m_sso_buffer_() const noexcept {
+      return m_sso_buffer_(*this);
+    }
     MJZ_CX_FN uintlen_t get_cap_minus_sso_length() const noexcept {
-      const char* len_ptr = m_v().raw_data.sso_buffer + sso_cap;
-      len_ptr = std::assume_aligned<alignof(cap_mins_length_t)>(len_ptr);
-      MJZ_IFN_CONSTEVAL {
-        return *std::launder(
-            reinterpret_cast<const cap_mins_length_t*>(len_ptr));
-      }
-      else {
-        std::array<char, sizeof(cap_mins_length_t)> buf{};
-        for (uintlen_t i{}; i < buf.size(); i++) buf[i] = len_ptr[i];
-        return std::bit_cast<cap_mins_length_t>(buf);
-      }
+      return cpy_bitcast<cap_mins_length_t>(m_sso_buffer_() + sso_cap);
     }
     MJZ_NCX_FN str_data_t str_data_() const noexcept {
       return std::bit_cast<str_data_t>(cpy_aligned_bitcast<uintlen_t>(
-                       reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
-                       offsetof(non_sso_t, str_data)));
+          reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
+          offsetof(non_sso_t, str_data)));
     }
 
     MJZ_CX_FN void set_cap_minus_sso_length(uintlen_t new_val_) noexcept {
-      cap_mins_length_t new_val{cap_mins_length_t(new_val_)};
+      const cap_mins_length_t new_val{cap_mins_length_t(new_val_)};
       asserts(asserts.assume_rn, new_val == new_val_);
-      char* len_ptr = m_v().raw_data.sso_buffer + sso_cap;
-      len_ptr = std::assume_aligned<alignof(cap_mins_length_t)>(len_ptr);
-      MJZ_IFN_CONSTEVAL {
-        *std::launder(reinterpret_cast<cap_mins_length_t*>(len_ptr)) = new_val;
-        return;
-      }
-      else {
-        auto buf =
-            std::bit_cast<std::array<char, sizeof(cap_mins_length_t)>>(new_val);
-        for (uintlen_t i{}; i < buf.size(); i++) len_ptr[i] = buf[i];
-      }
+      cpy_bitcast(m_sso_buffer_() + sso_cap, new_val);
+      return;
     }
 
     MJZ_CX_FN uintlen_t get_sso_length() const noexcept {
@@ -258,8 +252,7 @@ struct str_abi_t_ {
         }
         return get_sso_length();
       } /* UB? na , just branchless */
-      uintlen_t lengths[2]{str_data_().length,
-          get_sso_length()};
+      uintlen_t lengths[2]{str_data_().length, get_sso_length()};
       return lengths[is_sso()];
     }
 
@@ -271,14 +264,14 @@ struct str_abi_t_ {
         if (!is_sso()) {
           return m_v().raw_data.non_sso.begin_ptr;
         }
-        return m_v().raw_data.sso_buffer;
+        return m_sso_buffer_();
       }
       /* UB? na , just branchless */
       const char* begins[2]{
           cpy_aligned_bitcast<const char*>(
               reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
               offsetof(non_sso_t, begin_ptr)),
-          m_v().raw_data.sso_buffer};
+          m_sso_buffer_()};
       return begins[is_sso()];
     }
     MJZ_CX_FN static void check_buffer_correct_ness_(
@@ -303,25 +296,38 @@ struct str_abi_t_ {
       data.str_data.length = length_;
       data.str_data.has_null = has_null_;
       data.str_data.is_sharable = is_shared_;
-      uintlen_t cap_ask{uintlen_t(-1) >> 8};
-      if constexpr (version_v.is_LE()) {
-        capacity_ <<= 8;
-        cap_ask <<= 8;
-      }
       cntrl().is_sso = false;
-      MJZ_IFN_CONSTEVAL {
-        auto ptr_ = reinterpret_cast<uint8_t*>(data.raw_capacity) - 1;
-        uintlen_t cntrl_and_cap = cpy_aligned_bitcast<uintlen_t>(ptr_);
-        cntrl_and_cap &= ~cap_ask;
+      const auto cntrl_0_ = cntrl();
+      uintlen_t cntrl_and_cap{};
+      char* ptr_ = std::assume_aligned<alignof(uintlen_t)>(data.raw_capacity);
+      char buf_[sizeof(uintlen_t)]{};
+      MJZ_IF_CONSTEVAL 
+      {
+        memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);
+        ptr_ = buf_;
+        cntrl_and_cap = cpy_bitcast<uintlen_t>(ptr_);
+      }
+      else {
+      cntrl_and_cap = *reinterpret_cast<const uintlen_t*>(ptr_);
+      }
+
+      if constexpr (version_v.is_BE()) {
+        cntrl_and_cap &= ~(uintlen_t(-1) << 8);
+        cntrl_and_cap |= capacity_ << 8;
+      } else {
+        cntrl_and_cap &= ~(uintlen_t(-1) >> 8);
         cntrl_and_cap |= capacity_;
-        cpy_aligned_bitcast(ptr_, cntrl_and_cap);
-        return;
       }
-      auto buff = std::bit_cast<std::array<char, sizeof(uintlen_t)>>(capacity_);
-      for (uintlen_t i{1}; i < buff.size(); i++) {
-        data.raw_capacity[i - 1] = buff[i];
+
+      MJZ_IF_CONSTEVAL 
+      {
+        cpy_bitcast(ptr_, cntrl_and_cap);
+        memcpy(data.raw_capacity, buf_, sizeof(uintlen_t) - 1);
       }
-      return;
+      else {
+        *reinterpret_cast<uintlen_t*>(ptr_) = cntrl_and_cap;
+        asserts(asserts.assume_rn, cntrl_0_ == cntrl());
+      }
     }
     template <when_t when_v>
     MJZ_CX_FN void memcpy_to_non_sso(const char* ptr, uintlen_t len,
@@ -351,21 +357,21 @@ struct str_abi_t_ {
     }
 
     MJZ_CX_FN uintlen_t get_non_sso_capacity() const noexcept {
-      uintlen_t ret{};
-      MJZ_IFN_CONSTEVAL {
-        ret = cpy_aligned_bitcast<uintlen_t>(
-            reinterpret_cast<const uint8_t*>(
-                m_v().raw_data.non_sso.raw_capacity) -
-            1);
+      char buf_[sizeof(uintlen_t)]{};
+      const char* ptr_ =
+          std::assume_aligned<alignof(uintlen_t)>(non_sso().raw_capacity);
+      uintlen_t ret {}; 
+      MJZ_IF_CONSTEVAL 
+      {
+        memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);
+        ptr_ = buf_;
+        ret = cpy_bitcast<uintlen_t>(ptr_);
+      
       }
       else {
-        std::array<char, sizeof(uintlen_t)> buff{};
-        for (uintlen_t i{1}; i < buff.size(); i++) {
-          buff[i] = m_v().raw_data.non_sso.raw_capacity[i - 1];
-        }
-        ret = std::bit_cast<uintlen_t>(buff);
+        ret = *reinterpret_cast<const uintlen_t*>(ptr_);
       }
-      if constexpr (version_v.is_LE()) {
+      if constexpr (version_v.is_BE()) {
         ret >>= 8;
       } else {
         ret &= uintlen_t(-1) >> 8;
@@ -380,20 +386,20 @@ struct str_abi_t_ {
         return get_non_sso_capacity();
       }
 
-      return branchless_teranary(!is_sso(), get_non_sso_capacity(), sso_cap); 
+      return branchless_teranary(!is_sso(), get_non_sso_capacity(), sso_cap);
     }
 
     MJZ_CX_FN void set_invalid_to_sso(const char* non_overlapping_ptr,
                                       uintlen_t len) noexcept {
       asserts(asserts.assume_rn, len <= sso_cap);
       m_v().raw_data.sso_buffer[0] = 0;  // make the buffer alive
-      char* buf = m_v().raw_data.sso_buffer;
+      char* buf = m_sso_buffer_();
       MJZ_IF_CONSTEVAL { memset(buf, sso_cap, 0); }
       MJZ_DISABLE_ALL_WANINGS_START_;
       memcpy(buf, non_overlapping_ptr, len)[len] = '\0';
       MJZ_DISABLE_ALL_WANINGS_END_;
 
-      cntrl().is_sso = true; 
+      cntrl().is_sso = true;
       set_sso_length(len);
     }
     MJZ_CX_FN void set_length(uintlen_t new_len) noexcept {
@@ -409,14 +415,14 @@ struct str_abi_t_ {
         if (!is_sso()) {
           return m_v().raw_data.non_sso.data_block;
         }
-        return m_v().raw_data.sso_buffer;
+        return m_sso_buffer_();
       }
       /* UB? na , just branchless */
       const char* buffs[2]{
           cpy_aligned_bitcast<const char*>(
               reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
               offsetof(non_sso_t, data_block)),
-          m_v().raw_data.sso_buffer};
+          m_sso_buffer_()};
       return buffs[is_sso()];
       ;
     }
@@ -425,22 +431,19 @@ struct str_abi_t_ {
       // no need to write same stuff
       return const_cast<char*>(std::as_const(*this).get_buffer_ptr());
     }
-     MJZ_CX_FN char* get_mut_begin() noexcept {
-     
+    MJZ_CX_FN char* get_mut_begin() noexcept {
       return branchless_teranary(!has_mut(), nullptr, u_get_mut_begin());
     }
     MJZ_CX_FN bool has_mut() const noexcept { return !!get_buffer_ptr(); }
-    MJZ_CX_FN bool has_null() const noexcept { 
-        MJZ_IF_CONSTEVAL { return is_sso() || non_sso().str_data.has_null;
-      }
+    MJZ_CX_FN bool has_null() const noexcept {
+      MJZ_IF_CONSTEVAL { return is_sso() || non_sso().str_data.has_null; }
 
-        bool ret = is_sso();
+      bool ret = is_sso();
       ret |= str_data_().has_null;
-        return ret;
+      return ret;
     }
     MJZ_CX_FN bool is_sharable() const noexcept {
-      MJZ_IF_CONSTEVAL { return !is_sso() && non_sso().str_data.is_sharable;
-      }
+      MJZ_IF_CONSTEVAL { return !is_sso() && non_sso().str_data.is_sharable; }
       bool ret = !is_sso();
       ret &= str_data_().is_sharable;
       return ret;
@@ -448,10 +451,12 @@ struct str_abi_t_ {
     MJZ_CX_FN basic_string_view_t<version_v> get_view() const noexcept {
       bool is_s_view_ = is_sharable();
       is_s_view_ &= !has_mut();
-      return base_string_view_t<version_v>::make(get_begin(), get_length(), get_encoding(), has_null(), is_s_view_);
+      return base_string_view_t<version_v>::make(
+          get_begin(), get_length(), get_encoding(), has_null(), is_s_view_);
     }
 
-    using str_heap_manager = str_heap_manager_t<version_v,is_threaded_v_,is_ownerized_v_,has_alloc_v_>;
+    using str_heap_manager = str_heap_manager_t<version_v, is_threaded_v_,
+                                                is_ownerized_v_, has_alloc_v_>;
     MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
       asserts(asserts.assume_rn, !is_sso());
       return str_heap_manager(get_alloc(), is_threaded(), is_ownerized(), false,
@@ -462,7 +467,7 @@ struct str_abi_t_ {
    private:
     MJZ_CX_FN void destruct_heap() noexcept {
       str_heap_manager hm = non_sso_my_heap_manager_no_own();
-      hm. u_must_free();
+      hm.u_must_free();
       hm.unsafe_clear();
     }
 
@@ -536,8 +541,8 @@ struct str_abi_t_ {
       is_owner |= is_ownerized;
       bool no_check = is_owner;
       no_check |= !has_mut_;
-      auto ret = branchless_teranary(!no_check,may_bool_t::idk,
-                                        may_bool_t(char(is_owner)));
+      auto ret = branchless_teranary(!no_check, may_bool_t::idk,
+                                     may_bool_t(char(is_owner)));
       if constexpr (is_ownerized_v_) {
         asserts(asserts.assume_rn, ret == may_bool_t::yes);
       }
@@ -597,7 +602,7 @@ struct str_abi_t_ {
     template <when_t when_v>
     MJZ_CX_FN success_t add_null() noexcept {
       if (is_sso()) {
-        m.raw_data.sso_buffer[get_length()] = '\0';
+        m_sso_buffer_()[get_length()] = '\0';
         return true;
       }
 
@@ -613,17 +618,16 @@ struct str_abi_t_ {
         return true;
       }
       asserts(asserts.assume_rn, !is_sso());
-      uintlen_t offset = s_buffer_offset(cap, len, align_direction_v_,true);
+      uintlen_t offset = s_buffer_offset(cap, len, align_direction_v_, true);
       char* buf = memcpy(get_buffer_ptr() + offset, get_begin(), len);
       buf[len] = '\0';
       set_invalid_to_non_sso_begin(buf, len, get_buffer_ptr(), cap,
-                                   !!non_sso().str_data.is_sharable,
-                                   true);
+                                   !!non_sso().str_data.is_sharable, true);
       return true;
     }
     MJZ_CX_FN bool is_heap() const noexcept {
       bool ret = has_mut();
-   ret&= is_sharable();
+      ret &= is_sharable();
       return ret;
     }
     MJZ_CX_FN bool is_s_view() const noexcept {
@@ -633,6 +637,5 @@ struct str_abi_t_ {
     }
   };
 };
-
 };  // namespace mjz::bstr_ns
 #endif  // MJZ_BYTE_STRING_string_ABI_LIB_HPP_FILE_

@@ -108,17 +108,48 @@ struct alloc_info_t {
 
  public:
   uintlen_t size_multiplier{1};
-  uint16_t log2_of_align_val : 6 {0};
-  uint16_t /*allocation_mode_e*/ allocation_mode_val : 2 {};
-  uint16_t uses_upstream_forwarding : 1 {1};
-  uint16_t uses_default_upstream_forwarding : 1 {1};
-  uint16_t allocate_exactly_minsize : 1 {0};
-  uint16_t uses_munual_alignment : 1 {1};
-  uint16_t is_thread_safe : 1 {1};
-  uint16_t uses_best_fit : 1 {1};
-  uint16_t is_one_of_many_nodes : 1 {0};
-  // side-note: always fails for the default constructed allocator
-  uint16_t cache_only_allocation : 1 {0};
+  uintlen_t log2_of_align_val : 6 {0};
+  uintlen_t /*allocation_mode_e*/ allocation_mode_val : 2 {};
+  uintlen_t uses_upstream_forwarding : 1 {1};
+  uintlen_t uses_default_upstream_forwarding : 1 {1};
+  uintlen_t allocate_exactly_minsize : 1 {0};
+  uintlen_t uses_munual_alignment : 1 {1};
+  uintlen_t is_thread_safe : 1 {1};
+  uintlen_t uses_best_fit : 1 {1};
+  uintlen_t is_one_of_many_nodes : 1 {0};
+  // side-note: does not fail for the default constructed allocator
+  uintlen_t cache_only_allocation : 1 {0};
+  uintlen_t dummy_ : sizeof(uintlen_t) * 8 - 16;
+
+  
+ public:
+   //bit cast in clang is broken ;-;
+  MJZ_CX_ND_FN std::array<uintlen_t,2> idk_bit_cast_()const noexcept {
+    std::array<uintlen_t, 2> ret{};
+    ret[0] = size_multiplier; 
+    ret[1] |= log2_of_align_val;
+    ret[1] <<= 6;
+    ret[1] |= allocation_mode_val;
+    ret[1] <<= 2;
+    ret[1] |= uses_upstream_forwarding;
+    ret[1] <<= 1;
+    ret[1] |= uses_default_upstream_forwarding;
+    ret[1] <<= 1;
+    ret[1] |= allocate_exactly_minsize;
+    ret[1] <<= 1;
+    ret[1] |= uses_munual_alignment;
+    ret[1] <<= 1;
+    ret[1] |= is_thread_safe;
+    ret[1] <<= 1;
+    ret[1] |= uses_best_fit;
+    ret[1] <<= 1;
+    ret[1] |= is_one_of_many_nodes;
+    ret[1] <<= 1;
+    ret[1] |= cache_only_allocation;
+    ret[1] <<= 1;
+    ret[1] |= dummy_;
+    return ret;
+  }
 
  public:
   template <class T>
@@ -303,7 +334,7 @@ struct alloc_vtable_t {
   alloc_info default_info{};  // 2w
   //--end first 8words--//
   //--start second 8words--//
-  uintlen_t cow_threashold{cow_threashold_v<version_v>};
+  size_t cow_threashold{cow_threashold_v<version_v>};
   typename funcs_t::allocate allocate{};
   typename funcs_t::deallocate deallocate{};
   typename funcs_t::ref_call ref_call{};
@@ -316,7 +347,7 @@ struct alloc_vtable_t {
 };
 
 template <version_t version_v>
-struct alloc_base_t : void_struct_t {
+struct alignas(16) alloc_base_t : void_struct_t {
   //--start first 8words--//
   fast_alloc_chache_t<version_v> alloc_chache{};  // 6w
   const alloc_vtable_t<version_v> vtable{};
@@ -330,7 +361,7 @@ struct alloc_base_t : void_struct_t {
               uintlen_t align_log2 = log2_ceil_of_val_create(min);
               vtable_.cow_threashold >>= align_log2;
               vtable_.cow_threashold <<= align_log2;
-              vtable_.cow_threashold += branchless_teranary<uintlen_t>(
+              vtable_.cow_threashold +=(size_t) branchless_teranary<uintlen_t>(
                   vtable_.cow_threashold != vtable_val.cow_threashold, min, 0);
               return vtable_;
             },
@@ -589,8 +620,17 @@ class alloc_base_ref_t {
   using bptr_t = const alloc_base *;
   alignas(sizeof(uintlen_t)) alloc_base *ref{};
   template <typename... Ts>
+  MJZ_CX_FN static auto run_grantee_table(alloc_base &ref, auto &&fn, Ts &&...args) noexcept {
+    auto const old_vtable = ref.vtable;
+    auto const old_ref = &ref;
+    MJZ_RELEASE {
+      asserts(asserts.assume_rn, old_vtable == ref.vtable && old_ref == &ref);
+    };
+    return fn(&ref, std::forward<Ts>(args)...);
+  }
+  template <typename... Ts>
   MJZ_CX_FN auto run(auto &&fn, Ts &&...args) const noexcept {
-    return fn(get_ptr(), std::forward<Ts>(args)...);
+    return fn(ref, std::forward<Ts>(args)...);
   }
 
  private:
@@ -601,15 +641,19 @@ class alloc_base_ref_t {
     return &vptr->alloc_chache;
   }
 
+  constexpr static const alloc_base dummy_base_0_{};
  public:
-  MJZ_CX_FN alloc_vtable_t<version_v> get_vtbl() const noexcept {
-    constexpr const alloc_base dummy{};
-    bptr_t vptr = branchless_teranary<bptr_t>(!this->ref, &dummy, this->ref);
+
+  MJZ_CX_FN const alloc_vtable_t<version_v>& get_vtbl() const noexcept {
+    bptr_t vptr =
+        branchless_teranary<bptr_t>(!this->ref, &dummy_base_0_, this->ref);
     return vptr->vtable;
   }
-  MJZ_CX_FN alloc_cache_ref get_cache() const noexcept {
-    alloc_base dummy{};
-    return branchless_teranary(!this->ref, nullptr, get_cache_impl(dummy));
+  MJZ_CX_FN alloc_cache_ref get_cache() const noexcept { 
+  return const_cast<fast_alloc_chache_t<version_v> *>(
+        branchless_teranary<bptr_t>(!!this->ref,
+      &  branchless_teranary<bptr_t>(!!this->ref, this->ref, &dummy_base_0_)
+            ->alloc_chache,nullptr));
   }
   MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
   MJZ_CX_FN alloc_base &get_ref() const noexcept {
@@ -667,15 +711,17 @@ class alloc_base_ref_t {
  private:
   MJZ_CX_FN
   success_t destroy_obj() noexcept {
-    if (!get_vtbl().ref_call) return true;
+    const auto func_ = get_vtbl().ref_call;
+    if (!func_) return true;
     MJZ_RELEASE { this->ref = nullptr; };
-    run(get_vtbl().ref_call, false);
+    run(func_, false);
     return true;
   }
   MJZ_CX_FN
   success_t add_ref() const noexcept {
-    if (!get_vtbl().ref_call) return true;
-    run(get_vtbl().ref_call, true);
+    const auto func_ = get_vtbl().ref_call;
+    if (!func_) return true;
+    run_grantee_table(*ref, func_, true);
     return true;
   }
   MJZ_CX_FN
@@ -704,30 +750,33 @@ class alloc_base_ref_t {
                                alloc_info ai) const noexcept {
     if (is_owner_of_bytes_cache_(blk, ai.get_alignof_z()) == may_bool_t::yes)
       return may_bool_t::yes;
-    if (!get_vtbl().is_owner) return may_bool_t::idk;
-    return run(get_vtbl().is_owner, blk, ai);
+    const auto func_ = get_vtbl().is_owner;
+    if (!func_) return may_bool_t::idk;
+    return run_grantee_table(*ref, func_, blk, ai);
   }
   MJZ_CX_FN
   alloc_relations_e is_equal(const alloc_ref &ar) const noexcept {
     bool no_call{};
     bool is_eq = this->ref == ar.ref;
-    is_eq |= !get_vtbl().is_equal;
+    const auto func_ = get_vtbl().is_equal;
+    no_call |= is_eq;
+    no_call |= !func_;
     if (no_call) {
       return branchless_teranary(!is_eq, alloc_relations_e::none,
                                  alloc_relations_e::equal);
     }
-    return run(get_vtbl().is_equal, ar);
+    return run_grantee_table(*ref, func_, ar);
   }
   MJZ_CX_FN bool operator==(const alloc_ref &ar) const noexcept {
     return is_equal(ar) == alloc_relations_e::equal;
   }
 
  private:
-  MJZ_CX_FN block_info local_alloc(uintlen_t minsize,
-                                   alloc_info ai) const noexcept {
+  MJZ_CX_FN static block_info local_alloc(alloc_base &ref, uintlen_t minsize,
+                                          alloc_info ai) noexcept {
     block_info blk{};
     if (!minsize) return blk;
-    blk = run(get_vtbl().allocate, minsize, ai);
+    blk = run_grantee_table( ref, ref.vtable.allocate, minsize, ai);
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
     MJZ_NOEXCEPT { mjz_debug_cout::print("[alloc:", blk.length, "]"); };
 #endif
@@ -735,98 +784,114 @@ class alloc_base_ref_t {
    new (ptr) char[(size_t)size]*/
     return blk;
   }
-  MJZ_CX_FN void local_dealloc(block_info blk, alloc_info ai) const noexcept {
+  MJZ_CX_FN static void local_dealloc(alloc_base &ref, block_info blk,
+                                      alloc_info ai) noexcept {
     if (!blk.ptr) return;
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
     MJZ_NOEXCEPT { mjz_debug_cout::print("[dealloc:", blk.length, "]"); };
 #endif
-    run(get_vtbl().deallocate, blk, ai);
+    run_grantee_table(ref, ref.vtable.deallocate, blk, ai);
     blk = block_info{};
     return;
   }
   using allocation_mode_e = typename alloc_info::allocation_mode_e;
-  MJZ_CX_FN
-  block_info monotonic_allocate_bytes_cache_(uintlen_t minsize, alloc_info ai,
-                                             bool bad) const noexcept {
+  MJZ_CX_FN static block_info monotonic_allocate_bytes_cache_(
+      alloc_base &ref, uintlen_t minsize, alloc_info ai, bool bad) noexcept {
     bad |= !!!(ai.allocation_mode_val &
-               uint16_t(allocation_mode_e::monotonic_mode));
-    bad |= !!ai.is_thread_safe;
-    alloc_base dummy_{};
-    alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
+               uint16_t(allocation_mode_e::monotonic_mode)); 
     std::span<char> ret =
-        cache->monotonic_allocate(minsize, ai.get_alignof_z());
+        ref.alloc_chache.monotonic_allocate(minsize, ai.get_alignof_z(), bad);
     return block_info{ret.data(), ret.size()};
   }
-  MJZ_CX_FN
-  success_t monotonic_deallocate_bytes_cache_(block_info blk, alloc_info ai,
-                                              bool bad) const noexcept {
+  MJZ_CX_FN static success_t monotonic_deallocate_bytes_cache_(
+      alloc_base &ref, block_info blk, alloc_info ai, bool bad) noexcept {
     bad |= !!!(ai.allocation_mode_val &
-               uint16_t(allocation_mode_e::monotonic_mode));
-    bad |= !!ai.is_thread_safe;
-    alloc_base dummy_{};
-    alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
-    return cache->is_monotonic(std::span<char>{blk.ptr, blk.length},
-                               ai.get_alignof_z());
+               uint16_t(allocation_mode_e::monotonic_mode)); 
+    return ref.alloc_chache.is_monotonic(std::span<char>{blk.ptr, blk.length},
+                                          ai.get_alignof_z(), bad);
   }
-  MJZ_CX_FN
-  block_info alloca_bytes_cache_(uintlen_t minsize, alloc_info ai,
-                                 bool bad) const noexcept {
+  MJZ_CX_FN static block_info alloca_bytes_cache_(alloc_base &ref,
+                                                  uintlen_t minsize,
+                                                  alloc_info ai,
+                                                  bool bad) noexcept {
     bad |=
-        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode));
-    bad |= !!ai.is_thread_safe;
-    alloc_base dummy_{};
-    alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
-    const std::span<char> ret = cache->fn_alloca(minsize, ai.get_alignof_z());
+        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode)); 
+    const std::span<char> ret =
+        ref.alloc_chache.fn_alloca(minsize, ai.get_alignof_z(), bad);
     return block_info{
         ret.data(),
         branchless_teranary(!!ai.allocate_exactly_minsize,
                             std::min(ret.size(), minsize), ret.size())};
   }
-  MJZ_CX_FN
-  success_t dealloca_bytes_cache_(block_info blk, alloc_info ai,
-                                  bool bad) const noexcept {
+  MJZ_CX_FN static success_t dealloca_bytes_cache_(alloc_base &ref,
+                                                   block_info blk,
+                                                   alloc_info ai,
+                                                   bool bad) noexcept {
     bad |=
-        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode));
-    bad |= !!ai.is_thread_safe;
-    alloc_base dummy_{};
-    alloc_cache_ref cache = get_cache_impl(&dummy_, !bad);
-    return cache->fn_try_dealloca(std::span<char>{blk.ptr, blk.length},
-                                  ai.get_alignof_z());
+        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode)); 
+    return ref.alloc_chache.fn_try_dealloca(
+        std::span<char>{blk.ptr, blk.length}, ai.get_alignof_z(), bad);
   }
-
   MJZ_CX_FN
-  block_info allocate_bytes_impl_(uintlen_t minsize,
-                                  alloc_info ai) const noexcept {
-    const block_info blk1 = alloca_bytes_cache_(minsize, ai, false);
-    bool success = !!blk1.ptr;
-    const block_info blk2 =
-        monotonic_allocate_bytes_cache_(minsize, ai, success);
-    const block_info blk = success ? blk1 : blk2;
-    success = !!blk.ptr;
-    success |= !!ai.cache_only_allocation;
-    if (success) {
-      return blk;
+  static void good_cache_impl_(const alloc_base &ref) noexcept {
+    const fast_alloc_chache_t<version_v> &cr = ref.alloc_chache;
+    asserts(asserts.assume_rn,
+            !memory_is_inside(
+                cr.stack_begin,
+                uintlen_t(cr.stack_left + cr.stack_ptr - cr.stack_begin),
+                cr.monotonic_begin,
+                uintlen_t(cr.monotonic_left + cr.monotonic_ptr -
+                          cr.monotonic_begin)));
+  }
+  MJZ_CX_FN
+  static block_info allocate_bytes_impl_(alloc_base *ref, uintlen_t minsize,
+                                         alloc_info ai) noexcept {
+    typename alloc_vtable_t<version_v>::funcs_t::allocate allocate_fn{};
+    const bool can_cache_ = int(!!ref) & int(!ai.is_thread_safe);
+    if (can_cache_) {
+      bool success{};
+      block_info blk{};
+      good_cache_impl_(*ref);
+      allocate_fn = ref->vtable.allocate;
+      const block_info blk1 = alloca_bytes_cache_(*ref, minsize, ai, false);
+      success = !!blk1.ptr;
+      const block_info blk2 =
+          monotonic_allocate_bytes_cache_(*ref, minsize, ai, success);
+      blk = success ? blk1 : blk2;
+      success = !!blk.ptr;
+      success |= !!ai.cache_only_allocation;
+      if (success) {
+        return blk;
+      }
     }
-    if (!get_vtbl().allocate) {
+    if (!allocate_fn) {
       return global_allocator_t<version_v>::global_alloc(minsize, ai);
     }
-    return local_alloc(minsize, ai);
+    return local_alloc(*ref, minsize, ai);
   }
-  MJZ_CX_FN
-  success_t deallocate_bytes_impl_(block_info blk,
-                                   alloc_info ai) const noexcept {
-    bool success = dealloca_bytes_cache_(blk, ai, false);
-    success |= monotonic_deallocate_bytes_cache_(blk, ai, success);
-    success |= ai.cache_only_allocation;
-    if (success) {
+  MJZ_CX_FN static success_t deallocate_bytes_impl_(alloc_base *ref,
+                                                    block_info blk,
+                                                    alloc_info ai) noexcept {
+    typename alloc_vtable_t<version_v>::funcs_t::allocate allocate_fn{};
+    typename alloc_vtable_t<version_v>::funcs_t::deallocate deallocate_fn{};
+    const bool can_cache_ = int(!!ref) & int(!ai.is_thread_safe);
+    if (can_cache_) {
+      bool success{};
+      good_cache_impl_(*ref);
+      allocate_fn = ref->vtable.allocate;
+      deallocate_fn = ref->vtable.deallocate;
+      success = dealloca_bytes_cache_(*ref, blk, ai, false);
+      success |= monotonic_deallocate_bytes_cache_(*ref, blk, ai, success);
+      success |= ai.cache_only_allocation;
+      if (success) {
+        return true;
+      }
+    }
+    if (deallocate_fn) {
+      local_dealloc(*ref, blk, ai);
       return true;
     }
-    const auto vtable_ = get_vtbl();
-    if (vtable_.deallocate) {
-      local_dealloc(blk, ai);
-      return true;
-    }
-    if (vtable_.allocate) {
+    if (allocate_fn) {
       // monotonic
       return true;
     }
@@ -842,7 +907,7 @@ class alloc_base_ref_t {
   };
   struct cx_alloc_log_info {
     version_t version{version_v};
-    alloc_info ai{};
+    std::array<uintlen_t, 2> ai_{};
     alignas(alignof(block_info)) char block_info_[sizeof(block_info)]{};
     MJZ_CX_FN bool operator==(const cx_alloc_log_info &) const noexcept =
         default;
@@ -866,7 +931,7 @@ class alloc_base_ref_t {
     char *alloc_log_info_ptr = ret.ptr + ret.length;
     MJZ_IF_CONSTEVAL {
       cx_alloc_log_info log{};
-      log.ai = old_ai;
+      log.ai_ = old_ai.idk_bit_cast_();
       cpy_bitcast(log.block_info_, ret.length);
       cpy_bitcast(alloc_log_info_ptr, log);
     }
@@ -889,7 +954,7 @@ class alloc_base_ref_t {
     char *alloc_log_info_ptr = blk.ptr + blk.length;
     MJZ_IF_CONSTEVAL {
       cx_alloc_log_info log{};
-      log.ai = ai;
+      log.ai_ = ai.idk_bit_cast_();
       cpy_bitcast(log.block_info_, blk.length);
       cx_alloc_log_info val =
           cpy_bitcast<cx_alloc_log_info>(alloc_log_info_ptr);
@@ -924,11 +989,11 @@ class alloc_base_ref_t {
     if constexpr (check_the_alloc_info<version_v>) {
       alloc_info old_ai{ai};
       allocate_bytes_log_check(minsize, ai);
-      block_info ret = allocate_bytes_impl_(minsize, ai);
+      block_info ret = allocate_bytes_impl_(this->ref, minsize, ai);
       allocate_bytes_log_fix(ret, old_ai);
       return ret;
     } else {
-      return allocate_bytes_impl_(minsize, ai);
+      return allocate_bytes_impl_(this->ref, minsize, ai);
     }
   }
   MJZ_CX_FN alloc_info get_default_info() const noexcept {
@@ -939,11 +1004,11 @@ class alloc_base_ref_t {
   success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
     if constexpr (check_the_alloc_info<version_v>) {
       deallocate_bytes_log_check_fix(blk, ai);
-      auto ret = deallocate_bytes_impl_(blk, ai);
+      auto ret = deallocate_bytes_impl_(this->ref, blk, ai);
       blk = block_info{};
       return ret;
     } else {
-      return deallocate_bytes_impl_(blk, ai);
+      return deallocate_bytes_impl_(this->ref, blk, ai);
     }
   }
   MJZ_CX_FN
@@ -993,8 +1058,9 @@ class alloc_base_ref_t {
   }
   MJZ_CX_FN
   const void_struct_t *handle(const void_struct_t *input) const noexcept {
-    if (!get_vtbl().handle) return nullptr;
-    return run(get_vtbl().handle, input);
+ const auto   func_ = get_vtbl().handle;
+    if (!func_) return nullptr;
+ return run(func_, input);
   }
   template <typename T>
   MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate(
@@ -1357,7 +1423,8 @@ class alloc_base_ref_t {
     if (!refresh_call_fn) {
       return false;
     }
-    return run(refresh_call_fn, monotonic_minsize, monotonic_min_align,
+    return run_grantee_table(*ref, refresh_call_fn, monotonic_minsize,
+                             monotonic_min_align,
                stack_minsize, stack_min_align, release_all);
   }
 
