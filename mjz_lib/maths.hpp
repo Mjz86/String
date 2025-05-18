@@ -826,105 +826,47 @@ struct big_float_t : parse_math_helper_t_<version_v> {
       m_coeffient = -m_coeffient;
     }
   };
-  MJZ_CX_FN static std::optional<big_float_t> add(big_float_t lhs,
-                                                  big_float_t rhs) noexcept {
-    if (!lhs.m_coeffient) return rhs;
-    if (!rhs.m_coeffient) return lhs;
-    auto f = [](big_float_t& hs) noexcept {
-      bool is_neg{};
-      if (hs.m_coeffient < 0) {
-        is_neg = true;
-        hs.m_coeffient = -hs.m_coeffient;
-      }
-      hs.normalize<61>();
-      return std::tuple(is_neg, uint64_t(hs.m_coeffient), hs.m_exponent);
-    };
-    // https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
-    auto sb1_ = f(rhs);
-    auto sb2_ = f(lhs);
-    auto fn = [&]() noexcept {
-      auto&& [r_ng, r_ce, r_xp] = sb1_;
-      auto&& [l_ng, l_ce, l_xp] = sb2_;
-      int64_t delta = l_xp - r_xp;
-      if (delta < 64) {
-        r_ce >>= delta;
-      } else {
-        r_ce = 0;
-      }
-      l_ce = l_ng ? uint64_t(-int64_t(l_ce)) : l_ce;
-      l_ce += r_ng ? uint64_t(-int64_t(r_ce)) : r_ce;
-      big_float_t ret{};
-      ret.m_coeffient = int64_t(l_ce);
-      ret.m_exponent = int64_t(l_xp);
-      return ret;
-    };
-    auto&& [r_ng, r_ce, r_xp] = sb1_;
-    auto&& [l_ng, l_ce, l_xp] = sb2_;
-    if (r_xp < l_xp) {
-      return fn();
-    }
-    std::swap(r_ng, l_ng);
-    std::swap(r_xp, l_xp);
-    std::swap(r_ce, l_ce);
-    return fn();
+  MJZ_CX_FN static big_float_t add(big_float_t lhs, big_float_t rhs) noexcept {
+    constexpr uint64_t sign_mask = ~(uint64_t(1) << 63);
+    const int lhs_zr =
+        std::countl_zero(sign_mask & uint64_t(lhs.m_coeffient)) - 1;
+    const int rhs_zr =
+        std::countl_zero(sign_mask & uint64_t(rhs.m_coeffient)) - 1;
+    lhs.m_coeffient <<= lhs_zr;
+    rhs.m_coeffient <<= rhs_zr;
+    lhs.m_exponent -= lhs_zr;
+    rhs.m_exponent -= rhs_zr;
+    lhs.m_coeffient >>= 1;
+    rhs.m_coeffient >>= 1;
+    lhs.m_exponent += 1;
+    rhs.m_exponent += 1;
+     int64_t delta_exp = lhs.m_exponent - rhs.m_exponent;
+    big_float_t temp = lhs;
+    lhs = delta_exp < 0 ? rhs : lhs;
+    rhs = delta_exp < 0 ? temp : rhs;
+    delta_exp = std::max(-delta_exp, delta_exp);
+    lhs.m_coeffient += delta_exp < 64 ? rhs.m_coeffient >> delta_exp : 0;
+    return lhs;
+
   }
 
-  MJZ_CX_FN static std::optional<big_float_t> muliply(
+  MJZ_CX_FN static big_float_t muliply(
       big_float_t lhs, big_float_t rhs) noexcept {
-    if (!lhs.m_coeffient || !rhs.m_coeffient) return big_float_t{};
-
-    bool is_neg{(rhs.m_coeffient < 0) != (lhs.m_coeffient < 0)};
+    const bool is_neg{(rhs.m_coeffient < 0) != (lhs.m_coeffient < 0)};
     rhs.m_coeffient = rhs.m_coeffient < 0 ? -rhs.m_coeffient : rhs.m_coeffient;
     lhs.m_coeffient = lhs.m_coeffient < 0 ? -lhs.m_coeffient : lhs.m_coeffient;
-    uint64_t mask{uint32_t(-1)};
-    uint64_t rtwo_parts[2]{uint64_t(rhs.m_coeffient) & mask,
-                           uint64_t(rhs.m_coeffient) >> 32};
-    uint64_t ltwo_parts[2]{uint64_t(lhs.m_coeffient) & mask,
-                           uint64_t(lhs.m_coeffient) >> 32};
-    uint64_t three_parts_restult[3]{
-        ltwo_parts[0] * rtwo_parts[0],
-        (ltwo_parts[0] * rtwo_parts[1]) + (ltwo_parts[1] * rtwo_parts[0]),
-        ltwo_parts[1] * rtwo_parts[1]};
-    three_parts_restult[1] += three_parts_restult[0] >> 32;
-    three_parts_restult[2] += three_parts_restult[1] >> 32;
-    three_parts_restult[0] &= mask;
-    three_parts_restult[1] &= mask;
-    uint64_t uint128_v[2]{
-        three_parts_restult[0] + (three_parts_restult[1] << 32),
-        three_parts_restult[2],
-    };
-
-    uint64_t sign_bit = ~(uint64_t(-1) >> 1);
-    if (!uint128_v[1]) {
-      while (sign_bit & uint128_v[0]) {
-        uint64_t had{uint128_v[0] & 1};
-        uint128_v[0] >>= 1;
-        rhs.m_exponent++;
-        uint128_v[0] += had;
-      }
-      rhs.m_coeffient = is_neg ? -int64_t(uint128_v[0]) : int64_t(uint128_v[0]);
-      rhs.m_exponent += lhs.m_exponent;
-      return rhs;
-    }
-    auto log_delta = log2_ceil_of_val_create(uint128_v[1]) + int64_t(1);
-    uint64_t low_mask = uint64_t(uint64_t(-1) >> (64 - log_delta));
-    uint64_t low_bits = uint128_v[0] & low_mask;
-
-    uint128_v[0] >>= log_delta;
-    uint128_v[1] <<= (64 - log_delta);
-    uint128_v[0] |= uint128_v[1];
-    if (low_bits & ((low_mask + 1) >> 1)) {
-      uint128_v[0]++;
-    }
-    while (sign_bit & uint128_v[0]) {
-      uint64_t had{uint128_v[0] & 1};
-      uint128_v[0] >>= 1;
-      rhs.m_exponent++;
-      uint128_v[0] += had;
-    }
-    rhs.m_exponent += log_delta;
-    rhs.m_coeffient = is_neg ? -int64_t(uint128_v[0]) : int64_t(uint128_v[0]);
+    uintN_t<version_v, 128> i1{rhs.m_coeffient}, i2{lhs.m_coeffient},
+        i3{i1 * i2};
+    int shift_amount = std::countl_zero(i3.nth_word(1));
+    shift_amount = branchless_teranary<int>(shift_amount == 64,
+                                       std::countl_zero(i3.nth_word(0)) + 64,
+                                       shift_amount);
+    i3 <<= uintlen_t(shift_amount);
+    i3 >>= 1;
     rhs.m_exponent += lhs.m_exponent;
+    rhs.m_exponent += uint64_t(65) - shift_amount;
+    rhs.m_coeffient = int64_t(i3.nth_word(1));
+    rhs.m_coeffient = is_neg ? -rhs.m_coeffient : rhs.m_coeffient;
     return rhs;
   }
   MJZ_CX_FN static std::optional<big_float_t> devide(big_float_t lhs,
@@ -989,7 +931,8 @@ struct big_float_t : parse_math_helper_t_<version_v> {
   }
   MJZ_CX_FN friend std::optional<big_float_t> operator*(
       std::optional<big_float_t> rhs, std::optional<big_float_t> lhs) noexcept {
-    return (!!rhs && !!lhs) ? muliply(*rhs, *lhs) : std::nullopt;
+    return (!!rhs && !!lhs) ? std::optional<big_float_t>( muliply(*rhs, *lhs))
+                            : std::nullopt;
   }
 
   MJZ_CX_FN friend std::optional<big_float_t> operator-(
@@ -1003,12 +946,12 @@ struct big_float_t : parse_math_helper_t_<version_v> {
   }
   MJZ_CX_FN friend big_float_t operator*(big_float_t rhs,
                                          big_float_t lhs) noexcept {
-    return *muliply(rhs, lhs);
+    return muliply(rhs, lhs);
   }
 
   MJZ_CX_FN friend big_float_t operator-(big_float_t rhs,
                                          big_float_t lhs) noexcept {
-    return *add(rhs, -lhs);
+    return add(rhs, -lhs);
   }
 
   MJZ_CX_FN friend big_float_t operator/(big_float_t rhs,
@@ -1017,7 +960,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
   }
   MJZ_CX_FN friend big_float_t operator+(big_float_t rhs,
                                          big_float_t lhs) noexcept {
-    return *add(rhs, lhs);
+    return add(rhs, lhs);
   }
 
   MJZ_CX_FN friend std::partial_ordering operator<=>(
@@ -1029,7 +972,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
   MJZ_CX_FN std::strong_ordering operator<=>(
       const big_float_t& lhs) const noexcept {
     auto r = add(*this, -lhs);
-    return r->m_coeffient <=> int64_t(0);
+    return r.m_coeffient <=> int64_t(0);
   }
   MJZ_CX_FN friend std::optional<bool> operator==(
       std::optional<big_float_t> rhs, std::optional<big_float_t> lhs) noexcept {
@@ -1038,7 +981,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
 
   MJZ_CX_FN bool operator==(const big_float_t& lhs) const noexcept {
     auto r = add(*this, -lhs);
-    return r->m_coeffient == int64_t(0);
+    return r.m_coeffient == int64_t(0);
   }
   template <int64_t cof_log_dest>
     requires(0 < cof_log_dest && cof_log_dest < 62)
