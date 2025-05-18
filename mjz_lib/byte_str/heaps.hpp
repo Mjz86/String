@@ -95,8 +95,7 @@ class str_heap_manager_t {
   MJZ_CX_FN void init_heap() noexcept {
     alignas(non_threaded_rf_block) char dummy[sizeof(non_threaded_rf_block)]{};
     char *rc_ptr = std::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr);
-    rc_ptr =
-        branchless_teranary<char *>(!can_add_shareholder(), &dummy[0], rc_ptr);
+    rc_ptr = branchless_teranary<char*>(!can_add_shareholder(), &dummy[0], rc_ptr);
     MJZ_IF_CONSTEVAL {
       mjz::memset(rc_ptr, non_threaded_rf_block, 0);
       char_storage_as_temp_t<uintlen_t> var{rc_ptr, non_threaded_rf_block,
@@ -231,14 +230,14 @@ class str_heap_manager_t {
     return alloc_ptr()->get_vtbl().cow_threashold;
   }
   MJZ_CX_AL_FN uintlen_t buffer_overhead() const noexcept {
-    return branchless_teranary<uintlen_t>(
-        !!*this,
-        branchless_teranary<uintlen_t>(
-            get_is_threaded(),
-            branchless_teranary<uintlen_t>(m.heap_data_size <= cow_threaded_threshold(), 0,
-                                threaded_rf_block),
-            non_threaded_rf_block),
-        0);
+    bool is_nfull = !*this;
+    bool is_cow = cow_threaded_threshold() < m.heap_data_size;
+    bool is_threaded = get_is_threaded();
+    uintlen_t awnser[2][2][2]{{{non_threaded_rf_block, non_threaded_rf_block},
+                               {0, threaded_rf_block}},
+                              {}};
+    // branch-less
+    return awnser[is_nfull][is_threaded][is_cow];
   }
   MJZ_CX_AL_FN char *get_heap_begin() const noexcept {
     return std::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr) +

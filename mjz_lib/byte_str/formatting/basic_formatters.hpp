@@ -520,15 +520,14 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
     this->alignment =
         this->alignment == align_e::none ? align_e ::right : this->alignment;
 
-    stack.length = stack.bt.template from_float_format_fill<T>(
+    stack.length = stack.bt.from_float_format_fill(
 
         stack.buf, stack.buf_size, arg,
-      uint8_t(precision == uintlen_t(-1) ? sizeof(std::remove_cvref_t<T>)
-                                           : std::min<uintlen_t>(precision,255)),
+        precision == uintlen_t(-1) ? sizeof(std::remove_cvref_t<T>) : precision,
         uppser_case,
         floating_format_e(
             uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_))),
-        alt);
+        '.', alt);
     if (!stack.length) {
       ctx.as_error(
           "[Error]basic_format_specs_t::format_specs():couldnt convert to "
