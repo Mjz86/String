@@ -1709,16 +1709,34 @@ struct basic_str_t : void_struct_t {
     set_encoding(dont_mess_up, encodings_e::ascii);
     return true;
   }
+
+ private:
+ 
+ public:
+  template <std::integral T>
+    requires(!std::same_as<T, bool>)
+  MJZ_CX_FN static self_t s_make_str(T val, const uint8_t raidex = 10,
+                                     bool upper_case = false) noexcept {
+    self_t ret{};
+    if constexpr (20 < sso_cap) {
+      ret.m.set_sso_length( *traits_type{}.template from_integral_fill<T>(
+          ret.m.m_sso_buffer_(), sso_cap, val, upper_case, raidex));
+      asserts(asserts.assume_rn, ret.m.is_sso()&& ret.m.no_destroy()&& !ret.get_alloc());
+    } else {
+      ret.as_integral(val, raidex, upper_case);
+    }
+    return ret;
+  }
+
   template <std::floating_point T>
   MJZ_CX_FN success_t as_floating(
       T val, uintlen_t accuracacy = sizeof(uintlen_t), bool upper_case = false,
-      floating_format_e floating_format = floating_format_e::general,
-      char point_ch = '.') noexcept {
+      floating_format_e floating_format = floating_format_e::general) noexcept {
     uintlen_t new_len = 0;
     auto fn = [&]() noexcept -> success_t {
       auto ret = traits_type{}.template from_float_format_fill<T>(
           m.u_get_mut_begin(), m.get_capacity() - uintlen_t(props_v.has_null),
-          val, accuracacy, upper_case, floating_format, point_ch);
+          val, accuracacy, upper_case, floating_format);
       if (!ret) return false;
       new_len = *ret;
       return true;

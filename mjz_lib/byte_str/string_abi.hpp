@@ -252,8 +252,8 @@ struct str_abi_t_ {
         }
         return get_sso_length();
       } /* UB? na , just branchless */
-      uintlen_t lengths[2]{str_data_().length, get_sso_length()};
-      return lengths[is_sso()];
+      return branchless_teranary(!is_sso(), str_data_().length,
+                                 get_sso_length());
     }
 
     MJZ_CX_FN encodings_e get_encoding() const noexcept {
@@ -266,13 +266,13 @@ struct str_abi_t_ {
         }
         return m_sso_buffer_();
       }
-      /* UB? na , just branchless */
-      const char* begins[2]{
+      /* UB? na , just branchless */ 
+      return branchless_teranary(
+         !is_sso() ,
           cpy_aligned_bitcast<const char*>(
               reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
               offsetof(non_sso_t, begin_ptr)),
-          m_sso_buffer_()};
-      return begins[is_sso()];
+          m_sso_buffer_());
     }
     MJZ_CX_FN static void check_buffer_correct_ness_(
         const char* begin, uintlen_t length, char* buffer_begin,
@@ -325,7 +325,12 @@ struct str_abi_t_ {
         memcpy(data.raw_capacity, buf_, sizeof(uintlen_t) - 1);
       }
       else {
-        *reinterpret_cast<uintlen_t*>(ptr_) = cntrl_and_cap;
+        asserts(asserts.assume_rn, cntrl_0_ == cntrl());
+        //out of bound of raw_capacity, but the value is in a way that cntrl is unchanged
+      std::memcpy(std::assume_aligned<alignof(uintlen_t)>(reinterpret_cast<std::byte*>(ptr_)),
+                    std::assume_aligned<alignof(uintlen_t)>(
+                        reinterpret_cast<std::byte*>(&cntrl_and_cap)),
+                    sizeof(uintlen_t));
         asserts(asserts.assume_rn, cntrl_0_ == cntrl());
       }
     }
@@ -417,13 +422,13 @@ struct str_abi_t_ {
         }
         return m_sso_buffer_();
       }
-      /* UB? na , just branchless */
-      const char* buffs[2]{
+      /* UB? na , just branchless */ return branchless_teranary(
+          !is_sso(),
           cpy_aligned_bitcast<const char*>(
               reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
               offsetof(non_sso_t, data_block)),
-          m_sso_buffer_()};
-      return buffs[is_sso()];
+          m_sso_buffer_());
+
       ;
     }
 
@@ -472,9 +477,10 @@ struct str_abi_t_ {
     }
 
    public:
-    MJZ_CX_FN bool no_destroy() const noexcept {
-      alias_t<uint8_t[3]> b{!!cntrl().is_sso, !is_sharable(), !has_mut()};
-      return !!(b[0] + b[1] + b[2]);
+    MJZ_CX_FN bool no_destroy() const noexcept { 
+        const int ret =
+          int(!!cntrl().is_sso) | int(!is_sharable()) | int(!has_mut());
+      return !!ret;
     }
     MJZ_CX_FN void destruct_all() noexcept {
       if (no_destroy()) {

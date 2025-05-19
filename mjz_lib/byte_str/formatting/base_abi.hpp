@@ -57,7 +57,11 @@ struct base_string_view_arg_t : base_lazy_view_t<version_v> {
   MJZ_CX_FN base_string_view_arg_t(auto &&view) noexcept
       : base_lazy_view_t<version_v>{
             view.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)} {}
-
+  MJZ_CX_FN base_string_view_arg_t(std::span<const char> buffer) noexcept
+      : base_lazy_view_t<version_v>{
+            dynamic_string_view_t<version_v>{buffer.data(), buffer.size()}
+                .to_base_lazy_pv_fn_(
+                unsafe_ns::unsafe_v)} {}
   MJZ_CX_FN base_lazy_view_t<version_v> to_base_lazy_pv_fn_(
       unsafe_ns::i_know_what_im_doing_t) const noexcept {
     return *this;
@@ -69,7 +73,7 @@ using basic_formatted_types_t = void(base_string_view_arg_t<version_v>,
                                      const void *, long long, long, int, short,
                                      signed char, unsigned long long,
                                      unsigned long, unsigned int,
-                                     unsigned short, unsigned char, nullptr_t);
+                                     unsigned short, unsigned char, nullptr_t,double , float,long double);
 
 template <typename F_t, version_t version_v, typename T>
 concept valid_format_c = requires(F_t obj, const F_t cobj, T &&arg,
