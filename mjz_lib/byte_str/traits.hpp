@@ -803,7 +803,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   MJZ_CX_ND_FN static std::optional<uintlen_t> from_integral_fill(
       char *buf, uintlen_t len, T val_rg_, bool upper_case,
       const uint8_t raidex) noexcept {
-#if  MJZ_USE_cpp_lib_to_chars_int
+#if MJZ_USE_cpp_lib_to_chars_int
 #ifdef __cpp_lib_to_chars
 #ifdef __cpp_lib_constexpr_charconv
     if constexpr (true)
@@ -1247,7 +1247,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       bool upper_case = true,
       floating_format_e floating_format = floating_format_e::general,
       bool add_prefix = true) noexcept {
-#if MJZ_USE_cpp_lib_to_chars_float 
+#if MJZ_USE_cpp_lib_to_chars_float
 #ifdef __cpp_lib_to_chars
     MJZ_IFN_CONSTEVAL {
       char *buf_c_ = f_buf;
@@ -1457,41 +1457,38 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       big_float_t<version_v> &val) noexcept {
     big_float_t<version_v> f_val = val;
     int64_t exponent_log10{};
-
-    while (f_val < big_float_t<version_v>::float_from_i(1) ||
-           big_float_t<version_v>::float_from_i(10) <= f_val) {
-        if (big_float_t<version_v>::float_from_i(1) <= f_val) {
-          for (intlen_t i{intlen_t(max_pow_pow10_double - 1)}; 0 <= i; i--) {
-            if (powers_of_ten_table[size_t(i)][0] <= f_val) {
-              exponent_log10 += int64_t(1) << i;
-              f_val = f_val * powers_of_ten_table[size_t(i)][1];
-            }
-          }
-        } else {
-          for (intlen_t i{intlen_t(max_pow_pow10_double - 1)}; 0 <= i; i--) {
-            if (f_val <= powers_of_ten_table[size_t(i)][1]) {
-              exponent_log10 -= int64_t(1) << i;
-              f_val = f_val * powers_of_ten_table[size_t(i)][0];
-            }
-          }
-          if (f_val < big_float_t<version_v>::float_from_i(1)) {
-            exponent_log10 -= 1;
-            f_val = f_val * powers_of_ten_table[0][0];
-          }
+    if (big_float_t<version_v>::float_from_i(10) <= f_val) {
+      for (intlen_t i{intlen_t(max_pow_pow10_double - 1)}; 0 <= i; i--) {
+        if (powers_of_ten_table[size_t(i)][0] <= f_val) {
+          exponent_log10 += int64_t(1) << i;
+          f_val = f_val * powers_of_ten_table[size_t(i)][1];
         }
+      }
+    } else if (f_val < big_float_t<version_v>::float_from_i(1)) {
+      for (intlen_t i{intlen_t(max_pow_pow10_double - 1)}; 0 <= i; i--) {
+        if (f_val <= powers_of_ten_table[size_t(i)][1]) {
+          exponent_log10 -= int64_t(1) << i;
+          f_val = f_val * powers_of_ten_table[size_t(i)][0];
+        }
+      }
+      if (f_val < big_float_t<version_v>::float_from_i(1)) {
+        exponent_log10 -= 1;
+        f_val = f_val * powers_of_ten_table[0][0];
+      }
     }
+    asserts(asserts.assume_rn,
+            !(f_val < big_float_t<version_v>::float_from_i(1) ||
+              big_float_t<version_v>::float_from_i(10) <= f_val));
     val = f_val;
-    const auto f_ = *f_val.template to_float<double>();
-    asserts(asserts.assume_rn,1<= f_ && f_ < 10.0);
     return exponent_log10;
   }
   constexpr static auto const fn_number_extract =
       [](uintN_t<version_v, 128> number) noexcept {
-    number.nth_word(1) = 0;
-    number <<= 1;
-    number += number << 2;
-    return number;
-  };
+        number.nth_word(1) = 0;
+        number <<= 1;
+        number += number << 2;
+        return number;
+      };
 
   MJZ_CX_AL_FN static uintlen_t from_dec_positive_float_fill_sientific_impl_(
       char *const f_buf, const uintlen_t f_len,
@@ -1500,7 +1497,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       char (&buffer_1_)[64 /*do not reduce*/]) noexcept {
     char *const buffer_ = buffer_1_;
     char *ptr = buffer_;
-    if(0<f_val.m_exponent){
+    if (0 < f_val.m_exponent) {
       f_val.m_coeffient <<= f_val.m_exponent;
       f_val.m_exponent = 0;
     }
@@ -1518,12 +1515,21 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     if (number.nth_bit(63)) {
       ptr--;
       while (*ptr == '9') {
-        *ptr-- = '0';
+        ptr--;
       }
       if (*ptr == '.') {
         (*--ptr)++;
       } else {
         (*ptr)++;
+      }
+      ptr++;
+    } else {
+      ptr--;
+      while (*ptr == '0') {
+        ptr--;
+      }
+      if (*ptr == '.') {
+        ptr--;
       }
       ptr++;
     }
@@ -1545,22 +1551,23 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       char *const f_buf, const uintlen_t f_len,
       big_float_t<version_v> /* normalized */ f_val, int64_t exponent_log10,
       uint8_t f_accuracacy, bool upper_case) noexcept {
- MJZ_IF_CONSTEVAL   {
+    MJZ_IF_CONSTEVAL {
       alignas(16) char buffer_0_[64 /*do not reduce*/]{};
       return from_dec_positive_float_fill_sientific_impl_(
           f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case,
           buffer_0_);
- } else{
-   MJZ_DISABLE_ALL_WANINGS_START_;
-   struct buffer_0_t_{
-    MJZ_NCX_FN buffer_0_t_() noexcept {}  // ctor does not initialize 'i'
-     alignas(16) char buffer_0_[64 /*do not reduce*/];
-   } a;
-   MJZ_DISABLE_ALL_WANINGS_END_;
-   return from_dec_positive_float_fill_sientific_impl_(
-       f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case,
-       a.buffer_0_);
- }
+    }
+    else {
+      MJZ_DISABLE_ALL_WANINGS_START_;
+      struct buffer_0_t_ {
+        MJZ_NCX_FN buffer_0_t_() noexcept {}  // ctor does not initialize 'i'
+        alignas(16) char buffer_0_[64 /*do not reduce*/];
+      } a;
+      MJZ_DISABLE_ALL_WANINGS_END_;
+      return from_dec_positive_float_fill_sientific_impl_(
+          f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case,
+          a.buffer_0_);
+    }
   }
   MJZ_CX_FN static uintlen_t from_dec_positive_float_fill_general(
       char *const f_buf, const uintlen_t f_len,
@@ -1569,7 +1576,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     char *ptr = f_buf;
     const char *const ptr_end = f_buf + f_len;
     big_float_t<version_v> frac_ = f_val;
-  
+
     uintN_t<version_v, 128> number{0 /*float error*/,
                                    uint64_t(frac_.m_coeffient)};
     number >>= uintlen_t(-frac_.m_exponent);
@@ -1622,7 +1629,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       if (!number.nth_word(0)) {
         remove_stupid_zeros();
         return uintlen_t(ptr - f_buf);
-      } 
+      }
     }
 
     if (!number.nth_bit(63)) {

@@ -816,27 +816,24 @@ struct big_float_t : parse_math_helper_t_<version_v> {
     m_coeffient = int64_t(coeffient);
     m_coeffient = is_neg ? -m_coeffient : m_coeffient;
   };
-  MJZ_CX_AL_FN static auto add_normalize_impl(big_float_t hs) noexcept {
+  MJZ_CX_FN static big_float_t normalize_add_impl_(big_float_t hs) noexcept {
     bool is_neg = hs.m_coeffient < 0;
-    hs.m_coeffient = is_neg ? -hs.m_coeffient : hs.m_coeffient;
-    hs.normalize<61>();
-    return std::tuple(is_neg, uint64_t(hs.m_coeffient), hs.m_exponent);
+   const int shift_amount = std::countl_zero(is_neg ? uint64_t(-hs.m_coeffient)
+                                                  : uint64_t(hs.m_coeffient))-2;
+    hs.m_coeffient = shift_amount < 0 ? hs.m_coeffient >> (-shift_amount)
+                                      : hs.m_coeffient << shift_amount;
+   hs.m_exponent -= shift_amount;
+    return hs;
   }
-  MJZ_CX_FN static big_float_t add(const big_float_t lhs,
-                                   const big_float_t rhs) noexcept {
-      auto sb1_ = add_normalize_impl(rhs);
-      auto sb2_ = add_normalize_impl(lhs);
-      auto& [r_ng, r_ce, r_xp] = sb1_;
-      auto& [l_ng, l_ce, l_xp] = sb2_;
-      std::swap(r_xp < l_xp ? sb2_ : sb1_, sb2_);
-      int64_t delta = l_xp - r_xp;
-      r_ce = delta < 64 ? r_ce >> delta : 0;
-      l_ce = l_ng ? uint64_t(-int64_t(l_ce)) : l_ce;
-      l_ce += r_ng ? uint64_t(-int64_t(r_ce)) : r_ce;
-      big_float_t ret{};
-      ret.m_coeffient = int64_t(l_ce);
-      ret.m_exponent = int64_t(l_xp);
-      return ret;
+  MJZ_CX_FN static big_float_t add(  big_float_t lhs,
+                                     big_float_t rhs) noexcept {
+    lhs = normalize_add_impl_(lhs);
+    rhs = normalize_add_impl_(rhs);
+    const int64_t delta_exp = lhs.m_exponent - rhs.m_exponent;
+    std::swap(lhs, delta_exp<0?rhs: lhs);
+    const int64_t abs_delta_exp = lhs.m_exponent - rhs.m_exponent;
+    lhs.m_coeffient += abs_delta_exp<63 ? rhs.m_coeffient >> abs_delta_exp : 0;
+    return lhs;
   }
 
   MJZ_CX_FN static big_float_t muliply(big_float_t lhs,
@@ -846,15 +843,15 @@ struct big_float_t : parse_math_helper_t_<version_v> {
     lhs.m_coeffient = lhs.m_coeffient < 0 ? -lhs.m_coeffient : lhs.m_coeffient;
     uintN_t<version_v, 128> i1{rhs.m_coeffient}, i2{lhs.m_coeffient},
         i3{i1 * i2};
-    i3.nth_word(1) += i3.nth_bit(63);
     int shift_amount = std::countl_zero(i3.nth_word(1));
     shift_amount = branchless_teranary<int>(
         shift_amount == 64, std::countl_zero(i3.nth_word(0)) + 64,
         shift_amount);
     i3 <<= uintlen_t(shift_amount);
-    i3 >>= 1;
+    i3 >>= 2;
+    i3.nth_word(1) += !!i3.nth_word(0);
     rhs.m_exponent += lhs.m_exponent;
-    rhs.m_exponent += uint64_t(65) - shift_amount;
+    rhs.m_exponent += uint64_t(66) - shift_amount;
     rhs.m_coeffient = int64_t(i3.nth_word(1));
     rhs.m_coeffient = is_neg ? -rhs.m_coeffient : rhs.m_coeffient;
     return rhs;
