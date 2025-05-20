@@ -1453,9 +1453,45 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         }
         return powers_of_ten;
       });
+  static constexpr const std::array<std::array<double, max_pow_pow10_double>, 2>
+      &powers_of_5_table = make_static_data([]() noexcept {
+        std::array<std::array<double, max_pow_pow10_double>, 2> powers_of_5{};
+        powers_of_5[0][0] = 5.0;
+        powers_of_5[1][0] = 0.2;
+        for (uintlen_t i{1}; i < max_pow_pow10_double; i++) {
+          for (uintlen_t j{}; j < 2; j++) {
+            powers_of_5[j][i] = powers_of_5[j][i - 1] * powers_of_5[j][i - 1];
+          }
+        }
+        return powers_of_5;
+      });
+
+  MJZ_CX_FN big_float_t<version_v> static pos_real_dbl_to_bf_impl_(
+      double val) noexcept {
+    //In the IEEE 754 standard binary64
+    const uint64_t u64_val = std::bit_cast<uint64_t>(val);
+    constexpr uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
+    constexpr uint64_t mantisa_mask = ((uint64_t(1) << 52) - 1);
+    asserts(asserts.assume_rn, !(u64_val >> 63));
+    // no nanny or infs
+    asserts(asserts.assume_rn, (u64_val & exp_mask) != exp_mask);
+    const bool is_subnormal = !(u64_val & exp_mask);
+    const int64_t exponent = int64_t(u64_val >> 52) - 1023 - 52 + is_subnormal;
+    const int64_t coeffient =
+        int64_t((mantisa_mask & u64_val) | (uint64_t(!is_subnormal) << 52));
+    big_float_t<version_v> ret {};
+   ret.m_coeffient = coeffient;
+    ret.m_exponent = exponent;
+    return ret;
+
+  }
   MJZ_CX_FN int64_t static exponent_log10_and_component_(
       big_float_t<version_v> &val) noexcept {
     big_float_t<version_v> f_val = val;
+    if (f_val.m_coeffient == 0) {
+      return 0;
+    }
+    asserts(asserts.assume_rn, 0 < f_val.m_coeffient);
     int64_t exponent_log10{};
     if (big_float_t<version_v>::float_from_i(10) <= f_val) {
       for (intlen_t i{intlen_t(max_pow_pow10_double - 1)}; 0 <= i; i--) {
@@ -1476,11 +1512,90 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         f_val = f_val * powers_of_ten_table[0][0];
       }
     }
+    val = f_val;
     asserts(asserts.assume_rn,
             !(f_val < big_float_t<version_v>::float_from_i(1) ||
               big_float_t<version_v>::float_from_i(10) <= f_val));
-    val = f_val;
     return exponent_log10;
+  }
+  MJZ_CX_FN int64_t static exponent_log10_and_component_aprox_(
+      big_float_t<version_v> &val) noexcept {
+    big_float_t<version_v> f_val = val;
+    if (f_val.m_coeffient == 0) {
+      return 0;
+    }  // based on desmos , log10_floor_prox is either floor(log10(x)) or
+       // floor(log10(x))+1 or floor(log10(x))-1
+    /*
+    g\left(x\right)=x-1,
+    f\left(x\right)=\operatorname{floor}\left(\frac{\log\left(x\right)}{\log\left(2\right)}\right),
+    k\left(x\right)=x-\operatorname{floor}\left(x\right),
+    m\left(x\right)=\frac{\operatorname{floor}\left(2^{32+k\left(\frac{\log\left(x\right)}{\log2}\right)}\right)}{2^{32}},
+    h\left(x\right)=f\left(x\right)+g\left(m\left(x\right)\right),
+
+    graph:
+
+    \operatorname{floor}\left(\log
+    x\right)-\operatorname{floor}\left(h\left(x\right)\cdot\log2\right)
+
+    */
+    asserts(asserts.assume_rn, 0 < f_val.m_coeffient);
+    const int cnt = std::countl_zero(uint64_t(f_val.m_coeffient)) - 1;
+    f_val.m_coeffient <<= cnt;
+    f_val.m_exponent -= cnt;
+    int64_t log2_floor = f_val.m_exponent + 62;
+    asserts(asserts.assume_rn, int32_t(log2_floor) == log2_floor);
+    int64_t mantisa_ = int64_t(uint32_t(uint64_t(f_val.m_coeffient) >>
+                                        30) /* the msb goes away*/) +
+                       (log2_floor << 32);
+    big_float_t<version_v> log2_val{};
+    log2_val.m_coeffient = mantisa_;
+    log2_val.m_exponent = -32;
+    constexpr const big_float_t<version_v> log10_2 =
+        *big_float_t<version_v>::float_from(0.30102999566398119521373889472449);
+    constexpr const big_float_t<version_v> inv_ten =
+        *big_float_t<version_v>::float_from(0.1);
+    constexpr const big_float_t<version_v> ten =
+        big_float_t<version_v>::float_from_i(10);
+    constexpr const big_float_t<version_v> one =
+        big_float_t<version_v>::float_from_i(1);
+    const big_float_t<version_v> log10_val = log2_val * log10_2;
+
+    asserts(asserts.assume_rn, log10_val.m_exponent < 64);
+    const int64_t log10_floor_prox =
+        log10_val.m_exponent <= -64
+            ? 0
+            : (log10_val.m_exponent < 0
+                   ? log10_val.m_coeffient >> (-log10_val.m_exponent)
+                   : log10_val.m_coeffient << log10_val.m_exponent);
+
+    const int64_t abs_log10_floor_prox{
+        std::max(log10_floor_prox, -log10_floor_prox)};
+    double inv_pow5_of_log10_floor_prox_d{1.0};
+    for (uintlen_t i{}; i < max_pow_pow10_double; i++) {
+      inv_pow5_of_log10_floor_prox_d =
+          branchless_teranary(
+                                  !!((int64_t(1) << i) & abs_log10_floor_prox),
+          inv_pow5_of_log10_floor_prox_d *
+              powers_of_5_table[abs_log10_floor_prox == log10_floor_prox][i],
+                              inv_pow5_of_log10_floor_prox_d);
+    }
+    big_float_t<version_v> inv_pow10_of_log10_floor_prox =
+        pos_real_dbl_to_bf_impl_(inv_pow5_of_log10_floor_prox_d);
+    inv_pow10_of_log10_floor_prox.m_exponent -= log10_floor_prox;
+    f_val = f_val * inv_pow10_of_log10_floor_prox;
+    int64_t ret{};
+    if (ten <= f_val) {
+      f_val = f_val * inv_ten;
+      ret = log10_floor_prox + 1;
+    } else if (f_val < one) {
+      f_val = f_val * ten;
+      ret = log10_floor_prox - 1;
+    } else {
+      ret = log10_floor_prox;
+    }
+    val = f_val;
+    asserts(asserts.assume_rn, int32_t(ret) == ret);
+    return ret;
   }
   constexpr static auto const fn_number_extract =
       [](uintN_t<version_v, 128> number) noexcept {
@@ -1518,7 +1633,18 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         ptr--;
       }
       if (*ptr == '.') {
-        (*--ptr)++;
+        char *dot_ptr{ptr--};
+        while (*ptr == '9') {
+          if (ptr != buffer_) {
+            *ptr-- = '0';
+            continue;
+          }
+          *ptr = '0';
+          exponent_log10++;
+          break;
+        }
+        (*ptr)++;
+        ptr = --dot_ptr;
       } else {
         (*ptr)++;
       }
@@ -1670,13 +1796,12 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     const uint64_t bval = std::bit_cast<uint64_t>(val);
 
     const uint64_t sign_mask = uint64_t(1) << 63;
-    big_float_t<version_v> f_val{*big_float_t<version_v>::float_from(val)};
     uintlen_t ret_{};
     if (bval & sign_mask) {
       *f_buf++ = '-';
       f_len--;
       ret_++;
-      f_val.m_coeffient = -f_val.m_coeffient;
+      val = -val;
     }
     const uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
     const uint64_t mantisa_mask = ((uint64_t(1) << 52) - 1);
@@ -1706,6 +1831,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       memcpy(f_buf, str_ptr_, str_len_);
       return ret_ + str_len_;
     }
+    big_float_t<version_v> f_val{pos_real_dbl_to_bf_impl_(val)};
     if (f_val.m_coeffient == 0) {
       *f_buf = '0';
       return ret_ + 1;
@@ -1716,7 +1842,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           from_float_fill_hex(f_buf, f_len, val, upper_case, '.', add_prefix);
       return ret ? ret_ + ret : 0;
     }
-    int64_t exponent_log10 = exponent_log10_and_component_(f_val);
+    int64_t exponent_log10 = exponent_log10_and_component_aprox_(f_val);
     if (floating_format_e::general == floating_format) {
       floating_format =
           std::max(exponent_log10, -exponent_log10) <= int64_t(f_accuracacy)

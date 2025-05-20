@@ -73,7 +73,8 @@ using basic_formatted_types_t = void(base_string_view_arg_t<version_v>,
                                      const void *, long long, long, int, short,
                                      signed char, unsigned long long,
                                      unsigned long, unsigned int,
-                                     unsigned short, unsigned char, nullptr_t,double , float,long double);
+                                     unsigned short, unsigned char, nullptr_t,
+                                     float, double);
 
 template <typename F_t, version_t version_v, typename T>
 concept valid_format_c = requires(F_t obj, const F_t cobj, T &&arg,
@@ -886,6 +887,13 @@ struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases)) parse_and_format_data_t
     }
     return false;
   }
+
+  template <typename T_, typename T>
+  MJZ_CX_NL_FN success_t
+  parse_and_format_nl_(optional_ref_t<T_> arg, void(T),
+                   cx_formatter_storage_ref_t<version_v> cxref) noexcept {
+    return parse_and_format(arg, alias_t<void(*)(T)>{}, cxref);
+  }
   template <class F_t, class formatter_obj_t_>
   MJZ_CX_NL_FN success_t
   parse_only_impl_(cx_formatter_storage_ref_t<version_v> cxref) noexcept {
@@ -1057,7 +1065,7 @@ struct the_typed_arg_ref_t : void_struct_t {
       parse_and_format_data_t<version_v> &fn_data,
       cx_formatter_storage_ref_t<version_v> cxref) noexcept {
     if (fn_data.parse_only()) {
-      return fn_data.parse_and_format(
+      return fn_data.parse_and_format_nl_(
           optional_ref_t<std::remove_reference_t<type_t>>{},
           alias_t<void (*)(type_t)>{}, cxref);
     }
@@ -1151,7 +1159,7 @@ struct the_typed_arg_ref_t<version_v, type_t> : void_struct_t {
       parse_and_format_data_t<version_v> &fn_data,
       cx_formatter_storage_ref_t<version_v> cxref) noexcept {
     if (fn_data.parse_only()) {
-      return fn_data.parse_and_format(
+      return fn_data.parse_and_format_nl_(
           optional_ref_t<std::remove_reference_t<type_t>>{},
           alias_t<void (*)(type_t)>{}, cxref);
     } else {
