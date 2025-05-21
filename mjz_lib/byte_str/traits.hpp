@@ -847,8 +847,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 #endif
 #endif
     if (!len || !buf) return {};
-    if constexpr (std::signed_integral<T>) {
-      if (raidex == 10) {
+    if (raidex == 10) {
+      if constexpr (std::signed_integral<T>) {
         const bool is_neg{val_rg_ < 0};
         *buf = '-';
         buf += is_neg;
@@ -856,6 +856,9 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         uintlen_t ret =
             dec_from_uint(buf, len, UT(is_neg ? -val_rg_ : val_rg_));
         return ret ? std::optional<uintlen_t>(ret + is_neg) : std::nullopt;
+      } else{
+        uintlen_t ret = dec_from_uint(buf, len, val_rg_);
+        return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
       }
     }
     return [=]() mutable noexcept -> std::optional<uintlen_t> {
@@ -1738,8 +1741,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       *ptr++ = '-';
       exponent_log10 = -exponent_log10;
     }
-    asserts(asserts.assume_rn,
-            uint64_t(uint16_t(exponent_log10)) == uint64_t(exponent_log10));
+    asserts(asserts.assume_rn, exponent_log10<512);
     ptr += dec_from_uint(ptr, 24, uint16_t(exponent_log10));
 
     if (f_len < uintlen_t(ptr - buffer_)) return {};
