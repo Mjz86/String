@@ -1728,6 +1728,25 @@ struct basic_str_t : void_struct_t {
     return ret;
   }
 
+  
+  template <std::floating_point T>
+  MJZ_CX_FN static self_t s_make_str(
+      T val, uint8_t accuracacy = sizeof(uintlen_t)) noexcept {
+    self_t ret{};
+    static_assert(15 <= sso_cap);
+    constexpr uint8_t max_accuracy{
+        uint8_t(std::min((sso_cap - 1) / 2, sso_cap - 8))};
+    accuracacy = uint8_t(std::min<uintlen_t>(max_accuracy, accuracacy));
+      ret.m.set_sso_length(traits_type{}.template from_float_format_fill<T>(
+          ret.m.m_sso_buffer_(), sso_cap, val, accuracacy, false,
+          floating_format_e::general));
+      asserts(asserts.assume_rn,
+              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+    return ret;
+  }
+
+
+
   template <std::floating_point T>
   MJZ_CX_FN success_t as_floating(
       T val, uintlen_t accuracacy = sizeof(uintlen_t), bool upper_case = false,

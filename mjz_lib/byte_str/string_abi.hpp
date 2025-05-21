@@ -80,6 +80,7 @@ struct str_abi_t_ {
     non_sso_t non_sso{};
     char sso_buffer[buffer_size];
   };
+
   template <bool is_prop_v_>
   using uint8p_t = std::conditional_t<is_prop_v_, const uint8_t, uint8_t>;
   struct control_byte_t {
@@ -266,9 +267,9 @@ struct str_abi_t_ {
         }
         return m_sso_buffer_();
       }
-      /* UB? na , just branchless */ 
+      /* UB? na , just branchless */
       return branchless_teranary(
-         !is_sso() ,
+          !is_sso(),
           cpy_aligned_bitcast<const char*>(
               reinterpret_cast<const char*>(&m_v().raw_data.non_sso) +
               offsetof(non_sso_t, begin_ptr)),
@@ -301,14 +302,13 @@ struct str_abi_t_ {
       uintlen_t cntrl_and_cap{};
       char* ptr_ = std::assume_aligned<alignof(uintlen_t)>(data.raw_capacity);
       char buf_[sizeof(uintlen_t)]{};
-      MJZ_IF_CONSTEVAL 
-      {
+      MJZ_IF_CONSTEVAL {
         memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);
         ptr_ = buf_;
         cntrl_and_cap = cpy_bitcast<uintlen_t>(ptr_);
       }
       else {
-      cntrl_and_cap = *reinterpret_cast<const uintlen_t*>(ptr_);
+        cntrl_and_cap = *reinterpret_cast<const uintlen_t*>(ptr_);
       }
 
       if constexpr (version_v.is_BE()) {
@@ -319,15 +319,17 @@ struct str_abi_t_ {
         cntrl_and_cap |= capacity_;
       }
 
-      MJZ_IF_CONSTEVAL 
-      {
+      MJZ_IF_CONSTEVAL {
         cpy_bitcast(ptr_, cntrl_and_cap);
         memcpy(data.raw_capacity, buf_, sizeof(uintlen_t) - 1);
       }
       else {
         asserts(asserts.assume_rn, cntrl_0_ == cntrl());
-        //out of bound of raw_capacity, but the value is in a way that cntrl is unchanged
-      std::memcpy(std::assume_aligned<alignof(uintlen_t)>(reinterpret_cast<std::byte*>(ptr_)),
+        // out of bound of raw_capacity, but the value is in a way that cntrl is
+        // unchanged
+        memcpy(std::assume_aligned<alignof(uintlen_t)>(
+                reinterpret_cast<std::byte*>(this)+   (reinterpret_cast<std::byte*>(ptr_) -
+                    reinterpret_cast<std::byte*>(this))),
                     std::assume_aligned<alignof(uintlen_t)>(
                         reinterpret_cast<std::byte*>(&cntrl_and_cap)),
                     sizeof(uintlen_t));
@@ -365,13 +367,11 @@ struct str_abi_t_ {
       char buf_[sizeof(uintlen_t)]{};
       const char* ptr_ =
           std::assume_aligned<alignof(uintlen_t)>(non_sso().raw_capacity);
-      uintlen_t ret {}; 
-      MJZ_IF_CONSTEVAL 
-      {
+      uintlen_t ret{};
+      MJZ_IF_CONSTEVAL {
         memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);
         ptr_ = buf_;
         ret = cpy_bitcast<uintlen_t>(ptr_);
-      
       }
       else {
         ret = *reinterpret_cast<const uintlen_t*>(ptr_);
@@ -477,8 +477,8 @@ struct str_abi_t_ {
     }
 
    public:
-    MJZ_CX_FN bool no_destroy() const noexcept { 
-        const int ret =
+    MJZ_CX_FN bool no_destroy() const noexcept {
+      const int ret =
           int(!!cntrl().is_sso) | int(!is_sharable()) | int(!has_mut());
       return !!ret;
     }

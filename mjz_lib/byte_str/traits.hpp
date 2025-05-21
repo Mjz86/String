@@ -733,69 +733,95 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         }
         return ret;
       });
-
-  MJZ_CX_AL_FN static uintlen_t dec_from_uint64_impl_(
-      char *out_buf, uintlen_t out_len, uint64_t number_,
-      char (&modolo10)[8 * 3]) noexcept {
-    int16_t v1000modolos[8]{};
-    int8_t i_1000modolo{7};
-    constexpr uint32_t max_i32_div = 1000 * 1000 * 1000;
-
-    auto div_fn = [&](uint32_t number) noexcept {
-      for (; 0 <= i_1000modolo;) {
-        if (number < 1000) {
-          v1000modolos[i_1000modolo] = int16_t(number);
-          i_1000modolo--;
-          break;
+  template <std::unsigned_integral T>
+  MJZ_CX_AL_FN static uintlen_t dec_from_uint_impl_(char *out_buf,
+                                                    uintlen_t out_len,
+                                                    T number_0_,
+                                                    char *modolo10) noexcept {
+    uint64_t number_{number_0_};
+    int8_t i_1000modolo{};
+    int8_t max_i_1000modolo{};
+    int num_ch{};
+    auto div_fn = [&]<std::unsigned_integral T_01_>(T_01_ number) noexcept {
+      asserts(asserts.assume_rn, 0 <= i_1000modolo);
+      for (;;) {
+        int16_t modolos{int16_t(number)};
+        bool small_ = number < 1000;
+        if (!small_) {
+          const T_01_ number_div = T_01_(number / 1000);
+          modolos = int16_t(number % 1000);
+          number = number_div;
         }
-
-        const uint32_t number_div = number / 1000;
-        v1000modolos[i_1000modolo] = int16_t(number % 1000);
-        number = number_div;
-        i_1000modolo--;
+        const int offset = (i_1000modolo--) * 3;
+        asserts(asserts.assume_rn, 0 <= offset);
+        const int16_t div_res = divition10_table[size_t(modolos)];
+        modolo10[offset] = char(div_res & 15) + '0';
+        modolo10[offset + 1] = char((div_res >> 4) & 15) + '0';
+        modolo10[offset + 2] = char((div_res >> 8) & 15) + '0';
+        num_ch += small_ ? div_res >> 12 : 3;
+        if ((int(i_1000modolo < 0) | int(small_)) == 1) break;
       }
     };
-    // no bigger is needed
-    constexpr uint64_t max_2_i32_div = uint64_t(max_i32_div) * max_i32_div;
-    if (max_2_i32_div < number_) {
-      const uint64_t big_div = number_ / max_2_i32_div;
-      div_fn(uint32_t(big_div));
-      number_ = number_ % max_2_i32_div;
-    }
-    if (max_i32_div < number_) {
-      const uint64_t big_div = number_ / max_i32_div;
-      const uint64_t big_mod = number_ % max_i32_div;
-      div_fn(uint32_t(big_div));
-      div_fn(uint32_t(big_mod));
-    } else {
+    if constexpr (partial_same_as<uint64_t, T>) {
+      constexpr uint32_t max_i32_div = 1000 * 1000 * 1000;
+      // no bigger is needed
+      constexpr uint64_t max_2_i32_div = uint64_t(max_i32_div) * max_i32_div;
+      i_1000modolo = max_i_1000modolo = 6;
+      if (max_2_i32_div < number_) {
+        const uint64_t big_div = number_ / max_2_i32_div;
+        asserts(asserts.assume_rn, big_div < 1000);
+        div_fn(uint32_t(big_div));  // we know that
+        number_ = number_ % max_2_i32_div;
+      }
+      if (max_i32_div < number_) {
+        const uint64_t big_div = number_ / max_i32_div;
+        const uint64_t big_mod = number_ % max_i32_div;
+        div_fn(uint32_t(big_div));
+        div_fn(uint32_t(big_mod));
+      } else {
+        div_fn(uint32_t(number_));
+      }
+    } else if constexpr (partial_same_as<uint32_t, T>) {
+      i_1000modolo = max_i_1000modolo = 3;
       div_fn(uint32_t(number_));
+    } else if constexpr (partial_same_as<uint16_t, T>) {
+      i_1000modolo = max_i_1000modolo = 1;
+      div_fn(uint16_t(number_));
+    } else if constexpr (partial_same_as<uint8_t, T>) {
+      i_1000modolo = max_i_1000modolo = 0;
+      div_fn(uint8_t(number_));
+    } else {
+      asserts.unreachable();
     }
-
-    int num_ch{24};
-    for (int8_t i{7}; i_1000modolo < i; i--) {
-      const int offset = i * 3;
-      const int16_t div_res = divition10_table[size_t(v1000modolos[i])];
-      modolo10[offset] = char(div_res & 15) + '0';
-      modolo10[offset + 1] = char((div_res >> 4) & 15) + '0';
-      modolo10[offset + 2] = char((div_res >> 8) & 15) + '0';
-      num_ch = (div_res >> 12) ? offset + 3 - (div_res >> 12) : num_ch;
-    }
-    num_ch = std::max(1, 24 - num_ch);
+    const int max_ch = (max_i_1000modolo + 1) * 3;
+    num_ch = std::max(1, num_ch);
     if (out_len < uintlen_t(num_ch)) {
       return 0;
     }
-    mjz::memcpy(out_buf, modolo10 + 24 - num_ch, uintlen_t(num_ch));
+    mjz::memcpy(out_buf, modolo10 + max_ch - num_ch, uintlen_t(num_ch));
     return uintlen_t(num_ch);
   }
-  MJZ_CX_FN static uintlen_t dec_from_uint64(char *out_buf, uintlen_t out_len,
-                                             uint64_t number_) noexcept {
+
+  MJZ_NCX_FN static uintlen_t ncx_dec_from_uint_(
+      char *out_buf, uintlen_t out_len,
+      std::unsigned_integral auto number_) noexcept {
+    MJZ_DISABLE_ALL_WANINGS_START_;
+    struct buffer_0_t_ {
+      alignas(8) char raw[8 * 3];
+      MJZ_NCX_FN buffer_0_t_() noexcept {}
+    } modolo10;
+    MJZ_DISABLE_ALL_WANINGS_END_;
+    return dec_from_uint_impl_(out_buf, out_len, number_, modolo10.raw);
+  }
+  MJZ_CX_FN static uintlen_t dec_from_uint(
+      char *out_buf, uintlen_t out_len,
+      std::unsigned_integral auto number_) noexcept {
     MJZ_IF_CONSTEVAL {
       alignas(8) char modolo10[8 * 3]{};
-      return dec_from_uint64_impl_(out_buf, out_len, number_, modolo10);
+      return dec_from_uint_impl_(out_buf, out_len, number_, modolo10);
     }
     else {
-      alignas(8) char modolo10[8 * 3];
-      return dec_from_uint64_impl_(out_buf, out_len, number_, modolo10);
+      return ncx_dec_from_uint_(out_buf, out_len, number_);
     }
   }
   template <std::integral T>
@@ -803,6 +829,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   MJZ_CX_ND_FN static std::optional<uintlen_t> from_integral_fill(
       char *buf, uintlen_t len, T val_rg_, bool upper_case,
       const uint8_t raidex) noexcept {
+    using UT = std::make_unsigned_t<T>;
 #if MJZ_USE_cpp_lib_to_chars_int
 #ifdef __cpp_lib_to_chars
 #ifdef __cpp_lib_constexpr_charconv
@@ -819,21 +846,20 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }
 #endif
 #endif
-    if (raidex == 10) {
-      if constexpr (std::signed_integral<T>) {
-        if (val_rg_ < 0) {
-          *buf++ = '-';
-          len--;
-          uintlen_t ret = dec_from_uint64(buf, len, uint64_t(-val_rg_));
-          return ret ? std::optional<uintlen_t>(ret + 1) : std::nullopt;
-        }
+    if (!len || !buf) return {};
+    if constexpr (std::signed_integral<T>) {
+      if (raidex == 10) {
+        const bool is_neg{val_rg_ < 0};
+        *buf = '-';
+        buf += is_neg;
+        len -= is_neg;
+        uintlen_t ret =
+            dec_from_uint(buf, len, UT(is_neg ? -val_rg_ : val_rg_));
+        return ret ? std::optional<uintlen_t>(ret + is_neg) : std::nullopt;
       }
-      uintlen_t ret = dec_from_uint64(buf, len, uint64_t(val_rg_));
-      return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
     }
     return [=]() mutable noexcept -> std::optional<uintlen_t> {
       if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
-      using UT = std::make_unsigned_t<T>;
       constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT(~(UT(-1) >> 1));
       bool is_neg{};
       UT val{UT(val_rg_)};
@@ -1439,8 +1465,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   static constexpr uintlen_t max_pow_pow10_double = 9;
 
   static constexpr const std::array<std::array<big_float_t<version_v>, 2>,
-                                    max_pow_pow10_double> &powers_of_ten_table =
-      make_static_data([]() noexcept {
+                                    max_pow_pow10_double>
+      powers_of_ten_table = []() noexcept {
         std::array<std::array<big_float_t<version_v>, 2>, max_pow_pow10_double>
             powers_of_ten{};
         powers_of_ten[0][0] = big_float_t<version_v>::float_from_i(10);
@@ -1452,9 +1478,9 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           }
         }
         return powers_of_ten;
-      });
+      }();
   static constexpr const std::array<std::array<double, max_pow_pow10_double>, 2>
-      &powers_of_5_table = make_static_data([]() noexcept {
+      powers_of_5_table = []() noexcept {
         std::array<std::array<double, max_pow_pow10_double>, 2> powers_of_5{};
         powers_of_5[0][0] = 5.0;
         powers_of_5[1][0] = 0.2;
@@ -1464,11 +1490,61 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           }
         }
         return powers_of_5;
-      });
+      }();
+  MJZ_CX_FN bool static double_is_IEEE754_binary64_assert() noexcept {
+    constexpr std::numeric_limits<double> dbnl{};
+    constexpr const double IEE754_array_[6]{(1.7976931348623157E308),
+                                            (2.2250738585072014E-308),
+                                            (4.9E-324),
+                                            (2.220446049250313E-16),
+                                            (0.5),
+                                            (-1.7976931348623157E308)};
+    constexpr const uint64_t IEE754_array_bits[6]{
+        9218868437227405311ull, 4503599627370496ull, 1ull,
+                                                  4372995238176751616ull,
+                                                  4602678819172646912ull,
+                                                  18442240474082181119ull};
+   
 
+    constexpr const double std_array_bads_[]{dbnl.infinity(), dbnl.quiet_NaN(),
+                                             dbnl.signaling_NaN()};
+    constexpr const double std_array_[6]{dbnl.max(),         dbnl.min(),
+                                         dbnl.denorm_min(),  dbnl.epsilon(),
+                                         dbnl.round_error(), dbnl.lowest()};
+    constexpr const uint64_t std_array_bits[6]{
+        std::bit_cast<uint64_t>(std_array_[0]),
+        std::bit_cast<uint64_t>(std_array_[1]),
+        std::bit_cast<uint64_t>(std_array_[2]),
+        std::bit_cast<uint64_t>(std_array_[3]),
+        std::bit_cast<uint64_t>(std_array_[4]),
+        std::bit_cast<uint64_t>(std_array_[5]),
+    };
+    constexpr const uint64_t std_array_bits_bad[2]{
+        std::bit_cast<uint64_t>(std_array_bads_[1]),
+        std::bit_cast<uint64_t>(std_array_bads_[2]),
+    };
+    bool good{true};
+    for (uintlen_t i{}; i < 6; i++) {
+      good&= IEE754_array_[i] == std_array_[i];
+      good &= std_array_bits[i] == IEE754_array_bits[i];
+    } 
+      good &=
+        9218868437227405312ull == std::bit_cast<uint64_t>(std_array_bads_[0]);
+
+    const uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
+    const uint64_t sleepy_nan_mask = (uint64_t(1) << 51);
+
+
+    good &= ((sleepy_nan_mask | exp_mask) & std_array_bits_bad[0]) ==
+            (sleepy_nan_mask | exp_mask);
+    good &= ((sleepy_nan_mask | exp_mask) & std_array_bits_bad[1]) ==
+            (exp_mask);
+    return good;
+  }
+  static_assert(double_is_IEEE754_binary64_assert());
   MJZ_CX_FN big_float_t<version_v> static pos_real_dbl_to_bf_impl_(
       double val) noexcept {
-    //In the IEEE 754 standard binary64
+    // In the IEEE 754 standard binary64
     const uint64_t u64_val = std::bit_cast<uint64_t>(val);
     constexpr uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
     constexpr uint64_t mantisa_mask = ((uint64_t(1) << 52) - 1);
@@ -1479,11 +1555,10 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     const int64_t exponent = int64_t(u64_val >> 52) - 1023 - 52 + is_subnormal;
     const int64_t coeffient =
         int64_t((mantisa_mask & u64_val) | (uint64_t(!is_subnormal) << 52));
-    big_float_t<version_v> ret {};
-   ret.m_coeffient = coeffient;
+    big_float_t<version_v> ret{};
+    ret.m_coeffient = coeffient;
     ret.m_exponent = exponent;
     return ret;
-
   }
   MJZ_CX_FN int64_t static exponent_log10_and_component_(
       big_float_t<version_v> &val) noexcept {
@@ -1572,12 +1647,11 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         std::max(log10_floor_prox, -log10_floor_prox)};
     double inv_pow5_of_log10_floor_prox_d{1.0};
     for (uintlen_t i{}; i < max_pow_pow10_double; i++) {
-      inv_pow5_of_log10_floor_prox_d =
-          branchless_teranary(
-                                  !!((int64_t(1) << i) & abs_log10_floor_prox),
+      inv_pow5_of_log10_floor_prox_d = branchless_teranary(
+          !!((int64_t(1) << i) & abs_log10_floor_prox),
           inv_pow5_of_log10_floor_prox_d *
               powers_of_5_table[abs_log10_floor_prox == log10_floor_prox][i],
-                              inv_pow5_of_log10_floor_prox_d);
+          inv_pow5_of_log10_floor_prox_d);
     }
     big_float_t<version_v> inv_pow10_of_log10_floor_prox =
         pos_real_dbl_to_bf_impl_(inv_pow5_of_log10_floor_prox_d);
@@ -1665,14 +1739,27 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       exponent_log10 = -exponent_log10;
     }
     asserts(asserts.assume_rn,
-            uint64_t(uint32_t(exponent_log10)) == uint64_t(exponent_log10));
-    ptr += dec_from_uint64(ptr, 24, uint64_t(exponent_log10));
+            uint64_t(uint16_t(exponent_log10)) == uint64_t(exponent_log10));
+    ptr += dec_from_uint(ptr, 24, uint16_t(exponent_log10));
 
     if (f_len < uintlen_t(ptr - buffer_)) return {};
     memcpy(f_buf, buffer_, uintlen_t(ptr - buffer_));
     return uintlen_t(ptr - buffer_);
   }
-
+  MJZ_NCX_FN static uintlen_t ncx_from_dec_positive_float_fill_sientific_impl_(
+      char *const f_buf, const uintlen_t f_len,
+      big_float_t<version_v> /* normalized */ f_val, int64_t exponent_log10,
+      uint8_t f_accuracacy, bool upper_case) noexcept {
+    MJZ_DISABLE_ALL_WANINGS_START_;
+    struct buffer_0_t_ {
+      MJZ_NCX_FN buffer_0_t_() noexcept {}  // ctor does not initialize 'i'
+      alignas(16) char buffer_0_[64 /*do not reduce*/];
+    } a;
+    MJZ_DISABLE_ALL_WANINGS_END_;
+    return from_dec_positive_float_fill_sientific_impl_(
+        f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case,
+        a.buffer_0_);
+  }
   MJZ_CX_FN static uintlen_t from_dec_positive_float_fill_sientific(
       char *const f_buf, const uintlen_t f_len,
       big_float_t<version_v> /* normalized */ f_val, int64_t exponent_log10,
@@ -1684,15 +1771,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           buffer_0_);
     }
     else {
-      MJZ_DISABLE_ALL_WANINGS_START_;
-      struct buffer_0_t_ {
-        MJZ_NCX_FN buffer_0_t_() noexcept {}  // ctor does not initialize 'i'
-        alignas(16) char buffer_0_[64 /*do not reduce*/];
-      } a;
-      MJZ_DISABLE_ALL_WANINGS_END_;
-      return from_dec_positive_float_fill_sientific_impl_(
-          f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case,
-          a.buffer_0_);
+      return ncx_from_dec_positive_float_fill_sientific_impl_(
+          f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case);
     }
   }
   MJZ_CX_FN static uintlen_t from_dec_positive_float_fill_general(
@@ -1859,6 +1939,137 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           f_buf, f_len, f_val, exponent_log10, f_accuracacy);
       return ret ? ret_ + ret : 0;
     }
+  }
+
+  MJZ_CX_FN static uintlen_t
+  dec_from_uint_backwards_parallel_less_than_pow10_8_impl_(
+      char *end_ptr /*at leat 8 bytes in length in back*/,
+      const uint32_t number_less_than_pow10_8) noexcept {
+    asserts(asserts.assume_rn, number_less_than_pow10_8 < 100000000);
+    constexpr uint64_t div_2parallel_overflow_mask =
+        (uint64_t(uint16_t(-1))) | (uint64_t(uint16_t(-1)) << 32);
+    constexpr uint64_t inv10_16b = 6554;
+
+    constexpr uint64_t zero_8parallel_ascii = cpy_bitcast<uint64_t>("00000000");
+    const uint32_t upper_half{number_less_than_pow10_8 / 10000};
+    const uint32_t lower_half{number_less_than_pow10_8 % 10000};
+    const uint64_t div_2parellel_old =
+        ((uint64_t(upper_half) << 32) | uint64_t(lower_half));
+    /*
+    f\left(x\right)=\operatorname{floor}\left(\frac{\operatorname{ceil}\left(\frac{2^{16}}{10}\right)\operatorname{floor}\left(x\right)}{2^{16}}\right)-\operatorname{floor}\left(\frac{\operatorname{floor}\left(x\right)}{10}\right)
+
+    0=\int_{0}^{10000}f\left(x\right)dx
+    */
+    const uint64_t div_2parallel = (((((div_2parellel_old * inv10_16b) >> 16) &
+                                      div_2parallel_overflow_mask) *
+                                     inv10_16b) >>
+                                    16) &
+                                   div_2parallel_overflow_mask;
+    const uint64_t modulo_2parallel = div_2parellel_old - 100 * div_2parallel;
+    const uint64_t div_4parellel_old = modulo_2parallel | (div_2parallel << 16);
+    const uint64_t div_4parallel =
+        (((modulo_2parallel * inv10_16b) >> 16) & div_2parallel_overflow_mask) |
+        ((((div_2parallel * inv10_16b) >> 16) & div_2parallel_overflow_mask)
+         << 16);
+    const uint64_t modulo_4parallel = div_4parellel_old - 10 * div_4parallel;
+    const uint64_t awnser_8parallel = modulo_4parallel | (div_4parallel << 8);
+    const uint8_t num_0ch =
+        uint8_t(std::min(std::countl_zero(awnser_8parallel) >> 3, 7));
+    const uint64_t awnser_8parallel_ascii =
+        awnser_8parallel + zero_8parallel_ascii;
+    alignas(8) char awnser_8ch[8]{};
+    cpy_bitcast(awnser_8ch, awnser_8parallel_ascii);
+    if constexpr (version_v.is_LE()) {
+      mem_byteswap(awnser_8ch, 8);
+    }
+    const uintlen_t count_len = 8 - uintlen_t(num_0ch);
+    memcpy(end_ptr - 8, awnser_8ch, 8);
+    return count_len;
+  }
+
+  MJZ_CX_FN static uintlen_t
+  dec_from_uint_backwards_parallel_less_than_pow10_4_impl_(
+      char *end_ptr /*at leat 8 bytes in length in back*/,
+      const uint16_t number_less_than_pow10_4) noexcept {
+    asserts(asserts.assume_rn, number_less_than_pow10_4 < 10000);
+    constexpr uint64_t div_2parallel_overflow_mask =
+        (uint64_t(uint16_t(-1))) | (uint64_t(uint16_t(-1)) << 32);
+    constexpr uint64_t inv10_16b = 6554;
+    constexpr uint32_t zero_4parallel_ascii = cpy_bitcast<uint32_t>("0000");
+    /*
+    f\left(x\right)=\operatorname{floor}\left(\frac{\operatorname{ceil}\left(\frac{2^{16}}{10}\right)\operatorname{floor}\left(x\right)}{2^{16}}\right)-\operatorname{floor}\left(\frac{\operatorname{floor}\left(x\right)}{10}\right)
+
+    0=\int_{0}^{10000}f\left(x\right)dx
+    */
+    const uint64_t parallel2_old_div =
+        uint64_t(number_less_than_pow10_4 % 100) |
+        (uint64_t(number_less_than_pow10_4 / 100) << 32);
+    const uint64_t parallel2_div =
+        ((parallel2_old_div * inv10_16b) >> 16) & div_2parallel_overflow_mask;
+    const uint64_t parallel2_mod = parallel2_old_div - parallel2_div * 10;
+    const uint64_t parallel4_mod = (parallel2_div << 8) | parallel2_mod;
+    const uint32_t awnser_4parallel =
+        uint32_t(uint16_t(parallel4_mod)) | uint32_t(parallel4_mod >> 48);
+    const uint8_t num_0ch =
+        uint8_t(std::min(std::countl_zero(awnser_4parallel) >> 3, 3));
+    const uint32_t awnser_4parallel_ascii =
+        awnser_4parallel + zero_4parallel_ascii;
+    alignas(4) char awnser_8ch[4]{};
+    cpy_bitcast(awnser_8ch, awnser_4parallel_ascii);
+    if constexpr (version_v.is_LE()) {
+      mem_byteswap(awnser_8ch, 4);
+    }
+    const uintlen_t count_len = 4 - uintlen_t(num_0ch);
+    memcpy(end_ptr - 4, awnser_8ch, 4);
+    return count_len;
+  }
+
+  constexpr const static std::array<std::array<char, 2>, 100>
+      index_to_dec_u8_table = []() noexcept {
+        std::array<std::array<char, 2>, 100> ret{};
+        for (int i{}; i < 100; i++) {
+          ret[size_t(i)] =
+              std::array<char, 2>{char('0' + (i / 10)), char((i % 10) + '0')};
+        }
+        return ret;
+      }();
+
+  MJZ_CX_FN static uintlen_t
+  memo_dec_from_uint_backwards_parallel_less_than_pow10_4_impl_(
+      char *end_ptr /*at leat 8 bytes in length in back*/,
+      const uint16_t number_less_than_pow10_4) noexcept {
+    std::array<char, 2> high =
+        index_to_dec_u8_table[size_t(number_less_than_pow10_4 % 100)];
+
+    std::array<char, 2> low =
+        index_to_dec_u8_table[size_t(number_less_than_pow10_4 / 100)];
+    alignas(4) char awnser_8ch[4]{high[0], high[1], low[0], low[1]};
+    memcpy(end_ptr - 4, awnser_8ch, 4);
+    int ret = low[0] != '0' ? 2 : 1;
+    ret = high[1] != '0' ? 3 : ret;
+    ret = high[0] != '0' ? 4 : ret;
+    return uintlen_t(ret);
+  }
+
+  MJZ_CX_FN static uintlen_t dec_from_uint_impl_parallel_impl_(
+      char *out_buf, uintlen_t out_len, uint64_t number_0_,
+      char *modolo10) noexcept {
+    constexpr const uint64_t least_parrellel = 10000;
+    uintlen_t ret{};
+    do {
+      uint16_t less_least_parrellel{uint16_t(number_0_)};
+      if (least_parrellel <= number_0_) {
+        less_least_parrellel = uint16_t(number_0_ % least_parrellel);
+        number_0_ = number_0_ / least_parrellel;
+      } else {
+        number_0_ = 0;
+      }
+      ret += memo_dec_from_uint_backwards_parallel_less_than_pow10_4_impl_(
+          modolo10 + 24 - ret, less_least_parrellel);
+    } while (number_0_);
+    if (out_len < ret) return 0;
+    memcpy(out_buf, modolo10 + 24 - ret, ret);
+    return ret;
   }
 };
 
