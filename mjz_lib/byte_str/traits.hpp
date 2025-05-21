@@ -856,7 +856,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         uintlen_t ret =
             dec_from_uint(buf, len, UT(is_neg ? -val_rg_ : val_rg_));
         return ret ? std::optional<uintlen_t>(ret + is_neg) : std::nullopt;
-      } else{
+      } else {
         uintlen_t ret = dec_from_uint(buf, len, val_rg_);
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
       }
@@ -1483,7 +1483,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         return powers_of_ten;
       }();
   static constexpr const std::array<std::array<double, max_pow_pow10_double>, 2>
-      powers_of_5_table = []() noexcept {
+      powers_of_5_table_v_ = []() noexcept {
         std::array<std::array<double, max_pow_pow10_double>, 2> powers_of_5{};
         powers_of_5[0][0] = 5.0;
         powers_of_5[1][0] = 0.2;
@@ -1502,12 +1502,12 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
                                             (2.220446049250313E-16),
                                             (0.5),
                                             (-1.7976931348623157E308)};
-    constexpr const uint64_t IEE754_array_bits[6]{
-        9218868437227405311ull, 4503599627370496ull, 1ull,
+    constexpr const uint64_t IEE754_array_bits[6]{9218868437227405311ull,
+                                                  4503599627370496ull,
+                                                  1ull,
                                                   4372995238176751616ull,
                                                   4602678819172646912ull,
                                                   18442240474082181119ull};
-   
 
     constexpr const double std_array_bads_[]{dbnl.infinity(), dbnl.quiet_NaN(),
                                              dbnl.signaling_NaN()};
@@ -1528,20 +1528,19 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     };
     bool good{true};
     for (uintlen_t i{}; i < 6; i++) {
-      good&= IEE754_array_[i] == std_array_[i];
+      good &= IEE754_array_[i] == std_array_[i];
       good &= std_array_bits[i] == IEE754_array_bits[i];
-    } 
-      good &=
+    }
+    good &=
         9218868437227405312ull == std::bit_cast<uint64_t>(std_array_bads_[0]);
 
     const uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
     const uint64_t sleepy_nan_mask = (uint64_t(1) << 51);
 
-
     good &= ((sleepy_nan_mask | exp_mask) & std_array_bits_bad[0]) ==
             (sleepy_nan_mask | exp_mask);
-    good &= ((sleepy_nan_mask | exp_mask) & std_array_bits_bad[1]) ==
-            (exp_mask);
+    good &=
+        ((sleepy_nan_mask | exp_mask) & std_array_bits_bad[1]) == (exp_mask);
     return good;
   }
   static_assert(double_is_IEEE754_binary64_assert());
@@ -1596,6 +1595,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
               big_float_t<version_v>::float_from_i(10) <= f_val));
     return exponent_log10;
   }
+  template <std::array<std::array<double, max_pow_pow10_double>, 2>
+                powers_of_5_table = powers_of_5_table_v_>
   MJZ_CX_FN int64_t static exponent_log10_and_component_aprox_(
       big_float_t<version_v> &val) noexcept {
     big_float_t<version_v> f_val = val;
@@ -1741,7 +1742,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       *ptr++ = '-';
       exponent_log10 = -exponent_log10;
     }
-    asserts(asserts.assume_rn, exponent_log10<512);
+    asserts(asserts.assume_rn, exponent_log10 < 512);
     ptr += dec_from_uint(ptr, 24, uint16_t(exponent_log10));
 
     if (f_len < uintlen_t(ptr - buffer_)) return {};
