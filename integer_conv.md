@@ -61,7 +61,6 @@ const uint32_t lower_half{number_less_than_pow10_8 % 10000};
 const uint64_t awnser_8parallel =
     [](const uint32_t lower_half,
        const uint32_t upper_half) noexcept -> uint64_t {
-  asserts(asserts.assume_rn, upper_half < 10000 && lower_half < 10000);
   constexpr uint64_t inv25_16b = 2622;
 
   constexpr uint64_t inv5_8b = 52;
