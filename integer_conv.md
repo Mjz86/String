@@ -1,4 +1,4 @@
-
+# converting a base2 integer to a base10 string
 
 
 # introduction:
