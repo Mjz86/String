@@ -217,8 +217,7 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
   auto id = parse_ctx().parse_arg_id();
   if (!id) return false;
   charechter = parse_ctx().front();
-  std::optional<sub_out_iter_t<version_v>> outer_sub_out_it{};
-  std::optional<sub_out_iter_t<version_v>> inner_sub_out_it{};
+
   auto &actual_out = main_ctx().output_it;
   // this is the output iterator before all of the optional wrapping takes
   // place.
@@ -227,42 +226,6 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
   MJZ_RELEASE {
     if (has_filter) actual_out = actual_out_buf;
   };
-  if (charechter && *charechter == ';') {
-    base_ctx().recursion_depth++;
-    if (base_ctx().max_recursion_depth < base_ctx().recursion_depth)
-      MJZ_IS_UNLIKELY {
-        format_ctx().as_error(
-            "[Error]parse_format_replacement_field:max "
-            "recursion depth reached try "
-            "reducing the nested filters");
-        return false;
-      }
-    has_filter = true;
-    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
-    outer_sub_out_it = call_slice_parse_filter();
-    if (!outer_sub_out_it) return false;
-    if (*outer_sub_out_it) {
-      actual_out = out_it_t(*outer_sub_out_it);
-    }
-    if (!call_formatted_parse_filters()) return false;
-    inner_sub_out_it = call_slice_parse_filter();
-    if (!inner_sub_out_it) return false;
-    if (*inner_sub_out_it) {
-      actual_out = out_it_t(*inner_sub_out_it);
-    }
-    charechter = parse_ctx().front();
-    if (charechter && *charechter != ':') MJZ_IS_UNLIKELY {
-        format_ctx().as_error(
-            "[Error]parse_format_replacement_field:unexpected symbol as ending "
-            "of "
-            "filter  note that ONLY "
-            "{ID;[outer_slice]restricted_format_strings...[inner_slice]:SPEC} "
-            "is "
-            "valid ");
-        return false;
-      }
-  }
-  charechter = parse_ctx().front();
   if (charechter && *charechter == ':') {
     return parse_ctx().unchecked_advance_amount_(1) &&
            call_argument_formatter(*id);
@@ -344,76 +307,7 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
   }
   return output && !base_ctx().err_content;
 }
-
-template <version_t version_v>
-MJZ_CX_FN success_t parse_and_format_data_t<version_v>::parse_formating_filter(
-    bool &has_filter) noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
-      format_ctx().as_error(
-          "[Error]parse_formating_filter:only ascii is suppoerted!(note "
-          "that this "
-          "may change in later versions)");
-      return false;
-    }
-
-  out_it_t
-      & /*the  ref is intentional, we want propgation of output iterators */
-          output = main_ctx().output_it;
-  for (auto charechter = parse_ctx().front(); output && charechter;
-       charechter = parse_ctx().front()) {
-    view_t remains = parse_ctx().view();
-    const char *ptr = remains.data();
-    const char *end = remains.data() + remains.length();
-    for (;;) {
-      if (ptr == end || *ptr == '{' || *ptr == '}' || *ptr == '[' ||
-          *ptr == ']' || *ptr == ':')
-        break;
-      ptr++;
-    }
-    uintlen_t braket_location = uintlen_t(ptr - remains.data());
-    std::ignore =
-        output.append(remains.make_subview(0, braket_location).unsafe_handle());
-    std::ignore = parse_ctx().unchecked_advance_amount_(braket_location);
-    if (ptr == end) break;
-    charechter = *ptr;
-    // [[=>[ or ]]=>] as escape of slices and :: to secape : beacaue ':' is used
-    // as the terminator of the filter
-    if (*charechter == '[' || *charechter == ']' || *charechter == ':') {
-      std::optional<char> escape{parse_ctx().at(1)};
-      if (!escape) MJZ_IS_UNLIKELY {
-          parse_ctx().as_error(
-              "[Error]parse_formating_filter: slice vs terminator vs text "
-              "ambigouity");
-          return false;
-        }
-      if (*charechter != *escape) {
-        has_filter = false;
-        // go and parse the slice
-        return true;
-      }
-      if (!parse_ctx().unchecked_advance_amount_(2)) return false;
-      output.push_back(*escape, parse_ctx().encoding());
-      continue;
-    }
-    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
-    if (*charechter == '{') {
-      if (!parse_format_replacement_field()) return false;
-      continue;
-    }
-    asserts(asserts.assume_rn, *charechter == '}');
-    auto c = parse_ctx().front();
-    if (!c || *c != '}') MJZ_IS_UNLIKELY {
-        parse_ctx().as_error(
-            "[Error]parse_formating_filter: unmatched '}' , expected '}' "
-            "here "
-            "as an escape sequence");
-        return false;
-      }
-    if (!parse_ctx().unchecked_advance_amount_(1)) return false;
-    output.push_back('}', parse_ctx().encoding());
-  }
-  return output && !base_ctx().err_content;
-}
+ 
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
@@ -498,7 +392,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
     bool check_after_slice) noexcept {
   if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
       format_ctx().as_error(
-          "[Error]call_slice_parse_filter:only ascii is "
+          "[Error]get_slice_parse_filter:only ascii is "
           "suppoerted!(note "
           "that this "
           "may change in later versions)");
@@ -509,7 +403,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
   std::optional<uintlen_t> beg_loc = nullopt;
   std::optional<uintlen_t> end_loc = nullopt;
   if (!charechter) MJZ_IS_UNLIKELY {
-      format_ctx().as_error("[Error]call_slice_parse_filter: unexpected end");
+      format_ctx().as_error("[Error]get_slice_parse_filter: unexpected end");
       return nullopt;
     }
   if (*charechter != '[') {
@@ -518,7 +412,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   charechter = parse_ctx().front();
   if (!charechter) MJZ_IS_UNLIKELY {
-      format_ctx().as_error("[Error]call_slice_parse_filter: unexpected end");
+      format_ctx().as_error("[Error]get_slice_parse_filter: unexpected end");
       return nullopt;
     }
   if (*charechter == ']') {
@@ -530,7 +424,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
   if (!beg_loc) return nullopt;
   charechter = parse_ctx().front();
   if (!charechter) MJZ_IS_UNLIKELY {
-      format_ctx().as_error("[Error]call_slice_parse_filter: unexpected end");
+      format_ctx().as_error("[Error]get_slice_parse_filter: unexpected end");
       return nullopt;
     }
   if (*charechter == ']') {
@@ -540,7 +434,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
   }
   if (*charechter != ':') MJZ_IS_UNLIKELY {
       format_ctx().as_error(
-          "[Error]call_slice_parse_filter: expected slice symbol(':') for "
+          "[Error]get_slice_parse_filter: expected slice symbol(':') for "
           "range "
           "or end symbol (']') for indexed");
       return nullopt;
@@ -551,7 +445,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
   charechter = parse_ctx().front();
   if (!charechter || *charechter != ']') MJZ_IS_UNLIKELY {
       format_ctx().as_error(
-          "[Error]call_slice_parse_filter: expected ']' as slice end");
+          "[Error]get_slice_parse_filter: expected ']' as slice end");
       return nullopt;
     }
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
@@ -561,58 +455,20 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
        (*charechter != ':' && *charechter != '{' && *charechter != '[')))
     MJZ_IS_UNLIKELY {
       format_ctx().as_error(
-          "[Error]call_slice_parse_filter:unexpected symbol in filter ");
+          "[Error]get_slice_parse_filter:unexpected symbol in filter ");
       return nullopt;
     }
   beg_loc = beg_loc ? *beg_loc : 0;
   end_loc = end_loc ? *end_loc : uintlen_t(-1);
   if (*end_loc < *beg_loc) MJZ_IS_UNLIKELY {
       format_ctx().as_error(
-          "[Error]call_slice_parse_filter: end index must not be less than "
+          "[Error]get_slice_parse_filter: end index must not be less than "
           "begin "
           "index ");
       return nullopt;
     }
   return std::pair<uintlen_t, uintlen_t>{*beg_loc, *end_loc - *beg_loc};
-}
-template <version_t version_v>
-MJZ_CX_FN std::optional<sub_out_iter_t<version_v>>
-parse_and_format_data_t<version_v>::call_slice_parse_filter() noexcept {
-  std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>> slice =
-      get_slice_parse_filter();
-  if (!slice) return nullopt;
-  if (!slice->first && slice->second == uintlen_t(-1)) {
-    return sub_out_iter_t<version_v>{nullptr, parse_ctx().encoding()};
-  }
-  return sub_out_iter_t<version_v>{format_ctx().out(), parse_ctx().encoding(),
-                                   slice->first, slice->second};
-}
-template <version_t version_v>
-MJZ_CX_FN success_t
-parse_and_format_data_t<version_v>::call_formatted_parse_filters() noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
-      format_ctx().as_error(
-          "[Error]call_formatted_parse_filters:only ascii is "
-          "suppoerted!(note "
-          "that this "
-          "may change in later versions)");
-      return false;
-    }
-  bool has_filter{true};
-  auto charechter = parse_ctx().front();
-  for (; charechter && has_filter; charechter = parse_ctx().front()) {
-    /*this is the filter replacement feild,
-     * this can be used to swap the perivous output_it(initially
-     * outer_slice.output_it) with another wrapper that filters it before giving
-     * the data to the perivous output_it, this only lasts for the duration of
-     * the upper parse_format_replacement_field , multiple filter feilds and
-     * nested ones can be used, the input of the last one is sliced by
-     * inner_slice of replacement.
-     */
-    if (!parse_formating_filter(has_filter)) return false;
-  }
-  return true;
-}
+} 
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::append_text(view_t text) noexcept {
@@ -811,7 +667,8 @@ struct cx_parser_t : public formatting_object_t<version_v> {
   MJZ_NO_MV_NO_CPY(cx_parser_t);
   template <size_t... Is>
     requires(sizeof...(Is) == sizeof...(Ts))
-  MJZ_CX_FN cx_parser_t(cx_formatter_storages_t<version_v, Ts &&...> &cx_store,
+  MJZ_CX_FN cx_parser_t(
+
                         view_t fmt_str, alloc_ref_t alloc,
                         std::span<char> cache_ref, uintlen_t cache_ref_align,
                         std::index_sequence<Is...>) noexcept
@@ -822,10 +679,10 @@ struct cx_parser_t : public formatting_object_t<version_v> {
           basic_format_args_parse_tag{}, alias_t<void (*)(Ts &&...)>{}};
       base_ctx().number_of_args = buf.count_args;
       base_ctx().parse_and_format_fn_of_args = buf.parse_and_format_fn_of_args;
-      cx_formatter_storage_ref_t<version_v>
+      /* cx_formatter_storage_ref_t<version_v>
           cx_parse_storage_of_args_buf[sizeof...(Ts)]{
               cx_formatter_storage_ref_t<version_v>(std::get<Is>(cx_store))...};
-      base_ctx().cx_parse_storage_of_args = cx_parse_storage_of_args_buf;
+      base_ctx().cx_parse_storage_of_args = cx_parse_storage_of_args_buf;*/
       base_ctx().err_index = uintlen_t(-1);
       base_ctx().format_string = fmt_str;
 
@@ -849,38 +706,45 @@ template <version_t version_v>
 template <typename L_v, is_formatted_c<version_v>... Ts>
 MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
     out_it_t iter, L_v value, Ts &&...args) noexcept {
+  constexpr const int format_optimization_lvl_v =
+      L_v::format_optimization_lvl_v;
   static_assert(
       requires() {
         { view_t(L_v()()) } noexcept;
       }, "see if you used \"...\"_fmt or not (you should) ");
+  //
+  //cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
   auto run_function_cx_f =
-      []() noexcept -> std::pair<cx_formatter_storages_t<version_v, Ts &&...>,
+      []() noexcept -> std::pair<uintlen_t,
                                  std::optional<std::pair<uintlen_t, view_t>>> {
     constexpr auto align_v_ =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
     alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
-    cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
-    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-        cx_store, view_t(L_v()()), alloc_ref_t{},
+    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{ view_t(L_v()()), alloc_ref_t{},
         buffer_,  align_v_,        std::make_index_sequence<sizeof...(Ts)>{}};
-    if (checker.successful) return {std::move(cx_store), nullopt};
-    return {std::move(cx_store),
+    if (checker.successful) return {1 - checker.base_ctx().err_index, nullopt};
+    return {0,
             std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
                                          checker.base_ctx().err_content}};
   };
   using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;
   std::ignore = run_function_cx_ft{}().first;
-  auto cx_table_f = []() noexcept {
-    return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
-      constexpr const std::array<cx_formatter_storage_ref_t<version_v>,
-                                 sizeof...(Ts)>
-          ret{cx_formatter_storage_ref_t<version_v>(
-              &std::get<Is>(run_function_cx_ft{}().first))...};
-      return ret;
-    }(std::make_index_sequence<sizeof...(Ts)>{});
-  };
-  using cx_table_ft = static_data_t<decltype(cx_table_f)>;
-  base_ctx().cx_parse_storage_of_args = cx_table_ft{}().data();
+
+  if constexpr(format_optimization_lvl_v){
+    /* constexpr const uintlen_t num_feilds = run_function_cx_ft{}().first;
+  using type_info_array_t=std::array<uintlen_t,num_feilds> ;
+    auto cx_table_f = []() noexcept {
+      return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
+        constexpr const std::array<cx_formatter_storage_ref_t<version_v>,
+                                   sizeof...(Ts)>
+            ret{cx_formatter_storage_ref_t<version_v>(
+                &std::get<Is>(run_function_cx_ft{}().first))...};
+        return ret;
+      }(std::make_index_sequence<sizeof...(Ts)>{});
+    };
+    using cx_table_ft = static_data_t<decltype(cx_table_f)>;
+    base_ctx().cx_parse_storage_of_args = cx_table_ft{}().data();*/
+  }
   auto failure_f =
       []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
     return run_function_cx_ft{}().second;
@@ -929,25 +793,48 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
 #else
   MJZ_UNUSED failure_ft check{};
 #endif
-  return vformat_to(iter, value(), std::forward<Ts>(args)...);
+  return vformat_to_pv(iter, value(), std::forward<Ts>(args)...);
 }
 
 namespace fmt_litteral_ns {
 
-template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L>
+template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L,int format_optimization_lvl>
 struct operator_fmt_t : static_string_view_t<version_v> {
+  constexpr static const int format_optimization_lvl_v =
+       format_optimization_lvl;
   MJZ_CX_FN operator_fmt_t() noexcept
       : static_string_view_t<version_v>{
             bstr_ns::litteral_ns::operator_view<L, version_v>()} {}
 };
 
-template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L>
+template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L,
+          int format_optimization_lvl = 1>
 MJZ_CX_FN auto operator_fmt() noexcept {
-  return operator_fmt_t<version_v, L>{};
+  return operator_fmt_t<version_v, L, format_optimization_lvl>{};
 }
 template <bstr_ns::litteral_ns::str_litteral_t L>
 MJZ_CX_FN auto operator""_fmt() noexcept {
   return operator_fmt<version_t{}, L>();
+}
+// check only
+template <bstr_ns::litteral_ns::str_litteral_t L>
+MJZ_CX_FN auto operator""_fmto0() noexcept {
+  return operator_fmt<version_t{}, L,0>();
+}
+// no only parse of format text
+template <bstr_ns::litteral_ns::str_litteral_t L>
+MJZ_CX_FN auto operator""_fmto1() noexcept {
+  return operator_fmt<version_t{}, L, 1>();
+}
+// no only parse of format text, of forrmatter object
+template <bstr_ns::litteral_ns::str_litteral_t L>
+MJZ_CX_FN auto operator""_fmto2() noexcept {
+  return operator_fmt<version_t{}, L, 2>();
+}
+// no only parse of format text, of forrmatter object, no lookup
+template <bstr_ns::litteral_ns::str_litteral_t L>
+MJZ_CX_FN auto operator""_fmto3() noexcept {
+  return operator_fmt<version_t{}, L, 3>();
 }
 }  // namespace fmt_litteral_ns
 

@@ -37,7 +37,7 @@ template <version_t version_v, uintlen_t n_bits>
 struct uintN_t {
   MJZ_CONSTANT(uintlen_t) word_count = n_bits / 64;
   alignas(std::min(hardware_constructive_interference_size,
-                   log2_of_val_to_val(log2_of_val_create(word_count * 8))))
+                   log2_of_val_to_val(uint8_t(std::countr_zero(word_count * 8)))))
       uint64_t words[word_count]{};
   MJZ_DISABLE_ALL_WANINGS_START_;
   MJZ_DEFAULTED_CLASS(uintN_t);
@@ -81,7 +81,7 @@ struct uintN_t {
     word &= ~mask;
     word |= val ? mask : 0;
   }
-  MJZ_CX_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
+  MJZ_CX_AL_FN void operator_sr(uintlen_t amount) noexcept {
     intlen_t abs_amount = intlen_t(amount);
     intlen_t internal_amount{abs_amount & 63};
     intlen_t external_amount{abs_amount >> 6};
@@ -104,10 +104,14 @@ struct uintN_t {
         nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[0], 0);
       }
     }
+  }
+  MJZ_CX_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
+    operator_sr(amount);  
 
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
+
+  MJZ_CX_AL_FN void operator_sl(uintlen_t amount) noexcept {
     intlen_t abs_amount = intlen_t(amount);
     intlen_t internal_amount{abs_amount & 63};
     intlen_t external_amount{abs_amount >> 6};
@@ -129,6 +133,9 @@ struct uintN_t {
         nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[0], 0);
       }
     }
+  }
+  MJZ_CX_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
+    operator_sl(amount);
     return *this;
   }
   MJZ_CX_FN uintN_t& operator&=(const uintN_t& amount) noexcept {

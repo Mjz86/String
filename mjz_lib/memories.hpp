@@ -463,5 +463,35 @@ template <class From_, class Like_to_what_t_>
 concept forward_convert_like_c = std::convertible_to<
     From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <bitcastable_c T>
+MJZ_CX_AL_FN T byteswap(T value) noexcept {
+#ifdef __cpp_lib_byteswap
+  if constexpr (std::integral<T>) {
+    return std::byteswap(value);
+  }
+#else
+  alignas(T) char temp[sizeof(T)]{};
+  cpy_bitcast(temp, value);
+  mem_byteswap(temp, sizeof(T));
+  return cpy_bitcast<T>(temp);
+}
+#endif
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

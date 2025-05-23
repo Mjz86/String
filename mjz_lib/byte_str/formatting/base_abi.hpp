@@ -44,9 +44,14 @@ template <version_t version_v>
 struct format_context_t;
 
 template <version_t version_v>
-struct cx_formatter_storage_base_t {
-  uintlen_t skip_amount{};
-};
+struct cx_formatter_storage_base_t {};
+  template <version_t version_v>
+struct cx_formatter_storage_base_ref_t {
+  uintlen_t formatting_str_index_begin{};
+  uintlen_t formatting_str_index_end{};
+  uintlen_t index_of_element{};
+  const cx_formatter_storage_base_t<version_v> *formatter_ptr{};
+  };
 
 template <version_t version_v>
 using cx_formatter_storage_ref_t =
@@ -60,8 +65,7 @@ struct base_string_view_arg_t : base_lazy_view_t<version_v> {
   MJZ_CX_FN base_string_view_arg_t(std::span<const char> buffer) noexcept
       : base_lazy_view_t<version_v>{
             dynamic_string_view_t<version_v>{buffer.data(), buffer.size()}
-                .to_base_lazy_pv_fn_(
-                unsafe_ns::unsafe_v)} {}
+                .to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)} {}
   MJZ_CX_FN base_lazy_view_t<version_v> to_base_lazy_pv_fn_(
       unsafe_ns::i_know_what_im_doing_t) const noexcept {
     return *this;
@@ -190,7 +194,7 @@ template <version_t version_v>
 static const constexpr uintlen_t format_basic_buffer_size_v = 64;
 // configurable
 template <version_t version_v>
-static const constexpr uintlen_t format_stack_size_v = 128*sizeof(uintlen_t);
+static const constexpr uintlen_t format_stack_size_v = 128 * sizeof(uintlen_t);
 
 template <version_t version_v>
 struct alignas(
@@ -217,33 +221,32 @@ struct alignas(
 
  public:
   // first 8 words
-  uintlen_t remaining_format_string_index{};//1
-  uintlen_t next_arg_index{/*uintlen_t(-1) means manual mode*/};// 1
-  uintlen_t number_of_args{};//1
-  out_it_t output_it{};    // 3w
-  view_t format_string{};  // 2w
+  uintlen_t remaining_format_string_index{};                      // 1
+  uintlen_t next_arg_index{/*uintlen_t(-1) means manual mode*/};  // 1
+  uintlen_t number_of_args{};                                     // 1
+  out_it_t output_it{};                                           // 3w
+  view_t format_string{};                                         // 2w
   //---//
   // second 8 words
-  const cx_formatter_storage_ref_t<version_v> *cx_parse_storage_of_args{};//1w
-  const parse_and_format_fn_t<version_v> *parse_and_format_fn_of_args{};//1w
-  stack_base_out_buffer_t<version_v> buf_view{};//6w
+  const cx_formatter_storage_base_ref_t<version_v>
+      *cx_parse_storage_of_args{};                                        // 1w
+  uintlen_t number_of_cx_parse_storage_of_args{};                         // 1w
+  stack_base_out_buffer_t<version_v> buf_view{};                          // 6w
   //---//
   // third 8 words
-  alloc_ref_t alloc{};  // 1w
-  const raw_storage_ref_u<version_v> *data_of_args{};//1w
-  const name_t *name_ptr{};//1w
-  stack_alloc_t stack_alloc{};//2w
-  std::span<char> format_cache_ref{};//2w
-  uintlen_t err_index{};//1w
+  alloc_ref_t alloc{};                                 // 1w
+  const raw_storage_ref_u<version_v> *data_of_args{};  // 1w
+  const parse_and_format_fn_t<version_v> *parse_and_format_fn_of_args{};  // 1w
+  const name_t *name_ptr{};                            // 1w
+  stack_alloc_t stack_alloc{};                         // 2w
+  std::span<char> format_cache_ref{};                  // 2w
   //---//
   // forth 8 words
-  uintlen_t recursion_depth{};//1w
-  static_string_view_t<version_v> err_content_bfr_{nullopt};//2w
-  view_t err_content{};//2w
-  out_it_t err_output{};//3w
+  uintlen_t err_index{};                                      // 1w
+  static_string_view_t<version_v> err_content_bfr_{nullopt};  // 2w
+  view_t err_content{};                                       // 2w
+  out_it_t err_output{};                                      // 3w
   //---//
-  // configurable
-  MJZ_CONSTANT(uintlen_t) max_recursion_depth{16}; 
 
  public:
   /*CATION !!!!!!!!!!!!!
@@ -296,14 +299,16 @@ struct alignas(
     typeless_arg_ref_t<version_v> &obj = ret0.obj;
     obj.m = args ? args[index] : raw_storage_ref_u<version_v>{};
     obj.parse_and_format = parse_and_format_fn_of_args[index];
+    /*
     ret0.cx_parse =
-        cx_parse_storage_of_args ? cx_parse_storage_of_args[index] : nullptr;
+        cx_parse_storage_of_args ? cx_parse_storage_of_args[index] : nullptr;*/
     if (!skip_cx_parse(ret0.cx_parse)) {
       return false;
     }
     if (parse_and_format_call_at_non_virt_impl_(
             ret0, alias_t<basic_formatted_types_t<version_v> *>{}))
       return ret0.ret;
+    
     return parse_and_format_call_at_virt_impl_(ret0);
   }
   template <typename T>
@@ -410,8 +415,8 @@ struct parse_context_t {
     return !main_ctx().err_content;
   }
 
-  MJZ_CX_FN err_it_t as_error(
-      static_string_view_t<version_v> error_description) noexcept {
+  MJZ_CX_FN err_it_t
+  as_error(static_string_view_t<version_v> error_description) noexcept {
     main_ctx().err_content_bfr_ = error_description;
     as_error_impl_();
     return main_ctx().err_output;
@@ -559,8 +564,7 @@ struct parse_context_t {
   MJZ_CX_FN std::optional<uintlen_t> parse_starting_ulen() noexcept;
 
   MJZ_CX_FN std::optional<uintlen_t> parse_arg_id() noexcept;
-  MJZ_CX_FN bool parse_only() const noexcept {
-    return main_ctx().err_index == uintlen_t(-1);
+  MJZ_CX_FN bool parse_only() const noexcept { return main_ctx().parse_only();
   }
 
   MJZ_CX_FN std::optional<uintlen_t> get_numeric(uintlen_t defult) noexcept;
@@ -688,8 +692,8 @@ struct format_context_t {
       };
     return true;
   }
-  MJZ_CX_FN err_it_t as_error(
-      static_string_view_t<version_v> error_description) noexcept {
+  MJZ_CX_FN err_it_t
+  as_error(static_string_view_t<version_v> error_description) noexcept {
     MJZ_RELEASE { main_ctx().output_it = out_it_t{}; };
     return parse_ctx().as_error(error_description);
   }
@@ -771,8 +775,8 @@ struct hash_context_t {
       const noexcept {
     return parse_ctx().allocator();
   }
-  MJZ_CX_FN err_it_t as_error(
-      static_string_view_t<version_v> error_description) noexcept {
+  MJZ_CX_FN err_it_t
+  as_error(static_string_view_t<version_v> error_description) noexcept {
     return parse_ctx().as_error(error_description);
   }
   MJZ_CX_FN optional_ref_t<typename base_context_t<version_v>::name_t const>
@@ -786,7 +790,8 @@ struct hash_context_t {
   }
 };
 template <version_t version_v, typename Formatter_t>
-struct cx_formatter_storage_t : cx_formatter_storage_base_t<version_v>,
+struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases)) cx_formatter_storage_t
+    : cx_formatter_storage_base_t<version_v>,
                                 Formatter_t {};
 
 template <version_t version_v, typename formatter_type_T_>
@@ -891,8 +896,8 @@ struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases)) parse_and_format_data_t
   template <typename T_, typename T>
   MJZ_CX_NL_FN success_t
   parse_and_format_nl_(optional_ref_t<T_> arg, void(T),
-                   cx_formatter_storage_ref_t<version_v> cxref) noexcept {
-    return parse_and_format(arg, alias_t<void(*)(T)>{}, cxref);
+                       cx_formatter_storage_ref_t<version_v> cxref) noexcept {
+    return parse_and_format(arg, alias_t<void (*)(T)>{}, cxref);
   }
   template <class F_t, class formatter_obj_t_>
   MJZ_CX_NL_FN success_t
@@ -909,11 +914,15 @@ struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases)) parse_and_format_data_t
       ptr = const_cast<formatter_obj_t_ *>(
           static_cast<const formatter_obj_t_ *>(cxref.get()));
     }
+
+  //  ptr->formatting_str_index_begin = base_ctx().remaining_format_string_index;
     std::optional<uintlen_t> distance_ = parse_impl_<F_t>(*ptr);
     if (!distance_) {
       return false;
     }
-    ptr->skip_amount = *distance_;
+   // ptr->formatting_str_index_end = base_ctx().remaining_format_string_index;
+    // count down , so we can count the number of feildes 
+    base_ctx().err_index+=uintlen_t(-1);
     return true;
   }
 
@@ -954,19 +963,16 @@ struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases)) parse_and_format_data_t
 
  public:
   MJZ_CX_FN success_t parse_format_replacement_field() noexcept;
-  MJZ_CX_FN success_t parse_formating_string() noexcept;
-  MJZ_CX_FN success_t parse_formating_filter(bool &has_filter) noexcept;
-  MJZ_CX_FN success_t append_text(view_t) noexcept;
-  MJZ_CX_FN success_t call_formatted_parse_filters() noexcept;
-  MJZ_CX_FN std::optional<sub_out_iter_t<version_v>>
-  call_slice_parse_filter() noexcept;
+  MJZ_CX_FN success_t parse_formating_string() noexcept; 
+  MJZ_CX_FN success_t append_text(view_t) noexcept; 
   MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
   get_slice_parse_filter(bool check_after_slice = true) noexcept;
   MJZ_CX_FN std::optional<uintlen_t> get_parse_filter_numeric(
       uintlen_t defult) noexcept;
   MJZ_CX_FN success_t call_argument_formatter(uintlen_t id) noexcept;
   MJZ_CX_FN bool parse_only() const noexcept {
-    return base_ctx().err_index == uintlen_t(-1);
+    MJZ_IFN_CONSTEVAL { return false; }
+    return intlen_t(base_ctx().err_index)<0;
   }
 };
 
@@ -1521,8 +1527,9 @@ MJZ_CX_FN basic_arg_ref_t<version_v> format_context_t<version_v>::arg(
 template <version_t version_v>
 MJZ_CX_FN success_t base_context_t<version_v>::skip_cx_parse(
     cx_formatter_storage_ref_t<version_v> cx_parse) noexcept {
-  return !cx_parse || main_ctx().parse_ctx().unchecked_advance_amount_(
-                          cx_parse->skip_amount);
+  if (!cx_parse) return true;
+//  this->remaining_format_string_index = cx_parse->formatting_str_index_end;
+  return true;
 }
 template <version_t version_v>
 template <typename T>
