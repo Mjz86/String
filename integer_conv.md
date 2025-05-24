@@ -287,3 +287,176 @@ BENCHMARK(std_to_string);
 ```
 
 
+
+also for peridictable inputs:
+
+https://quick-bench.com/q/Knz66ws2pCEDWWpUbWlgVlboMHU
+
+
+
+```
+
+#include <bit>
+#include<array>
+#include <cstring>
+#include<string>
+  static uint64_t  dec_from_uint_backwards_parallel_less_than_pow10_8_pair_impl_(
+      const uint32_t lower_half, const uint32_t upper_half) noexcept { 
+    constexpr uint64_t inv25_16b = 2622;
+
+    constexpr uint64_t inv5_8b = 52;
+
+    constexpr uint64_t mask_16b =
+        uint64_t(uint16_t(-1)) | (uint64_t(uint16_t(-1)) << 32);
+    constexpr uint64_t mask_8b =
+        uint64_t(uint8_t(-1)) | (uint64_t(uint8_t(-1)) << 16) |
+        (uint64_t(uint8_t(-1)) << 32) | (uint64_t(uint8_t(-1)) << 48);
+    if constexpr (std::endian::big == std::endian::native) {
+      const uint64_t div_2parellel_old =
+          ((uint64_t(upper_half) << 32) | uint64_t(lower_half));
+
+      const uint64_t div_2parallel =
+          ((((div_2parellel_old >> 2) & mask_16b) * inv25_16b) >> 16) &
+          mask_16b;
+
+      const uint64_t modulo_2parallel = div_2parellel_old - 100 * div_2parallel;
+
+      const uint64_t div_4parellel_old =
+          modulo_2parallel | (div_2parallel << 16);
+
+      const uint64_t div_4parellel =
+          ((((div_4parellel_old >> 1) & mask_8b) * inv5_8b) >> 8) & mask_8b;
+
+      const uint64_t modulo_4parallel = div_4parellel_old - 10 * div_4parellel;
+      return modulo_4parallel | (div_4parellel << 8);
+    } else {
+      const uint64_t div_2parellel_old =
+          (uint64_t(upper_half) | (uint64_t(lower_half) << 32));
+
+      const uint64_t div_2parallel =
+          ((((div_2parellel_old >> 2) & mask_16b) * inv25_16b) >> 16) &
+          mask_16b;
+
+      const uint64_t modulo_2parallel = div_2parellel_old - 100 * div_2parallel;
+
+      const uint64_t div_4parellel_old =
+          div_2parallel | (modulo_2parallel << 16);
+
+      const uint64_t div_4parellel =
+          ((((div_4parellel_old >> 1) & mask_8b) * inv5_8b) >> 8) & mask_8b;
+
+      const uint64_t modulo_4parallel = div_4parellel_old - 10 * div_4parellel;
+      return div_4parellel | (modulo_4parallel << 8);
+    }
+  }   
+  
+   static std::tuple<std::array<uint64_t,3>,
+      size_t, size_t, size_t>
+  dec_from_uint_impl_semi_parallel_impl_(const uint64_t number_) noexcept {
+    constexpr uint64_t zero_8parallel_ascii = 0x3030303030303030;
+    constexpr uint64_t lookup_full = 1000;
+    constexpr uint64_t parallel_half = 10000;
+    constexpr uint64_t parallel_full = parallel_half * parallel_half;
+    constexpr uint64_t count_max =3;
+  std::array<uint64_t,3> str_int_buf;
+    uint64_t number_0_ = number_;
+    for(size_t i{},iteration_count_backwards{count_max};i<count_max;i++){
+    
+      iteration_count_backwards--;
+      uint32_t upper_half{};
+      uint32_t lower_half{};
+
+      uint64_t u64ch_{};
+   
+    
+    
+    if(number_0_ < parallel_half){
+        lower_half = uint32_t(number_0_);
+        upper_half = 0;
+       number_0_ = 0;
+    }else{       
+ 
+        uint32_t number_less_than_pow10_8;
+        if (number_0_ < parallel_full) {
+          number_less_than_pow10_8 = uint32_t(number_0_);
+          number_0_ = 0;
+        } else {
+          number_less_than_pow10_8 = uint32_t(number_0_ % parallel_full);
+          number_0_ = number_0_ / parallel_full;
+        }
+        
+        lower_half = uint32_t(number_less_than_pow10_8 % parallel_half);
+        upper_half = uint32_t(number_less_than_pow10_8 / parallel_half);
+        }
+        u64ch_ = dec_from_uint_backwards_parallel_less_than_pow10_8_pair_impl_(lower_half, upper_half);
+      
+      const uint64_t u64ch = u64ch_;
+      uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
+      str_int_buf[count_max - 1 - iteration_count_backwards] =
+          u64ch_ascii;
+      if (number_0_) continue;
+      const uint64_t num_high_0ch =
+          size_t((  std::endian::big == std::endian::native? std::countl_zero(u64ch)
+                                       : std::countr_zero(u64ch)) >>
+                    3);
+      const size_t num_0ch{num_high_0ch +
+                              size_t(iteration_count_backwards << 3)};
+      const size_t num_ch =
+          std::max<size_t>(sizeof(str_int_buf) - num_0ch, 1);
+      return {str_int_buf, num_ch, iteration_count_backwards,
+              std::min<size_t>(7, num_high_0ch)};
+    }
+
+    return {};
+  }
+  
+  static std::string  dec_from_uint_impl_semi_parallel(uint64_t number_0_) noexcept {
+    const auto [str_int_buf, num_ch, iteration_count_backwards, offset] =
+        dec_from_uint_impl_semi_parallel_impl_(number_0_);
+    std::string s{};
+        s.resize_and_overwrite(num_ch, [&str_int_buf,offset](char* buf, std::size_t num_ch_) noexcept
+    {
+  std::memcpy(buf, reinterpret_cast<const char *>(&str_int_buf) + offset,
+           num_ch_); 
+        return num_ch_;
+    });
+    return s;
+  }
+
+static void rand_base(benchmark::State& state) { 
+  uint64_t i{};
+  for (auto _ : state) { 
+
+    benchmark::DoNotOptimize(i++);//|(uint64_t(std::rand())<<32) );
+  }
+}
+// Register the function as a benchmark
+BENCHMARK(rand_base);
+
+static void mjz_to_string(benchmark::State& state) { 
+   
+  uint64_t i{};
+  for (auto _ : state) { 
+const  uint64_t val=i++;
+  std::string str=dec_from_uint_impl_semi_parallel(val);
+    benchmark::DoNotOptimize(str);
+  }
+}
+// Register the function as a benchmark
+BENCHMARK(mjz_to_string);
+
+static void std_to_string(benchmark::State& state) {  
+
+  uint64_t i{};
+  for (auto _ : state) {
+const  uint64_t val=i++;
+  std::string str=std::to_string(val);
+    benchmark::DoNotOptimize(str);
+  }
+}
+BENCHMARK(std_to_string);
+
+
+
+
+```
