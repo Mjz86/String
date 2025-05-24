@@ -83,11 +83,14 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
   constexpr uint64_t parallel_half = 10000;
   constexpr int64_t parallel_full = parallel_half * parallel_half;
   constexpr int64_t count_max = 3;
-  struct unitilied_t_{
-    std::array<int64_t, 3> str_int_buf_;
-    inline unitilied_t_() noexcept {}
-  } unitilied;
-  std::array<int64_t, 3>& str_int_buf{unitilied.str_int_buf_};
+// i dont like my warning as error on this on my ide
+#if 0< _MSC_VER 
+  std::array<int64_t, 3> str_int_buf{};
+#else
+  std::array<int64_t, 3> str_int_buf;
+#endif  // DEBUG
+
+  
   uint64_t number_0_ = number_;
   for (size_t i{}, iteration_count_backwards{count_max}; i < count_max; i++) {
     iteration_count_backwards--;
