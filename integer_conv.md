@@ -70,3 +70,13 @@ the test code is :
 https://quick-bench.com/q/yaWnnXrm7RJv_XSdcnu1H4VxCn8
 
 
+
+update:
+
+thanks to https://github.com/jeaiii , and their improvements in the "swar_itoa_8digits" function , the function is even more faster
+
+https://quick-bench.com/q/krS1p9HO8jWXFGr5MCVsJy2hf1A
+
+
+
+
