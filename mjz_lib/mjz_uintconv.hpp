@@ -115,7 +115,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
 
     const int64_t u64ch = u64ch_;
     int64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
-    str_int_buf[count_max - 1 - iteration_count_backwards] = u64ch_ascii;
+    str_int_buf[iteration_count_backwards] = u64ch_ascii;
     if (number_0_) continue;
     const size_t num_high_0ch =
         size_t((std::endian::big == std::endian::native
@@ -124,7 +124,8 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
                3);
     const size_t num_0ch{num_high_0ch + size_t(iteration_count_backwards << 3)};
     const size_t num_ch = std::max<size_t>(sizeof(str_int_buf) - num_0ch, 1);
-    return {str_int_buf, num_ch, std::min<size_t>(7, num_high_0ch)};
+    return {str_int_buf, num_ch,
+            std::min<size_t>(size_t(count_max * 8 - 1), num_0ch)};
   }
 
   return {};
