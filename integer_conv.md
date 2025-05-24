@@ -123,11 +123,12 @@ const int64_t awnser_8parallel_ascii =
 
 
 
-https://quick-bench.com/q/51NsIaID9nrOC5Dt-Q3V3AKAb2Q
-
 
 
 the tested code:
+https://quick-bench.com/q/lNS-MaCq9DrIUaS-OL5y3mjuKy8
+
+
 ```c++
 #include <bit>
 #include<array>
@@ -291,9 +292,7 @@ BENCHMARK(std_to_string);
 
 
 also for peridictable inputs:
-[
-https://quick-bench.com/q/Knz66ws2pCEDWWpUbWlgVlboMHU](https://quick-bench.com/q/v383VR07YY3wr6oo0_Vf0pSN5Pk)
-
+https://quick-bench.com/q/jZoAaiGPgY_dxYe4rWXRPbnxaaU
 
 
 ```c++
