@@ -110,9 +110,9 @@ const int64_t awnser_8parallel =
     return div_4parellel | (modulo_4parallel << 8);
   }
 }(lower_half, upper_half);
-const size_t num_0ch = size_t((std::endian::big == std::endian::native
-                                        ? std::countl_zero(awnser_8parallel)
-                   : std::countr_zero(awnser_8parallel)) >>
+const int num_0ch = ((std::endian::big == std::endian::native
+                                        ? std::countl_zero(uint64_t(awnser_8parallel))
+                   : std::countr_zero(uint64_t(awnser_8parallel))) >>
     3);
 const int64_t awnser_8parallel_ascii =
     awnser_8parallel | zero_8parallel_ascii;
