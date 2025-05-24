@@ -31,51 +31,91 @@ SOFTWARE.
 namespace mjz {
 namespace details_ns {
 
-inline uint64_t dec_from_uint_parallel_less_than_pow10_8_pair_impl_ncx_(
-    const uint32_t lower_half, const uint32_t upper_half) noexcept {
-  constexpr uint64_t inv25_16b = 2622;
+// credit to https://github.com/jeaiii for their help
+constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
+  constexpr uint64_t inv10p4_b40 = 109951163;
+  constexpr uint64_t inv10p2_b19 = 5243;
+  constexpr uint64_t inv10p1_b10 = 103;
+  constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00; 
+  constexpr uint64_t modolo10p4_40b_mask = 0x0000'00ff'ffff'ffff;
+  constexpr uint64_t mask_upper_16b = 0xfff8'0000'fff8'0000; 
+  // ceil(2^40/10000)
+  uint64_t holder = n * inv10p4_b40;
 
-  constexpr uint64_t inv5_8b = 52;
+  // Upper 4-digits in lower 32-bits.
+  uint64_t result_high = holder;
 
-  constexpr uint64_t mask_16b =
-      uint64_t(uint16_t(-1)) | (uint64_t(uint16_t(-1)) << 32);
-  constexpr uint64_t mask_8b =
-      uint64_t(uint8_t(-1)) | (uint64_t(uint8_t(-1)) << 16) |
-      (uint64_t(uint8_t(-1)) << 32) | (uint64_t(uint8_t(-1)) << 48);
+  // Lower 4-digits in upper 32-bits.
+  uint64_t result_low = 
+      // muliply the modolous by 10000 and shift by 40 simplified,
+      // then move to upper 32 bit
+      ((((holder & modolo10p4_40b_mask) * 625) >> 36) );
+
+  
+  uint64_t result{};
   if constexpr (std::endian::big == std::endian::native) {
-    const uint64_t div_2parellel_old =
-        ((uint64_t(upper_half) << 32) | uint64_t(lower_half));
-
-    const uint64_t div_2parallel =
-        ((((div_2parellel_old >> 2) & mask_16b) * inv25_16b) >> 16) & mask_16b;
-
-    const uint64_t modulo_2parallel = div_2parellel_old - 100 * div_2parallel;
-
-    const uint64_t div_4parellel_old = modulo_2parallel | (div_2parallel << 16);
-
-    const uint64_t div_4parellel =
-        ((((div_4parellel_old >> 1) & mask_8b) * inv5_8b) >> 8) & mask_8b;
-
-    const uint64_t modulo_4parallel = div_4parellel_old - 10 * div_4parellel;
-    return modulo_4parallel | (div_4parellel << 8);
+    result = (result_high >> 8) | result_low;      
   } else {
-    const uint64_t div_2parellel_old =
-        (uint64_t(upper_half) | (uint64_t(lower_half) << 32));
-
-    const uint64_t div_2parallel =
-        ((((div_2parellel_old >> 2) & mask_16b) * inv25_16b) >> 16) & mask_16b;
-
-    const uint64_t modulo_2parallel = div_2parellel_old - 100 * div_2parallel;
-
-    const uint64_t div_4parellel_old = div_2parallel | (modulo_2parallel << 16);
-
-    const uint64_t div_4parellel =
-        ((((div_4parellel_old >> 1) & mask_8b) * inv5_8b) >> 8) & mask_8b;
-
-    const uint64_t modulo_4parallel = div_4parellel_old - 10 * div_4parellel;
-    return div_4parellel | (modulo_4parallel << 8);
+     result = (result_high >> 40) | (result_low << 32);
   }
+
+
+  holder = result * inv10p2_b19; 
+  auto upper = holder & mask_upper_16b;
+
+  // Upper 2-digits in lower 16-bits.
+  result_high = upper;
+
+  // Lower 2-digits in upper 16-bits.
+  result_low = ((holder & ~mask_upper_16b) * 100) & mask_upper_16b;
+
+  
+  if constexpr (std::endian::big == std::endian::native) {
+    result = (result_low >> 19) | (result_high >> 3);
+  } else {
+    result = (result_high >> 19) | (result_low >> 3);
+  }
+
+
+
+  holder = result * inv10p1_b10; 
+  upper = holder & mask_upper_6b;
+
+  // Upper digit in lower 8-bits.
+  result_high = upper;
+
+  // Lower digit in upper 8-bits.
+  result_low = (((holder & ~mask_upper_6b) * 10) & mask_upper_6b);
+
+  if constexpr (std::endian::big == std::endian::native) {
+    result = (result_high >> 2) | (result_low >> 10);
+  } else {
+    result = (result_high >> 10) | (result_low >> 2);
+  }
+
+  return result;
+  /*
+  auto const number_of_leading_zeros = std::countr_zero(result) / 8;
+  auto length = 8 - number_of_leading_zeros;
+
+  // Cook up a 64-bit unsigned integer consisting of 8 copies of '0'.
+  constexpr std::uint64_t offset_vector = [] {
+    auto offset = std::uint64_t('0');
+    offset |= (offset << 8);
+    offset |= (offset << 16);
+    offset |= (offset << 32);
+    return offset;
+  }();
+
+  result |= offset_vector;
+
+  struct char_array_t {
+    char array[8];
+  } char_array = std::bit_cast<char_array_t>(result);
+
+ // return std::string(char_array.array + number_of_leading_zeros, length);*/
 }
+
 
 inline std::tuple<std::array<uint64_t, 3>, size_t, size_t>
 dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
@@ -106,12 +146,9 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
     } else {
       number_less_than_pow10_8 = uint32_t(number_0_ % parallel_full);
       number_0_ = number_0_ / parallel_full;
-    }
-    lower_half = number_less_than_pow10_8 % 10000;
-    upper_half = number_less_than_pow10_8 / 10000;
+    } 
 
-    u64ch_ = dec_from_uint_parallel_less_than_pow10_8_pair_impl_ncx_(
-        lower_half, upper_half);
+    u64ch_ = swar_itoa_8digits(number_less_than_pow10_8);
 
     const uint64_t u64ch = u64ch_;
     uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
@@ -137,13 +174,8 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
 [[maybe_unused]] inline size_t uint_to_dec_less1e9(
     char* buffer, size_t cap,
                                   uint32_t number_0_) noexcept {
-  const uint32_t lower_half = uint32_t(number_0_ % 10000);
-  const uint32_t upper_half = uint32_t(number_0_ / 10000);
   constexpr uint64_t zero_8parallel_ascii = 0x3030303030303030;
-  const uint64_t u64ch =
-      details_ns :: dec_from_uint_parallel_less_than_pow10_8_pair_impl_ncx_(
-          lower_half,
-                                                                    upper_half);
+  const uint64_t u64ch = details_ns ::swar_itoa_8digits(number_0_);
 
   uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
   const size_t num_0ch = size_t((std::endian::big == std::endian::native
