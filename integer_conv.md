@@ -52,6 +52,16 @@ so we can now write the code
 :
 (by making them signed (  it wont overflow because upper bit of ascii is 0, so its always positove ) , the compiler can pull more triks)
 
+(Note that 
+
+10x10<128
+100x100<2^16
+
+Ascii char is positive 
+
+So
+No overflow and safe)
+
 ```c++
 
 
