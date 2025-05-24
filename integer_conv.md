@@ -55,6 +55,7 @@ so we can now write the code
 (Note that 
 
 10x10<128
+and
 100x100<2^16
 
 Ascii char is positive 
