@@ -481,7 +481,7 @@ https://quick-bench.com/q/esuJAHxU3f35_fcDBY0dq5ILDD0
 
 
 
-```
+```c++
 
 #include <bit>
 #include<array> 
