@@ -67,5 +67,5 @@ the implementation is here:
 https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp
 
 the test code is :
-https://quick-bench.com/q/Yx9hWdSzrBr-2YYXEMOvyPCeB1U
+https://quick-bench.com/q/25YdMPTPO7dxadFe8KABM-_WpgI
 
