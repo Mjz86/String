@@ -81,3 +81,7 @@ https://quick-bench.com/q/krS1p9HO8jWXFGr5MCVsJy2hf1A
 
 
 
+
+update: 
+
+the 0.YY infact is not stored only in the first 7 bits
