@@ -53,10 +53,24 @@ because I dont want to burden you with my lib , i made it only depend on std
 
  https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp
 
+```c++
+constexpr uint64_t inv10p8_64b = 184467440738;
+constexpr uint64_t inv10p6_64b = 18446744073710;
+constexpr uint64_t inv10p4_64b = 1844674407370956;
+constexpr uint64_t inv10p2_64b = 184467440737095517;
 
 
 
-
+    constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
+  alignas(8) std::array<uint16_t, 4> ret{
+      std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
+  if (1000'000 < n) ret[0] = modolo_raidex_table[(n * inv10p8_64b) >> 57];
+  if (10000 < n) ret[1] = modolo_raidex_table[(n * inv10p6_64b) >> 57];
+  if (100 < n) ret[2] = modolo_raidex_table[(n * inv10p4_64b) >> 57];
+  ret[3] = modolo_raidex_table[(n * inv10p2_64b) >> 57];
+  return std::bit_cast<uint64_t>(ret);
+}
+```
 
 
 
