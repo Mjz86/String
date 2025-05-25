@@ -27,3 +27,15 @@ because I dont want to burden you with my lib , i made it only depend on std
  https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp
 
 
+
+note: 
+
+in the branchless (always 4 muls , 4 loads )version , we would encoundeter 00.YYYYYYYYYYYYYYYYYYYYYYYYYYY if the number was smaller than the largest chunck power , but its ok , because it generates leading zeroes and not garbage
+
+
+
+in the loadless branchless version (https://github.com/Mjz86/String/blob/main/integer_conv_old.md) we have more work to do (5muls).
+
+
+
+
