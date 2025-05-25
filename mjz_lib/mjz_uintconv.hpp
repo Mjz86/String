@@ -143,8 +143,8 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
     ret[3] = modolo_raidex_table[val];
     return std::bit_cast<uint64_t>(ret);
   }
-  val *= n < 10000 ? inv10p2xi_b57[1]
-                   : (n < 1000000 ? inv10p2xi_b57[2] : inv10p2xi_b57[3]);
+  const uint64_t temp = n < 1000000 ? inv10p2xi_b57[2] : inv10p2xi_b57[3];
+  val *= n < 10000 ? inv10p2xi_b57[1] : temp;
 
   if ( 1000000<=n) {
     ret[0] = modolo_raidex_table[(val) >> 57];
