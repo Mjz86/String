@@ -1,6 +1,6 @@
 # converting any 8 digit binary number to ascii with very few instructions ( min 1mul , max 4mul ):
 
-first , we multiply by 2^56/10^p ,(p being 2*floor(p/2))
+first , we multiply by 2^56/10^p ,(p being 2*floor(logi(x)/2))
 this makes sure that if the number was in decimal , it would only be bwtwwn 0 and 99
 
 
