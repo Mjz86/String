@@ -114,9 +114,9 @@ constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
 
 constexpr uint64_t ascii_offset =
     std::bit_cast<uint64_t>(std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
-constexpr static const std::array<uint16_t, 128> modolo_raidex_table = []() {
-  std::array<uint16_t, 128> ret{};
-  for (uint32_t i{}; i < 128; i++) {
+constexpr static const std::array<uint16_t, 100> modolo_raidex_table = []() {
+  std::array<uint16_t, 100> ret{};
+  for (uint32_t i{}; i < 100; i++) {
     const uint32_t var = i;
     uint64_t result = swar_itoa_8digits(var);
 
