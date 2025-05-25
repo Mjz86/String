@@ -29,6 +29,7 @@ SOFTWARE.
 #include <string>
 
 namespace mjz {
+inline namespace uint_to_ascci_ns0 {
 namespace details_ns {
 
 // credit to https://github.com/jeaiii for their help
@@ -36,9 +37,9 @@ constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
   constexpr uint64_t inv10p4_b40 = 109951163;
   constexpr uint64_t inv10p2_b19 = 5243;
   constexpr uint64_t inv10p1_b10 = 103;
-  constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00; 
+  constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00;
   constexpr uint64_t modolo10p4_40b_mask = 0x0000'00ff'ffff'ffff;
-  constexpr uint64_t mask_upper_16b = 0xfff8'0000'fff8'0000; 
+  constexpr uint64_t mask_upper_16b = 0xfff8'0000'fff8'0000;
   // ceil(2^40/10000)
   uint64_t holder = n * inv10p4_b40;
 
@@ -46,21 +47,19 @@ constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
   uint64_t result_high = holder;
 
   // Lower 4-digits in upper 32-bits.
-  uint64_t result_low = 
+  uint64_t result_low =
       // muliply the modolous by 10000 and shift by 40 simplified,
       // then move to upper 32 bit
-      ((((holder & modolo10p4_40b_mask) * 625) >> 36) );
+      ((((holder & modolo10p4_40b_mask) * 625) >> 36));
 
-  
   uint64_t result{};
   if constexpr (std::endian::big == std::endian::native) {
-    result = (result_high >> 8) | result_low;      
+    result = (result_high >> 8) | result_low;
   } else {
-     result = (result_high >> 40) | (result_low << 32);
+    result = (result_high >> 40) | (result_low << 32);
   }
 
-
-  holder = result * inv10p2_b19; 
+  holder = result * inv10p2_b19;
   auto upper = holder & mask_upper_16b;
 
   // Upper 2-digits in lower 16-bits.
@@ -69,16 +68,13 @@ constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
   // Lower 2-digits in upper 16-bits.
   result_low = ((holder & ~mask_upper_16b) * 100) & mask_upper_16b;
 
-  
   if constexpr (std::endian::big == std::endian::native) {
     result = (result_low >> 19) | (result_high >> 3);
   } else {
     result = (result_high >> 19) | (result_low >> 3);
   }
 
-
-
-  holder = result * inv10p1_b10; 
+  holder = result * inv10p1_b10;
   upper = holder & mask_upper_6b;
 
   // Upper digit in lower 8-bits.
@@ -117,6 +113,65 @@ constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
 }
 
 
+constexpr uint64_t ascii_offset =
+    std::bit_cast<uint64_t>(std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
+constexpr static const std::array<uint16_t, 128> modolo_raidex_table = []() {
+  std::array<uint16_t, 128> ret{};
+  for (uint32_t i{}; i < 128; i++) {
+    const uint32_t var = i;
+    uint64_t result = swar_itoa_8digits(var);
+
+    result |= ascii_offset;
+
+    struct char_array_t {
+      char array[6];
+      uint16_t table_entry;
+    } char_array = std::bit_cast<char_array_t>(result);
+    ret[i] = char_array.table_entry;
+  }
+  return ret;
+}();
+
+constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
+  alignas(8) std::array<uint16_t, 4> ret{
+      std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
+  constexpr uint64_t inv10p2xi_b57[4]{1ull << 57, 1441151880758559,
+                                      14411518807586, 144115188076};
+  const int mul_n = int(1000000 < n) + int(10000 < n) + int(100 < n);
+  constexpr uint64_t mask = uint64_t(-1)>>7;
+  uint64_t val{n};
+  if (!mul_n) {
+    ret[3] = modolo_raidex_table[val];
+    return std::bit_cast<uint64_t>(ret);
+  }
+  val *= inv10p2xi_b57[mul_n];
+
+  if (mul_n == 3) {
+    ret[0] = modolo_raidex_table[(val) >> 57];
+    val &= mask;
+    val *= 100;
+  }
+
+  if (2 <= mul_n) {
+    ret[1] = modolo_raidex_table[(val) >> 57];
+    val &= mask;
+    val *= 100;
+  }
+  if (mul_n) {
+    ret[2] = modolo_raidex_table[(val) >> 57];
+    val &= mask;
+    val *= 100;
+  }
+  ret[3] = modolo_raidex_table[(val) >> 57];
+  return std::bit_cast<uint64_t>(ret);
+}
+
+[[maybe_unused]] constexpr static uint64_t lookup_iota_8digits(
+    const uint64_t n) noexcept {
+  return lookup_iota_8digits_ascii(n) & ~ascii_offset;
+}
+
+
 inline std::tuple<std::array<uint64_t, 3>, size_t, size_t>
 dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
   constexpr uint64_t zero_8parallel_ascii = 0x3030303030303030;
@@ -124,13 +179,12 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
   constexpr uint64_t parallel_full = parallel_half * parallel_half;
   constexpr uint64_t count_max = 3;
 // i dont like my warning as error on this on my ide
-#if 0< _MSC_VER 
+#if 0 < _MSC_VER 
   std::array<uint64_t, 3> str_int_buf{};
 #else
   std::array<uint64_t, 3> str_int_buf;
 #endif  // DEBUG
 
-  
   uint64_t number_0_ = number_;
   for (size_t i{}, iteration_count_backwards{count_max}; i < count_max; i++) {
     iteration_count_backwards--;
@@ -144,9 +198,9 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
     } else {
       number_less_than_pow10_8 = uint32_t(number_0_ % parallel_full);
       number_0_ = number_0_ / parallel_full;
-    } 
+    }
 
-    u64ch_ = swar_itoa_8digits(number_less_than_pow10_8);
+    u64ch_ = lookup_iota_8digits(number_less_than_pow10_8);
 
     const uint64_t u64ch = u64ch_;
     uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
@@ -165,21 +219,21 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
 
   return {};
 }
-};
 
 
+
+};  // namespace details_ns
 
 [[maybe_unused]] inline size_t uint_to_dec_less1e9(
-    char* buffer, size_t cap,
-                                  uint32_t number_0_) noexcept {
+    char* buffer, size_t cap, uint32_t number_0_) noexcept {
   constexpr uint64_t zero_8parallel_ascii = 0x3030303030303030;
-  const uint64_t u64ch = details_ns ::swar_itoa_8digits(number_0_);
+  const uint64_t u64ch = details_ns ::lookup_iota_8digits(number_0_);
 
   uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
   const size_t num_0ch = size_t((std::endian::big == std::endian::native
-                                      ? std::countl_zero(uint64_t(u64ch))
-                                      : std::countr_zero(uint64_t(u64ch))) >>
-                                 3);
+                                     ? std::countl_zero(uint64_t(u64ch))
+                                     : std::countr_zero(uint64_t(u64ch))) >>
+                                3);
   const size_t num_ch = std::max<size_t>(sizeof(u64ch_ascii) - num_0ch, 1);
   if (cap < num_ch) return 0;
   std::memcpy(buffer, reinterpret_cast<const char*>(&u64ch_ascii) + 8 - num_ch,
@@ -187,10 +241,8 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
   return num_ch;
 }
 
-
-
 [[maybe_unused]] inline size_t uint_to_dec(char* buffer, size_t cap,
-                                 uint64_t number_0_) noexcept {
+                                           uint64_t number_0_) noexcept {
   const auto [str_int_buf, num_ch, offset] =
       details_ns ::dec_from_uint_impl_semi_parallel_impl_ncx_(number_0_);
   if (cap < num_ch) return 0;
@@ -198,7 +250,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
               num_ch);
   return num_ch;
 }
-
+}  // namespace uint_to_ascci_ns0
 };  // namespace mjz
 
 #endif  // MJZ_UINTCONV_LIB_HPP_FILE_
