@@ -187,6 +187,60 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
   ret[3] = modolo_raidex_table[(val) >> 57];
   return std::bit_cast<uint64_t>(ret);
 }
+[[maybe_unused]] constexpr static std::array<uint16_t, 5>
+lookup_iota_10digits_ascii_noif(const uint64_t n) noexcept {
+  alignas(8) std::array<uint16_t, 5> ret{std::bit_cast<std::array<uint16_t, 5>>(
+      std::array{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0'})};
+  constexpr uint64_t mask = uint64_t(-1) >> 7;
+  constexpr uint64_t inv10p8_57b = 14411518801;
+  uint64_t val{n};
+  val *= inv10p8_57b;
+  ret[0] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[1] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[2] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[3] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[4] = modolo_raidex_table[(val) >> 57];
+  return std::bit_cast<std::array<uint16_t, 5>>(ret);
+}
+
+[[maybe_unused]] constexpr static uint64_t hybrid_iota_8digits_ascii_noif_noload(
+    const uint64_t n) noexcept {
+  alignas(8) std::array<uint16_t, 4> ret{
+      std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
+  constexpr uint64_t mask = uint64_t(-1) >> 7;
+  constexpr uint64_t inv10p6_57b = 144115188076;
+  constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00;
+  constexpr uint64_t inv10p1_b10 = 103;
+  uint64_t val{n};
+  val *= inv10p6_57b; 
+  ret[0] = val >> 57;  
+  val &= mask;
+  val *= 100;
+  ret[1] = val >> 57;
+  val &= mask;
+  val *= 100;
+  ret[2] = val >> 57;
+  val &= mask;
+  val *= 100;
+  ret[3] = val >> 57;
+  uint64_t paralell4_old= std::bit_cast<uint64_t>(ret);
+  uint64_t both= paralell4_old* inv10p1_b10;
+  uint64_t high = both & mask_upper_6b;
+  uint64_t low = (((both & ~mask_upper_6b) * 10) & mask_upper_6b);
+  if constexpr (std::endian::big == std::endian::native) {
+    return (high >> 2) | (low >> 10) | ascii_offset;
+  } else {
+    return (high >> 10) | (low >> 2) | ascii_offset;
+  }
+}
 
 inline std::tuple<std::array<uint64_t, 3>, size_t, size_t>
 dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
