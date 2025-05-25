@@ -1,4 +1,4 @@
-# converting any 8 digit number with very few instructions ( min 1mul , max 4mul ):
+# converting any 8 digit binary number to ascii with very few instructions ( min 1mul , max 4mul ):
 
 based on a very insightful explanation of integer multiplication from https://github.com/jeaiii ,
 i found a very fast way to convert large integers ,
