@@ -38,4 +38,12 @@ in the loadless branchless version (https://github.com/Mjz86/String/blob/main/in
 
 
 
+heres the benchmarks:
+
+https://quick-bench.com/q/UMPC8YvB36ysJ8jPKySekhbpGRY
+
+
+it seems that the generalization makes it less performannt , 
+and it seems that they are very close to the branchless-loadlesss(old version)
+
 
