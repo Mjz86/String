@@ -112,7 +112,6 @@ constexpr static uint64_t swar_itoa_8digits(std::uint64_t n) noexcept {
  // return std::string(char_array.array + number_of_leading_zeros, length);*/
 }
 
-
 constexpr uint64_t ascii_offset =
     std::bit_cast<uint64_t>(std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
 constexpr static const std::array<uint16_t, 128> modolo_raidex_table = []() {
@@ -137,26 +136,26 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
       std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
   constexpr uint64_t inv10p2xi_b57[4]{1ull << 57, 1441151880758559,
                                       14411518807586, 144115188076};
-  constexpr uint64_t mask = uint64_t(-1)>>7;
+  constexpr uint64_t mask = uint64_t(-1) >> 7;
   uint64_t val{n};
-  if (n<100) {
+  if (n < 100) {
     ret[3] = modolo_raidex_table[val];
     return std::bit_cast<uint64_t>(ret);
   }
   const uint64_t temp = n < 1000000 ? inv10p2xi_b57[2] : inv10p2xi_b57[3];
   val *= n < 10000 ? inv10p2xi_b57[1] : temp;
 
-  if ( 1000000<=n) {
+  if (1000000 <= n) {
     ret[0] = modolo_raidex_table[(val) >> 57];
     val &= mask;
     val *= 100;
   }
-  if ( 10000<=n) {
+  if (10000 <= n) {
     ret[1] = modolo_raidex_table[(val) >> 57];
     val &= mask;
     val *= 100;
   }
-  if (100<=n) {
+  if (100 <= n) {
     ret[2] = modolo_raidex_table[(val) >> 57];
     val &= mask;
     val *= 100;
@@ -170,6 +169,27 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
   return lookup_iota_8digits_ascii(n) & ~ascii_offset;
 }
 
+
+[[maybe_unused]] constexpr static uint64_t lookup_iota_8digits_ascii_noif(
+    const uint64_t n) noexcept {
+  alignas(8) std::array<uint16_t, 4> ret{
+      std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
+  constexpr uint64_t mask = uint64_t(-1) >> 7;
+  constexpr uint64_t inv10p6_57b = 144115188076;
+  uint64_t val{n};
+  val *= inv10p6_57b;
+  ret[0] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[1] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[2] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
+  ret[3] = modolo_raidex_table[(val) >> 57];
+  return std::bit_cast<uint64_t>(ret);
+}
 
 inline std::tuple<std::array<uint64_t, 3>, size_t, size_t>
 dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
@@ -218,8 +238,6 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
 
   return {};
 }
-
-
 
 };  // namespace details_ns
 
