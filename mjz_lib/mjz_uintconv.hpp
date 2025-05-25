@@ -195,7 +195,7 @@ constexpr uint64_t inv10p2_64b = 184467440737095517;
 
 [[maybe_unused]] constexpr static uint64_t lookup_iota_8digits_paralell(
     const uint64_t n) noexcept {
-  return lookup_iota_8digits_paralell(n) & ~ascii_offset;
+  return lookup_iota_8digits_paralell_ascii(n) & ~ascii_offset;
 }
 constexpr static uint64_t lookup_iota_8digits(const uint64_t n) noexcept {
   return lookup_iota_8digits_ascii(n) & ~ascii_offset;
