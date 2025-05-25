@@ -155,11 +155,9 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
     val &= mask;
     val *= 100;
   }
-  if (100 <= n) {
-    ret[2] = modolo_raidex_table[(val) >> 57];
-    val &= mask;
-    val *= 100;
-  }
+  ret[2] = modolo_raidex_table[(val) >> 57];
+  val &= mask;
+  val *= 100;
   ret[3] = modolo_raidex_table[(val) >> 57];
   return std::bit_cast<uint64_t>(ret);
 }
@@ -168,7 +166,6 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
     const uint64_t n) noexcept {
   return lookup_iota_8digits_ascii(n) & ~ascii_offset;
 }
-
 
 [[maybe_unused]] constexpr static uint64_t lookup_iota_8digits_ascii_noif(
     const uint64_t n) noexcept {
