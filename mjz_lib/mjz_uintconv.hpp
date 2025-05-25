@@ -232,7 +232,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
     u64ch_ = lookup_iota_8digits(number_less_than_pow10_8);
 
     const uint64_t u64ch = u64ch_;
-    uint64_t u64ch_ascii = u64ch ^ zero_8parallel_ascii;
+    uint64_t u64ch_ascii = u64ch| zero_8parallel_ascii;
     str_int_buf[iteration_count_backwards] = u64ch_ascii;
     if (number_0_) continue;
     const size_t num_high_0ch =
@@ -255,7 +255,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
   constexpr uint64_t zero_8parallel_ascii = 0x3030303030303030;
   const uint64_t u64ch = details_ns ::lookup_iota_8digits(number_0_);
 
-  uint64_t u64ch_ascii = u64ch ^ zero_8parallel_ascii;
+  uint64_t u64ch_ascii = u64ch| zero_8parallel_ascii;
   const size_t num_0ch = size_t((std::endian::big == std::endian::native
                                      ? std::countl_zero(uint64_t(u64ch))
                                      : std::countr_zero(uint64_t(u64ch))) >>
