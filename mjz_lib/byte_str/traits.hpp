@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
+#include "../mjz_uintconv.hpp"
 #include "../maths.hpp"
 #include "base.hpp"
 #ifndef MJZ_USE_cpp_lib_to_chars_int
@@ -1505,6 +1505,9 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         }
         return powers_of_5;
       }();
+
+
+
   MJZ_CX_FN bool static double_is_IEEE754_binary64_assert() noexcept {
     constexpr std::numeric_limits<double> dbnl{};
     constexpr const double IEE754_array_[6]{(1.7976931348623157E308),
@@ -1613,6 +1616,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       return 0;
     }  // based on desmos , log10_floor_prox is either floor(log10(x)) or
        // floor(log10(x))+1 or floor(log10(x))-1
+
+
     /*
     g\left(x\right)=x-1,
     f\left(x\right)=\operatorname{floor}\left(\frac{\log\left(x\right)}{\log\left(2\right)}\right),
@@ -2045,6 +2050,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       return div_4parellel | (modulo_4parallel << 8);
     }
   }
+   
+   
   MJZ_CX_FN static uintlen_t
   dec_from_uint_backwards_parallel_less_than_pow10_8_impl_(
       char *end_ptr /*at leat 8 bytes in length in back*/,
@@ -2052,11 +2059,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     asserts(asserts.assume_rn, number_less_than_pow10_8 < 100000000);
 
     constexpr uint64_t zero_8parallel_ascii = cpy_bitcast<uint64_t>("00000000");
-    const uint32_t upper_half{number_less_than_pow10_8 / 10000};
-    const uint32_t lower_half{number_less_than_pow10_8 % 10000};
     const uint64_t awnser_8parallel =
-        dec_from_uint_backwards_parallel_less_than_pow10_8_pair_impl_(
-            lower_half, upper_half);
+        details_ns::lookup_iota_8digits(number_less_than_pow10_8);
     const uint8_t num_0ch =
         uint8_t(std::min(std::countl_zero(awnser_8parallel) >> 3, 7));
     const uint64_t awnser_8parallel_ascii =
@@ -2070,81 +2074,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     memcpy(end_ptr - 8, awnser_8ch, 8);
     return count_len;
   }
-
-  MJZ_CX_FN static uintN_t<version_v, 128>
-  dec_from_uint_backwards_parallel_less_than_pow10_16_impl_both_(
-      const uint32_t upper_half, const uint32_t lower_half) noexcept {
-    asserts(asserts.assume_rn,
-            upper_half < 100000000 && lower_half < 100000000);
-    constexpr uintN_t<version_v, 128> inv5p4_32b = 6871948;
-    constexpr uintN_t<version_v, 128> val10p4_32b = 100000;
-    constexpr uintN_t<version_v, 128> mask_32b{uint32_t(-1), uint32_t(-1)};
-
-    /*
-    D\left(x\right)=\operatorname{floor}\left(\frac{\operatorname{ceil}\left(\frac{2^{32}}{5^{4}}\right)\operatorname{floor}\left(x\right)}{2^{32}}\right)
-
-
-    f\left(x\right)=D\left(\operatorname{floor}\left(\frac{x}{2^{4}}\right)\right)-\operatorname{floor}\left(\frac{x}{10^{4}}\right)
-
-    \int_{0}^{10^{8}}f\left(x\right)dx=0
-    */
-
-    const uintN_t<version_v, 128> parrellel2_old{lower_half, upper_half};
-
-    const uintN_t<version_v, 128> parrellel2_div =
-        ((((parrellel2_old >> 4) & mask_32b) * inv5p4_32b) >> 32) & mask_32b;
-
-    const uintN_t<version_v, 128> parrellel2_modolo =
-        parrellel2_old - parrellel2_div * val10p4_32b;
-
-    const uintN_t<version_v, 128> parrellel4 =
-        (parrellel2_div << 32) | parrellel2_modolo;
-
-    return uintN_t<version_v, 128>{
-        dec_from_uint_backwards_parallel_less_than_pow10_8_pair_impl_(
-            uint32_t(parrellel4.nth_word(0) >> 32),
-            uint32_t(parrellel4.nth_word(0) & uint32_t(-1))),
-        dec_from_uint_backwards_parallel_less_than_pow10_8_pair_impl_(
-            uint32_t(parrellel4.nth_word(1) >> 32),
-            uint32_t(parrellel4.nth_word(1) & uint32_t(-1)))};
-  }
-
-  MJZ_CX_FN static uintN_t<version_v, 256>
-  dec_from_uint_backwards_parallel_less_than_pow10_32_impl_both_(
-      const uint64_t upper_half, const uint64_t lower_half) noexcept {
-    asserts(asserts.assume_rn,
-            upper_half < 10000000000000000 && lower_half < 10000000000000000);
-    constexpr uintN_t<version_v, 256> inv5p8_64b = 47223664828697;
-    constexpr uintN_t<version_v, 256> val10p8_64b = 100000000;
-    constexpr uintN_t<version_v, 256> mask_64b{uint64_t(-1), 0, uint64_t(-1),
-                                               0};
-
-    /*
-    D\left(x\right)=\operatorname{floor}\left(\frac{\operatorname{ceil}\left(\frac{2^{64}}{5^{8}}\right)\operatorname{floor}\left(x\right)}{2^{64}}\right)
-
-    f\left(x\right)=D\left(\operatorname{floor}\left(\frac{x}{2^{8}}\right)\right)-\operatorname{floor}\left(\frac{x}{10^{8}}\right)
-
-    \int_{0}^{10^{16}}f\left(x\right)dx=0
-    */
-
-    const uintN_t<version_v, 256> parrellel2_old{lower_half, 0, upper_half, 0};
-
-    const uintN_t<version_v, 256> parrellel2_div =
-        ((((parrellel2_old >> 8) & mask_64b) * inv5p8_64b) >> 64) & mask_64b;
-
-    const uintN_t<version_v, 256> parrellel2_modolo =
-        parrellel2_old - parrellel2_div * val10p8_64b;
-
-    const uintN_t<version_v, 256> parrellel4 =
-        (parrellel2_div << 64) | parrellel2_modolo;
-
-    return uintN_t<version_v, 256>{
-        dec_from_uint_backwards_parallel_less_than_pow10_16_impl_both_(
-            uint32_t(parrellel4.nth_word(1)), uint32_t(parrellel4.nth_word(0))),
-        dec_from_uint_backwards_parallel_less_than_pow10_16_impl_both_(
-            uint32_t(parrellel4.nth_word(3)),
-            uint32_t(parrellel4.nth_word(2)))};
-  }
+   
+   
 
   MJZ_CX_FN static uintlen_t dec_from_uint_impl_parallel_impl_(
       char *out_buf, uintlen_t out_len, uint64_t number_0_,
@@ -2171,7 +2102,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   MJZ_CX_AL_FN static uint64_t
   dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_(
       const uint32_t number_0_) noexcept {
-    const int16_t div_res = divition10_table[number_0_];
+    const uint16_t div_res = uint16_t(divition10_table[size_t(number_0_)]);
     const uint64_t most_significant_digit = uint8_t(div_res & 15);
     const uint64_t middle_digit = uint8_t((div_res >> 4) & 15);
     const uint64_t least_significant_digit = uint8_t((div_res >> 8) & 15);
@@ -2205,9 +2136,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           sizeof(T) == 1 ? 1 : (sizeof(T) == 2 ? 1 : (sizeof(T) == 4 ? 2 : 3));
   template <std::unsigned_integral T>
   MJZ_CX_AL_FN static std::tuple<
-      uintN_t<version_v,
-              dec_from_uint_impl_semi_parallel_impl_count_max<T> * 64>,
-      uintlen_t, uintlen_t, uintlen_t>
+      std::array<uint64_t, dec_from_uint_impl_semi_parallel_impl_count_max<T>>,
+      uintlen_t, uintlen_t>
   dec_from_uint_impl_semi_parallel_impl_(const T number_) noexcept {
     constexpr uint64_t zero_8parallel_ascii = cpy_bitcast<uint64_t>("00000000");
     constexpr uint64_t lookup_full = 1000;
@@ -2215,10 +2145,10 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     constexpr uint64_t parallel_full = parallel_half * parallel_half;
     constexpr uint64_t count_max =
         dec_from_uint_impl_semi_parallel_impl_count_max<T>;
-    uintlen_t iteration_count_backwards{count_max};
-    uintN_t<version_v, count_max * 64> str_int_buf{};
+    intlen_t iteration_count_backwards{count_max};
+    std::array<uint64_t, count_max > str_int_buf{};
     uint64_t number_0_ = number_;
-    do {
+    for (size_t i{}; i < count_max;i++) {
       asserts(asserts.assume_rn, !!iteration_count_backwards);
       iteration_count_backwards--;
       uint32_t upper_half{};
@@ -2250,28 +2180,25 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           number_less_than_pow10_8 = uint32_t(number_0_ % parallel_full);
           number_0_ = number_0_ / parallel_full;
         }
-        lower_half = uint32_t(number_less_than_pow10_8 % parallel_half);
-        upper_half = uint32_t(number_less_than_pow10_8 / parallel_half);
-
-        u64ch_ = dec_from_uint_backwards_parallel_less_than_pow10_8_pair_impl_<
-            version_v.is_BE()>(lower_half, upper_half);
+        u64ch_ = details_ns::lookup_iota_8digits(
+            number_less_than_pow10_8);
       }
       const uint64_t u64ch = u64ch_;
       uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
-      str_int_buf.words[count_max - 1 - iteration_count_backwards] =
+      str_int_buf[size_t  ( iteration_count_backwards)] =
           u64ch_ascii;
       if (number_0_) continue;
       const uint64_t num_high_0ch =
-          uintlen_t((version_v.is_BE() ? std::countl_zero(u64ch)
-                                       : std::countr_zero(u64ch)) >>
+          uint64_t((version_v.is_BE() ? std::countl_zero(uint64_t(u64ch))
+                                       : std::countr_zero(uint64_t(u64ch))) >>
                     3);
       const uintlen_t num_0ch{num_high_0ch +
-                              uintlen_t(iteration_count_backwards << 3)};
+                              (iteration_count_backwards << 3)};
       const uintlen_t num_ch =
-          std::max<uintlen_t>(sizeof(str_int_buf) - num_0ch, 1);
-      return {str_int_buf, num_ch, iteration_count_backwards,
-              std::min<uintlen_t>(7, num_high_0ch)};
-    } while (true);
+          std::max<uintlen_t>(uintlen_t(sizeof(str_int_buf)) - num_0ch, 1);
+      return {str_int_buf, uintlen_t(num_ch),
+              uintlen_t(std::min<uintlen_t>(count_max * 8 - 1, num_0ch))};
+    };
 
     return {};
   }
@@ -2279,7 +2206,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   template <std::unsigned_integral T>
   MJZ_CX_AL_FN static uintlen_t dec_from_uint_impl_semi_parallel(
       char *outbuf, uintlen_t outlen, T number_0_) noexcept {
-    const auto [str_int_buf, num_ch, iteration_count_backwards, offset] =
+    const auto [str_int_buf, num_ch, offset] =
         dec_from_uint_impl_semi_parallel_impl_(number_0_);
     if (outlen < num_ch) return 0;
     MJZ_IF_CONSTEVAL {
@@ -2429,3 +2356,11 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
 }  // namespace mjz::bstr_ns
 #endif  // MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
+
+
+
+/*
+D\left(x\right)=\operatorname{floor}\left(\frac{\left(\operatorname{ceil}\left(\frac{2^{32}}{5^{4}}\right)\right)\operatorname{floor}\left(x\right)}{2^{32}}\right)
+f\left(x\right)=D\left(\operatorname{floor}\left(\frac{x}{2^{4}}\right)\right)-\operatorname{floor}\left(\frac{x}{10^{4}}\right)
+\int_{0}^{10^{8}}f\left(x\right)dx=0
+*/

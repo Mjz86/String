@@ -146,7 +146,7 @@ MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::find_name_index(
   typename base_context_t<version_v>::name_t name_v{name, name_str};
   main_ctx().name_ptr = &name_v;
   for (uintlen_t i{}; i < main_ctx().number_of_args; i++) {
-    if (!main_ctx().parse_and_format_call_at(i)) return nullopt;
+    if (!main_ctx().parse_and_format_call_at(i, true)) return nullopt;
     if (&name_v != main_ctx().name_ptr) return i;
   }
   if (parse_only()) {
@@ -209,6 +209,17 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
     return parse_ctx().unchecked_advance_amount_(1) &&
            append_text(sview_t{"{"});
   }
+  if (parse_only()) {
+    if (this->cx_parse_storage_of_args) {
+      const uintlen_t arg_i{uintlen_t(-1) - base_ctx().err_index};
+      cx_formatter_storage_base_ref_t<version_v> &fs_ref =
+          const_cast<cx_formatter_storage_base_ref_t<version_v> &>(
+              base_ctx().cx_parse_storage_of_args[arg_i]);
+      fs_ref.formatting_str_index_begin =
+          base_ctx().remaining_format_string_index-1;
+    }
+  }
+
   if (!charechter || *charechter == '}') {
     // string was "{}", and we have a replacement field
     auto id = parse_ctx().next_arg_id();
@@ -271,6 +282,29 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
           "output buffer");
       return false;
     }
+
+  if (base_ctx().number_of_cx_parse_storage_of_args) {
+    const uintlen_t feilds = base_ctx().number_of_cx_parse_storage_of_args;
+    const cx_formatter_storage_base_ref_t<version_v> *feild_arr =
+        base_ctx().cx_parse_storage_of_args;
+    for (uintlen_t i{}; i < feilds; i++) {
+      const cx_formatter_storage_base_ref_t<version_v> val = feild_arr[i];
+      std::ignore = output.append(
+          main_ctx()
+              .format_string(main_ctx().remaining_format_string_index,
+                             val.formatting_str_index_begin)
+              .unsafe_handle());
+      main_ctx().remaining_format_string_index = val.formatting_str_index_end;
+      if (!base_ctx().cache_format_call_at(val.index_of_element,
+                                           val.formatter_ptr)) {
+        return false;
+      }
+    }
+    std::ignore = output.append(parse_ctx().view().unsafe_handle());
+    main_ctx().remaining_format_string_index =
+        base_ctx().format_string.length();
+    return !!output;
+  }
   for (auto charechter = parse_ctx().front(); output && charechter;
        charechter = parse_ctx().front()) {
     view_t remains = parse_ctx().view();
@@ -305,9 +339,9 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
     if (!parse_ctx().unchecked_advance_amount_(1)) return false;
     output.push_back('}', parse_ctx().encoding());
   }
+
   return output && !base_ctx().err_content;
 }
- 
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
@@ -468,7 +502,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
       return nullopt;
     }
   return std::pair<uintlen_t, uintlen_t>{*beg_loc, *end_loc - *beg_loc};
-} 
+}
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::append_text(view_t text) noexcept {
@@ -481,9 +515,19 @@ parse_and_format_data_t<version_v>::append_text(view_t text) noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
     uintlen_t id) noexcept {
-  if (!parse_ctx().main_ctx().parse_and_format_call_at(id)) return false;
+  if (!parse_ctx().main_ctx().parse_and_format_call_at(id, false)) return false;
   if (auto c = parse_ctx().front(); !c || *c == '}') MJZ_IS_LIKELY {
-      return !c || parse_ctx().unchecked_advance_amount_(1);
+      if (!(!c || parse_ctx().unchecked_advance_amount_(1))) return false;
+      if (!base_ctx().parse_only()) return true;
+      if (!base_ctx().cx_parse_storage_of_args) return true;
+      cx_formatter_storage_base_ref_t<version_v> &fs_ref =
+          const_cast<cx_formatter_storage_base_ref_t<version_v> &>(
+              base_ctx().cx_parse_storage_of_args[(uintlen_t(-2) -
+                                                   base_ctx().err_index)
+      ]);
+      fs_ref.formatting_str_index_end =
+          base_ctx().remaining_format_string_index;
+      return true;
     }
   format_ctx().as_error(
       "[Error]call_argument_formatter(): expected '}' at the end of "
@@ -491,8 +535,7 @@ MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
   return false;
 }
 template <version_t version_v>
-struct 
-    formatting_object_t : parse_and_format_data_t<version_v> {
+struct formatting_object_t : parse_and_format_data_t<version_v> {
   MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
       const noexcept {
     return *this;
@@ -669,9 +712,10 @@ struct cx_parser_t : public formatting_object_t<version_v> {
     requires(sizeof...(Is) == sizeof...(Ts))
   MJZ_CX_FN cx_parser_t(
 
-                        view_t fmt_str, alloc_ref_t alloc,
-                        std::span<char> cache_ref, uintlen_t cache_ref_align,
-                        std::index_sequence<Is...>) noexcept
+      view_t fmt_str, alloc_ref_t alloc, std::span<char> cache_ref,
+      uintlen_t cache_ref_align, std::index_sequence<Is...>,
+      cx_formatter_storage_base_ref_t<version_v> *cx_parse_storage_ptr =
+          nullptr) noexcept
       : formatting_object_t<version_v>{std::move(alloc), cache_ref,
                                        cache_ref_align} {
     if constexpr (sizeof...(Ts)) {
@@ -679,10 +723,12 @@ struct cx_parser_t : public formatting_object_t<version_v> {
           basic_format_args_parse_tag{}, alias_t<void (*)(Ts &&...)>{}};
       base_ctx().number_of_args = buf.count_args;
       base_ctx().parse_and_format_fn_of_args = buf.parse_and_format_fn_of_args;
+
       /* cx_formatter_storage_ref_t<version_v>
           cx_parse_storage_of_args_buf[sizeof...(Ts)]{
               cx_formatter_storage_ref_t<version_v>(std::get<Is>(cx_store))...};
-      base_ctx().cx_parse_storage_of_args = cx_parse_storage_of_args_buf;*/
+         cx_parse_storage_of_args_buf;*/
+      base_ctx().cx_parse_storage_of_args = cx_parse_storage_ptr;
       base_ctx().err_index = uintlen_t(-1);
       base_ctx().format_string = fmt_str;
 
@@ -712,38 +758,83 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
       requires() {
         { view_t(L_v()()) } noexcept;
       }, "see if you used \"...\"_fmt or not (you should) ");
+  static_assert(0 <= format_optimization_lvl_v);
   //
-  //cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
-  auto run_function_cx_f =
-      []() noexcept -> std::pair<uintlen_t,
-                                 std::optional<std::pair<uintlen_t, view_t>>> {
+  // cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
+  auto run_function_cx_f = []() noexcept
+      -> std::pair<uintlen_t, std::optional<std::pair<uintlen_t, view_t>>> {
     constexpr auto align_v_ =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
     alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
-    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{ view_t(L_v()()), alloc_ref_t{},
-        buffer_,  align_v_,        std::make_index_sequence<sizeof...(Ts)>{}};
-    if (checker.successful) return {1 - checker.base_ctx().err_index, nullopt};
-    return {0,
-            std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
-                                         checker.base_ctx().err_content}};
+    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+        view_t(L_v()()), alloc_ref_t{}, buffer_, align_v_,
+        std::make_index_sequence<sizeof...(Ts)>{}};
+    if (checker.successful)
+      return {uintlen_t(-1) - checker.base_ctx().err_index, nullopt};
+    return {0, std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
+                                            checker.base_ctx().err_content}};
   };
   using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;
   std::ignore = run_function_cx_ft{}().first;
 
-  if constexpr(format_optimization_lvl_v){
-    /* constexpr const uintlen_t num_feilds = run_function_cx_ft{}().first;
-  using type_info_array_t=std::array<uintlen_t,num_feilds> ;
-    auto cx_table_f = []() noexcept {
-      return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
-        constexpr const std::array<cx_formatter_storage_ref_t<version_v>,
-                                   sizeof...(Ts)>
-            ret{cx_formatter_storage_ref_t<version_v>(
-                &std::get<Is>(run_function_cx_ft{}().first))...};
-        return ret;
-      }(std::make_index_sequence<sizeof...(Ts)>{});
+  if constexpr (format_optimization_lvl_v && !run_function_cx_ft{}().second &&
+                run_function_cx_ft{}().first && (sizeof...(Ts))) {
+    using type_info_array_t =
+        std::array<cx_formatter_storage_base_ref_t<version_v>,
+                   run_function_cx_ft{}().first>;
+    auto generate_table_f = []() noexcept {
+      type_info_array_t ret{};
+      constexpr auto align_v_ =
+          allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
+      alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+      MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+          view_t(L_v()()),
+          alloc_ref_t{},
+          buffer_,
+          align_v_,
+          std::make_index_sequence<sizeof...(Ts)>{},
+          ret.data()};
+      return ret;
     };
-    using cx_table_ft = static_data_t<decltype(cx_table_f)>;
-    base_ctx().cx_parse_storage_of_args = cx_table_ft{}().data();*/
+    using tuple_types = std::tuple<
+        cx_formatter_storage_t<version_v, formatter_type_t<version_v, Ts>>...>;
+    using generate_table_ft = static_data_t<decltype(generate_table_f)>;
+    auto generate_format_table_f = []() noexcept {
+      return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
+        std::tuple<std::tuple_element_t<
+            generate_table_ft{}()[Is].index_of_element, tuple_types>...>
+            formatters{};
+        type_info_array_t ret{cx_formatter_storage_base_ref_t<version_v>{
+            .formatter_ptr{&std::get<Is>(formatters)}}...};
+        constexpr auto align_v_ =
+            allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
+        alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+        MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+            view_t(L_v()()),
+            alloc_ref_t{},
+            buffer_,
+            align_v_,
+            std::make_index_sequence<sizeof...(Ts)>{},
+            ret.data()};
+
+        return formatters;
+      }(std::make_index_sequence<run_function_cx_ft{}().first>{});
+    };
+
+    using generate_format_table_ft =
+        static_data_t<decltype(generate_format_table_f)>;
+    auto link_tables_f = []() noexcept {
+      type_info_array_t ret = generate_table_ft{}();
+      auto &formatters = generate_format_table_ft{}();
+      [&]<size_t... Is>(std::index_sequence<Is...>) noexcept {
+        std::ignore =
+            ((ret[Is].formatter_ptr = &std::get<Is>(formatters), true) && ...);
+      }(std::make_index_sequence<run_function_cx_ft{}().first>{});
+      return ret;
+    };
+    using link_tables_ft = static_data_t<decltype(link_tables_f)>;
+    base_ctx().cx_parse_storage_of_args = link_tables_ft{}().data();
+    base_ctx().number_of_cx_parse_storage_of_args = link_tables_ft{}().size();
   }
   auto failure_f =
       []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
@@ -798,10 +889,11 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
 
 namespace fmt_litteral_ns {
 
-template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L,int format_optimization_lvl>
+template <version_t version_v, bstr_ns::litteral_ns::str_litteral_t L,
+          int format_optimization_lvl>
 struct operator_fmt_t : static_string_view_t<version_v> {
   constexpr static const int format_optimization_lvl_v =
-       format_optimization_lvl;
+      format_optimization_lvl;
   MJZ_CX_FN operator_fmt_t() noexcept
       : static_string_view_t<version_v>{
             bstr_ns::litteral_ns::operator_view<L, version_v>()} {}
@@ -819,7 +911,7 @@ MJZ_CX_FN auto operator""_fmt() noexcept {
 // check only
 template <bstr_ns::litteral_ns::str_litteral_t L>
 MJZ_CX_FN auto operator""_fmto0() noexcept {
-  return operator_fmt<version_t{}, L,0>();
+  return operator_fmt<version_t{}, L, 0>();
 }
 // no only parse of format text
 template <bstr_ns::litteral_ns::str_litteral_t L>
