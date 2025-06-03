@@ -31,8 +31,12 @@ elem_meta_t elem_meta[B];// used to search our way to the data in a cache friend
 
 struct node_ref {
   node *object;
-  size_t  offset;  Easier substringing could be achieved with an offset, but it's
-  // avoided due to potential fragmentation.
+  size_t  offset; // Easier substringing could be achieved with an offset, but it's
+  // avoided due to potential fragmentation, 
+//  it would be beneficial to support it tho , even if the normal substring algorithm doesn't use it , because  sometimes a fast_substring may be needed,  and its veey cheap,  because all the data to make the string shrink is in the root , and node traversal is not performed. 
+// the Drawbacks of this speed in substring is going to be reflected in the n<=m assumptions,  because in the fast case, this may not hold ,
+// n<=m isnt an invariant , but a larger m means a larger h , and therfore,  losses in the tree access time , 
+// but in the case where the tree would not be concatenated again after the fast substring , it might be better not to touch the nodes .
   size_t length;
   size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
   size_t tree_height; // Helps in the concatenation algorithm to identify the
@@ -105,6 +109,39 @@ The index of the string end serves as the key to the tree structure. All (a,b)-t
 - If two adjacent non sso children have a combined size smaller than the SSO buffer, they must be combined into a single SSO leaf.
 - If there is only one leaf, the tree height is 0, and no node exists.
 - Leaves (except SSO leaves and the root inline leaf) cannot be directly modified (i.e., characters cannot be changed or appended via direct buffer access). However, substring operations are permitted.
+
+### B?
+
+ the choice of B is going to effect:
+ 
+ - node size  :
+ 
+  more children increase node size, 
+  each child adds 64+8bytes (padding not considered , but each node has max of 56×2bytes of padding and min of 56)
+
+
+- sso potential :
+
+ more children  means that more  ajason children can be combined ,
+ and considering the 64 sso for each child ,  the more the  inline children,  the fragmented spread the data will be ,
+ and less L3 cache misses and TLB misses ( translation  lookup table for virtual addresses to physical addresses is usually in 4kb chunks,  so , almost all the sso node data , would have a single physical place)
+ 
+ - hight :
+  the hight would decrease by -log(multipier) 
+ 
+ - balancing constant  :
+   as each node gets bigger , more stuff would need to be moved around for node balancing ,
+  and lazy nodes are very annoying in this regard,  because they cant be moved by memmove, 
+  this is because the lazy nodes have virtual move and copy functions that move them from one lazy sso to the other.
+   but this is not generally a problem because trivial generators could use the indicator that they are trivially copyable.
+   and in general,  operations on arrays tend to be fast
+   
+   
+ - Allocator performance :
+ 
+ allocators might be better for particular sizes.
+ if nodes are too large,  they may not fit in a single page .
+ also , bigger nodes will increase memory consumption  when the rope root node exeds the sso requirement. 
 
 ## definition of substring and concatenate:
 
