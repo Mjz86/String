@@ -37,6 +37,7 @@ struct node_ref {
 // the Drawbacks of this speed in substring is going to be reflected in the n<=m assumptions,  because in the fast case, this may not hold ,
 // n<=m isnt an invariant , but a larger m means a larger h , and therfore,  losses in the tree access time , 
 // but in the case where the tree would not be concatenated again after the fast substring , it might be better not to touch the nodes .
+// a good approach might be to use the fast option if n< 2^(h+6)  , and if not , rebalance the tree,  this would cap the fragmentation , while also help increase rope sharing and substring speed.
   size_t length;
   size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
   size_t tree_height; // Helps in the concatenation algorithm to identify the
@@ -59,7 +60,7 @@ struct elem {
 // Similar to std::any, but the vtable includes a subrange iteration
 // function that calls a slice view functor and an allocator reference
 // alongside the "void*".  Effectively:
-// `void iterate ( const Lazy&obj, std::function<void( size_t real_offset,size_t real_length,string_view slice)> callback);`
+// `void iterate ( const Lazy&obj, size_t real_offset,size_t real_length,std::function<void( string_view slice)> callback);`
 // A trick with an empty base class `void_struct_t` emulates `void*`
 struct Lazy {
  //size_t length;// can be derived by index_of_end information.
