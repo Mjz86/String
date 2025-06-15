@@ -37,7 +37,7 @@ struct node_ref {
 // the Drawbacks of this speed in substring is going to be reflected in the n<=m assumptions,  because in the fast case, this may not hold ,
 // n<=m isnt an invariant , but a larger m means a larger h , and therfore,  losses in the tree access time , 
 // but in the case where the tree would not be concatenated again after the fast substring , it might be better not to touch the nodes .
-// a good approach might be to use the fast option if n< 2^(h+6)  , and if not , rebalance the tree,  this would cap the fragmentation , while also help increase rope sharing and substring speed.
+// a good approach might be to use the fast option if  2^(ceil_log2(b)×h+6) <n , and if not , rebalance the tree,  this would cap the fragmentation , while also help increase rope sharing and substring speed.
   size_t length;
   size_t elem_count;// a std::span<elem> can be made by this and the object pointer.
   size_t tree_height; // Helps in the concatenation algorithm to identify the
@@ -100,6 +100,12 @@ but two distinct rope objects (having different addresses) can , if the thread-s
 ## Fragmentation:
 
 The degree of fragmentation in the rope is influenced by the randomness of user access patterns. If a user modifies a position `i`, and another modification occurs at `j` within a distance of at least 56, then `i` and `j` likely reside in the same block. Initially, the rope has minimal fragmentation (m < 2). Even if the rope is initialized with a gigabyte of data, extensive modifications across almost the entire dataset would be required to reach the worst-case fragmentation of m = n/28. This is a demanding task, even for continuous arrays. Rope users are unlikely to modify an entire gigabyte. However, `for_range` can reduce fragmentation back to 1. Furthermore, `for_range` can be used to reduce fragmentation of a specific range before iteration, creating a continuous slice without modifying the data directly.
+
+the fragmentation of the rope is measured by m,
+and the approximate maximum for it is ` 2^(h×ceil_log2(b))` .
+
+by using fast substring,  the ratio of fragmentation , `2^(h×ceil_log2(b)) /n ` will increase , because h was unchanged but n decreased
+but , on the other hand ,all the data is shared, so we didn't really allocate anything in return.
 
 ## Invariants:
 
@@ -271,6 +277,7 @@ The rope does not need to be a tree for small strings.
 This paper has presented a custom rope implementation designed to address the challenges of manipulating large strings efficiently. By combining a balanced (a,b)-tree, copy-on-write semantics, small string optimization, and lazy evaluation, this implementation aims to minimize memory fragmentation, reduce memory consumption, and provide efficient substring operations.
 
 ## Note
+
 
 While the implementation is still under development and not yet open source, I would appreciate your feedback. Also, sorry if the markdown is hard to read. This paper is located at:
 
