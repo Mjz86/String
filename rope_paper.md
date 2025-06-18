@@ -25,7 +25,7 @@ struct elem_meta_t/* conceptual type   */{
  // for searching  for an index's  logical elements, we  do  `temp=(index<<8 )| 0xFF` or `temp=(index<<8 )` ( 0xff being like .9999 )  , 
  // then we search for the last  elem_meta  that holds  true for "temp<elem_meta" or "elem_meta<temp"( theres no need to etract the bit fields ) ,
  // this search  can be preformed by a simd comparison operation , after we got the simd mask ,  we get the last  bit's index that was either one or zero for the search that we wanted  , because  B is less than 65 , we can put all the masks in a 64-bit unsigned integer  , then we can use std::count(r/l)_(zero/one) ( botwise not , std::experimental::find_first_set, std::experimental::find_last_set if using std::experimental::simd) to get the first position .
- // so , therfore , the search and compare operation can be performed  in about B/8+1 instructions ( note that the bits that correspond to non active elements  would  be removed by bit shifts ) .
+ // so , therfore , the search and compare operation can be performed  in about B/8 the time ( note that the bits that correspond to non active elements  would  be removed by bit shifts ) .
  // this is also a huge win because  a lot of access to the node first needs to search for indexies. 
 
  
@@ -39,9 +39,21 @@ size_t type : 2;
  // note that std::ranges::reverse is used for all of the elem_meta_t, not just the 6 bits , this does 2 things at once,  first : each physical index remains unique,  second,  the implace_vector operations essentially are just insert and delete in the children.
 // least significant bits 
  size_t physical_index:6;
+ 
+ 
+ // overview  of how simd might be designed  :
+ // first , we do ceil(elem_count/8.0) pre-fetch instructions, 
+ // second we set up the `temp` simd register, then we use (  load ) a 512bit ( 8×size_t) simd register to compare for ceil(elem_count/8.0)  times.
+ // we shift the results in a uint64_t  and then use a std::count(r/l)_(zero/one)
+ 
+// the delete and insert are performed by 2 std::ranges::reverse  operations, 
+// for deleting a segment  , we  first reverse the data beginning from that segment  with length of elem_count-indexof(segment), then we reverse again  from beginning of the segment  with length of elem_count-sizeof(segment) -indexof(segment)
+// for inserting  we  first reverse the data beginning from that segment  with length of elem_count-indexof(segment), then we reverse again  from indexof(segment)+sizeof(segment) with length of elem_count-sizeof(segment) -indexof(segment)
+// the first std::ranges::reverse  does both fetching and reversing  , but by the time we reach the second reversing, we've  already fetched that data ,so , the second one would be way quicker. 
+
 };
-// important node is that we *cannot* make the node size dynamic,  because that would mess up the data layout in many different ways , and would significantly hurt simd potential and bit feild layouts.
-struct node  {
+// important node is that we *cannot* make the node size dynamic,  because that would mess up the data layout in many different ways , and would significantly hurt simd potential and bit feild layouts, and the simd logic.
+struct alignas(over_aligned/* we could maybe align to a page boundary ( eg. 4096byte ) if we choose the node to be one page size , this would give us more benefit because all of the metadata would be in a single page, (eg. B=56) */) node  {
 // the reason for not using the elem_meta_t directly is because the MSVC ( and presumably other compilers )  std::ranges::reverse  only uses simd for the basic integral or pointer types , but the data can be used by std::bit_cast .
  /*elem_meta_t*/  size_t elem_meta[/* logical indexies*/8*ceil(B/8.0) /* to ensure that no padding is between this , and the children_storage, this , and the alignment helps make this a better simd optimized array*/ ];// implicitly aligned by alignas(sizeof(elem)) 
  alignas(sizeof(elem))  children_storage[/* physical indexies*/B];// all the algorithms work with logical indexes,  physical indexes are not much relevant, this can be thought of as a pre allocated region,  the when we do the double-reverse operations,  we allocate or deallocate the selected elements,  but the allocation and deallocation are not really from memory,  but from the empty elements , we dont really care that these are not in linear order , because  all of them are in this node , and each of them is one cache line , so theres really not much benefit , especially considering how much mutation operations move these around .
