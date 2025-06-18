@@ -24,7 +24,7 @@ struct elem_meta_t/* conceptual type   */{
 // both of thoes proofs correspond to each  of the search strategies:
  // for searching  for an index's  logical elements, we  do  `temp=(index<<8 )| 0xFF` or `temp=(index<<8 )` ( 0xff being like .9999 )  , 
  // then we search for the last  elem_meta  that holds  true for "temp<elem_meta" or "elem_meta<temp"( theres no need to etract the bit fields ) ,
- // this search  can be preformed by a simd comparison operation , after we got the simd mask ,  we get the last  bit's index that was either one or zero for the search that we wanted  , because  B is less than 65 , we can put all the masks in a 64-bit unsigned integer  , then we can use std::count(r/l)_(zero/one) to get the first position .
+ // this search  can be preformed by a simd comparison operation , after we got the simd mask ,  we get the last  bit's index that was either one or zero for the search that we wanted  , because  B is less than 65 , we can put all the masks in a 64-bit unsigned integer  , then we can use std::count(r/l)_(zero/one) ( botwise not , std::experimental::find_first_set, std::experimental::find_last_set if using std::experimental::simd) to get the first position .
  // so , therfore , the search and compare operation can be performed  in about B/8+1 instructions ( note that the bits that correspond to non active elements  would  be removed by bit shifts ) .
  // this is also a huge win because  a lot of access to the node first needs to search for indexies. 
 
@@ -36,17 +36,20 @@ size_t type : 2;
 // each of these corresponds to one in children_storage , at first , the indexes are like views::iota , but when N elements are removed from the middle,  everything after it shifts left  by N and the removed N elements are placed at the end in an unspecified order, this algorithm is achieved by 2 std::ranges::reverse operations, and as a result these insexies are always  unique and between 0 and B ,because this is the map of logical to physical indexes. 
   // the reason for the storage being mapped to indexies in non linear order is that  the lazy objects need a virtual call for object movement,  and accessing all  B cache lines is cumbersome,  so , the indexies are moved around and stuff to simulate object movement, because  std::ranges::reverse  often uses vectorized instructions,  and because this region is at the beginning  of the node ( aligned to the max node alignment,  likely 64) , and because it only needs at most 7 cache lines , then its very easy to move these elements around.
  // even if std::ranges::reverse doesnt use simd , the avoidance of virtual calls and many cache accesses is still a huge win , especially considering that the meta data is already loaded in cache when we did our linear search.
+ // note that std::ranges::reverse is used for all of the elem_meta_t, not just the 6 bits , this does 2 things at once,  first : each physical index remains unique,  second,  the implace_vector operations essentially are just insert and delete in the children.
 // least significant bits 
  size_t physical_index:6;
 };
-
+// important node is that we *cannot* make the node size dynamic,  because that would mess up the data layout in many different ways , and would significantly hurt simd potential and bit feild layouts.
 struct node  {
 // the reason for not using the elem_meta_t directly is because the MSVC ( and presumably other compilers )  std::ranges::reverse  only uses simd for the basic integral or pointer types , but the data can be used by std::bit_cast .
- /*elem_meta_t*/  size_t elem_meta[/* logical indexies*/8*ceil(B/8) /* to ensure that no padding is between this , and the children_storage, this , and the alignment helps make this a better simd optimized array*/ ];// implicitly aligned by alignas(sizeof(elem)) 
+ /*elem_meta_t*/  size_t elem_meta[/* logical indexies*/8*ceil(B/8.0) /* to ensure that no padding is between this , and the children_storage, this , and the alignment helps make this a better simd optimized array*/ ];// implicitly aligned by alignas(sizeof(elem)) 
  alignas(sizeof(elem))  children_storage[/* physical indexies*/B];// all the algorithms work with logical indexes,  physical indexes are not much relevant, this can be thought of as a pre allocated region,  the when we do the double-reverse operations,  we allocate or deallocate the selected elements,  but the allocation and deallocation are not really from memory,  but from the empty elements , we dont really care that these are not in linear order , because  all of them are in this node , and each of them is one cache line , so theres really not much benefit , especially considering how much mutation operations move these around .
 // To avoid trashing cache lines, each node has a padded member that holds
-// the reference count.  
+// the reference count, the allocator  can be placed here because its not accessed until destruction,  and that means it can be shared. 
   alignas(std::hardware_destructive_interference_size) size_t reference_count;
+  bool is_threaded;
+  allocator node_alloc;
 };
 
 struct node_ref {
@@ -62,9 +65,6 @@ struct node_ref {
   size_t elem_count;// a std::span<elem_index_map_t> can be made by this and the object pointer.
   size_t tree_height; // Helps in the concatenation algorithm to identify the
                      // tree depth at which concatenation should occur.
-  bool is_threaded;
-  allocator node_alloc;
-  
 };
 
 // This struct is not padded because the SSO buffer is the largest member.
@@ -211,6 +211,9 @@ because almost all modorn cpus are optimized for continuous storage.
 - simd search  instead of binary search  and bit feilds:
 instead of using bit feilds , by shifting the data manually and adjusting the layout,  the search algorithm can be performed with minimal overhead in a linear search .
 the index search is a crucial factor in constant time operations,  by using simd , this factor is reduced drastically. 
+
+- lazy generators :
+while moving or copying  these objects can be annoying,  they help the rope to better optimize for many use cases .
 
 ## Invariants:
 ( the limit on B is beacuse  of the bit fields,  but B=56 , making a 4kb =1 physical page node is good enough for a limit)
