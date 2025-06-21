@@ -121,12 +121,11 @@ struct alloc_info_t {
   uintlen_t cache_only_allocation : 1 {0};
   uintlen_t dummy_ : sizeof(uintlen_t) * 8 - 16;
 
-  
  public:
-   //bit cast in clang is broken ;-;
-  MJZ_CX_ND_FN std::array<uintlen_t,2> idk_bit_cast_()const noexcept {
+  // bit cast in clang is broken ;-;
+  MJZ_CX_ND_FN std::array<uintlen_t, 2> idk_bit_cast_() const noexcept {
     std::array<uintlen_t, 2> ret{};
-    ret[0] = size_multiplier; 
+    ret[0] = size_multiplier;
     ret[1] |= log2_of_align_val;
     ret[1] <<= 6;
     ret[1] |= allocation_mode_val;
@@ -361,7 +360,7 @@ struct alignas(16) alloc_base_t : void_struct_t {
               uintlen_t align_log2 = log2_ceil_of_val_create(min);
               vtable_.cow_threashold >>= align_log2;
               vtable_.cow_threashold <<= align_log2;
-              vtable_.cow_threashold +=(size_t) branchless_teranary<uintlen_t>(
+              vtable_.cow_threashold += (size_t)branchless_teranary<uintlen_t>(
                   vtable_.cow_threashold != vtable_val.cow_threashold, min, 0);
               return vtable_;
             },
@@ -620,7 +619,8 @@ class alloc_base_ref_t {
   using bptr_t = const alloc_base *;
   alignas(sizeof(uintlen_t)) alloc_base *ref{};
   template <typename... Ts>
-  MJZ_CX_FN static auto run_grantee_table(alloc_base &ref, auto &&fn, Ts &&...args) noexcept {
+  MJZ_CX_FN static auto run_grantee_table(alloc_base &ref, auto &&fn,
+                                          Ts &&...args) noexcept {
     auto const old_vtable = ref.vtable;
     auto const old_ref = &ref;
     MJZ_RELEASE {
@@ -642,18 +642,20 @@ class alloc_base_ref_t {
   }
 
   constexpr static const alloc_base dummy_base_0_{};
- public:
 
-  MJZ_CX_FN const alloc_vtable_t<version_v>& get_vtbl() const noexcept {
+ public:
+  MJZ_CX_FN const alloc_vtable_t<version_v> &get_vtbl() const noexcept {
     bptr_t vptr =
         branchless_teranary<bptr_t>(!this->ref, &dummy_base_0_, this->ref);
     return vptr->vtable;
   }
-  MJZ_CX_FN alloc_cache_ref get_cache() const noexcept { 
-  return const_cast<fast_alloc_chache_t<version_v> *>(
-        branchless_teranary<bptr_t>(!!this->ref,
-      &  branchless_teranary<bptr_t>(!!this->ref, this->ref, &dummy_base_0_)
-            ->alloc_chache,nullptr));
+  MJZ_CX_FN alloc_cache_ref get_cache() const noexcept {
+    return const_cast<fast_alloc_chache_t<version_v> *>(
+        branchless_teranary<bptr_t>(
+            !!this->ref,
+            &branchless_teranary<bptr_t>(!!this->ref, this->ref, &dummy_base_0_)
+                 ->alloc_chache,
+            nullptr));
   }
   MJZ_CX_FN alloc_base *get_ptr() const noexcept { return this->ref; }
   MJZ_CX_FN alloc_base &get_ref() const noexcept {
@@ -776,7 +778,7 @@ class alloc_base_ref_t {
                                           alloc_info ai) noexcept {
     block_info blk{};
     if (!minsize) return blk;
-    blk = run_grantee_table( ref, ref.vtable.allocate, minsize, ai);
+    blk = run_grantee_table(ref, ref.vtable.allocate, minsize, ai);
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
     MJZ_NOEXCEPT { mjz_debug_cout::print("[alloc:", blk.length, "]"); };
 #endif
@@ -798,7 +800,7 @@ class alloc_base_ref_t {
   MJZ_CX_FN static block_info monotonic_allocate_bytes_cache_(
       alloc_base &ref, uintlen_t minsize, alloc_info ai, bool bad) noexcept {
     bad |= !!!(ai.allocation_mode_val &
-               uint16_t(allocation_mode_e::monotonic_mode)); 
+               uint16_t(allocation_mode_e::monotonic_mode));
     std::span<char> ret =
         ref.alloc_chache.monotonic_allocate(minsize, ai.get_alignof_z(), bad);
     return block_info{ret.data(), ret.size()};
@@ -806,16 +808,16 @@ class alloc_base_ref_t {
   MJZ_CX_FN static success_t monotonic_deallocate_bytes_cache_(
       alloc_base &ref, block_info blk, alloc_info ai, bool bad) noexcept {
     bad |= !!!(ai.allocation_mode_val &
-               uint16_t(allocation_mode_e::monotonic_mode)); 
+               uint16_t(allocation_mode_e::monotonic_mode));
     return ref.alloc_chache.is_monotonic(std::span<char>{blk.ptr, blk.length},
-                                          ai.get_alignof_z(), bad);
+                                         ai.get_alignof_z(), bad);
   }
   MJZ_CX_FN static block_info alloca_bytes_cache_(alloc_base &ref,
                                                   uintlen_t minsize,
                                                   alloc_info ai,
                                                   bool bad) noexcept {
     bad |=
-        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode)); 
+        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode));
     const std::span<char> ret =
         ref.alloc_chache.fn_alloca(minsize, ai.get_alignof_z(), bad);
     return block_info{
@@ -828,7 +830,7 @@ class alloc_base_ref_t {
                                                    alloc_info ai,
                                                    bool bad) noexcept {
     bad |=
-        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode)); 
+        !!!(ai.allocation_mode_val & uint16_t(allocation_mode_e::alloca_mode));
     return ref.alloc_chache.fn_try_dealloca(
         std::span<char>{blk.ptr, blk.length}, ai.get_alignof_z(), bad);
   }
@@ -1058,9 +1060,9 @@ class alloc_base_ref_t {
   }
   MJZ_CX_FN
   const void_struct_t *handle(const void_struct_t *input) const noexcept {
- const auto   func_ = get_vtbl().handle;
+    const auto func_ = get_vtbl().handle;
     if (!func_) return nullptr;
- return run(func_, input);
+    return run(func_, input);
   }
   template <typename T>
   MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate(
@@ -1112,15 +1114,26 @@ class alloc_base_ref_t {
   MJZ_CX_FN auto alloc_sigular_info_v(bool thread_safe,
                                       bool is_node) const noexcept {
     alloc_info info{get_default_info()};
-    if (thread_safe) {
-      info.make_threaded();
-    }
+    info.is_thread_safe = thread_safe;
     info.allocate_exactly_minsize = true;
     info.is_one_of_many_nodes = is_node;
     info.set_alignof_z(alignof(T));
+
     return info;
   };
-
+  MJZ_CX_FN alloc_info
+  alloc_sigular_preapare_info_v(uintlen_t size_,
+                                               uintlen_t align_,
+                                               bool thread_safe,
+                                               bool is_node,bool exact_=true) const noexcept {
+    alloc_info info{get_default_info()};
+    info.is_thread_safe = thread_safe;
+    info.allocate_exactly_minsize = exact_;
+    info.is_one_of_many_nodes = is_node;
+    info.size_multiplier =  size_;
+    info.set_alignof_z(align_);
+    return info;
+  };
   template <typename T>
   MJZ_CX_FN T *allocate_singular_uninit(bool thread_safe,
                                         bool is_node) const noexcept {
@@ -1424,8 +1437,8 @@ class alloc_base_ref_t {
       return false;
     }
     return run_grantee_table(*ref, refresh_call_fn, monotonic_minsize,
-                             monotonic_min_align,
-               stack_minsize, stack_min_align, release_all);
+                             monotonic_min_align, stack_minsize,
+                             stack_min_align, release_all);
   }
 
  private:

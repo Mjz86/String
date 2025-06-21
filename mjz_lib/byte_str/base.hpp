@@ -267,10 +267,11 @@ struct base_lazy_view_t;
 template <version_t version_v>
 struct base_string_view_t : void_struct_t {
   const char *ptr;
+  uintlen_t len : (sizeof(uintlen_t) * 8 - 8);
+  uintlen_t unused_ : 1;
   uintlen_t has_null_v : 1;
   uintlen_t is_static : 1;
   uintlen_t encodings : 5;
-  uintlen_t len : (sizeof(uintlen_t) * 8 - 7);
   MJZ_CX_AL_FN static base_string_view_t make(
       const char *ptr_, uintlen_t len_,
       encodings_e encodings_ = encodings_e::ascii, bool has_null_ = false,

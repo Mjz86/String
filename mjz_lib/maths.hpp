@@ -37,8 +37,8 @@ template <version_t version_v, uintlen_t n_bits>
 struct uintN_t {
   MJZ_CONSTANT(uintlen_t) word_count = n_bits / 64;
   alignas(std::min(hardware_constructive_interference_size,
-                   log2_of_val_to_val(uint8_t(std::countr_zero(word_count * 8)))))
-      uint64_t words[word_count]{};
+                   log2_of_val_to_val(uint8_t(std::countr_zero(
+                       word_count * 8))))) uint64_t words[word_count]{};
   MJZ_DISABLE_ALL_WANINGS_START_;
   MJZ_DEFAULTED_CLASS(uintN_t);
   MJZ_DISABLE_ALL_WANINGS_END_;
@@ -82,77 +82,81 @@ struct uintN_t {
     word |= val ? mask : 0;
   }
   MJZ_CX_AL_FN void operator_sr(uintlen_t amount) noexcept {
+    bool zero_out = amount < n_bits;
+    const uint64_t zero_out_mask64 = (~uint64_t(zero_out)) + 1; 
+    for (uint64_t& word : words) word &= zero_out_mask64;
+    amount &= zero_out_mask64;
     intlen_t abs_amount = intlen_t(amount);
     intlen_t internal_amount{abs_amount & 63};
     intlen_t external_amount{abs_amount >> 6};
+    MJZ_JUST_ASSUME_(external_amount < intlen_t(word_count));
+    MJZ_JUST_ASSUME_(amount < n_bits);
+    const uint64_t ub_annoying_mask = (~uint64_t(internal_amount != 0)) + 1;
 
-    for (intlen_t i{}; i < intlen_t(word_count); i++) {
-      uint64_t temps[2]{nth_word(i), nth_word(i)};
-      nth_word(i) = 0;
-      temps[1] >>= internal_amount;
-      temps[0] ^= temps[1] << internal_amount;
-      temps[0] <<= (64 - internal_amount) & 63;
-      intlen_t j = i - external_amount;
-      {
-        bool branch = 0 <= j;
-        intlen_t index_ = branchless_teranary<intlen_t>(branch, j, 0);
-        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[1], 0);
-      }
-      {
-        bool branch = 0 < j;
-        intlen_t index_ = branchless_teranary<intlen_t>(branch, j - 1, 0);
-        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[0], 0);
-      }
+    uintN_t upper_half{*this}, lower_half{*this};
+    for (uint64_t& word : upper_half.words) word = (word >> internal_amount);
+    internal_amount |= 0 == internal_amount;
+    for (uint64_t& word : lower_half.words)
+      word = ub_annoying_mask & (word >> (64 - internal_amount));
+
+    for (intlen_t i{1}; i < intlen_t(word_count); i++) {
+      upper_half.nth_word(i - 1) |= lower_half.nth_word(i);
+    }
+    for (intlen_t i{external_amount}; i < intlen_t(word_count); i++) {
+      intlen_t dest = i - external_amount;
+      nth_word(dest) = upper_half.nth_word(i);
     }
   }
-  MJZ_CX_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
-    operator_sr(amount);  
+  MJZ_CX_AL_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
+    operator_sr(amount);
 
     return *this;
   }
 
   MJZ_CX_AL_FN void operator_sl(uintlen_t amount) noexcept {
+    bool zero_out = amount < n_bits;
+    const uint64_t zero_out_mask64 = (~uint64_t(zero_out))+1; 
+    for (uint64_t& word : words) word &= zero_out_mask64;
+    amount &= zero_out_mask64;
     intlen_t abs_amount = intlen_t(amount);
     intlen_t internal_amount{abs_amount & 63};
     intlen_t external_amount{abs_amount >> 6};
-    for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
-      uint64_t temps[2]{nth_word(i), nth_word(i)};
-      nth_word(i) = 0;
-      temps[0] <<= internal_amount;
-      temps[1] ^= temps[0] >> internal_amount;
-      temps[1] >>= (64 - internal_amount) & 63;
-      intlen_t j = i + external_amount;
-      {
-        bool branch = j + 1 < intlen_t(word_count);
-        intlen_t index_ = branchless_teranary<intlen_t>(branch, j + 1, 0);
-        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[1], 0);
-      }
-      {
-        bool branch = j < intlen_t(word_count);
-        intlen_t index_ = branchless_teranary<intlen_t>(branch, j, 0);
-        nth_word(index_) |= branchless_teranary<uint64_t>(branch, temps[0], 0);
-      }
+    MJZ_JUST_ASSUME_(external_amount < intlen_t(word_count));
+    MJZ_JUST_ASSUME_(amount < n_bits); 
+    const uint64_t ub_annoying_mask = (~uint64_t(internal_amount != 0)) + 1;
+    uintN_t upper_half{*this}, lower_half{*this};
+    for (uint64_t& word : upper_half.words) word = (word << internal_amount);
+    internal_amount |= 0 == internal_amount;
+    for (uint64_t& word : lower_half.words)
+      word = ub_annoying_mask & (word << (64 - internal_amount));
+    for (intlen_t i{1}; i < intlen_t(word_count); i++) {
+      lower_half.nth_word(i) |= upper_half.nth_word(i - 1);
     }
+    for (intlen_t i{intlen_t(word_count) - 1 - external_amount}; 0 <= i; i--) {
+      intlen_t dest = i + external_amount;
+      nth_word(dest) = upper_half.nth_word(i);
+    }
+
   }
-  MJZ_CX_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
     operator_sl(amount);
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator&=(const uintN_t& amount) noexcept {
+  MJZ_CX_FN uintN_t& operator&=(const uintN_t amount) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
-      nth_word(i) &= amount.nth_word(i);
+      words[i] &= amount.words[i];
     }
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator|=(const uintN_t& amount) noexcept {
+  MJZ_CX_FN uintN_t& operator|=(const uintN_t amount) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
-      nth_word(i) &= amount.nth_word(i);
+      words[i] |= amount.words[i];
     }
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator^=(const uintN_t& amount) noexcept {
+  MJZ_CX_FN uintN_t& operator^=(const uintN_t amount) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
-      nth_word(i) &= amount.nth_word(i);
+      words[i] ^= amount.words[i];
     }
     return *this;
   }
@@ -350,12 +354,12 @@ struct uintN_t {
     return x;
   }
 
-  MJZ_CX_FN friend uintN_t operator<<(uintN_t x, uintlen_t y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator<<(uintN_t x, uintlen_t y) noexcept {
     x <<= y;
     return x;
   }
 
-  MJZ_CX_FN friend uintN_t operator>>(uintN_t x, uintlen_t y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator>>(uintN_t x, uintlen_t y) noexcept {
     x >>= y;
     return x;
   }
@@ -825,21 +829,23 @@ struct big_float_t : parse_math_helper_t_<version_v> {
   };
   MJZ_CX_FN static big_float_t normalize_add_impl_(big_float_t hs) noexcept {
     bool is_neg = hs.m_coeffient < 0;
-   const int shift_amount = std::countl_zero(is_neg ? uint64_t(-hs.m_coeffient)
-                                                  : uint64_t(hs.m_coeffient))-2;
+    const int shift_amount =
+        std::countl_zero(is_neg ? uint64_t(-hs.m_coeffient)
+                                : uint64_t(hs.m_coeffient)) -
+        2;
     hs.m_coeffient = shift_amount < 0 ? hs.m_coeffient >> (-shift_amount)
                                       : hs.m_coeffient << shift_amount;
-   hs.m_exponent -= shift_amount;
+    hs.m_exponent -= shift_amount;
     return hs;
   }
-  MJZ_CX_FN static big_float_t add(  big_float_t lhs,
-                                     big_float_t rhs) noexcept {
+  MJZ_CX_FN static big_float_t add(big_float_t lhs, big_float_t rhs) noexcept {
     lhs = normalize_add_impl_(lhs);
     rhs = normalize_add_impl_(rhs);
     const int64_t delta_exp = lhs.m_exponent - rhs.m_exponent;
-    std::swap(lhs, delta_exp<0?rhs: lhs);
+    std::swap(lhs, delta_exp < 0 ? rhs : lhs);
     const int64_t abs_delta_exp = lhs.m_exponent - rhs.m_exponent;
-    lhs.m_coeffient += abs_delta_exp<63 ? rhs.m_coeffient >> abs_delta_exp : 0;
+    lhs.m_coeffient +=
+        abs_delta_exp < 63 ? rhs.m_coeffient >> abs_delta_exp : 0;
     return lhs;
   }
 
@@ -1245,5 +1251,13 @@ template <std::floating_point f_t>
 MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
   return f_t(x);
 }
+
+
+
+
+
+
+
+
 }  // namespace mjz
 #endif  // MJZ_MATHS_LIB_HPP_FILE_

@@ -26,10 +26,10 @@ SOFTWARE.
 #define MJZ_BYTE_STRING_string_ABI_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
 enum class align_direction_e : char {
-  relaxed = 0,
-  center = 1,
-  front = 2,
-  back = 3
+  relaxed = 0b00,
+  center = 0b01,
+  front = 0b10,
+  back = 0b11
 };
 template <version_t version_v, bool has_alloc_v_, bool has_null_v_,
           bool is_ownerized_v_, may_bool_t is_threaded_v_,
@@ -84,7 +84,7 @@ struct str_abi_t_ {
   template <bool is_prop_v_>
   using uint8p_t = std::conditional_t<is_prop_v_, const uint8_t, uint8_t>;
   struct control_byte_t {
-    uint8_t is_sso : 1 {};
+    uint8_t is_ref : 1 {};
     uint8p_t<is_threaded_v_ != may_bool_t::idk> as_not_threaded_bit : 1 {
         !bool(char(is_threaded_v_))};
     uint8p_t<is_ownerized_v_> is_ownerized : 1 {is_ownerized_v_};
@@ -107,6 +107,7 @@ struct str_abi_t_ {
   MJZ_PACKING_END_;
   static_assert(sizeof(raw_data_t) == sizeof(raw_data_u) + sizeof(uint8_t) &&
                 sizeof(raw_data_u) == buffer_size);
+  static_assert((sizeof(raw_data_t) % alignof(uintlen_t)) == 0);
   struct data_t : abi_ns_::alloc_t<version_v, has_alloc_v_> {
    public:
     MJZ_CONSTANT(uintlen_t) sso_cap = buffer_size - sizeof(cap_mins_length_t);
@@ -180,7 +181,7 @@ struct str_abi_t_ {
       return m_v().control_byte;
     }
     MJZ_CX_FN control_byte_t& cntrl() noexcept { return m_v().control_byte; }
-    MJZ_CX_FN bool is_sso() const noexcept { return cntrl().is_sso; }
+    MJZ_CX_FN bool is_sso() const noexcept { return! cntrl().is_ref; }
 
     MJZ_CX_FN bool is_ownerized() const noexcept {
       if constexpr (is_ownerized_v_) {
@@ -261,7 +262,7 @@ struct str_abi_t_ {
       return encodings_e(cntrl().encodings_bits);
     }
     MJZ_CX_FN const char* get_begin() const noexcept {
-      MJZ_IF_CONSTEVAL {
+      MJZ_IF_CONSTEVAL_ {
         if (!is_sso()) {
           return m_v().raw_data.non_sso.begin_ptr;
         }
@@ -297,7 +298,7 @@ struct str_abi_t_ {
       data.str_data.length = length_;
       data.str_data.has_null = has_null_;
       data.str_data.is_sharable = is_shared_;
-      cntrl().is_sso = false;
+      cntrl().is_ref = true;
       const auto cntrl_0_ = cntrl();
       uintlen_t cntrl_and_cap{};
       char* ptr_ = std::assume_aligned<alignof(uintlen_t)>(data.raw_capacity);
@@ -328,11 +329,12 @@ struct str_abi_t_ {
         // out of bound of raw_capacity, but the value is in a way that cntrl is
         // unchanged
         memcpy(std::assume_aligned<alignof(uintlen_t)>(
-                reinterpret_cast<std::byte*>(this)+   (reinterpret_cast<std::byte*>(ptr_) -
+                   reinterpret_cast<std::byte*>(this) +
+                   (reinterpret_cast<std::byte*>(ptr_) -
                     reinterpret_cast<std::byte*>(this))),
-                    std::assume_aligned<alignof(uintlen_t)>(
-                        reinterpret_cast<std::byte*>(&cntrl_and_cap)),
-                    sizeof(uintlen_t));
+               std::assume_aligned<alignof(uintlen_t)>(
+                   reinterpret_cast<std::byte*>(&cntrl_and_cap)),
+               sizeof(uintlen_t));
         asserts(asserts.assume_rn, cntrl_0_ == cntrl());
       }
     }
@@ -404,7 +406,7 @@ struct str_abi_t_ {
       memcpy(buf, non_overlapping_ptr, len)[len] = '\0';
       MJZ_DISABLE_ALL_WANINGS_END_;
 
-      cntrl().is_sso = true;
+      cntrl().is_ref = false;
       set_sso_length(len);
     }
     MJZ_CX_FN void set_length(uintlen_t new_len) noexcept {
@@ -475,11 +477,32 @@ struct str_abi_t_ {
       hm.u_must_free();
       hm.unsafe_clear();
     }
+    MJZ_CONSTANT(uintlen_t)
+    string_size = sizeof(raw_data_t) + (std::is_empty_v <
+                  abi_ns_::alloc_t<version_v, has_alloc_v_>>?0 :sizeof(uintlen_t));
 
+    MJZ_NCX_FN static void destruct_to_invalid_impl_(
+        std::array<uint64_t, string_size / 8> This_) noexcept {
+      static_assert(sizeof(data_t) == string_size);
+      alignas(data_t) char bytes_[sizeof(data_t)]{};
+      std::memcpy(&bytes_, &This_, sizeof(data_t));
+      data_t* This =std::launder(reinterpret_cast<data_t*>(bytes_));
+      This->destruct_to_invalid_impl_big_();
+    }
+
+    MJZ_CX_AL_FN  void destruct_to_invalid_impl_big_() noexcept {
+      if (no_destroy()) {
+        return;
+      }
+      destruct_heap();
+    }
+    MJZ_CX_FN void destruct_to_invalid_impl_big() noexcept {
+      return destruct_to_invalid_impl_big_();
+    }
    public:
     MJZ_CX_FN bool no_destroy() const noexcept {
       const int ret =
-          int(!!cntrl().is_sso) | int(!is_sharable()) | int(!has_mut());
+          int(!cntrl().is_ref) | int(!is_sharable()) | int(!has_mut());
       return !!ret;
     }
     MJZ_CX_FN void destruct_all() noexcept {
@@ -490,10 +513,16 @@ struct str_abi_t_ {
       invalid_to_empty();
     }
     MJZ_CX_FN void destruct_to_invalid() noexcept {
-      if (no_destroy()) {
-        return;
+      MJZ_IFN_CONSTEVAL_ {
+        if constexpr ((sizeof(data_t) / 8) < 6) {
+          std::array<uint64_t, sizeof(data_t) / 8> temp{};
+          std::memcpy(&temp, this, sizeof(data_t));
+          destruct_to_invalid_impl_(temp);
+        }
       }
-      destruct_heap();
+      else {
+        return destruct_to_invalid_impl_big(); 
+      }
     }
     MJZ_CX_FN void invalid_to_empty() noexcept { set_invalid_to_sso("", 0); }
 
@@ -508,8 +537,12 @@ struct str_abi_t_ {
       uintlen_t center = delta >> 1;
       uintlen_t back = std::max(uintlen_t(has_null_), delta) - has_null_;
       uintlen_t front = 0;
-      return alias_t<uintlen_t[4]>{center, center, front,
-                                   back}[uint8_t(char(align))];
+      const uintlen_t ret  = branchless_teranary(
+          !(uint8_t(char(align)) & 2), center,
+          branchless_teranary(!(uint8_t(char(align)) & 1), front, back));
+       
+
+      return ret & ~uintlen_t(alignof(uintlen_t) - 1);
     }
 
    private:

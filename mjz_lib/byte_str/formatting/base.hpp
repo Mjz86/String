@@ -253,58 +253,8 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
 
 template <version_t version_v>
 MJZ_CX_FN success_t
-parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
-      format_ctx().as_error(
-          "[Error]parse_formating_string:only ascii is suppoerted!(note "
-          "that this "
-          "may change in later versions)");
-      return false;
-    }
-  base_ctx().buf_view.encoding = base_ctx().format_string.get_encoding();
-  base_ctx().buf_view.length = 0;
-  if (!format_ctx().advance_to(format_ctx().out())) {
-    return false;
-  }
-  out_it_t /*the  copy is intentional */ output = format_ctx().out();
-  MJZ_RELEASE {
-    if (format_ctx()) {
-      format_ctx().advance_to(output);
-    }
-  };
-  if (!parse_ctx().parse_only() &&
-      !output.reserve(base_ctx().format_string.length(),
-                      format_ctx().encoding()))
-    MJZ_IS_UNLIKELY {
-      parse_ctx().as_error(
-          "[Error]parse_formating_string: could't reserve an aproximation of "
-          "the "
-          "output buffer");
-      return false;
-    }
-
-  if (base_ctx().number_of_cx_parse_storage_of_args) {
-    const uintlen_t feilds = base_ctx().number_of_cx_parse_storage_of_args;
-    const cx_formatter_storage_base_ref_t<version_v> *feild_arr =
-        base_ctx().cx_parse_storage_of_args;
-    for (uintlen_t i{}; i < feilds; i++) {
-      const cx_formatter_storage_base_ref_t<version_v> val = feild_arr[i];
-      std::ignore = output.append(
-          main_ctx()
-              .format_string(main_ctx().remaining_format_string_index,
-                             val.formatting_str_index_begin)
-              .unsafe_handle());
-      main_ctx().remaining_format_string_index = val.formatting_str_index_end;
-      if (!base_ctx().cache_format_call_at(val.index_of_element,
-                                           val.formatter_ptr)) {
-        return false;
-      }
-    }
-    std::ignore = output.append(parse_ctx().view().unsafe_handle());
-    main_ctx().remaining_format_string_index =
-        base_ctx().format_string.length();
-    return !!output;
-  }
+parse_and_format_data_t<version_v>::parse_formating_string_nocache() noexcept {
+  out_it_t output = format_ctx().out();
   for (auto charechter = parse_ctx().front(); output && charechter;
        charechter = parse_ctx().front()) {
     view_t remains = parse_ctx().view();
@@ -341,6 +291,67 @@ parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
   }
 
   return output && !base_ctx().err_content;
+}
+template <version_t version_v>
+MJZ_CX_FN success_t
+parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
+  out_it_t  output = format_ctx().out();
+  const uintlen_t feilds = base_ctx().number_of_cx_parse_storage_of_args;
+  const cx_formatter_storage_base_ref_t<version_v> *feild_arr =
+      base_ctx().cx_parse_storage_of_args;
+  for (uintlen_t i{}; i < feilds; i++) {
+    const cx_formatter_storage_base_ref_t<version_v> val = feild_arr[i];
+    std::ignore = output.append_u_(
+        main_ctx()
+            .format_string(main_ctx().remaining_format_string_index,
+                           val.formatting_str_index_begin)
+            .unsafe_handle());
+    main_ctx().remaining_format_string_index = val.formatting_str_index_end;
+    if (!base_ctx().cache_format_call_at(val.index_of_element,
+                                         val.formatter_ptr)) {
+      return false;
+    }
+  }
+  std::ignore = output.append_u_(parse_ctx().view().unsafe_handle());
+  main_ctx().remaining_format_string_index = base_ctx().format_string.length();
+  return !!output;
+}
+template <version_t version_v>
+MJZ_CX_FN success_t
+parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
+  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+      format_ctx().as_error(
+          "[Error]parse_formating_string:only ascii is suppoerted!(note "
+          "that this "
+          "may change in later versions)");
+      return false;
+    }
+  base_ctx().buf_view.encoding = base_ctx().format_string.get_encoding();
+  base_ctx().buf_view.length = 0;
+  if (!format_ctx().advance_to(format_ctx().out())) {
+    return false;
+  }
+  out_it_t /*the  copy is intentional */ output = format_ctx().out();
+  MJZ_RELEASE {
+    if (format_ctx()) {
+      format_ctx().advance_to(output);
+    }
+  };
+  if (!parse_ctx().parse_only() &&
+      !output.reserve(base_ctx().format_string.length(),
+                      format_ctx().encoding()))
+    MJZ_IS_UNLIKELY {
+      parse_ctx().as_error(
+          "[Error]parse_formating_string: could't reserve an aproximation of "
+          "the "
+          "output buffer");
+      return false;
+    }
+
+  if (base_ctx().number_of_cx_parse_storage_of_args) {
+    return parse_formating_string_cache();
+  }
+  return parse_formating_string_nocache();
 }
 
 template <version_t version_v>

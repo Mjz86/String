@@ -146,15 +146,37 @@ template <class T>
 MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
                                  const T &then_val,
                                  const T &else_val) noexcept {
-  const T &then_val_ = *std::launder(&then_val);
-  const T &else_val_ = *std::launder(&else_val);
-  return if_expression ? then_val_ : else_val_;
+  if constexpr (std::is_scalar_v<std::remove_cvref_t<T>>) {
+    T then_val_ = *std::launder(&then_val);
+    T else_val_ = *std::launder(&else_val); 
+    MJZ_IFN_CONSTEVAL_ {
+      using cast_t = uint_size_of_t<sizeof(T)>;
+      const cast_t mask = cast_t((~cast_t(if_expression)) + 1);
+    return std::bit_cast<T>(cast_t((std::bit_cast<cast_t>(then_val) & mask) |
+                              (std::bit_cast<cast_t>(else_val) & ~mask)));
+    }
+    else {
+      return if_expression ? then_val_ : else_val_;
+    } 
+  } else {
+    const T &then_val_ = *std::launder(&then_val);
+    const T &else_val_ = *std::launder(&else_val);
+    return if_expression ? then_val_ : else_val_;
+  }
 }
 
 template <class T>
 MJZ_CX_FN T(forced_branchless_teranary)(std::same_as<bool> auto if_expression,
                                         const T &then_val,
                                         const T &else_val) noexcept {
+  if constexpr (std::is_scalar_v<T>) {
+    MJZ_IFN_CONSTEVAL_ {
+      using cast_t = uint_size_of_t<sizeof(T)>;
+      const cast_t mask = (~cast_t(if_expression)) + 1;
+      return std::bit_cast<T>((std::bit_cast<cast_t>(then_val) & mask) |
+                              (std::bit_cast<cast_t>(else_val) & ~mask));
+    }
+  }
   return alias_t<T[2]>{else_val, then_val}[if_expression];
 }
 
@@ -459,22 +481,7 @@ MJZ_CX_FN void raii_try_catch_rethrow(lambda_try_function &&try_func,
   ::mjz::raii_try_catch_rethrow([&]() mutable -> void TRY_BLOCK_, \
                                 [&]() mutable noexcept -> void CATCH_BLOCK)
 
-/* do not use in production */
-MJZ_DISABLE_WANINGS_START_;
-MJZ_CX_NL_FN volatile void *just_do_ptr(volatile void *ptr_) noexcept {
-  MJZ_DISABLE_WANINGS_END_;
-  MJZ_IF_CONSTEVAL { return nullptr; }
-  return [ptr_]() noexcept {
-    thread_local volatile std::atomic<volatile void *> val{};
-    return val.exchange(ptr_, std::memory_order_seq_cst);
-  }();
-};
-template <typename... Ts>
-MJZ_CX_FN void just_do(Ts &&...args) noexcept {  //-V3541 //-V2565
-  MJZ_UNUSED totally_empty_type_t a[]{
-      (just_do_ptr(std::addressof(args)),
-       totally_empty_type)...};  //-V3519 //-V2528
-}
+MJZ_CX_NL_FN void just_do(auto &&...) noexcept {}
 template <typename T>
 using non_null_rvalue_ptr_t = T *const;
 

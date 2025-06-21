@@ -36,12 +36,12 @@ class mutex_ref_t : private atomic_ref_t<T> {
     return this->exchange(one, std::memory_order_acquire) != zero;
   }
   MJZ_NCX_FN void wait_m() noexcept {
-    return this->wait(one, std::memory_order_acquire);
+    return this->try_wait(one, std::memory_order_acquire);
   }
   MJZ_NCX_FN void unlock_m() noexcept {
     this->store(false, std::memory_order_release);
     if (this->load(std::memory_order_acquire) == zero) MJZ_IS_LIKELY {
-        this->notify_one();
+        this->try_notify_one();
       }
   }
 
@@ -131,6 +131,106 @@ class mutex_ref_t : private atomic_ref_t<T> {
   explicit operator bool() const noexcept {
     return !!this->load(std::memory_order_acquire);
   }
+};
+
+template <std::unsigned_integral T>
+struct multiread_singlewrite_mutex_ref_t {
+  MJZ_NO_MV_NO_CPY(multiread_singlewrite_mutex_ref_t);
+  MJZ_CONSTANT(T) const_rc_mask = T(-1) >> 1;
+  MJZ_CONSTANT(T) mut_bit_mask = ~const_rc_mask;
+  atomic_ref_t<T> ref;
+  MJZ_CX_FN multiread_singlewrite_mutex_ref_t(T &r) noexcept : ref{r} {}
+  MJZ_CX_FN void unlock(bool is_mut) noexcept { 
+    if (is_mut) {
+      ref.store(0, std::memory_order_release);
+    } else { 
+      if ((ref.fetch_sub(1, std::memory_order_release) & const_rc_mask) != 1)
+        return;
+    }
+    ref.try_notify_all();
+  }
+  MJZ_CX_ND_RES_OBJ_FN success_t try_lock(bool is_mut) noexcept { 
+    T expected =
+        is_mut ? T{} : (ref.load(std::memory_order::relaxed) & const_rc_mask);
+    return ref.compare_exchange_weak(
+        expected, expected + (is_mut ? mut_bit_mask : 1),
+                                     std::memory_order_acquire,
+                                     std::memory_order_relaxed);
+  }
+
+  MJZ_CX_FN void lock_mut() noexcept {
+    T expected{};
+    while ((expected = ref.fetch_or(mut_bit_mask, std::memory_order_acquire)) &
+           mut_bit_mask) {
+      ref.try_wait(expected, std::memory_order_acquire);
+    };
+    while (expected & const_rc_mask) {
+      ref.try_wait(expected, std::memory_order_acquire);
+      expected = ref.load(std::memory_order_acquire);
+    }; 
+  }
+  MJZ_CX_FN void lock_const() noexcept {
+    T expected = ref.load(std::memory_order::relaxed);
+    do {
+      if (expected & mut_bit_mask) {
+        ref.try_wait(expected, std::memory_order_acquire);
+        expected = ref.load(std::memory_order::relaxed);
+        expected &= const_rc_mask;
+      }
+    } while (!ref.compare_exchange_weak(expected, expected + 1,
+                                        std::memory_order_acquire,
+                                        std::memory_order_relaxed));
+  }
+  MJZ_CX_FN void lock(bool is_mut) noexcept {
+    if (is_mut) {
+      return lock_mut();
+    }
+    lock_const();
+  }
+};
+template <std::unsigned_integral T>
+struct ncx_multiread_singlewrite_lock_ref_t {
+  MJZ_NO_MV_NO_CPY(ncx_multiread_singlewrite_lock_ref_t);
+  MJZ_CX_FN ncx_multiread_singlewrite_lock_ref_t(T &ref_, bool is_mut_) noexcept
+      : ref{ref_}, is_mut{is_mut_} {
+    ref.lock(is_mut);
+  }
+  MJZ_CX_FN ~ncx_multiread_singlewrite_lock_ref_t() noexcept {
+    ref.unlock(is_mut);
+  }
+
+ private:
+  multiread_singlewrite_mutex_ref_t<T> ref;
+  bool is_mut;
+};
+
+template <std::unsigned_integral T>
+struct multiread_singlewrite_lock_ref_t {
+  MJZ_NO_MV_NO_CPY(multiread_singlewrite_lock_ref_t);
+  MJZ_CX_FN multiread_singlewrite_lock_ref_t(T &ref_, bool is_mut_) noexcept
+      : is_mut{is_mut_}, ref{ref_} {}
+
+  MJZ_CX_FN multiread_singlewrite_lock_ref_t(char *ptr, bool is_mut_) noexcept
+      : is_mut{is_mut_},
+        ref{MJZ_STD_is_constant_evaluated_FUNCTION_RET_
+                ? (cx_val = cpy_bitcast<T>(cx_ptr = ptr))
+                : *reinterpret_cast<T *>(
+                      std::assume_aligned<alignof(T)>(ptr))} {
+    ref.lock(is_mut);
+  }
+  MJZ_CX_FN ~multiread_singlewrite_lock_ref_t() noexcept {
+    ref.unlock(is_mut);
+    MJZ_IFN_CONSTEVAL_ return;
+    if (cx_ptr) {
+      cpy_bitcast(cx_ptr, cx_val);
+    }
+  }
+
+ private:
+  char *cx_ptr{};
+  bool is_mut{};
+  T cx_val{};
+  multiread_singlewrite_mutex_ref_t<T> ref;
 };
 }  // namespace mjz::threads_ns
 #endif  // MJZ_THREADS_mutex_ref_LIB_HPP_FILE_

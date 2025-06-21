@@ -23,10 +23,24 @@ SOFTWARE.
 
 #include <concepts>
 #include <cstring>
-
+#include <algorithm>
 #include "packings.hpp"
 #ifndef MJZ_MEMORIES_LIB_HPP_FILE_
 #define MJZ_MEMORIES_LIB_HPP_FILE_
+#ifndef MJZ_STD_HAS_SIMD_LIB_
+#if defined(__cpp_lib_experimental_parallel_simd) || \
+    defined(_LIBCPP_ENABLE_EXPERIMENTAL)
+#define MJZ_STD_HAS_SIMD_LIB_ true
+#else
+
+#define MJZ_STD_HAS_SIMD_LIB_ false
+#endif
+#endif  // ! MJZ_STD_HAS_SIMD_LIB_
+
+
+#if MJZ_STD_HAS_SIMD_LIB_
+#include <experimental/simd>
+#endif
 namespace mjz {
 MJZ_FCONSTANT(uintlen_t) default_new_align_z = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
 MJZ_FCONSTANT(std::align_val_t)
@@ -140,49 +154,57 @@ template <typename T>
 MJZ_NCX_FN void cpy_aligned_bitcast(void *dest, const T &src) noexcept {
   std::memcpy(std::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
 }
-MJZ_CX_AL_FN char *memcpy_forward(char *dest, const char *src,
+template <std::integral T>
+MJZ_CX_AL_FN T *memcpy_forward(T *dest, const T *src,
                                   uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
                        // the behavior is undefined. (NO! , len=0 defines this)
+#if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
-    return reinterpret_cast<char *>(
+#endif
+    return reinterpret_cast<T *>(
         ::std::memmove(reinterpret_cast<void *>(dest),
-                       reinterpret_cast<const void *>(src), size_t(len)));
+                       reinterpret_cast<const void *>(src), sizeof(T)* size_t(len)));
   }
-  char *d = dest;
-  const char *s = src;
+  T *d = dest;
+  const T *s = src;
   while (len--) {
     *d++ = *s++;
   }
   return dest;
 }
-
-MJZ_CX_AL_FN char *memcpy_backward(char *dest, const char *src,
+template<std::integral T>
+MJZ_CX_AL_FN T *memcpy_backward(T *dest, const T *src,
                                    uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
                        // the behavior is undefined. (NO! , len=0 defines this)
+               #if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
-    return reinterpret_cast<char *>(
-        ::std::memmove(reinterpret_cast<void *>(dest),
-                       reinterpret_cast<const void *>(src), size_t(len)));
+#endif
+    return reinterpret_cast<T *>(
+        ::std::memmove(reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+        sizeof(T) * size_t(len)));
   }
-  char *d = dest;
-  const char *s = src;
+  T *d = dest;
+  const T *s = src;
   while (len--) {
     d[len] = s[len];
   }
   return dest;
 }
 
-MJZ_CX_AL_FN char *memomve_overlap(char *dest, const char *src,
+template <std::integral T>
+MJZ_CX_AL_FN T *memomve_overlap(T *dest, const T *src,
                                    uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
     // If dest or src is a null pointer or invalid pointer, the behavior is
     // undefined (NO! , len=0 defines this)
+#if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
-    return reinterpret_cast<char *>(
-        ::std::memmove(reinterpret_cast<void *>(dest),
-                       reinterpret_cast<const void *>(src), size_t(len)));
+  #endif
+    return reinterpret_cast<T *>(
+        ::std::memmove(reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+        sizeof(T) * size_t(len)));
   }
   if (dest <= src) {
     return memcpy_forward(dest, src, len);
@@ -194,14 +216,17 @@ O(len) time complexity .
 NOTE:
 use memmove for potentialy overlaping memory.
 */
-MJZ_CX_AL_FN char *memcpy(char *dest, const char *src, uintlen_t len) noexcept {
+template <std::integral T>
+MJZ_CX_AL_FN T *memcpy(T *dest, const T *src, uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
     // If dest or src is a null pointer or invalid pointer, the behavior is
     // undefined (NO! , len=0 defines this)
+#if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
-    return reinterpret_cast<char *>(
-        ::std::memcpy(reinterpret_cast<void *>(dest),
-                      reinterpret_cast<const void *>(src), size_t(len)));
+#endif
+    return reinterpret_cast<T *>(
+        ::std::memcpy(reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+        sizeof(T) * size_t(len)));
   }
   return memcpy_forward(dest, src, len);
 }
@@ -218,12 +243,14 @@ MJZ_CX_AL_FN char *memcpy_swap(char *dest, char *src, uintlen_t len) noexcept {
   return dest;
 }
 MJZ_CX_AL_FN char *mem_byteswap(char *dest, const uintlen_t len) noexcept {
-  for (uintlen_t i{}; i < len >> 1; i++) {
-    std::swap(dest[i], dest[len - 1 - i]);
-  }
+  std::ranges::reverse(dest, dest + len);
   return dest;
 }
-MJZ_CX_AL_FN char *mem_flip_endian(char *dest,const uintlen_t len) noexcept {
+MJZ_CX_AL_FN auto mem_typeswap(auto *dest,  const uintlen_t len) noexcept {
+  std::ranges::reverse(dest, dest + len);
+  return dest;
+}
+MJZ_CX_AL_FN char *mem_flip_endian(char *dest, const uintlen_t len) noexcept {
   char *d = dest;
   uintlen_t len_ = len;
   while (len_--) {
@@ -235,8 +262,8 @@ MJZ_CX_AL_FN char *mem_flip_endian(char *dest,const uintlen_t len) noexcept {
       fliped |= (byte >> i) & 1;
     }
     ch = char(uint8_t(fliped));
-  } 
-  return mem_byteswap(dest,len);
+  }
+  return mem_byteswap(dest, len);
 }
 
 /*
@@ -318,7 +345,9 @@ MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
 }
 MJZ_CX_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
   MJZ_IFN_CONSTEVAL {
+#if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return ptr;
+#endif
     return reinterpret_cast<char *>(
         ::std::memset(reinterpret_cast<void *>(ptr), val, size_t(len)));
   }
@@ -463,23 +492,6 @@ template <class From_, class Like_to_what_t_>
 concept forward_convert_like_c = std::convertible_to<
     From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 template <bitcastable_c T>
 MJZ_CX_AL_FN T byteswap(T value) noexcept {
 #ifdef __cpp_lib_byteswap
@@ -491,7 +503,33 @@ MJZ_CX_AL_FN T byteswap(T value) noexcept {
   cpy_bitcast(temp, value);
   mem_byteswap(temp, sizeof(T));
   return cpy_bitcast<T>(temp);
-}
 #endif
+}
+
+  MJZ_CX_AL_FN   bool operator_and(bool a, bool b) noexcept {
+    return bool(int(a) & int(b));
+  }
+
+  MJZ_CX_AL_FN  bool operator_or(bool a, bool b) noexcept {
+    return bool(int(a) | int(b));
+  }
+
+  // T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
+  // std::memset(&src,0,sizeof(T));
+  // overload the template to say its true, else , deafult to (trivial destroy)
+  // T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
+  // std::destroy_at(&src); else false
+  template <typename T>
+  constexpr static inline const bool is_trivially_exchange_move_constructible_v =
+      std::is_trivially_move_constructible_v<T> &&
+      std::is_trivially_destructible_v<T>;
+
+  
+  template <typename T ,auto concept_fn >
+  concept fn_concept_c = concept_fn.template operator()<T>();
+
+
+
+
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

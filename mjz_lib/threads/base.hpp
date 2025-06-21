@@ -36,6 +36,10 @@ concept mjz_jthread_can_create_c_ = requires(lambda_t lambda) {
              } noexcept -> std::convertible_to<std::decay_t<args_t>>;
              { std::decay_t<args_t>(std::forward<args_t>(args)) } noexcept;
            }) && ...);
+
+
+
+
 };
 MJZ_CONSTANT(uint64_t) defult_timeout = uint64_t(uint8_t(-1));
 }  // namespace mjz::threads_ns

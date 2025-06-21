@@ -985,6 +985,8 @@ struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases)) parse_and_format_data_t
  public:
   MJZ_CX_FN success_t parse_format_replacement_field() noexcept;
   MJZ_CX_FN success_t parse_formating_string() noexcept;
+  MJZ_CX_FN success_t parse_formating_string_nocache() noexcept;
+  MJZ_CX_FN success_t parse_formating_string_cache() noexcept;
   MJZ_CX_FN success_t append_text(view_t) noexcept;
   MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
   get_slice_parse_filter(bool check_after_slice = true) noexcept;

@@ -61,15 +61,21 @@ class alignas(alignof(flag_t)) bit_mutex_t {
     }
   }
   MJZ_NCX_FN void wait_m(auto &m) noexcept {
-#if !MJZ_SPIN_WITH_WAIT_
+#if !MJZ_SLEEP_WITH_WAIT_
     return m.wait(true, std::memory_order_acquire);
 #else
     if constexpr (uses_atomic_bool) {
       while (m.load(std::memory_order_acquire));
-      ;
+      {
+        std::this_thread::sleep_for(
+            std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
+      }
     } else {
       while (m.test(std::memory_order_acquire));
-      ;
+      {
+        std::this_thread::sleep_for(
+            std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
+      }
     }
     return;
 #endif
@@ -78,7 +84,7 @@ class alignas(alignof(flag_t)) bit_mutex_t {
     if constexpr (uses_atomic_bool) {
       m.store(false, std::memory_order_release);
       if (!m.load(std::memory_order_acquire) != 0) MJZ_IS_LIKELY {
-#if !MJZ_SPIN_WITH_WAIT_
+#if !MJZ_SLEEP_WITH_WAIT_
           m.notify_one();
 #endif
         }
@@ -86,7 +92,7 @@ class alignas(alignof(flag_t)) bit_mutex_t {
     } else {
       m.clear(std::memory_order_release);
       if (!m.test(std::memory_order_acquire)) MJZ_IS_LIKELY {
-#if !MJZ_SPIN_WITH_WAIT_
+#if !MJZ_SLEEP_WITH_WAIT_
           m.notify_one();
 #endif
         }
@@ -187,5 +193,6 @@ class alignas(alignof(flag_t)) bit_mutex_t {
     }(*just_get());
   }
 };
+
 };  // namespace mjz::threads_ns
 #endif  // MJZ_THREADS_bit_mutex_LIB_HPP_FILE_

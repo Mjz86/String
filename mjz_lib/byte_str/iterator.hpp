@@ -359,6 +359,10 @@ class base_out_it_t : public void_struct_t {
     }
     return !opt_view_or_reserve.len;
   }
+  MJZ_CX_FN success_t append_u_(bview opt_view_or_reserve) noexcept {
+    if (!opt_view_or_reserve.len) return true;
+    return !!fn(opt_view_or_reserve);
+  }
   MJZ_CX_FN success_t flush_buffer() noexcept {
     if (auto opt = needs_flush(); !opt.has_value() || !*opt) {
       return opt.has_value();

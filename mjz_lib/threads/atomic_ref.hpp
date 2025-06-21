@@ -21,6 +21,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 #include <atomic>
+#include <thread>
 
 #include "cx_atomic_ref.hpp"
 #ifndef MJZ_THREADS_atomic_ref_LIB_HPP_FILE_
@@ -34,9 +35,9 @@ class atomic_ref_t {
   union ref_pair_t {
     MJZ_CX_FN ref_pair_t(const ref_pair_t &) = default;
     ref_pair_t &operator=(const ref_pair_t &) = delete;
-    char dummmy{}; 
-    using a_ref_t= std::atomic_ref<T>;
-    T* a_ref;
+    char dummmy{};
+    using a_ref_t = std::atomic_ref<T>;
+    T *a_ref;
     cx_atomic_ref_t<T> cx_ref;
     MJZ_CX_FN ref_pair_t() noexcept {}
     MJZ_CX_FN ref_pair_t(T &obj) noexcept {
@@ -60,7 +61,7 @@ class atomic_ref_t {
           partial_same_as<Self_t, ref_pair_t>);
       MJZ_IF_CONSTEVAL { return Lmabda(std::forward<Self_t>(Self).cx_ref); }
       else {
-        return [&]() noexcept{
+        return [&]() noexcept {
           a_ref_t a_ref_{*std::forward<Self_t>(Self).a_ref};
           return Lmabda(a_ref_);
         }();
@@ -116,6 +117,29 @@ class atomic_ref_t {
       const std::memory_order mo = std::memory_order_seq_cst) const noexcept {
     return perform(
         [&](auto &&ref) noexcept -> void { return ref.wait(Expected, mo); });
+  }
+  MJZ_CX_FN void try_wait(
+      const T Expected,
+      const std::memory_order mo = std::memory_order_seq_cst) const noexcept {
+#if MJZ_SLEEP_WITH_WAIT_
+    if (load(mo) == Expected) {
+      std::this_thread::sleep_for(
+          std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
+    }
+#else
+    wait(Expected, mo);
+#endif  // MJZ_SLEEP_WITH_WAIT_
+  }
+  MJZ_CX_FN void try_notify_one() const noexcept {
+#if !MJZ_SLEEP_WITH_WAIT_
+    notify_one();
+#endif  // MJZ_SLEEP_WITH_WAIT_
+  }
+
+  MJZ_CX_FN void try_notify_all() const noexcept {
+#if !MJZ_SLEEP_WITH_WAIT_
+    notify_all();
+#endif  // MJZ_SLEEP_WITH_WAIT_
   }
 
   MJZ_CX_FN T operator=(const T obj) const noexcept

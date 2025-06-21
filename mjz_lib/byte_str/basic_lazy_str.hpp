@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "../threads/atomic_ref.hpp"
 #include "views.hpp"
 #ifndef MJZ_BYTE_STRING_basic_lazy_str_LIB_HPP_FILE_
@@ -33,6 +32,19 @@ concept lazy_reader_fn_c =
     requires(T& lazy_reader, basic_string_view_t<version_v> read_slice_) {
       { lazy_reader(read_slice_) } noexcept -> std::same_as<success_t>;
     };
+ 
+template <class T, version_t version_v>
+concept lazy_generatorable_c =
+    requires(uintlen_t offset, uintlen_t length, const T& obj) {
+      {
+        obj(offset, length,
+            [_ = std::array<uintlen_t, 2>{}](
+                basic_string_view_t<version_v>) noexcept -> success_t {
+              return true;
+            })
+      } noexcept -> std::same_as<success_t>;
+    };
+
 template <version_t version_v>
 struct basic_lazy_str_t;
 template <version_t version_v>
@@ -43,12 +55,19 @@ struct basic_lazy_vtable_t {
   success_t (*copy_move_destroy_fnp)(obj* dest /*nullptr means destroy src*/,
                                      const obj& src,
                                      bool move_const_cast) noexcept {};
+  uintlen_t obj_size{};
+  uint16_t obj_align_log2 : 12 {};
+  uint16_t trivial_destroy : 1 {};
+  uint16_t trivial_copy : 1 {};
+  uint16_t trivial_destructive_move : 1 {};
+  uint16_t is_small : 1 {};
 };
-
+MJZ_DISABLE_ALL_WANINGS_START_;
 template <version_t version_v>
 struct alignas(hardware_destructive_interference_size) heap_storage_base_t {
   uintlen_t reference_count{1};
 };
+MJZ_DISABLE_ALL_WANINGS_END_;
 template <version_t version_v, class T>
 struct heap_storage_t : heap_storage_base_t<version_v> {
   T object;
@@ -62,14 +81,36 @@ template <version_t version_v>
 struct lazy_ref_t {
   allocs_ns::alloc_base_ref_t<version_v> alloc{};
   heap_storage_base_t<version_v>* object{};
-  bool is_threaded{};
+  uintlen_t blk_size : sizeof(uintlen_t) * 8 - 1 {};
+  uintlen_t is_threaded : 1 {};
+  char* blk_ptr{};
   MJZ_DEFAULTED_CLASS(lazy_ref_t);
+  MJZ_CX_FN auto get_info(
+      const basic_lazy_vtable_t<version_v>* vtable) const noexcept {
+    return alloc.alloc_sigular_preapare_info_v(
+        vtable->obj_size, uintlen_t(1) << vtable->obj_align_log2, is_threaded,
+        true);
+  }
+  MJZ_CX_FN bool dec_ref_shall_delete() const noexcept {
+    auto& rc_ = object->reference_count;
+    if (is_threaded) {
+      return 1 == threads_ns::atomic_ref_t<uintlen_t>(rc_).fetch_sub(
+                      1, std::memory_order_acq_rel);
+    }
+    return 1 == rc_--;
+  }
+  MJZ_CX_FN void dealloc(
+      const basic_lazy_vtable_t<version_v>* vtable) noexcept {
+    auto alloc_info = get_info(vtable);
+    alloc.deallocate_bytes(
+        allocs_ns::block_info_t<version_v>{blk_ptr, blk_size}, alloc_info);
+  }
 };
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <version_t version_v>
 union alignas(alignof(uintlen_t)) lazy_storage_u {
   char dummy_{};
-  char raw[sizeof(uintlen_t)*4];
+  char raw[sizeof(uintlen_t) * 6];
   lazy_ref_t<version_v> lazy_ref;
   MJZ_UNSAFE_UNION(lazy_storage_u);
 };
@@ -92,15 +133,22 @@ struct basic_lazy_str_t {
   MJZ_CX_FN ~basic_lazy_str_t() noexcept { reset(); }
   MJZ_CX_FN void reset() noexcept {
     if (!vtable) return;
-    asserts(asserts.assume_rn,
-            vtable->copy_move_destroy_fnp(nullptr, *this, true));
-    vtable = nullptr;
+    MJZ_RELEASE { vtable = nullptr; };
+    if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET &&
+        operator_and(!vtable->is_small, vtable->trivial_destroy)) {
+      if (!storage.lazy_ref.dec_ref_shall_delete()) return;
+      storage.lazy_ref.dealloc(vtable);
+      return;
+    }
+    if (MJZ_STD_is_constant_evaluated_FUNCTION_RET || !vtable->trivial_destroy)
+      asserts(asserts.assume_rn,
+              vtable->copy_move_destroy_fnp(nullptr, *this, true));
   }
   MJZ_CX_FN explicit operator bool() const noexcept { return !!vtable; }
   MJZ_CX_FN success_t
   iterate(uintlen_t offset, uintlen_t length,
           lazy_reader_fn_c<version_v> auto&& lazy_reader) const noexcept {
-    if (!vtable) return false; 
+    if (!vtable) return false;
     return vtable->iterate_fnp(
         *this, offset, length,
         +no_type_ns::make<lazy_reader_fnt<version_v>>(
@@ -115,9 +163,34 @@ struct basic_lazy_str_t {
                                         bool move_construct) noexcept {
     reset();
     if (!src.vtable) return *this;
-    if (src.vtable->copy_move_destroy_fnp(this, src, move_construct))
+    if (!src.vtable->is_small) {
+      lazy_ref_t<version_v>* ptr_{};
+      if (move_construct) {
+        basic_lazy_str_t& ref_ = const_cast<basic_lazy_str_t&>(src);
+        ref_.vtable = nullptr;
+        ptr_ = std::construct_at(&storage.lazy_ref,
+                                 std::move(ref_.storage.lazy_ref));
+      } else {
+        ptr_ = std::construct_at(&storage.lazy_ref, src.storage.lazy_ref);
+      }
+      if (ptr_->is_threaded) {
+        threads_ns::atomic_ref_t<uintlen_t>(ptr_->object->reference_count)
+            .fetch_add(1, std::memory_order_acquire);
+      } else {
+        ptr_->object->reference_count++;
+      }
       return *this;
-    reset();
+    }
+    if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET &&
+        (operator_and(move_construct, src.vtable->trivial_destructive_move) ||
+         operator_and(!move_construct, src.vtable->trivial_copy))) {
+      std::memcpy(this, &src, sizeof(src));
+      if (move_construct) {
+        const_cast<basic_lazy_str_t&>(src).vtable = nullptr;
+      }
+      return *this;
+    }
+    src.vtable->copy_move_destroy_fnp(this, src, move_construct);
     return *this;
   }
   template <class T>
@@ -128,8 +201,7 @@ struct basic_lazy_str_t {
       return ref(object)(
           offset, length,
           [&lazy_reader](
-              basic_string_view_t<version_v> read_slice)   noexcept
-              -> success_t {
+              basic_string_view_t<version_v> read_slice) noexcept -> success_t {
             return lazy_reader.run(read_slice.unsafe_handle());
           });
     }
@@ -158,14 +230,16 @@ struct basic_lazy_str_t {
       if (move_const_cast) {
         basic_lazy_str_t& src_obj_ref = const_cast<basic_lazy_str_t&>(src);
         dest.vtable = std::exchange(src_obj_ref.vtable, {});
-        dest.storage.lazy_ref = std::exchange(src_obj_ref.storage.lazy_ref, {});
+        std::construct_at(&dest.storage.lazy_ref,
+                          std::exchange(src_obj_ref.storage.lazy_ref, {}));
         return true;
       }
       dest.vtable = src.vtable;
-      dest.storage.lazy_ref = src.storage.lazy_ref;
+      std::construct_at(&dest.storage.lazy_ref, src.storage.lazy_ref);
       if (dest.storage.lazy_ref.is_threaded) {
         threads_ns::atomic_ref_t<uintlen_t>(
-            dest.storage.lazy_ref.object->reference_count).fetch_add(1,std::memory_order_acquire);
+            dest.storage.lazy_ref.object->reference_count)
+            .fetch_add(1, std::memory_order_acquire);
       } else {
         dest.storage.lazy_ref.object->reference_count++;
       }
@@ -186,13 +260,29 @@ struct basic_lazy_str_t {
          const allocs_ns::alloc_base_ref_t<version_v>& alloc, bool is_threaded,
          Ts&&... args) const& noexcept {
       auto alloc_path = [&]() noexcept {
-        hs_t* ref = alloc.template allocate_node<hs_t>(
-            is_threaded, std::forward<Ts>(args)...);
-        if (!ref) return false;
+        //  alloc_sigular_preapare_info_v
+        hs_t* ref{};
+        char* blk_ptr{};
+        uintlen_t blk_size{};
+        auto blk_ = alloc.allocate_bytes(
+            this->obj_size,
+            alloc.alloc_sigular_preapare_info_v(
+                this->obj_size, uintlen_t(1) << this->obj_align_log2,
+                is_threaded, true));
+        blk_ptr = blk_.ptr;
+        blk_size = blk_.length;
+        MJZ_IF_CONSTEVAL { ref = std::allocator<hs_t>{}.allocate(1); }
+        else {
+          ref = reinterpret_cast<hs_t*>(blk_ptr);
+        }
+        if (!blk_ptr) return false;
+        std::construct_at(ref, std::forward<Ts>(args)...);
         std::construct_at(&dest.storage.lazy_ref);
         dest.storage.lazy_ref.alloc = alloc;
         dest.storage.lazy_ref.is_threaded = is_threaded;
         dest.storage.lazy_ref.object = ref;
+        dest.storage.lazy_ref.blk_size = blk_size;
+        dest.storage.lazy_ref.blk_ptr = blk_ptr;
         dest.vtable = this;
         return true;
       };
@@ -245,17 +335,14 @@ struct basic_lazy_str_t {
           return;
         }
       }
-      auto& rc_ = obj.storage.lazy_ref.object->reference_count;
-      if (obj.storage.lazy_ref.is_threaded) {
-        if (1==threads_ns::atomic_ref_t<uintlen_t>(rc_).fetch_sub(
-                     1, std::memory_order_acq_rel))
-          return;
-      } else {
-        if (--rc_) return;
+
+      if (!obj.storage.lazy_ref.dec_ref_shall_delete()) return;
+      std::destroy_at(static_cast<hs_t*>(obj.storage.lazy_ref.object));
+      obj.storage.lazy_ref.dealloc(obj.vtable);
+      MJZ_IF_CONSTEVAL {
+        std::allocator<hs_t>{}.deallocate(
+            static_cast<hs_t*>(obj.storage.lazy_ref.object), 1);
       }
-      obj.storage.lazy_ref.alloc.deallocate_node(
-          static_cast<hs_t*>(obj.storage.lazy_ref.object),
-          obj.storage.lazy_ref.is_threaded);
       std::destroy_at(&obj.storage.lazy_ref);
       obj.storage.dummy_ = 0;
       return;
@@ -263,6 +350,13 @@ struct basic_lazy_str_t {
     MJZ_CX_FN vtable_t() noexcept {
       this->copy_move_destroy_fnp = &copy_move_destroy_fn_;
       this->iterate_fnp = &iterate_fn_;
+      this->trivial_destroy = std::is_trivially_destructible_v<T>;
+      this->trivial_copy = std::is_trivially_copy_constructible_v<T>;
+      this->trivial_destructive_move =
+          is_trivially_exchange_move_constructible_v<T>;
+      this->is_small = small_enough;
+      this->obj_size = sizeof(T);
+      this->obj_align_log2 = log2_ceil_of_val_create(alignof(T));
     }
   };
 
@@ -272,7 +366,9 @@ struct basic_lazy_str_t {
   lazy_storage_u<version_v> storage{};
 
  public:
-  template <class T, typename... Ts>
+  template <lazy_generatorable_c<version_v>
+          T,
+      typename... Ts>
   MJZ_CX_FN success_t init(const allocs_ns::alloc_base_ref_t<version_v>& alloc,
                            bool is_threaded, Ts&&... args) noexcept {
     return vtable_var_<T>.init(*this, alloc, is_threaded,
@@ -282,16 +378,7 @@ struct basic_lazy_str_t {
 
 };  // namespace lazy_abi_
 
-template <class T, version_t version_v>
-concept lazy_generatorable_c =
-    requires(uintlen_t offset, uintlen_t length, const T& obj) {
-      {
-        obj(offset, length,
-            [_ = std::array<uintlen_t, 2>{}](
-                basic_string_view_t<version_v>)   noexcept
-                -> success_t { return true; })
-      } noexcept -> std::same_as<success_t>;
-    };
+
 template <version_t version_v>
 struct lazy_generator_str_t : void_struct_t {
  private:
@@ -312,12 +399,12 @@ struct lazy_generator_str_t : void_struct_t {
 
  public:
   MJZ_CX_FN lazy_generator_str_t() noexcept = default;
-  template <lazy_generatorable_c<version_v> lambda_t>
+  template <lazy_abi_::lazy_generatorable_c<version_v> lambda_t>
   MJZ_CX_FN lazy_generator_str_t(
-      lambda_t&& generator, uintlen_t length, uintlen_t offset=0,
+      lambda_t&& generator, uintlen_t length, uintlen_t offset = 0,
       const allocs_ns::alloc_base_ref_t<version_v>& alloc =
           allocs_ns::alloc_base_ref_t<version_v>{},
-      bool is_threaded=true) noexcept {
+      bool is_threaded = true) noexcept {
     if (!m.template init<std::remove_cvref_t<lambda_t>>(alloc, is_threaded,
                                                         generator))
       return;

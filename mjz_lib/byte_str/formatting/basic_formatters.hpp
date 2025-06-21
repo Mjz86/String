@@ -523,8 +523,9 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
     stack.length = stack.bt.template from_float_format_fill<T>(
 
         stack.buf, stack.buf_size, arg,
-      uint8_t(precision == uintlen_t(-1) ? sizeof(std::remove_cvref_t<T>)
-                                           : std::min<uintlen_t>(precision,255)),
+        uint8_t(precision == uintlen_t(-1)
+                    ? sizeof(std::remove_cvref_t<T>)
+                    : std::min<uintlen_t>(precision, 255)),
         uppser_case,
         floating_format_e(
             uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_))),
@@ -601,8 +602,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
   if (*stack.length) {
     bool is_neg{};
     auto raidex = uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_));
-    raidex =
-        branchless_teranary<uint8_t>(!!stack.add_preffix, raidex, 0);
+    raidex = branchless_teranary<uint8_t>(!!stack.add_preffix, raidex, 0);
 
     {
       bool branch = stack.check_neg;
@@ -612,8 +612,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
       is_neg = branch;
     }
     numeric_begin += branchless_teranary<uintlen_t>(type != type_e::Hex_float,
-                                                    0,
-                                         uintlen_t(alt) << 1);
+                                                    0, uintlen_t(alt) << 1);
     {
       int b8 = raidex == 8;
       int b16 = raidex == 16;
@@ -637,7 +636,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
 
     bool branch = is_neg;
     char dummy_0_{};
-    char *ch_ptr_ = branchless_teranary<char*>(!branch, &dummy_0_, stack.buf - 1);
+    char *ch_ptr_ =
+        branchless_teranary<char *>(!branch, &dummy_0_, stack.buf - 1);
 
     *ch_ptr_ = '-';
     stack.buf -= branch;
@@ -674,8 +674,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     numeric_begin = stack.buf;
     delta = width - *stack.length;
   }
-  if (bool(int(!!delta) & (int(alignment == align_e::right) |
-                           int(alignment == align_e::center)))) {
+  if (operator_and(!!delta, operator_or(alignment == align_e::right,
+                                        alignment == align_e::center))) {
     uintlen_t rigth_delta{delta >> uint8_t(alignment == align_e::center)};
     delta -= rigth_delta;
     std::ignore = it.multi_push_back(fill_char, std::exchange(rigth_delta, {}),
@@ -689,8 +689,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     std::ignore =
         it.append(bcview::make(numeric_begin, *stack.length, ctx.encoding()));
   }
-  if (bool(int(!!delta) & (int(alignment == align_e::left) |
-                           int(alignment == align_e::center)))) {
+  if (operator_and(!!delta, operator_or(alignment == align_e::left,
+                                        alignment == align_e::center))) {
     std::ignore =
         it.multi_push_back(fill_char, std::exchange(delta, {}), ctx.encoding());
   }

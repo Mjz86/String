@@ -33,13 +33,12 @@ SOFTWARE.
 #define MJZ_TRUST_LEVEL_ 3
 #endif  // !MJZ_TRUST_LEVEL_
 /*
- * shows if we can assume an expression in an assert
- *  0 means no assumbtion
+ * for some reason , notify does not work on esp32 , this is for that :(
  */
 
-#ifndef MJZ_SPIN_WITH_WAIT_
-#define MJZ_SPIN_WITH_WAIT_ false
-#endif  // !MJZ_SPIN_WITH_WAIT_
+#ifndef MJZ_SLEEP_WITH_WAIT_
+#define MJZ_SLEEP_WITH_WAIT_ 0ull
+#endif  // !MJZ_SLEEP_WITH_WAIT_
 
 #ifndef MJZ_assert_TRUST_LEVEL_
 #define MJZ_assert_TRUST_LEVEL_ 4
@@ -77,6 +76,11 @@ SOFTWARE.
 #ifndef MJZ_PMR_GLOBAL_ALLOCATIONS_
 #define MJZ_PMR_GLOBAL_ALLOCATIONS_ false
 #endif  // !MJZ_PMR_GLOBAL_ALLOCATIONS_
+
+
+#ifndef MJZ_SANE_MEMMOVE_IMPLS
+#define MJZ_SANE_MEMMOVE_IMPLS true
+#endif  // !MJZ_SANE_MEMMOVE_IMPLS
 
 #ifndef MJZ_LOG_ALLOC_ALLOCATIONS_
 #define MJZ_LOG_ALLOC_ALLOCATIONS_ false
@@ -270,7 +274,7 @@ SOFTWARE.
 #define MJZ_IFN_CONSTEVAL_ \
   if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET_) MJZ_IS_LIKELY
 namespace mjz {
-static constexpr const inline auto is_at_consteval_= []() noexcept -> bool {
+static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
   MJZ_IF_CONSTEVAL_ { return true; }
   else {
     return []() noexcept {
@@ -298,9 +302,7 @@ static constexpr const inline auto is_at_consteval_= []() noexcept -> bool {
 #if 1 < _MSC_VER
 #define JUST_MJZ_FORCED_INLINE_ __forceinline
 #define JUST_MJZ_NO_INLINE_ __declspec(noinline)
-#define MJZ_no_unique_address                   \
-  MJZ_AS_CPP_ATTREBUTE(msvc::no_unique_address) \
-  MJZ_AS_CPP_ATTREBUTE(no_unique_address)
+#define MJZ_no_unique_address MJZ_AS_CPP_ATTREBUTE(msvc::no_unique_address)
 #define MJZ_JUST_ASSUME_(X_expression_) __assume(X_expression_)
 #define MJZ_MACRO_PRAGMA_(WHAT_) __pragma(WHAT_)
 #undef MJZ_MSVC_ONLY_PRAGMA_
@@ -523,7 +525,7 @@ active union member... IF the first statement is true
   })
 
 #define MJZ_DISABLED_MSVC_WANINGS_ \
-  5264 26495 4180 4412 4455 4494 4514 4574 4582 4583 4587 4588 4619 4623 4625 4626 4643 4648 4702 4793 4820 4988 5026 5027 5045 6294 4710 4711 4868 4866 5246
+  5264 26495 4180 4412 4455 4494 4514 4574 4582 4583 4587 4588 4619 4623 4625 4626 4643 4648 4702 4793 4820 4988 5026 5027 5045 6294 4710 4711 4868 4866 5246 4702 6385 26115 26110 6236 26495 6287 28020 26816 6386
 #define MJZ_WARNING_LEVEL_ 3
 #define MJZ_PACKING_START_      \
   MJZ_MACRO_PRAGMA_(pack(push)) \
@@ -539,8 +541,7 @@ active union member... IF the first statement is true
 
 #define MJZ_DISABLE_ALL_WANINGS_START_    \
   MJZ_MSVC_ONLY_PRAGMA_(warning(push, 0)) \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(          \
-      disable : MJZ_DISABLED_MSVC_WANINGS_ 4702 6385 26115 26110 6236 26495 6287 28020 26816 6386))
+  MJZ_MSVC_ONLY_PRAGMA_(warning(disable : MJZ_DISABLED_MSVC_WANINGS_))
 
 #define MJZ_DISABLE_ALL_WANINGS_END_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
 
@@ -599,6 +600,11 @@ active union member... IF the first statement is true
   MJZ_MAYBE_UNUSED                                   \
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
   MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__forceinline)
+
+#define MJZ_NCX_AL_FN                                 \
+  MJZ_MAYBE_UNUSED                                   \
+  MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
+  inline MJZ_MSVC_ONLY_CODE_(__forceinline)
 
 #define MJZ_CX_NL_FN                            \
   MJZ_MAYBE_UNUSED                              \

@@ -20,8 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include "../mjz_uintconv.hpp"
 #include "../maths.hpp"
+#include "../mjz_uintconv.hpp"
 #include "base.hpp"
 #ifndef MJZ_USE_cpp_lib_to_chars_int
 #define MJZ_USE_cpp_lib_to_chars_int false
@@ -722,17 +722,6 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }
     return n;
   }
-  static constexpr const std::array<int16_t, 1000> &divition10_table =
-      make_static_data([]() noexcept {
-        std::array<int16_t, 1000> ret{};
-        for (size_t i{}; i < 1000; i++) {
-          const size_t i2{i / 100}, i1{(i / 10) % 10}, i0{i % 10},
-              ies{i2 | (i1 << 4) | (i0 << 8) |
-                  (size_t(i2 ? 3 : (i1 ? 2 : (i0 ? 1 : 0))) << 12)};
-          ret[i] = int16_t(ies);
-        }
-        return ret;
-      });
 
   static constexpr bool use_parralel_integer_conv_v = true;
   template <std::unsigned_integral T>
@@ -754,11 +743,12 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         }
         const int offset = (i_1000modolo--) * 3;
         asserts(asserts.assume_rn, 0 <= offset);
-        const int16_t div_res = divition10_table[size_t(modolos)];
-        modolo10[offset] = char(div_res & 15) + '0';
-        modolo10[offset + 1] = char((div_res >> 4) & 15) + '0';
-        modolo10[offset + 2] = char((div_res >> 8) & 15) + '0';
-        num_ch += small_ ? div_res >> 12 : 3;
+        std ::array<char, 4> div_res =
+            details_ns::iota_forward_3digits(modolos);
+        modolo10[offset] = div_res[0];
+        modolo10[offset + 1] = div_res[1];
+        modolo10[offset + 2] = div_res[2];
+        num_ch += small_ ? div_res[3] : 3;
         if ((int(i_1000modolo < 0) | int(small_)) == 1) break;
       }
     };
@@ -816,26 +806,24 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   MJZ_NCX_FN static uintlen_t ncx_dec_from_uint_(
       char *out_buf, uintlen_t out_len,
       std::unsigned_integral auto number_) noexcept {
-    MJZ_DISABLE_ALL_WANINGS_START_;
-    struct buffer_0_t_ {
-      alignas(8) char raw[8 * 3];
-      MJZ_NCX_FN buffer_0_t_() noexcept {}
-    } modolo10;
-    MJZ_DISABLE_ALL_WANINGS_END_;
-    return dec_from_uint_impl_(out_buf, out_len, number_, modolo10.raw);
+    return mjz::uint_to_ascci_ns0::uint_to_dec(out_buf, out_len, number_);
   }
-  MJZ_CX_AL_FN static uintlen_t dec_from_uint(
-      char *out_buf, uintlen_t out_len,
-      std::unsigned_integral auto number_) noexcept {
+  template <size_t min_cap = 0, size_t min_align = 1, std::unsigned_integral T>
+  MJZ_CX_AL_FN static uintlen_t dec_from_uint(char *out_buf, uintlen_t out_len,
+                                              T number_) noexcept {
     MJZ_IF_CONSTEVAL {
       alignas(8) char modolo10[8 * 3]{};
       return dec_from_uint_impl_(out_buf, out_len, number_, modolo10);
+    }
+    else if constexpr (uint_to_dec_aligned_unchekced_size_v<T> <= min_cap) {
+      return uint_to_dec_aligned_unchekced<T, min_align>(out_buf, out_len,
+                                                         number_);
     }
     else {
       return ncx_dec_from_uint_(out_buf, out_len, number_);
     }
   }
-  template <std::integral T>
+  template <std::integral T, size_t min_cap = 0, size_t min_align = 1>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN static std::optional<uintlen_t> from_integral_fill(
       char *buf, uintlen_t len, T val_rg_, bool upper_case,
@@ -865,10 +853,11 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         buf += is_neg;
         len -= is_neg;
         uintlen_t ret =
-            dec_from_uint(buf, len, UT(is_neg ? -val_rg_ : val_rg_));
+            dec_from_uint<min_cap-1, 1 /* this damn sign has ruined it */>(
+                buf, len, UT(is_neg ? -val_rg_ : val_rg_));
         return ret ? std::optional<uintlen_t>(ret + is_neg) : std::nullopt;
       } else {
-        uintlen_t ret = dec_from_uint(buf, len, val_rg_);
+        uintlen_t ret = dec_from_uint<min_cap, min_align>(buf, len, val_rg_);
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
       }
     }
@@ -1506,8 +1495,6 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         return powers_of_5;
       }();
 
-
-
   MJZ_CX_FN bool static double_is_IEEE754_binary64_assert() noexcept {
     constexpr std::numeric_limits<double> dbnl{};
     constexpr const double IEE754_array_[6]{(1.7976931348623157E308),
@@ -1617,7 +1604,6 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }  // based on desmos , log10_floor_prox is either floor(log10(x)) or
        // floor(log10(x))+1 or floor(log10(x))-1
 
-
     /*
     g\left(x\right)=x-1,
     f\left(x\right)=\operatorname{floor}\left(\frac{\log\left(x\right)}{\log\left(2\right)}\right),
@@ -1718,15 +1704,15 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     for (uintlen_t i{}; i < f_accuracacy;) {
       number.nth_word(1) = 0;
       number *= ten_p3;
-      constexpr uint64_t zero_8parallel_ascii =  cpy_bitcast<uint64_t>("00000000");
+      constexpr uint64_t zero_8parallel_ascii =
+          cpy_bitcast<uint64_t>("00000000");
 
       uint64_t u64val =
-          dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_<
-              version_v.is_BE()>(uint32_t(number.nth_word(1))) |
+          details_ns ::iota_3digits_u64(uint32_t(number.nth_word(1))) |
           zero_8parallel_ascii;
-      if constexpr(version_v.is_LE()){
+      if constexpr (version_v.is_LE()) {
         u64val >>= 40;
-      } else{
+      } else {
         u64val <<= 40;
       }
       const auto uch64 = make_bitcast(u64val);
@@ -2050,8 +2036,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       return div_4parellel | (modulo_4parallel << 8);
     }
   }
-   
-   
+
   MJZ_CX_FN static uintlen_t
   dec_from_uint_backwards_parallel_less_than_pow10_8_impl_(
       char *end_ptr /*at leat 8 bytes in length in back*/,
@@ -2060,7 +2045,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
     constexpr uint64_t zero_8parallel_ascii = cpy_bitcast<uint64_t>("00000000");
     const uint64_t awnser_8parallel =
-        details_ns::lookup_iota_8digits(number_less_than_pow10_8);
+        details_ns::simd_8digit_conv_u64(uint64_t(number_less_than_pow10_8));
     const uint8_t num_0ch =
         uint8_t(std::min(std::countl_zero(awnser_8parallel) >> 3, 7));
     const uint64_t awnser_8parallel_ascii =
@@ -2074,8 +2059,6 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     memcpy(end_ptr - 8, awnser_8ch, 8);
     return count_len;
   }
-   
-   
 
   MJZ_CX_FN static uintlen_t dec_from_uint_impl_parallel_impl_(
       char *out_buf, uintlen_t out_len, uint64_t number_0_,
@@ -2098,38 +2081,6 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     return ret;
   }
 
-  template <bool native_endian = true>
-  MJZ_CX_AL_FN static uint64_t
-  dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_(
-      const uint32_t number_0_) noexcept {
-    const uint16_t div_res = uint16_t(divition10_table[size_t(number_0_)]);
-    const uint64_t most_significant_digit = uint8_t(div_res & 15);
-    const uint64_t middle_digit = uint8_t((div_res >> 4) & 15);
-    const uint64_t least_significant_digit = uint8_t((div_res >> 8) & 15);
-    if constexpr (!native_endian) {
-      return ((least_significant_digit << 16) | (middle_digit << 8) |
-              (most_significant_digit))
-             << 40;
-    }
-    return (least_significant_digit) | (middle_digit << 8) |
-           (most_significant_digit << 16);
-  }
-  template <bool native_endian = true>
-  MJZ_CX_AL_FN static uint64_t
-  dec_from_uint_backwards_parallel_less_than_pow10_6_pair_impl_(
-      const uint32_t lower_half, const uint32_t upper_half) {
-    const uint64_t most_significant_digits =
-        dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_<
-            native_endian>(upper_half);
-    const uint64_t least_significant_digits =
-        dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_<
-            native_endian>(lower_half);
-    if constexpr (!native_endian) {
-      return (least_significant_digits) | (most_significant_digits >> 24);
-    }
-    return (least_significant_digits) | (most_significant_digits << 24);
-  }
-
   template <std::unsigned_integral T>
   constexpr static const uintlen_t
       dec_from_uint_impl_semi_parallel_impl_count_max =
@@ -2140,60 +2091,37 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       uintlen_t, uintlen_t>
   dec_from_uint_impl_semi_parallel_impl_(const T number_) noexcept {
     constexpr uint64_t zero_8parallel_ascii = cpy_bitcast<uint64_t>("00000000");
-    constexpr uint64_t lookup_full = 1000;
     constexpr uint64_t parallel_half = 10000;
     constexpr uint64_t parallel_full = parallel_half * parallel_half;
     constexpr uint64_t count_max =
         dec_from_uint_impl_semi_parallel_impl_count_max<T>;
     intlen_t iteration_count_backwards{count_max};
-    std::array<uint64_t, count_max > str_int_buf{};
+    std::array<uint64_t, count_max> str_int_buf{};
     uint64_t number_0_ = number_;
-    for (size_t i{}; i < count_max;i++) {
+    for (size_t i{}; i < count_max; i++) {
       asserts(asserts.assume_rn, !!iteration_count_backwards);
       iteration_count_backwards--;
-      uint32_t upper_half{};
-      uint32_t lower_half{};
-
       uint64_t u64ch_{};
-      if (number_0_ < lookup_full) {
-        u64ch_ = dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_<
-            version_v.is_BE()>(uint32_t(number_0_));
-        number_0_ = 0;
-      } else if (number_0_ < lookup_full * lookup_full) {
-        if constexpr (sizeof(T) < 2) {
-          asserts.unreachable();
-        }
-        lower_half = uint32_t(number_0_ % lookup_full);
-        upper_half = uint32_t(number_0_ / lookup_full);
-        u64ch_ = dec_from_uint_backwards_parallel_less_than_pow10_6_pair_impl_<
-            version_v.is_BE()>(lower_half, upper_half);
+      uint32_t number_less_than_pow10_8{};
+      if (number_0_ < parallel_full) {
+        number_less_than_pow10_8 = uint32_t(number_0_);
         number_0_ = 0;
       } else {
-        if constexpr (sizeof(T) < 4) {
-          asserts.unreachable();
-        }
-        uint32_t number_less_than_pow10_8{};
-        if (number_0_ < parallel_full) {
-          number_less_than_pow10_8 = uint32_t(number_0_);
-          number_0_ = 0;
-        } else {
-          number_less_than_pow10_8 = uint32_t(number_0_ % parallel_full);
-          number_0_ = number_0_ / parallel_full;
-        }
-        u64ch_ = details_ns::lookup_iota_8digits(
-            number_less_than_pow10_8);
+        number_less_than_pow10_8 = uint32_t(number_0_ % parallel_full);
+        number_0_ = number_0_ / parallel_full;
       }
+      u64ch_ =
+          details_ns::simd_8digit_conv_u64(uint64_t(number_less_than_pow10_8));
+
       const uint64_t u64ch = u64ch_;
       uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
-      str_int_buf[size_t  ( iteration_count_backwards)] =
-          u64ch_ascii;
+      str_int_buf[size_t(iteration_count_backwards)] = u64ch_ascii;
       if (number_0_) continue;
       const uint64_t num_high_0ch =
           uint64_t((version_v.is_BE() ? std::countl_zero(uint64_t(u64ch))
-                                       : std::countr_zero(uint64_t(u64ch))) >>
-                    3);
-      const uintlen_t num_0ch{num_high_0ch +
-                              (iteration_count_backwards << 3)};
+                                      : std::countr_zero(uint64_t(u64ch))) >>
+                   3);
+      const uintlen_t num_0ch{num_high_0ch + (iteration_count_backwards << 3)};
       const uintlen_t num_ch =
           std::max<uintlen_t>(uintlen_t(sizeof(str_int_buf)) - num_0ch, 1);
       return {str_int_buf, uintlen_t(num_ch),
@@ -2254,36 +2182,35 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
       uintlen_t num_parallel = uintlen_t(number_of_chars_rem - i);
       num_parallel = branchless_teranary(is_past_dot, num_parallel,
-                                         uintlen_t(exponent_log10+1));
+                                         uintlen_t(exponent_log10 + 1));
       num_parallel = std::min<uintlen_t>(num_parallel, 6);
       if (!num_parallel) continue;
       if (ch64u8_count < num_parallel) {
         const uintlen_t zero_bytes = 6 - ch64u8_count;
-        constexpr uint64_t ascii3_par = cpy_bitcast<uint64_t>("000""\0\0\0\0\0");
+        constexpr uint64_t ascii3_par = cpy_bitcast<uint64_t>(
+            "000"
+            "\0\0\0\0\0");
 
         uint64_t ch64u8_val{};
         for (uintlen_t j{ch64u8_count}; j < zero_bytes; j += 3) {
           asserts(asserts.assume_rn, number.nth_word(1) < 1000);
           uint64_t u64val =
-              dec_from_uint_backwards_parallel_less_than_pow10_3_pair_impl_<
-                  version_v.is_BE()>(uint32_t(number.nth_word(1)));
-          if constexpr(version_v.is_LE()){
+              details_ns ::iota_3digits_u64(uint32_t(number.nth_word(1)));
+          if constexpr (version_v.is_LE()) {
             u64val >>= 40;
-          } else{
+          } else {
             u64val <<= 40;
           }
-         const uint64_t ch3par = u64val |
-              ascii3_par;
+          const uint64_t ch3par = u64val | ascii3_par;
           if constexpr (version_v.is_BE()) {
-           ch64u8_val |= ch3par >> (j * 8);
+            ch64u8_val |= ch3par >> (j * 8);
           } else {
-           ch64u8_val |= ch3par << (j * 8);
+            ch64u8_val |= ch3par << (j * 8);
           }
           number.nth_word(1) = 0;
           if (number.nth_word(0)) {
             number *= ten_p3;
           }
-          
         }
         ch64u8 |= ch64u8_val;
       }
@@ -2304,7 +2231,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           ch_ = uint8_t(ch64u8_val >> j);
         }
         const char ch = char(ch_);
-        const bool good = j < num_parallel*8;
+        const bool good = j < num_parallel * 8;
         *ptr = branchless_teranary(good, ch, *ptr);
         ptr = branchless_teranary(good, ptr + 1, ptr);
       }
@@ -2356,8 +2283,6 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
 }  // namespace mjz::bstr_ns
 #endif  // MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
-
-
 
 /*
 D\left(x\right)=\operatorname{floor}\left(\frac{\left(\operatorname{ceil}\left(\frac{2^{32}}{5^{4}}\right)\right)\operatorname{floor}\left(x\right)}{2^{32}}\right)

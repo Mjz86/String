@@ -1719,7 +1719,10 @@ struct basic_str_t : void_struct_t {
                                      bool upper_case = false) noexcept {
     self_t ret{};
     if constexpr (20 < sso_cap) {
-      ret.m.set_sso_length( *traits_type{}.template from_integral_fill<T>(
+      ret.m.set_sso_length(
+          *traits_type{}
+                                .template from_integral_fill<T, sso_cap,
+                                                             alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
           ret.m.m_sso_buffer_(), sso_cap, val, upper_case, raidex));
       asserts(asserts.assume_rn, ret.m.is_sso()&& ret.m.no_destroy()&& !ret.get_alloc());
     } else {
