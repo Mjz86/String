@@ -67,21 +67,7 @@ No overflow and safe)
 the implementation is here:
 https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp
 
-the test code is :
-https://quick-bench.com/q/yaWnnXrm7RJv_XSdcnu1H4VxCn8
+if std::experimental::simd is provided, a full branchless version using simd is available
 
 
 
-update:
-
-thanks to https://github.com/jeaiii , and their improvements in the "swar_itoa_8digits" function , the function is even more faster
-
-https://quick-bench.com/q/krS1p9HO8jWXFGr5MCVsJy2hf1A
-
-
-
-
-
-update: 
-
-the 0.YY infact is not stored only in the first 7 bits
