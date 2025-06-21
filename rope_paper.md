@@ -27,7 +27,7 @@ struct elem_meta_t/* conceptual type   */{
  // this search  can be preformed by a simd comparison operation , after we got the simd mask ,  we get the last  bit's index that was either one or zero for the search that we wanted  , because  B is less than 65 , we can put all the masks in a 64-bit unsigned integer  , then we can use std::count(r/l)_(zero/one) ( botwise not , std::experimental::find_first_set, std::experimental::find_last_set if using std::experimental::simd) to get the first position .
  // so , therfore , the search and compare operation can be performed  in about B/8 the time ( note that the bits that correspond to non active elements  would  be removed by bit shifts ) .
  // this is also a huge win because  a lot of access to the node first needs to search for indexies. 
-
+// ( i have a templated function on how much loop unrolling and simd to use , the most extreme case is all simd instructions,  like 14 ymm loads and lot of ymm usage , the least one is a loop with 2 ymm loads and 2 branches ( one for loop , one for early exit) , the code is relatively small in the second case, the middle  is a switch statement with 7 cases for each 2load pairs)
  
  size_t index_of_end : 56;
  // enum is not usable because this is a bit field
@@ -37,6 +37,7 @@ size_t type : 2;
   // the reason for the storage being mapped to indexies in non linear order is that  the lazy objects need a virtual call for object movement,  and accessing all  B cache lines is cumbersome,  so , the indexies are moved around and stuff to simulate object movement, because  std::ranges::reverse  often uses vectorized instructions,  and because this region is at the beginning  of the node ( aligned to the max node alignment,  likely 64) , and because it only needs at most 7 cache lines , then its very easy to move these elements around.
  // even if std::ranges::reverse doesnt use simd , the avoidance of virtual calls and many cache accesses is still a huge win , especially considering that the meta data is already loaded in cache when we did our linear search.
  // note that std::ranges::reverse is used for all of the elem_meta_t, not just the 6 bits , this does 2 things at once,  first : each physical index remains unique,  second,  the implace_vector operations essentially are just insert and delete in the children.
+// ( i Implemented a prototype using the std::experimental::simd  , and its good , i think it could be better , like less memcpys , but rn its only  funnction call is to memcpy ( can be potentially removed by simd  register shifts) and memmoves ( the std::ranges wasn't optimized well , so had to use a 512bit interger type that i had for storing all of these )
 // least significant bits 
  size_t physical_index:6;
  
