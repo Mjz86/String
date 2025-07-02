@@ -55,7 +55,7 @@ we continue  by :
 
 
 
-(also some loop unrolling , cause why not?)
+(also some loop unrolling , cause why not)
 
 
 
