@@ -913,14 +913,14 @@ constexpr static MJZ_forceinline_ void cpy_bitcast_impl_(char* ptr,
   }
 }
 template <typename T>
-constexpr static MJZ_forceinline_ T cpy_bitcast_impl_(
-    const char* ptr) noexcept {
+constexpr static MJZ_forceinline_ T
+cpy_bitcast_impl_(const char* ptr) noexcept {
   if (!std::is_constant_evaluated()) {
     T ret{};
     std::memmove(&ret, ptr, sizeof(T));
     return ret;
   }
-    std::array<char, sizeof(T)> t{};
+  std::array<char, sizeof(T)> t{};
   for (char& c : t) {
     c = *ptr++;
   }
@@ -1038,15 +1038,16 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     round_left >>= 2;
     if (round_left) {
       uint8_t indexies[4]{};
-      for (uint8_t &index: indexies) {
+      for (uint8_t& index : indexies) {
         n *= 100;
         index = uint8_t(n >> 57);
         n &= uint64_t(-1) >> 7;
       }
-      cpy_bitcast_impl_(end_buf + i, std::array{radix_ascii_p2_[indexies[0]],
-                                                radix_ascii_p2_[indexies[1]],
-                                                radix_ascii_p2_[indexies[2]],
-                                                radix_ascii_p2_[indexies[3]]});
+      cpy_bitcast_impl_(
+          end_buf + i,
+          std::bit_cast<uint64_t>(std::array{
+              radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
+              radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]}));
       i += 8;
       --round_left;
     }
@@ -1103,15 +1104,16 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   char_left >>= 2;
   while (char_left) {
     uint8_t indexies[4]{};
-    for (uint8_t &index: indexies) {
+    for (uint8_t& index : indexies) {
       n *= 100;
       index = uint8_t(n >> 57);
       n &= uint64_t(-1) >> 7;
     }
     cpy_bitcast_impl_(
         end_buf + i,
-        std::array{radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
-                   radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]});
+        std::bit_cast<uint64_t>(std::array{
+            radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
+            radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]}));
     i += 8;
     --char_left;
   }
@@ -1155,18 +1157,13 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   }
   chs = std::bit_cast<std::array<char, 8>>(temp);
 
-  constexpr size_t cpy_max = 8 <= size_v ? 8 : 5;
-  if constexpr (size_v < 5) {
+
+  if constexpr (size_v < sizeof(temp)) {
     for (size_t i{}; i < dec_width_0_; i++) {
       buffer[i] = chs[i];
     }
   } else {
-    if (!std::is_constant_evaluated()) {
-      std::memmove(buffer, &temp, sizeof(temp));
-    } else
-      for (size_t i{}; i < cpy_max; i++) {
-        buffer[i] = chs[i];
-      }
+    cpy_bitcast_impl_(buffer, temp);
   }
   return dec_width_;
 }
@@ -1200,21 +1197,13 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   }
   chs = std::bit_cast<std::array<char, 4>>(temp);
 
-  constexpr size_t cpy_max = 4 <= size_v ? 4 : 3;
-  if constexpr (size_v < 3) {
+  if constexpr (size_v < sizeof(temp)) {
     for (size_t i{}; i < dec_width_0_; i++) {
       buffer[i] = chs[i];
     }
-
   } else {
-    if (!std::is_constant_evaluated()) {
-      std::memmove(buffer, &temp, sizeof(temp));
-    } else
-      for (size_t i{}; i < cpy_max; i++) {
-        buffer[i] = chs[i];
-      }
+    cpy_bitcast_impl_(buffer, temp);
   }
-
   return dec_width_;
 }
 
