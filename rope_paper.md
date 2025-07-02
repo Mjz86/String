@@ -37,7 +37,7 @@ size_t type : 2;
   // the reason for the storage being mapped to indexies in non linear order is that  the lazy objects need a virtual call for object movement,  and accessing all  B cache lines is cumbersome,  so , the indexies are moved around and stuff to simulate object movement, because  std::ranges::reverse  often uses vectorized instructions,  and because this region is at the beginning  of the node ( aligned to the max node alignment,  likely 64) , and because it only needs at most 7 cache lines , then its very easy to move these elements around.
  // even if std::ranges::reverse doesnt use simd , the avoidance of virtual calls and many cache accesses is still a huge win , especially considering that the meta data is already loaded in cache when we did our linear search.
  // note that std::ranges::reverse is used for all of the elem_meta_t, not just the 6 bits , this does 2 things at once,  first : each physical index remains unique,  second,  the implace_vector operations essentially are just insert and delete in the children.
-// ( i Implemented a prototype using the std::experimental::simd  , and its good , i think it could be better , like less memcpys , but rn its only  funnction call is to memcpy ( can be potentially removed by simd  register shifts) and memmoves ( the std::ranges wasn't optimized well , so had to use a 512bit interger type that i had for storing all of these )
+// ( i Implemented a prototype using the std::experimental::simd  , and its good , rn its only  funnction call is to memmoves ( the std::ranges wasn't optimized well , so had to use a 512bit interger type that i had for storing all of these  physical indexes)
 // least significant bits 
  size_t physical_index:6;
  
@@ -67,14 +67,6 @@ struct alignas(over_aligned/* we could maybe align to a page boundary ( eg. 4096
 
 struct node_ref {
   node *object;
-  size_t  offset; // Easier substringing could be achieved with an offset, but it's
-  // avoided due to potential fragmentation, 
-//  it would be beneficial to support it tho , even if the normal substring algorithm doesn't use it , because  sometimes a fast_substring may be needed,  and its veey cheap,  because all the data to make the string shrink is in the root , and node traversal is not performed. 
-// the Drawbacks of this speed in substring is going to be reflected in the n<=m assumptions,  because in the fast case, this may not hold ,
-// n<=m isnt an invariant , but a larger m means a larger h , and therfore,  losses in the tree access time , 
-// but in the case where the tree would not be concatenated again after the fast substring , it might be better not to touch the nodes .
-// a good approach might be to use the fast option if  2^(ceil_log2(b)×h+6) <n , and if not , rebalance the tree,  this would cap the fragmentation , while also help increase rope sharing and substring speed.
-  size_t length;
   size_t elem_count;// a std::span<elem_index_map_t> can be made by this and the object pointer.
   size_t tree_height; // Helps in the concatenation algorithm to identify the
                      // tree depth at which concatenation should occur.
@@ -136,8 +128,7 @@ The degree of fragmentation in the rope is influenced by the randomness of user 
 the fragmentation of the rope is measured by m,
 and the approximate maximum for it is ` 2^(h×ceil_log2(b))` .
 
-by using fast substring,  the ratio of fragmentation , `2^(h×ceil_log2(b)) /n ` will increase , because h was unchanged but n decreased
-but , on the other hand ,all the data is shared, so we didn't really allocate anything in return.
+
 
 
 ### effects of node combining:
@@ -175,7 +166,7 @@ because of this , we know that each non leaf child has at least B×64+1 bytes , 
 so , this might be a very effective way of reducing fragmentation,  without this , the grantee would be at least  a^(h-1)×(a-1)×64 bytes (h starts at 1 , this doesn't apply to leaves with h=0),
 which is still good , but it doesn't apply to the root , and its not very good to have half full stuff , so this isn't choosen .
 
-also , the benefit of collapses into `mjz::string` is that this string type is highly optimized for continuous storage,  and has the power of cow,sso , and substring sharing , and although the only useful part in the context of ropes is substring sharing , the other parts help in making it a go to option.
+also , the benefit of collapses into `mjz::string` is that this string type is highly optimized for continuous storage,  and has the power of cow,sso,built-in string view, stack buffer optimization, and substring sharing , and although the only useful part in the context of ropes is substring sharing , the other parts help in making it a go to option.
 
 this operation is always reduces fragmentation and may reduce tree hight,  because the same information is now stored in half the space as before , and its trivial to work with. 
 
@@ -230,7 +221,7 @@ while moving or copying  these objects can be annoying,  they help the rope to b
 
 ## Invariants:
 ( the limit on B is beacuse  of the bit fields,  but B=56 , making a 4kb =1 physical page node is good enough for a limit)
-* also  `2<2a<B<65`.
+* also  `2<2a<B<65` and `B%8==0`(because of simd optimized design,  the algorithm can only work with 8 metadatas at a time, i believe that 56 would be a good one, especially because its the lowest B before we make the node bigger than a page , and the mode size is exactly 4096bytes)
 
 The index of the string end serves as the key to the tree structure. All (a,b)-tree invariants must hold. Additionally, the following optimization invariants are enforced:
 
@@ -323,7 +314,7 @@ String operations can be performed using substringing, concatenation, and creati
 - `n` is the number of characters in the rope.
 - `k` is the iteration length/number of chunks iterated over.
 
-Given the string constraints, the height `h` is  bounded by a small constant (e.g., 50) ( unless `fast_substring` is used without care), and in practice, `h` is often less than 4. Therefore, O(h) ≈ O(1).
+Given the string constraints, the height `h` is  bounded by a small constant (e.g., 50) , and in practice, `h` is often less than 4. Therefore, O(h) ≈ O(1).
  
  ( heres an overview: `h=log_a(m=n/64=2^(56-6))=50*log_a(2) `, `a` being typically more than 2, so  `h<50` .,  for example  if we want a node to as big as a page , the maximum  `b` is 56 , so maximum `a` is 27 and the maximum `h` would be 11, and that is impractical , in practice, h is mostly less than 4 for this case)
 
@@ -367,14 +358,20 @@ Approximate Time Complexity for various operations:
 - `pop_range` ( mut operation) :  makes the specified segmentat continuous  as if by calling `for_range` , then  returning the section,  while also not inserting back the data.
   note : the temporary returned by this function  shares less  data with the string in the rope via substring sharing , because unlike  `get_mut_range`,  this changes the ropes data representation. 
 
-- `get_mut_range` ( mut operations,  use this insted if *this is the only accessed reference to the rope object) : return a  string , that is as if it was the temporary string in `for_range` , and as if `for_range`  was performed but the content was unchanged.
- note : the temporary returned by this function  shares the data with the string in the rope via substring sharing , and this operation  does not change the data represented by the rope , but reorders it , so its effects are like `get_const_range` , while also being  a logical mutation operation.
 
+
+- `get_mut_range/get_mut_range_v` ( mut operations,  use this insted if *this is the only accessed reference to the rope object) : return a  string , that is as if it was the temporary string in `for_range` , and as if `for_range`  was performed but the content was unchanged.
+ note : the temporary returned by this function  shares the data with the string in the rope via substring sharing , and this operation  does not change the data represented by the rope , but reorders it , so its effects are like `get_const_range` , while also being  a logical mutation operation.
+( in the   operations,  `*_v` implies that the lifetime  of the return value from that function  is bounded by the ropes lifetime,  and the function  may return  a view-like ( built-in-viewer )string instead, this means  that any kind of modifications to the rope after this call will invalidate this return value)
 
 - `get_const_range` ( const operations, only use when thread-safety is necessary, and mutations cause race conditions) : return a  string , that is as if it was the temporary string in `for_range`, but the rope is unchanged , ( if the user doesn't want to use lambdas , or has an asynchronous function , then using this and insert would be practically equivalent)
  note: this is the least optimal way to call `for_range` , because  the previous  tree memory could not be reclaimed at all , and for cases of almost continuous strings that would only need some few push back or push fronts to be usable , this would need to copy it all , and wouldn't be able to share it out without modification. 
 
 
+
+- continuous iterators (Mutable operation ,O(k+h) time O(k) Memory, the discreet to continoues transformation's time is amortized to the iteration over thar range) :
+the `get_mut_range_v` function   provides us with a valuable way to get a const continuous iterator to the rope , while also Defragmenting the rope for us,
+if used wisely,  this would outperform the caching iterators in a variety of scenarios , while also potentially  being O(1) Memory  if the range was already continuous ( in the case of inline root for example), and being the most cache friendly way  to iterate over that range
 
 ## Benefits and Trade-offs:
 
@@ -392,11 +389,14 @@ Approximate Time Complexity for various operations:
 
 - **Future Unicode Support:** Support will follow when the main string implementation supports Unicode.
 
+
 ### Trade-offs:
 
-- **Constant-Time Overhead:** There is constant-time overhead associated with accessing and manipulating the rope due to tree traversal and COW management.
+- **Constant-Time Overhead:** There is constant-time overhead associated with accessing and manipulating the rope due to tree traversal and COW management, and also node operations , for small to medium strings that are less than 128B bytes ( because these collapse into a continuous string) , the most noticeable overhead is that there is a lot of cold code for non continuous usage , and that code would prevent compiler from assuming continuous representations and optimizing for that case ,  generally  , if the string distribution is log-normal ,always use the continuous mjz::string , but if the median is over 64B , you may consider using a rope , for cases of median between 64B and the mjz::string `sso_cap`( default of 30bytes) , i recommend the `mjz::implace_string` (  see the paper on that , its basically a string with tunable sso ) or a areana allocator implementation. 
 
 - **Mutable Iteration Limitations:** The COW implementation makes mutable iteration complex, but `for_range` addresses this.
+
+- **non continuous strings:**  Although the `*_range` functions address this , its not as efficient  as having a continuous string from the beginning. 
 
 ## Usability:
 
