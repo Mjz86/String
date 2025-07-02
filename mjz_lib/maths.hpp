@@ -102,10 +102,14 @@ struct uintN_t {
     for (intlen_t i{1}; i < intlen_t(word_count); i++) {
       upper_half.nth_word(i - 1) |= lower_half.nth_word(i);
     }
-    for (intlen_t i{external_amount}; i < intlen_t(word_count); i++) {
-      intlen_t dest = i - external_amount;
-      nth_word(dest) = upper_half.nth_word(i);
+    std::array<uint64_t, word_count * 2> temp{};
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      temp[size_t(i)] = upper_half.nth_word(i);
     }
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      nth_word(i) = temp[size_t(i + external_amount)];
+    }
+
   }
   MJZ_CX_AL_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
     operator_sr(amount);
@@ -132,9 +136,14 @@ struct uintN_t {
     for (intlen_t i{1}; i < intlen_t(word_count); i++) {
       lower_half.nth_word(i) |= upper_half.nth_word(i - 1);
     }
-    for (intlen_t i{intlen_t(word_count) - 1 - external_amount}; 0 <= i; i--) {
+    std::array<uint64_t, word_count * 2> temp{};
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
       intlen_t dest = i + external_amount;
-      nth_word(dest) = upper_half.nth_word(i);
+      temp[size_t(dest)] = upper_half.nth_word(i);
+    }
+
+    for (intlen_t i{}; i < intlen_t(word_count); i++) {
+      nth_word(i) = temp[size_t(i)];
     }
 
   }

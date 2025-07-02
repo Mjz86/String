@@ -1715,7 +1715,7 @@ struct basic_str_t : void_struct_t {
  public:
   template <std::integral T>
     requires(!std::same_as<T, bool>)
-  MJZ_CX_FN static self_t s_make_str(T val, const uint8_t raidex = 10,
+  MJZ_CX_FN static self_t s_make_str(T val, const uint8_t raidex,
                                      bool upper_case = false) noexcept {
     self_t ret{};
     if constexpr (20 < sso_cap) {
@@ -1727,6 +1727,21 @@ struct basic_str_t : void_struct_t {
       asserts(asserts.assume_rn, ret.m.is_sso()&& ret.m.no_destroy()&& !ret.get_alloc());
     } else {
       ret.as_integral(val, raidex, upper_case);
+    }
+    return ret;
+  }
+  template <std::integral T>
+    requires(!std::same_as<T, bool>)
+  MJZ_CX_FN static self_t s_make_str(T val) noexcept {
+    self_t ret{};
+    if constexpr (int_to_dec_unchekced_size_v<T> <= sso_cap) {
+      ret.m.set_sso_length(traits_type{}.template dec_from_int< sso_cap,
+                                                             alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
+                                    ret.m.m_sso_buffer_(), sso_cap, val));
+      asserts(asserts.assume_rn,
+              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+    } else {
+      ret.as_integral(val, 10, false);
     }
     return ret;
   }

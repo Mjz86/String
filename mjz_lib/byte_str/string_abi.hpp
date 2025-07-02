@@ -31,6 +31,9 @@ enum class align_direction_e : char {
   front = 0b10,
   back = 0b11
 };
+
+
+
 template <version_t version_v, bool has_alloc_v_, bool has_null_v_,
           bool is_ownerized_v_, may_bool_t is_threaded_v_,
           uintlen_t user_sso_selected_cap, align_direction_e align_direction_v_>
@@ -489,12 +492,20 @@ struct str_abi_t_ {
       data_t* This =std::launder(reinterpret_cast<data_t*>(bytes_));
       This->destruct_to_invalid_impl_big_();
     }
-
+    template<bool multi_branch_version_=true>
     MJZ_CX_AL_FN  void destruct_to_invalid_impl_big_() noexcept {
-      if (no_destroy()) {
-        return;
+      if constexpr (!multi_branch_version_) {
+        if (no_destroy()) {
+          return;
+        }
+      } else {
+        if (is_sso()) return;
+        if (!is_sharable()) return;
+        if (!has_mut()) return;
       }
+
       destruct_heap();
+      return;
     }
     MJZ_CX_FN void destruct_to_invalid_impl_big() noexcept {
       return destruct_to_invalid_impl_big_();

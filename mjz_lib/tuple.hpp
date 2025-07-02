@@ -23,11 +23,10 @@ SOFTWARE.
 
 #ifndef MJZ_TUPLE_LIB_HPP_FILE_
 #define MJZ_TUPLE_LIB_HPP_FILE_
-#include "memories.hpp"
-#include<tuple>
-namespace mjz {
- 
+#include <tuple>
 
+#include "memories.hpp"
+namespace mjz {
 
 template <class, class>
 struct tuple_strorage_t {};
@@ -170,6 +169,7 @@ struct tuple_t
   {
     return (const base_t_ &)*this <=> (const base_t_ &)rhs;
   };
+  using is_mjz_tuple_c_uuid_098765987654345678 = void;
 };
 template <typename... Ts>
 tuple_t(Ts &&...) noexcept -> tuple_t<std::remove_cvref_t<Ts>...>;
@@ -178,8 +178,8 @@ MJZ_DISABLE_WANINGS_START_;
 template <class first_t, class second_t>
 struct pair_t {
   MJZ_DISABLE_WANINGS_END_;
- MJZ_no_unique_address first_t first{};
- MJZ_no_unique_address second_t second{};
+  MJZ_no_unique_address first_t first{};
+  MJZ_no_unique_address second_t second{};
 
   using const_tr_0_ = std::conditional_t<std::is_reference_v<first_t>, first_t,
                                          const first_t &>;
@@ -264,6 +264,12 @@ struct pair_t {
       return (first);
     }
   }
+  using is_mjz_tuple_c_uuid_098765987654345678 = void;
+};
+
+template <class T>
+concept is_mjz_tuple_c_ = requires() {
+  typename std::remove_cvref_t<T>::is_mjz_tuple_c_uuid_098765987654345678;
 };
 
 }  // namespace mjz
@@ -273,7 +279,7 @@ struct tuple_size<::mjz::pair_t<Types...>>
     : std::integral_constant<std::size_t, 2> {};
 template <std::size_t I, class first_t, class second_t>
   requires(I < 2)
-struct tuple_element<I,::mjz::pair_t<first_t, second_t>> {
+struct tuple_element<I, ::mjz::pair_t<first_t, second_t>> {
   using type = std::conditional_t<!!I, second_t, first_t>;
 };
 
@@ -284,7 +290,10 @@ template <std::size_t I, typename... Ts>
 struct tuple_element<I, ::mjz::tuple_t<Ts...>> {
   using type = decltype(::mjz::tuple_t<Ts...>::template type_get<I>())::type;
 };
-
+template <size_t index_, ::mjz::is_mjz_tuple_c_ T>
+MJZ_CX_ND_FN decltype(auto) get(T&& p) noexcept {
+  return std::forward<T>(p).template get<index_>();
+}
 };  // namespace std
 
 #endif  // MJZ_TUPLE_LIB_HPP_FILE_

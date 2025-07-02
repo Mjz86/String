@@ -99,13 +99,5 @@ struct mjz_cout_t_ {
 };
 using mjz_debug_cout = mjz_cout_t_<>;
 
-template <typename T = int>
-  requires std::is_integral_v<T>
-MJZ_CX_ND_FN T rand(T dflt_v = {}) noexcept {
-#if MJZ_WITH_iostream
-  MJZ_IFN_CONSTEVAL { return static_cast<T>(std::rand()); }
-#endif
-  return dflt_v;
-}
 }  // namespace mjz
 #endif  // MJZ_OUTPUTS_LIB_HPP_FILE_

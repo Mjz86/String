@@ -32,7 +32,7 @@ concept lazy_reader_fn_c =
     requires(T& lazy_reader, basic_string_view_t<version_v> read_slice_) {
       { lazy_reader(read_slice_) } noexcept -> std::same_as<success_t>;
     };
- 
+
 template <class T, version_t version_v>
 concept lazy_generatorable_c =
     requires(uintlen_t offset, uintlen_t length, const T& obj) {
@@ -148,15 +148,19 @@ struct basic_lazy_str_t {
   MJZ_CX_FN success_t
   iterate(uintlen_t offset, uintlen_t length,
           lazy_reader_fn_c<version_v> auto&& lazy_reader) const noexcept {
-    if (!vtable) return false;
-    return vtable->iterate_fnp(
-        *this, offset, length,
+    return iterate(offset, length,
         +no_type_ns::make<lazy_reader_fnt<version_v>>(
             [&](base_string_view_t<version_v> read_slice) noexcept
                 -> success_t {
               return lazy_reader(basic_string_view_t<version_v>(read_slice));
             }));
   }
+  MJZ_CX_FN success_t
+  iterate(uintlen_t offset, uintlen_t length,
+          lazy_reader_fn_t<version_v> lazy_reader) const noexcept {
+    if (!vtable) return false;
+    return vtable->iterate_fnp(*this, offset, length, lazy_reader);
+  };
 
  private:
   MJZ_CX_FN basic_lazy_str_t& init_with(const basic_lazy_str_t& src,
@@ -184,7 +188,8 @@ struct basic_lazy_str_t {
     if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET &&
         (operator_and(move_construct, src.vtable->trivial_destructive_move) ||
          operator_and(!move_construct, src.vtable->trivial_copy))) {
-      std::memcpy(this, &src, sizeof(src));
+      memcpy(reinterpret_cast<uint8_t*>(this),
+             reinterpret_cast<const uint8_t*>(&src), sizeof(src));
       if (move_construct) {
         const_cast<basic_lazy_str_t&>(src).vtable = nullptr;
       }
@@ -366,9 +371,7 @@ struct basic_lazy_str_t {
   lazy_storage_u<version_v> storage{};
 
  public:
-  template <lazy_generatorable_c<version_v>
-          T,
-      typename... Ts>
+  template <lazy_generatorable_c<version_v> T, typename... Ts>
   MJZ_CX_FN success_t init(const allocs_ns::alloc_base_ref_t<version_v>& alloc,
                            bool is_threaded, Ts&&... args) noexcept {
     return vtable_var_<T>.init(*this, alloc, is_threaded,
@@ -377,7 +380,6 @@ struct basic_lazy_str_t {
 };
 
 };  // namespace lazy_abi_
-
 
 template <version_t version_v>
 struct lazy_generator_str_t : void_struct_t {

@@ -311,6 +311,8 @@ struct lazy_reader_fn_t : lazy_reader_fn_base_t_<version_v> {
   MJZ_CX_FN lazy_reader_fn_t(
       base_t base, optional_ref_t<char *> shortcut_dest_ = nullptr) noexcept
       : base_t(base), shortcut_dest{shortcut_dest_} {}
+
+
   MJZ_CX_FN success_t run(base_string_view_t<version_v> read_slice) noexcept {
     if (shortcut_dest) {
       memcpy(*shortcut_dest, read_slice.ptr, read_slice.len);

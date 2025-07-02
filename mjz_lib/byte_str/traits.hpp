@@ -808,19 +808,15 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       std::unsigned_integral auto number_) noexcept {
     return mjz::uint_to_ascci_ns0::uint_to_dec(out_buf, out_len, number_);
   }
-  template <size_t min_cap = 0, size_t min_align = 1, std::unsigned_integral T>
-  MJZ_CX_AL_FN static uintlen_t dec_from_uint(char *out_buf, uintlen_t out_len,
+  template <size_t min_cap = 0, size_t min_align = 1, std::integral T>
+  MJZ_CX_AL_FN static uintlen_t dec_from_int(char *out_buf, uintlen_t out_len,
                                               T number_) noexcept {
-    MJZ_IF_CONSTEVAL {
-      alignas(8) char modolo10[8 * 3]{};
-      return dec_from_uint_impl_(out_buf, out_len, number_, modolo10);
-    }
-    else if constexpr (uint_to_dec_aligned_unchekced_size_v<T> <= min_cap) {
-      return uint_to_dec_aligned_unchekced<T, min_align>(out_buf, out_len,
+    if constexpr (int_to_dec_unchekced_size_v<T> <= min_cap) {
+      return int_to_dec_unchecked<min_cap, T>(out_buf,
                                                          number_);
     }
     else {
-      return ncx_dec_from_uint_(out_buf, out_len, number_);
+      return int_to_dec(out_buf, out_len, number_);
     }
   }
   template <std::integral T, size_t min_cap = 0, size_t min_align = 1>
@@ -847,19 +843,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 #endif
     if (!len || !buf) return {};
     if (raidex == 10) {
-      if constexpr (std::signed_integral<T>) {
-        const bool is_neg{val_rg_ < 0};
-        *buf = '-';
-        buf += is_neg;
-        len -= is_neg;
-        uintlen_t ret =
-            dec_from_uint<min_cap-1, 1 /* this damn sign has ruined it */>(
-                buf, len, UT(is_neg ? -val_rg_ : val_rg_));
-        return ret ? std::optional<uintlen_t>(ret + is_neg) : std::nullopt;
-      } else {
-        uintlen_t ret = dec_from_uint<min_cap, min_align>(buf, len, val_rg_);
+        uintlen_t ret = dec_from_int<min_cap, min_align>(buf, len, val_rg_);
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
-      }
     }
     return [=]() mutable noexcept -> std::optional<uintlen_t> {
       if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
@@ -1761,8 +1746,20 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       exponent_log10 = -exponent_log10;
     }
     asserts(asserts.assume_rn, exponent_log10 < 512);
-    ptr += dec_from_uint(ptr, 24, uint16_t(exponent_log10));
-
+    uint32_t ret_0_ = details_ns::iota_3digits(uint16_t(exponent_log10));
+    const size_t num_high_0ch =
+        std::min<size_t>(3, size_t((std::endian::big == std::endian::native
+                                        ? std::countl_zero(ret_0_)
+                                        : std::countr_zero(ret_0_)) >>
+                                   3));
+    ret_0_ |= details_ns::ascii_offset;
+    if constexpr(std::endian::big != std::endian::native) {
+      ret_0_ >>= num_high_0ch << 3;
+    } else {
+      ret_0_ <<= num_high_0ch << 3;
+    }
+    cpy_bitcast(ptr, ret_0_);
+    ptr += 4 - num_high_0ch;
     if (f_len < uintlen_t(ptr - buffer_)) return {};
     memcpy(f_buf, buffer_, uintlen_t(ptr - buffer_));
     return uintlen_t(ptr - buffer_);

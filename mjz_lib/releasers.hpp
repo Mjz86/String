@@ -482,6 +482,10 @@ MJZ_CX_FN void raii_try_catch_rethrow(lambda_try_function &&try_func,
                                 [&]() mutable noexcept -> void CATCH_BLOCK)
 
 MJZ_CX_NL_FN void just_do(auto &&...) noexcept {}
+template<typename T>
+MJZ_CX_NL_FN T just_ret(T &&arg) noexcept {
+  return std::forward<T>(arg);
+}
 template <typename T>
 using non_null_rvalue_ptr_t = T *const;
 

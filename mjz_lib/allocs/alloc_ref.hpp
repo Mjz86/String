@@ -464,7 +464,7 @@ struct global_allocator_class_t<version_v, 256> : void_struct_t {
       if (!lock) return {};
       return pages.m.allocate(count, uintlen_t(align));
     }
-    thread_local pages_data_t pages{};
+     thread_local pages_data_t pages{};
     return pages.m.allocate(count, uintlen_t(align));
   }
   MJZ_NCX_FN static success_t nothrow_page_try_delete(
@@ -999,7 +999,9 @@ class alloc_base_ref_t {
     }
   }
   MJZ_CX_FN alloc_info get_default_info() const noexcept {
-    return get_vtbl().default_info;
+    alloc_info info= get_vtbl().default_info;
+    asserts(asserts.assume_rn, info.size_multiplier == 1);
+    return info;
   }
 
   MJZ_CX_FN
@@ -1118,7 +1120,6 @@ class alloc_base_ref_t {
     info.allocate_exactly_minsize = true;
     info.is_one_of_many_nodes = is_node;
     info.set_alignof_z(alignof(T));
-
     return info;
   };
   MJZ_CX_FN alloc_info
@@ -1393,7 +1394,7 @@ class alloc_base_ref_t {
       MJZ_IF_CONSTEVAL { return {}; }
       else {
         return []() noexcept {
-          thread_local allocs_ns::stack_alloc_ns::areana_t<
+          constinit thread_local allocs_ns::stack_alloc_ns::areana_t<
               version_v, thread_local_stack_size_v<version_v>,
               uintlen_t(thread_local_stack_align_v<version_v>)>
               thread_local_stack_stroage;
