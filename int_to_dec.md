@@ -56,8 +56,6 @@ we continue  by :
 
 
 
-  this way , the numer of multiplis is less , 5W/8 + 1 approximately
-
 
 
 
