@@ -972,27 +972,36 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   do {
     size_t i{};
     dont_break = 8 < char_left;
-    constexpr uint64_t p10_8 = inv_p10_b57[8];
+    constexpr uint64_t p10_8 =10000'0000 ;
     if (dont_break) {
+      round_left = 8;
+      end_buf -= 8;
+      char_left -= 8;
       mjz_assume_impl_(p10_8 <= num_);
-      constexpr uint32_t inv_10p8_b57 = 1441151881;
+      [[maybe_unused]] constexpr uint64_t inv_10p8_b90 =
+          uint64_t(12379400392853802749ull);
 #ifdef __SIZEOF_INT128__
       unsigned __int128 u128 = num_;
-      u128 *= inv_10p8_b57;
+      u128 *= inv_10p8_b90;
+      u128 >>= 33;
       n = (uint64_t(u128) & (uint64_t(-1) >> 7));
       num_ = decltype(num_)(uint64_t(u128 >> 57));
 #elif 1 < _MSC_VER
       std::_Unsigned128 u128 = num_;
-      u128 *= inv_10p8_b57;
+      u128 *= inv_10p8_b90;
+      u128 >>= 33;
       n = (uint64_t(u128) & (uint64_t(-1) >> 7));
       num_ = decltype(num_)(uint64_t(u128 >> 57));
 #else
-      n = ((num_ * inv_10p8_b57) & (uint64_t(-1) >> 7));
+      n = (num_ % p10_8) * inv_p10_b57[6];
       num_ = decltype(num_)(num_ / p10_8);
+      const size_t index = size_t(n >> 57);
+      char* const p = end_buf + i;
+      cpy_bitcast_impl_(p, radix_ascii_p2_[index]);
+      i += 2;
+      n &= uint64_t(-1) >> 7;
+      round_left -= 2;
 #endif
-      round_left = 8;
-      end_buf -= 8;
-      char_left -= 8;
     } else {
       mjz_assume_impl_(num_ < 100000000);
       end_buf -= round_left = char_left;
