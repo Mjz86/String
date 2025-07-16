@@ -366,8 +366,24 @@ if thread-safety is on ( default):
 the Allocator must support thread-safe allocation mode ( selected via the  custom Allocator api flags) ,
 the Allocators must support at least 64 byte alignment ( selected via flag).
 
+## subtle false sharing in the non sso standard code:
 
+this false sharing is the result of allocations overlapping in their cache lines , because  the alignment is 16 , theres a 3 in 4 chance of the previous block occupying the same cache line.
 
+when i looked through the decompiled code of one of my internal library benchmarks,  there was something interesting in the standard string code ,
+it is technically thread-safe because  new and delete are thread-safe  , but it never alignas to more than 16 bytes ,  and as i measured , theres a significant amount of difference between the aligned new and the normal new performance,  depending on the load.
+ and  my design  uses the thread-safe option by default,  leading to less performant code on a single thread,   but the thing is , if we allocate and deallocate the string in different threads , then false sharing will occur  anf the Allocators and data will not work as efficiently. 
+ 
+ sadly  , because i prioritized safety by default in the unspecified thread-safety string , the string would do poorly  once we hit the allocation threashold. 
+ 
+  in the sso and view case theres not much difference between baseline and  workload , because  its at most working with 32bytes of data inline. 
+  but when the allocator is hit , the difference between 64 byte alignment and default alignment becomes very noticeable. 
+  
+   for this i would encourage the strings to set the thread-safe flag to false or true to indicate  the intention of the code ,  this would massively reduce the overhead (  reference counting becomes very cheap , allocator uses default alignment and cow has no threashold) and also it would explicitly indicate  where the thread data boundaries are and would help make the code much much faster, now that both COW and SSO are very optimal and effective. 
+
+  i think this is mentioned in one of the talks,in was something  along the lines of :
+ 
+ when you dont need thread-safety,  code becomes much simpler and when you allocate and dealocate on different threads,  the Allocators performed much slower. 
 
 # sharing substings , and easy substing operations :
 
@@ -581,7 +597,16 @@ we  say bigger is not a need , but could be better.
   but in that case ( bigger than 126), 
   i would consider if the word "small" in the name has lost meaning or not.
    but if you need it ( constexpr string needed to fit it to be a static constant expression ) , then use it with care.
-  
+   
+- slight advantage :
+
+    gcc and msvc only have 15bytes of sso , even tho the object size is 32 ,
+clang  is better in this regard because it has 22 bytes of sso , with 24byte object size ,
+ fbstring has a 23 byte sso with 24byte object size. 
+ and mine has 30bytes of sso   with 32byte object size.
+
+other than fbstring that has  2% more byte per string , my string has the best byte per object size and offers the largest sso capacity. 
+
 # Copy on Write Optimization
 
 - not available in ownerized string. 
@@ -735,7 +760,7 @@ Any algorithm for a continuous string is usable and implemented (with regard
 to its encoding; ASCII is like the standard C implementation).
 
 the mutatable iteration and null terminator requirements are for the other properties ,
-usually its better to  use the wrappers when needed on the fly , and use the main string ( or `implace_string` if beneficial) for storage or passing around. 
+usually its better to  use the  other template prams when needed on the fly , and use the main string ( or `implace_string` if beneficial) for storage or passing around. 
 
 
 * how i think of this :
