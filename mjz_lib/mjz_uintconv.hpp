@@ -69,8 +69,6 @@ static constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
                               "4041424344454647484950515253545556575859"
                               "6061626364656667686970717273747576777879"
                               "8081828384858687888990919293949596979899\0"});
-static constexpr inline const uint16_t* radix_ascii_p2_ =
-    radix_ascii_p2_v_.data();
 
 constexpr static auto simd_8digit_conv_u64(auto n) noexcept {
   constexpr uint64_t inv10p4_b40 = 109951163;
@@ -133,22 +131,25 @@ constexpr static auto simd_8digit_conv_u64(auto n) noexcept {
 
 constexpr uint64_t ascii_offset =
     std::bit_cast<uint64_t>(std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
-constexpr static const std::array<uint16_t, 100> modolo_raidex_table = []() {
-  std::array<uint16_t, 100> ret{};
-  for (uint32_t i{}; i < 100; i++) {
-    const uint32_t var = i;
-    uint64_t result = simd_8digit_conv_u64(uint64_t(var));
+constexpr static const std::span<const uint16_t, 100> modolo_raidex_table =
+    std::span(radix_ascii_p2_v_).subspan<0, 100>(); /* []() {
+   std::array<uint16_t, 100> ret{};
+   for (uint32_t i{}; i < 100; i++) {
+     const uint32_t var = i;
+     uint64_t result = simd_8digit_conv_u64(uint64_t(var));
 
-    result |= ascii_offset;
+     result |= ascii_offset;
 
-    struct char_array_t {
-      char array[6];
-      uint16_t table_entry;
-    } char_array = std::bit_cast<char_array_t>(result);
-    ret[i] = char_array.table_entry;
-  }
-  return ret;
-}();
+     struct char_array_t {
+       char array[6];
+       uint16_t table_entry;
+     } char_array = std::bit_cast<char_array_t>(result);
+     ret[i] = char_array.table_entry;
+   }
+   return ret;
+ }();*/
+static constexpr inline const uint16_t* radix_ascii_p2_ =
+    radix_ascii_p2_v_.data();
 
 constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
   alignas(8) std::array<uint16_t, 4> ret{
@@ -779,6 +780,7 @@ constexpr static MJZ_forceinline_ int dec_width(
       details_ns::floor10_table[size_t(correct_or_1_plus_correct)] <= x;
   return correct_or_1_plus_correct + is_correct;
 }
+
 template <std::integral T>
 constexpr static MJZ_forceinline_ int signed_dec_width(const T x) noexcept {
   const bool is_neg = x < 0;
@@ -958,6 +960,91 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_(
   return dec_width_;
 }
 
+constexpr static MJZ_forceinline_ uint64_t
+u16x4_num_to_iota_impl_(uint64_t temp) noexcept {
+  constexpr uint64_t inv10p1_b10 = 103;
+  constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00;
+  temp *= inv10p1_b10;
+  uint64_t high = temp & mask_upper_6b;
+  uint64_t low = ((temp & ~mask_upper_6b) * 10) & mask_upper_6b;
+  if constexpr (std::endian::big == std::endian::native) {
+    temp = (high >> 2) | (low >> 10);
+  } else {
+    temp = (high >> 10) | (low >> 2);
+  }
+  return temp;
+}
+[[maybe_unused]] constexpr static MJZ_forceinline_ uint64_t
+inv10p8_b57_mul100_num_to_iota_impl_(uint64_t& n) noexcept {
+  std::array<uint16_t, 4> indexies{};
+  for (uint16_t& index : indexies) {
+    index = uint8_t(n >> 57);
+    n &= uint64_t(-1) >> 7;
+    n *= 100;
+  }
+  return u16x4_num_to_iota_impl_(std::bit_cast<uint64_t>(indexies));
+}
+
+[[maybe_unused]]
+constexpr static MJZ_forceinline_ uint64_t
+inv10p8_b57_num_to_iota_impl_(uint64_t& n) noexcept {
+  std::array<uint16_t, 4> indexies{};
+  for (uint16_t& index : indexies) {
+    n *= 100;
+    index = uint8_t(n >> 57);
+    n &= uint64_t(-1) >> 7;
+  }
+  return u16x4_num_to_iota_impl_(std::bit_cast<uint64_t>(indexies));
+}
+
+#ifdef __SIZEOF_INT128__
+#define MJZ_uint128_type_ unsigned __int128
+#elif 1 < _MSC_VER
+#define MJZ_uint128_type_ std::_Unsigned128
+#else
+#endif
+
+[[maybe_unused]] constexpr static MJZ_forceinline_ uint64_t
+inv10p8_b57_num_to_iota_impl_ascii_(uint64_t& n) noexcept {
+  uint8_t indexies[4]{};
+  for (uint8_t& index : indexies) {
+    n *= 100;
+    index = uint8_t(n >> 57);
+    n &= uint64_t(-1) >> 7;
+  }
+  return std::bit_cast<uint64_t>(
+      std::array{radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
+                 radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]});
+}
+
+constexpr static MJZ_forceinline_ uint64_t
+inv10p8_b57_num_to_iota_impl_ascii_simd_(uint64_t& n) noexcept {
+#ifdef MJZ_uint128_type_
+  MJZ_uint128_type_ n128 = n;
+  MJZ_uint128_type_ mask = uint64_t(-1) >> 7;
+  uint8_t indexies[4]{};
+  n128 <<= 64;
+  n128 |= (n * 10000) & mask;
+  mask |= mask << 64;
+  n128 *= 100;
+  MJZ_uint128_type_ temp0 = (n128 & ~mask);
+  indexies[0] = uint8_t(temp0 >> (64 + 57));
+  indexies[2] = uint8_t(temp0 >> (57));
+  n128 &= mask;
+  n128 *= 100;
+  temp0 = (n128 & ~mask);
+  indexies[1] = uint8_t(temp0 >> (64 + 57));
+  indexies[3] = uint8_t(temp0 >> (57));
+  n = uint64_t(n128);
+  return std::bit_cast<uint64_t>(
+      std::array{radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
+                 radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]});
+
+#else
+  return inv10p8_b57_num_to_iota_impl_ascii_(n);
+#endif
+}
+
 template <size_t size_v>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     char* buffer, const size_t dec_width_0_, uint64_t num_) noexcept {
@@ -967,12 +1054,12 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   size_t char_left = dec_width_;
   mjz_assume_impl_(char_left < 21);
   bool dont_break{true};
-  size_t round_left{};
-  uint64_t n{};
   do {
+    size_t round_left{};
+    uint64_t n{};
     size_t i{};
     dont_break = 8 < char_left;
-    constexpr uint64_t p10_8 =10000'0000 ;
+    constexpr uint64_t p10_8 = 10000'0000;
     if (dont_break) {
       round_left = 8;
       end_buf -= 8;
@@ -980,14 +1067,9 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
       mjz_assume_impl_(p10_8 <= num_);
       [[maybe_unused]] constexpr uint64_t inv_10p8_b90 =
           uint64_t(12379400392853802749ull);
-#ifdef __SIZEOF_INT128__
-      unsigned __int128 u128 = num_;
-      u128 *= inv_10p8_b90;
-      u128 >>= 33;
-      n = (uint64_t(u128) & (uint64_t(-1) >> 7));
-      num_ = decltype(num_)(uint64_t(u128 >> 57));
-#elif 1 < _MSC_VER
-      std::_Unsigned128 u128 = num_;
+
+#ifdef MJZ_uint128_type_
+      MJZ_uint128_type_ u128 = num_;
       u128 *= inv_10p8_b90;
       u128 >>= 33;
       n = (uint64_t(u128) & (uint64_t(-1) >> 7));
@@ -995,12 +1077,11 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
 #else
       n = (num_ % p10_8) * inv_p10_b57[6];
       num_ = decltype(num_)(num_ / p10_8);
-      const size_t index = size_t(n >> 57);
-      char* const p = end_buf + i;
-      cpy_bitcast_impl_(p, radix_ascii_p2_[index]);
-      i += 2;
-      n &= uint64_t(-1) >> 7;
-      round_left -= 2;
+      cpy_bitcast_impl_(end_buf + i,
+                        inv10p8_b57_mul100_num_to_iota_impl_(n) | ascii_offset);
+      i += 8;
+      round_left -= 8;
+      continue;
 #endif
     } else {
       mjz_assume_impl_(num_ < 100000000);
@@ -1046,17 +1127,8 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     };
     round_left >>= 2;
     if (round_left) {
-      uint8_t indexies[4]{};
-      for (uint8_t& index : indexies) {
-        n *= 100;
-        index = uint8_t(n >> 57);
-        n &= uint64_t(-1) >> 7;
-      }
-      cpy_bitcast_impl_(
-          end_buf + i,
-          std::bit_cast<uint64_t>(std::array{
-              radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
-              radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]}));
+      cpy_bitcast_impl_(end_buf + i,
+                        inv10p8_b57_num_to_iota_impl_ascii_simd_(n));
       i += 8;
       --round_left;
     }
@@ -1066,8 +1138,10 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
 }
 
 template <size_t size_v>
-constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
-    char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
+constexpr static MJZ_forceinline_ size_t
+uint_to_dec_pre_calc_impl_seq_lessmul_branching_(char* buffer,
+                                                 const size_t dec_width_0_,
+                                                 uint32_t num_) noexcept {
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
   char* end_buf = buffer + dec_width_;
@@ -1112,17 +1186,7 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   };
   char_left >>= 2;
   while (char_left) {
-    uint8_t indexies[4]{};
-    for (uint8_t& index : indexies) {
-      n *= 100;
-      index = uint8_t(n >> 57);
-      n &= uint64_t(-1) >> 7;
-    }
-    cpy_bitcast_impl_(
-        end_buf + i,
-        std::bit_cast<uint64_t>(std::array{
-            radix_ascii_p2_[indexies[0]], radix_ascii_p2_[indexies[1]],
-            radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]}));
+    cpy_bitcast_impl_(end_buf + i, inv10p8_b57_num_to_iota_impl_ascii_simd_(n));
     i += 8;
     --char_left;
   }
@@ -1130,6 +1194,51 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   return dec_width_;
 }
 
+template <size_t size_v>
+constexpr static MJZ_forceinline_ size_t
+uint_to_dec_pre_calc_impl_more_mul_(char* buffer,
+                                          const size_t dec_width_0_,
+                                          uint32_t num_) noexcept {
+  mjz_assume_impl_(dec_width_0_ < 11);
+  const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
+  const size_t dec_width_ = floor_log10 + 1;
+  uint64_t n = num_ * inv_p10_b57[8];
+  alignas(32) std::array<char, 32> buf32{};
+  constexpr uint64_t mask = uint64_t(-1) >> 7;
+  std::array<uint8_t, 5> buf_num{};
+#ifdef MJZ_uint128_type_
+  using u128_t_=MJZ_uint128_type_;
+  constexpr u128_t_ const mask128 = (u128_t_(mask) << 64) | mask;
+  buf_num[0] = size_t(n >> 57);
+  u128_t_ both = (u128_t_(n) << 64) | (n * 10000);
+  for (size_t i{1}; i < 3; i++) {
+    both &= mask128;
+    both *= 100;
+    buf_num[i] = uint8_t(both >> 121);
+    buf_num[i + 2] = uint8_t(both >> 57);
+  }
+#else
+  for (size_t i{}; i < 5; i++) {
+    buf_num[i] = size_t(n >> 57);
+    n = (n & mask) * 100;
+  }
+#endif
+  for (size_t i{}; i < 5; i++) {
+    cpy_bitcast_impl_(buf32.data() + i * 2, radix_ascii_p2_[buf_num[i]]);
+  }
+  const size_t shift = 10 - dec_width_;
+  const size_t count_store = size_v < 10 ? dec_width_ : 10;
+  for (size_t i{}; i < count_store; i++) {
+    buffer[i] = buf32[i + shift];
+  }
+  return dec_width_;
+}
+template <size_t size_v>
+constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
+    char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
+  return uint_to_dec_pre_calc_impl_more_mul_<size_v>(buffer, dec_width_0_,
+                                                           num_);
+}
 template <size_t size_v>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     char* buffer, const size_t dec_width_0_, uint16_t num_) noexcept {
@@ -1165,7 +1274,6 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     temp >>= (5 - dec_width_) << 3;
   }
   chs = std::bit_cast<std::array<char, 8>>(temp);
-
 
   if constexpr (size_v < sizeof(temp)) {
     for (size_t i{}; i < dec_width_0_; i++) {
@@ -1259,6 +1367,111 @@ constexpr static inline size_t integral_to_dec_impl_unchecked_(
   buffer += is_neg;
   return size_t(is_neg + uint_to_dec_pre_calc_impl_<size_v, u_t>(
                              buffer, size_t(width_), u_t(abs_n)));
+}
+
+struct double_64_t_impl_ {
+  constexpr inline double_64_t_impl_() noexcept {};
+
+  uint64_t m_coeffient{};
+  int64_t m_exponent{};
+  constexpr inline std::strong_ordering operator<=>(
+      const double_64_t_impl_& rhs) const noexcept {
+    int const lhs_w = std::countl_zero(m_coeffient);
+    int const rhs_w = std::countl_zero(rhs.m_coeffient);
+    std::strong_ordering ret = m_exponent + rhs_w <=> rhs.m_exponent + lhs_w;
+    std::strong_ordering ret2 =
+        (m_coeffient << (63 & (lhs_w))) <=> (rhs.m_coeffient << (63 & (rhs_w)));
+    return ret != ret.equal ? ret : ret2;
+  }
+
+  [[maybe_unused]] constexpr static inline std::weak_ordering
+  operator_spaceship_idk_has_bug(
+      double_64_t_impl_ lhs, double_64_t_impl_ rhs,
+      uint64_t relative_epsilon = uint64_t(1 << 16)) noexcept {
+    int const lhs_w = 63 & std::countl_zero(lhs.m_coeffient);
+    int const rhs_w = 63 & std::countl_zero(rhs.m_coeffient);
+    lhs.m_exponent -= rhs_w;
+    rhs.m_exponent -= lhs_w;
+    uint64_t& lhs_i = lhs.m_coeffient <<= lhs_w;
+    uint64_t& rhs_i = rhs.m_coeffient <<= rhs_w;
+    bool swapped{lhs.m_exponent < rhs.m_exponent};
+    std::swap(lhs, swapped ? rhs : lhs);
+    const uint32_t delta_exp = uint32_t(lhs.m_exponent - rhs.m_exponent);
+    std::weak_ordering ret = delta_exp <=> 1;
+    std::weak_ordering ret2 = lhs_i <=> rhs_i;
+    int64_t delta =
+        int64_t((lhs_i >> 1) - (rhs_i >> (1 + (ret == ret.equivalent))));
+    delta = std::max(delta, -delta);
+    ret2 = (uint64_t(delta) < relative_epsilon) ? std::weak_ordering::equivalent
+                                                : ret2;
+    ret = ret == ret.greater ? ret : ret2;
+    ret2 = 0 <=> ret;
+    ret = swapped ? ret2 : ret;
+    return ret;
+  }
+
+  constexpr double_64_t_impl_(double val) noexcept
+      : double_64_t_impl_(pos_real_dbl_to_bf_impl_(val)) {};
+
+  MJZ_CX_FN double_64_t_impl_ static pos_real_dbl_to_bf_impl_(
+      double val) noexcept {
+    // In the IEEE 754 standard binary64
+    const uint64_t u64_val = std::bit_cast<uint64_t>(val);
+    constexpr uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
+    constexpr uint64_t mantisa_mask = ((uint64_t(1) << 52) - 1);
+    asserts(asserts.assume_rn, !(u64_val >> 63));
+    // no nanny or infs
+    asserts(asserts.assume_rn, (u64_val & exp_mask) != exp_mask);
+    const bool is_subnormal = !(u64_val & exp_mask);
+    const int64_t exponent = int64_t(u64_val >> 52) - 1023 - 52 + is_subnormal;
+    const uint64_t coeffient =
+        uint64_t((mantisa_mask & u64_val) | (uint64_t(!is_subnormal) << 52));
+    double_64_t_impl_ ret{};
+    ret.m_coeffient = coeffient;
+    ret.m_exponent = exponent & -(coeffient != 0);
+    return ret;
+  }
+};
+
+constexpr const inline static size_t lookup_dbl_pow5_table_len_ = 325;
+constexpr auto const inline static lookup_dbl_pow5_table_ = []() noexcept {
+  constexpr auto len_ = lookup_dbl_pow5_table_len_;
+  std::array<double, len_ * 2> ret{};
+  ret[len_] = 1;
+  ret[len_ - 1] = 0.2;
+  for (size_t i{1}; i < len_; i++) {
+    ret[i + len_] = ret[i + len_ - 1] * 5;
+    ret[len_ - i - 1] = ret[len_ - i] * 0.2;
+  }
+  return ret;
+}();
+
+static inline constexpr const double* const lookup_dbl_pow5_table_ptr_ =
+    lookup_dbl_pow5_table_.data() + lookup_dbl_pow5_table_len_;
+
+// 1+floor(log_10(x)) , x=0 -> 0
+constexpr static MJZ_forceinline_ int dec_width_dbl_(
+    const double_64_t_impl_ x_pos_real_) noexcept {
+  uint64_t x = uint64_t(x_pos_real_.m_coeffient);
+  const int log2_exp = int(x_pos_real_.m_exponent);
+  const bool had_1bit = std::has_single_bit(x);
+  const int log2_ceil = std::bit_width(x) - had_1bit + log2_exp;
+  const int log10_2_bx = 19729;
+  const int bx = 16;
+  bool is_neg_log = log2_ceil < 0;
+  const int correct_or_1_plus_correct_abs =
+      int((uint32_t(is_neg_log ? +(!had_1bit) - log2_ceil : log2_ceil) *
+           log10_2_bx) >>
+          bx);
+  const int correct_or_1_plus_correct = is_neg_log
+                                            ? -correct_or_1_plus_correct_abs
+                                            : correct_or_1_plus_correct_abs;
+  double_64_t_impl_ dbl =
+      *(details_ns::lookup_dbl_pow5_table_ptr_ + correct_or_1_plus_correct);
+  dbl.m_exponent += correct_or_1_plus_correct;
+
+  const bool is_correct = dbl <= x_pos_real_;
+  return correct_or_1_plus_correct + is_correct;
 }
 
 }  // namespace details_ns
