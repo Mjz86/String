@@ -354,7 +354,7 @@ like fbstring,  we have a cow threashold of 256bytes( or the configured threasho
   the thread-safety grantees apply to the non thread-safe ownerized string as well , so , that may be more suitable if you see that thread-safety mode is causing bottlenecks in performance  .
 
 The string ensures to use atomic operations if `is_threaded` is true. For a
-brief summary, the thread-safety grantees are similar to a `shared_ptr` of a
+brief summary, the thread-safety grantees are similar to a
 `std::string` if the flag is true.
 
 if thread-safety is turned off manually( advanced users) , 
@@ -409,7 +409,63 @@ void mjz_fn(mjz::string str);
 fn("im too long too fit in sso ............"s);
 mjz_fn("im too long too fit in sso ............"_str);
 ```
+## advantages:
+Well the view part is as fast as a std view, It's O(1) and the constant  is just 4 store instructions or 1 ymm store, but std is O(n) .
 
+The substring is always O(1) the standard uses memmove and O(n)
+
+The copy is always O(1) 
+Because the by tuning  threashold , cow is optimal past that .
+
+
+SSO is always bigger and often 2 times the standard ( for clang its 1.36 times) .
+
+note that for sso of 30: 
+the object size cannot be smaller , even if the sso was shrinked,  this is because of the substring optimization ( the `referencal_t` is 31 bytes , therefore the buffer being less than that would be wasteful,  the extra 1 byte is both the null terminator and length tracker) , and even with this , the size is still 32 bytes , similar to msvc and gcc that have the same object size but 2 times less sso capacity!
+in the case of clang and fbstring,  yes the mjz string is 8bytes bigger , but as gcc and mscv have shown,  the string size of 32bytes is an acceptable sizdme for a string class , and a plus is that its as big as a ymm register , a very subtle compiler dependant optimization that might not be that important. 
+so , therfore we saw that the this sso capacity is a very large value,  with a practical object size. 
+
+` but i want more!` you may ask,  how about you look into the stack buffer optimization , its very similar to a dynamic small string optimization  
+
+
+
+And move is just  bit copy and zeroing out.
+
+
+- **a very important note is ** :
+ Cow is optimal past the threashold in multithreaded environments,  because   the only read issu with cow is its ATOMIC  operations,  the string is totally lock free so the synchronization  cost is only that , 
+ cow is much less of a problem for mutable operations because of the ownerization primitives. 
+
+in single threaded,  cow is always  optimal after sso has ran out , because we would have copied the buffer anyway,  so an add and a store more is not that big of a deal.
+
+
+
+and to people who like the `char[]/span<char>` and  want safety  ,
+the stack buffer  makes the string usable and can be used as a normal string and paased over without a copy like the standard and its growable and ownable unlike the span .
+and its also safe against stack overflows while the buffer is valid
+
+
+the stack buffer combined with the stack-like-cache in the Allocator is a powerful combination, 
+ the stack buffers may be too big for a regular stacks , but the stack allocator , being as fast as a monotonic allocator is both cheap , and unlike the monotonic,  it mandates deallocation of the data , making it not waste resources. 
+
+for example, with a proper setup of the stack allocator  with growing  stack caches  a function needing to allocate  a big stack would relieve the next function of doing the same .
+and with the stack like data structure , when a small  cache is not needed, it can be deallocated,  but the biggest peice of cache and the current pieces in use only remain active. 
+
+this would further enhance the performance,  because  bigger caches mean less allocation  and more use of the same location,  leading to less real cache misses. 
+
+although,  the problem with stacked allocation  is that the data  must not propagate to the caller ( after the destruction of the stack region) ,
+this is mostly a safe replacement for the alloca macro , because the alloca macro may cause stack overflow and is not suitable for allocation  of  large memory regions .
+
+also , if the stack allocator can use mmap , the  stack cache benefits would be huge, 
+because  with each stack growth , the cache becomes bigger , and the deallocating of said stack would never be a virtual call ( because the stack grows continuously and the pervious regions are in the cache , so deallocating them would be a cache hit).
+
+if mmap is used , then after few geometric stack growths , the chance of a hit in the fast region would be very large.
+
+this would be incredibly useful for functions who dont need to propegate dynamically sized  ( the size must be known or calculatable at calltime ) data ( for example  sorting needs O(n) Memory but imitatly discardes that memory opon function exit , or other algorithms that may need some temporary state ),  the ones that do , need to use other allocation strategies .
+
+sadly ,  a `co_await / co_yeild` in the middle of the freea and alloca ( async code) would not work with this type of allocations .
+
+also , for avoiding stack overflow and security vulnerabilities,  some overhead is in checking if the size and alignment are valid, these  failures are often not the case , making failures ( cache miss) a cold case
 
 
 # Unicode Support
