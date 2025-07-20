@@ -62,6 +62,9 @@ constexpr static inline std::array<uint64_t, 20> floor10_table = []() noexcept {
   return ret;
 }();
 
+constexpr std::span<const uint64_t, 10> pow_ten_table =
+    std::span(floor10_table).subspan<1,10>();
+
 static constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
     std::bit_cast<std::array<uint16_t, 101>>(
         std::array<char, 202>{"0001020304050607080910111213141516171819"
@@ -69,6 +72,25 @@ static constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
                               "4041424344454647484950515253545556575859"
                               "6061626364656667686970717273747576777879"
                               "8081828384858687888990919293949596979899\0"});
+constexpr const inline static size_t lookup_dbl_pow5_table_len_ = 325;
+template <int = 0>
+constexpr auto const inline static lookup_dbl_pow5_table_ = []() noexcept {
+  constexpr auto len_ = lookup_dbl_pow5_table_len_;
+  std::array<double, len_ * 2> ret{};
+  ret[len_] = 1;
+  ret[len_ - 1] = 0.2;
+  for (size_t i{1}; i < len_; i++) {
+    ret[i + len_] = ret[i + len_ - 1] * 5;
+    ret[len_ - i - 1] = ret[len_ - i] * 0.2;
+  }
+  return ret;
+}();
+
+template <int i= 0>
+static inline constexpr const double* const lookup_dbl_pow5_table_ptr_ =
+    lookup_dbl_pow5_table_<i>.data() + lookup_dbl_pow5_table_len_;
+
+
 
 constexpr static auto simd_8digit_conv_u64(auto n) noexcept {
   constexpr uint64_t inv10p4_b40 = 109951163;
@@ -595,14 +617,6 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint8_t number_) noexcept {
       std::bit_cast<std::array<char, 2>>(modolo_raidex_table[(val) >> 57])[0];
 }
 
-constexpr std::array<uint64_t, 10> pow_ten_table = []() noexcept {
-  std::array<uint64_t, 10> ret{};
-  ret[0] = 10;
-  for (uint64_t i{1}; i < 10; i++) {
-    ret[i] = ret[i - 1] * 10;
-  }
-  return ret;
-}();
 /* has bug ?*/
 [[maybe_unused]] inline size_t uint_to_dec_forward(
     char* buffer, size_t cap, uint64_t number_0_) noexcept {
@@ -625,7 +639,7 @@ constexpr std::array<uint64_t, 10> pow_ten_table = []() noexcept {
        log10_2_32b) >>
       32;
   log2_floor += log_floor_ofset;
-  log2_floor += pow_ten_table[log_floor_ofset] <= number_0_;
+  log2_floor +=details_ns:: pow_ten_table[log_floor_ofset] <= number_0_;
   const uint64_t count = log2_floor + 1;
   if (cap < count) return false;
   uint_to_dec_forward_less1e11(buffer, std::max<uint64_t>(10, count), low);
@@ -1437,23 +1451,10 @@ struct double_64_t_impl_ {
   }
 };
 
-constexpr const inline static size_t lookup_dbl_pow5_table_len_ = 325;
-constexpr auto const inline static lookup_dbl_pow5_table_ = []() noexcept {
-  constexpr auto len_ = lookup_dbl_pow5_table_len_;
-  std::array<double, len_ * 2> ret{};
-  ret[len_] = 1;
-  ret[len_ - 1] = 0.2;
-  for (size_t i{1}; i < len_; i++) {
-    ret[i + len_] = ret[i + len_ - 1] * 5;
-    ret[len_ - i - 1] = ret[len_ - i] * 0.2;
-  }
-  return ret;
-}();
 
-static inline constexpr const double* const lookup_dbl_pow5_table_ptr_ =
-    lookup_dbl_pow5_table_.data() + lookup_dbl_pow5_table_len_;
 
 // 1+floor(log_10(x)) , x=0 -> 0
+template <int I_0_ = 0>
 constexpr static MJZ_forceinline_ int dec_width_dbl_(
     const double_64_t_impl_ x_pos_real_) noexcept {
   uint64_t x = uint64_t(x_pos_real_.m_coeffient);
@@ -1471,7 +1472,7 @@ constexpr static MJZ_forceinline_ int dec_width_dbl_(
                                             ? -correct_or_1_plus_correct_abs
                                             : correct_or_1_plus_correct_abs;
   double_64_t_impl_ dbl =
-      *(details_ns::lookup_dbl_pow5_table_ptr_ + correct_or_1_plus_correct);
+      *(details_ns::lookup_dbl_pow5_table_ptr_<I_0_> + correct_or_1_plus_correct);
   dbl.m_exponent += correct_or_1_plus_correct;
 
   const bool is_correct = dbl <= x_pos_real_;
