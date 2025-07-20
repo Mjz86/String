@@ -63,7 +63,7 @@ constexpr static inline std::array<uint64_t, 20> floor10_table = []() noexcept {
 }();
 
 constexpr std::span<const uint64_t, 10> pow_ten_table =
-    std::span(floor10_table).subspan<1,10>();
+    std::span(floor10_table).subspan<1, 10>();
 
 static constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
     std::bit_cast<std::array<uint16_t, 101>>(
@@ -86,11 +86,9 @@ constexpr auto const inline static lookup_dbl_pow5_table_ = []() noexcept {
   return ret;
 }();
 
-template <int i= 0>
+template <int i = 0>
 static inline constexpr const double* const lookup_dbl_pow5_table_ptr_ =
     lookup_dbl_pow5_table_<i>.data() + lookup_dbl_pow5_table_len_;
-
-
 
 constexpr static auto simd_8digit_conv_u64(auto n) noexcept {
   constexpr uint64_t inv10p4_b40 = 109951163;
@@ -639,7 +637,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint8_t number_) noexcept {
        log10_2_32b) >>
       32;
   log2_floor += log_floor_ofset;
-  log2_floor +=details_ns:: pow_ten_table[log_floor_ofset] <= number_0_;
+  log2_floor += details_ns::pow_ten_table[log_floor_ofset] <= number_0_;
   const uint64_t count = log2_floor + 1;
   if (cap < count) return false;
   uint_to_dec_forward_less1e11(buffer, std::max<uint64_t>(10, count), low);
@@ -1066,88 +1064,72 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   const size_t dec_width_ = floor_log10 + 1;
   char* end_buf = buffer + dec_width_;
   size_t char_left = dec_width_;
-  mjz_assume_impl_(char_left < 21);
-  bool dont_break{true};
-  do {
-    size_t round_left{};
+  mjz_assume_impl_(char_left < 21 && char_left);
+  while (8 < char_left) {
     uint64_t n{};
-    size_t i{};
-    dont_break = 8 < char_left;
     constexpr uint64_t p10_8 = 10000'0000;
-    if (dont_break) {
-      round_left = 8;
-      end_buf -= 8;
-      char_left -= 8;
-      mjz_assume_impl_(p10_8 <= num_);
-      [[maybe_unused]] constexpr uint64_t inv_10p8_b90 =
-          uint64_t(12379400392853802749ull);
-
+    end_buf -= 8;
+    char_left -= 8;
+    mjz_assume_impl_(p10_8 <= num_);
+    [[maybe_unused]] constexpr uint64_t inv_10p8_b90 =
+        uint64_t(12379400392853802749ull);
 #ifdef MJZ_uint128_type_
-      MJZ_uint128_type_ u128 = num_;
-      u128 *= inv_10p8_b90;
-      u128 >>= 33;
-      n = (uint64_t(u128) & (uint64_t(-1) >> 7));
-      num_ = decltype(num_)(uint64_t(u128 >> 57));
+    MJZ_uint128_type_ u128 = num_;
+    u128 *= inv_10p8_b90;
+    u128 >>= 33;
+    n = (uint64_t(u128) & (uint64_t(-1) >> 7));
+    num_ = decltype(num_)(uint64_t(u128 >> 57));
+    cpy_bitcast_impl_(end_buf, inv10p8_b57_num_to_iota_impl_ascii_simd_(n));
 #else
-      n = (num_ % p10_8) * inv_p10_b57[6];
-      num_ = decltype(num_)(num_ / p10_8);
-      cpy_bitcast_impl_(end_buf + i,
-                        inv10p8_b57_mul100_num_to_iota_impl_(n) | ascii_offset);
-      i += 8;
-      round_left -= 8;
-      continue;
+    n = (num_ % p10_8) * inv_p10_b57[6];
+    num_ = decltype(num_)(num_ / p10_8);
+    cpy_bitcast_impl_(end_buf,
+                      inv10p8_b57_mul100_num_to_iota_impl_(n) | ascii_offset);
 #endif
+  }
+  size_t round_left{char_left};
+  uint64_t n{};
+  size_t i{};
+  end_buf = buffer;
+  mjz_assume_impl_(num_ < 100000000); 
+  if (round_left & 1) {
+    if (round_left != 1) {
+      n = num_ * inv_p10_b57[round_left ^ 1];
+      *end_buf = char('0' | (n >> 57));
+      i++;
+      n &= uint64_t(-1) >> 7;
     } else {
-      mjz_assume_impl_(num_ < 100000000);
-      end_buf -= round_left = char_left;
-      char_left = 0;
-      if (round_left & 1) {
-        if (round_left != 1) {
-          n = num_ * inv_p10_b57[round_left ^ 1];
-          *end_buf = char('0' | (n >> 57));
-          i++;
-          n &= uint64_t(-1) >> 7;
-        } else {
-          *end_buf = char('0' | num_);
-          break;
-        }
-      } else {
-        if (round_left == 2) {
-          const size_t index = num_;
-
-          char* const p = end_buf + i;
-          cpy_bitcast_impl_(p, radix_ascii_p2_[index]);
-
-          break;
-        } else {
-          n = num_ * inv_p10_b57[round_left - 2];
-          const size_t index = size_t(n >> 57);
-          char* const p = end_buf + i;
-          cpy_bitcast_impl_(p, radix_ascii_p2_[index]);
-          i += 2;
-          n &= uint64_t(-1) >> 7;
-          round_left -= 2;
-        }
-      }
+      *end_buf = char('0' | num_);
+      return dec_width_;
     }
-    round_left >>= 1;
-    while (round_left & 3) {
-      n *= 100;
+  } else {
+    if (round_left == 2) {
+      const size_t index = num_;
+
+      char* const p = end_buf + i;
+      cpy_bitcast_impl_(p, radix_ascii_p2_[index]);
+
+      return dec_width_;
+    } else {
+      n = num_ * inv_p10_b57[round_left - 2];
       const size_t index = size_t(n >> 57);
-      cpy_bitcast_impl_(end_buf + i, radix_ascii_p2_[index]);
+      char* const p = end_buf + i;
+      cpy_bitcast_impl_(p, radix_ascii_p2_[index]);
       i += 2;
       n &= uint64_t(-1) >> 7;
-      --round_left;
-    };
-    round_left >>= 2;
-    if (round_left) {
-      cpy_bitcast_impl_(end_buf + i,
-                        inv10p8_b57_num_to_iota_impl_ascii_simd_(n));
-      i += 8;
-      --round_left;
+      round_left -= 2;
     }
-    mjz_assume_impl_(round_left == 0);
-  } while (dont_break);
+  }
+  round_left >>= 1;
+  mjz_assume_impl_(round_left < 4 && round_left);
+  while (round_left) {
+    n *= 100;
+    const size_t index = size_t(n >> 57);
+    cpy_bitcast_impl_(end_buf + i, radix_ascii_p2_[index]);
+    i += 2;
+    n &= uint64_t(-1) >> 7;
+    round_left--;
+  };
   return dec_width_;
 }
 
@@ -1209,10 +1191,8 @@ uint_to_dec_pre_calc_impl_seq_lessmul_branching_(char* buffer,
 }
 
 template <size_t size_v>
-constexpr static MJZ_forceinline_ size_t
-uint_to_dec_pre_calc_impl_more_mul_(char* buffer,
-                                          const size_t dec_width_0_,
-                                          uint32_t num_) noexcept {
+constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_more_mul_(
+    char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
   mjz_assume_impl_(dec_width_0_ < 11);
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
@@ -1222,7 +1202,7 @@ uint_to_dec_pre_calc_impl_more_mul_(char* buffer,
 #ifdef MJZ_uint128_type_
   constexpr uint32_t inv10p8_b57 = uint32_t(inv_p10_b57[8]);
   static_assert(inv_p10_b57[8] == inv10p8_b57);
-  using u128_t_=MJZ_uint128_type_;
+  using u128_t_ = MJZ_uint128_type_;
   constexpr u128_t_ const mask128 = (u128_t_(mask) << 64) | mask;
   constexpr u128_t_ mul128_offset = (1 + (u128_t_(10000) << 64));
   constexpr u128_t_ mul_val = inv10p8_b57 * mul128_offset;
@@ -1231,7 +1211,7 @@ uint_to_dec_pre_calc_impl_more_mul_(char* buffer,
   for (size_t i{1}; i < 3; i++) {
     both &= mask128;
     both *= 100;
-    buf_num[i+2] = uint8_t(both >> 121);
+    buf_num[i + 2] = uint8_t(both >> 121);
     buf_num[i] = uint8_t(both >> 57);
   }
 #else
@@ -1255,7 +1235,7 @@ template <size_t size_v>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
   return uint_to_dec_pre_calc_impl_more_mul_<size_v>(buffer, dec_width_0_,
-                                                           num_);
+                                                     num_);
 }
 template <size_t size_v>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
@@ -1451,8 +1431,6 @@ struct double_64_t_impl_ {
   }
 };
 
-
-
 // 1+floor(log_10(x)) , x=0 -> 0
 template <int I_0_ = 0>
 constexpr static MJZ_forceinline_ int dec_width_dbl_(
@@ -1471,8 +1449,8 @@ constexpr static MJZ_forceinline_ int dec_width_dbl_(
   const int correct_or_1_plus_correct = is_neg_log
                                             ? -correct_or_1_plus_correct_abs
                                             : correct_or_1_plus_correct_abs;
-  double_64_t_impl_ dbl =
-      *(details_ns::lookup_dbl_pow5_table_ptr_<I_0_> + correct_or_1_plus_correct);
+  double_64_t_impl_ dbl = *(details_ns::lookup_dbl_pow5_table_ptr_<I_0_> +
+                            correct_or_1_plus_correct);
   dbl.m_exponent += correct_or_1_plus_correct;
 
   const bool is_correct = dbl <= x_pos_real_;
