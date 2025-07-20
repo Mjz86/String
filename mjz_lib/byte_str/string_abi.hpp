@@ -651,7 +651,7 @@ struct str_abi_t_ {
     }
     template <when_t when_v>
     MJZ_CX_FN success_t add_null() noexcept {
-      if (is_sso()) {
+      if (is_sso() || when_v.is_sso()) {
         m_sso_buffer_()[get_length()] = '\0';
         return true;
       }

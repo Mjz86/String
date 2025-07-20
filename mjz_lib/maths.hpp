@@ -29,6 +29,14 @@ MJZ_DISABLE_ALL_WANINGS_START_;
 #include <cfloat>
 #include <cmath>
 MJZ_DISABLE_ALL_WANINGS_END_;
+
+#ifdef __SIZEOF_INT128__
+#define MJZ_uint128_t_impl_t_ unsigned __int128
+#elif 1 < _MSC_VER
+#define MJZ_uint128_t_impl_t_ std::_Unsigned128
+#else
+#endif
+
 #include <bit>
 namespace mjz {
 
@@ -83,7 +91,7 @@ struct uintN_t {
   }
   MJZ_CX_AL_FN void operator_sr(uintlen_t amount) noexcept {
     bool zero_out = amount < n_bits;
-    const uint64_t zero_out_mask64 = (~uint64_t(zero_out)) + 1; 
+    const uint64_t zero_out_mask64 = (~uint64_t(zero_out)) + 1;
     for (uint64_t& word : words) word &= zero_out_mask64;
     amount &= zero_out_mask64;
     intlen_t abs_amount = intlen_t(amount);
@@ -109,7 +117,6 @@ struct uintN_t {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       nth_word(i) = temp[size_t(i + external_amount)];
     }
-
   }
   MJZ_CX_AL_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
     operator_sr(amount);
@@ -119,14 +126,14 @@ struct uintN_t {
 
   MJZ_CX_AL_FN void operator_sl(uintlen_t amount) noexcept {
     bool zero_out = amount < n_bits;
-    const uint64_t zero_out_mask64 = (~uint64_t(zero_out))+1; 
+    const uint64_t zero_out_mask64 = (~uint64_t(zero_out)) + 1;
     for (uint64_t& word : words) word &= zero_out_mask64;
     amount &= zero_out_mask64;
     intlen_t abs_amount = intlen_t(amount);
     intlen_t internal_amount{abs_amount & 63};
     intlen_t external_amount{abs_amount >> 6};
     MJZ_JUST_ASSUME_(external_amount < intlen_t(word_count));
-    MJZ_JUST_ASSUME_(amount < n_bits); 
+    MJZ_JUST_ASSUME_(amount < n_bits);
     const uint64_t ub_annoying_mask = (~uint64_t(internal_amount != 0)) + 1;
     uintN_t upper_half{*this}, lower_half{*this};
     for (uint64_t& word : upper_half.words) word = (word << internal_amount);
@@ -145,7 +152,6 @@ struct uintN_t {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       nth_word(i) = temp[size_t(i)];
     }
-
   }
   MJZ_CX_AL_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
     operator_sl(amount);
@@ -234,6 +240,12 @@ struct uintN_t {
   }
   MJZ_CX_FN uintN_t& operator*=(const uintN_t& amount) noexcept {
     if constexpr (word_count == 2) {
+#ifdef MJZ_uint128_t_impl_t_
+      return *this = std::bit_cast<uintN_t>(
+                 std::bit_cast<MJZ_uint128_t_impl_t_>(amount) *
+                 std::bit_cast<MJZ_uint128_t_impl_t_>(*this));
+#endif  //  MJZ_uint128_t_impl_t_
+
       // https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B17/uint128_t.h
       const uint64_t x = nth_word(0);
       const uint64_t y = amount.nth_word(0);
@@ -425,150 +437,20 @@ struct uintN_t {
   }
 };
 
-template <version_t version_v>
-struct devide_fast_t {
-  uint64_t devide_val{};
-  uint64_t inverse{};
-  MJZ_DEFAULTED_CLASS(devide_fast_t);
-  using uint128_t_mjz_ = uintN_t<version_v, 128>;
-  MJZ_CX_FN static uint64_t devide_with_inverse_impl_(
-      const uint64_t amount, const uint64_t inverse_) noexcept {
-    // https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B17/uint128_t.h
-    const uint64_t x = amount;
-    const uint64_t y = inverse_;
-    const uint64_t xl = x & 0xffffffff;
-    const uint64_t xh = x >> 32;
-    const uint64_t yl = y & 0xffffffff;
-    const uint64_t yh = y >> 32;
-    const uint64_t ll = xl * yl;
-    const uint64_t lh = xl * yh;
-    const uint64_t hl = xh * yl;
-    const uint64_t hh = xh * yh;
-    const uint64_t m = (ll >> 32) + lh + (hl & 0xffffffff);
-    const uint64_t h = (m >> 32) + (hl >> 32) + hh;
-    return h;
-  }
-
-  MJZ_CX_FN devide_fast_t(void_struct_t, uint64_t devidition_mount) noexcept
-      : devide_val(devidition_mount), inverse([devidition_mount]() noexcept {
-          asserts(asserts.assume_rn, 2 <= devidition_mount);
-          return uint64_t(operator_devide_up(uint128_t_mjz_{0, 1},
-                                             uint128_t_mjz_(devidition_mount)));
-        }()) {}
-  MJZ_CE_FN devide_fast_t(uint64_t devidition_mount) noexcept
-      : devide_fast_t(void_struct_t{}, devidition_mount) {}
-  MJZ_CX_FN friend uint64_t operator/(const uint64_t amount,
-                                      const devide_fast_t rhs) noexcept {
-    return devide_with_inverse_impl_(amount, rhs.inverse);
-  }
-  MJZ_CX_FN std::pair<uint64_t, uint64_t> divide_modulo(
-      const uint64_t amount) const noexcept {
-    const uint64_t value = devide_with_inverse_impl_(amount, inverse);
-    const uint64_t modulo = amount - value * devide_val;
-    return {value, modulo};
-  }
-};
-
-template <version_t version_v, uint64_t devidition_mount>
-  requires(!!devidition_mount)
-MJZ_CX_FN uint64_t devide_with_inverse(const uint64_t amount) noexcept {
-  if constexpr (devidition_mount == 1) {
-    return amount;
-  } else {
-    constexpr auto rhs = devide_fast_t<version_v>(devidition_mount);
-    return amount / rhs;
-  }
-}
-template <version_t version_v, bool shifts_before = true,
-          uintlen_t cached_count = 16>
-alignas(hardware_constructive_interference_size) static inline constexpr const
-    std::array<uint64_t, cached_count> math_helper_t_cached_vals_ =
-        []() noexcept {
-          std::array<uint64_t, cached_count> ret{};
-          for (uint64_t i{}; i < cached_count; i++) {
-            uint64_t rhs{};
-            if constexpr (shifts_before) {
-              rhs = (i + 1) * 2 + 1;
-            } else {
-              rhs = i + 2;
-            }
-            ret[i] = devide_fast_t<version_v>{void_struct_t{}, rhs}.inverse;
-          }
-          return ret;
-        }();
-
-template <version_t version_v, bool shifts_before = true,
-          uintlen_t cached_count = 16>
-struct math_helper_t_ {
-  MJZ_CX_FN static std::pair<uint64_t, uint64_t> divide_modulo(
-      const uint64_t lhs, const uint64_t rhs) noexcept {
-    asserts(asserts.assume_rn, rhs != 0);
-    constexpr auto&& cached_inverses =
-        math_helper_t_cached_vals_<version_v, shifts_before, cached_count>;
-    if constexpr (!shifts_before) {
-      if (rhs == 1) {
-        return {lhs, 0};
-      }
-      const uint64_t index_cache = rhs - 2;
-      if (cached_count <= index_cache) {
-        return {lhs / rhs, lhs % rhs};
-      }
-      devide_fast_t<version_v> div_{};
-      div_.devide_val = rhs;
-      div_.inverse = cached_inverses[index_cache];
-      return div_.divide_modulo(lhs);
-    }
-    const int num_zero_bits = std::countr_zero(rhs);
-    const uint64_t rhs_reduced = rhs >> num_zero_bits;
-    const uint64_t lhs_reduced = lhs >> num_zero_bits;
-    const uint64_t round_val = (lhs_reduced << num_zero_bits) ^ lhs;
-    if (rhs_reduced == 1) {
-      return {lhs_reduced, round_val};
-    }
-    const uint64_t index_cache = (rhs_reduced >> 1) - 1;
-    if (cached_count <= index_cache) {
-      return {lhs_reduced / rhs_reduced,
-              ((lhs_reduced % rhs_reduced) << num_zero_bits) + round_val};
-    }
-    devide_fast_t<version_v> div_{};
-    div_.devide_val = rhs_reduced;
-    div_.inverse = cached_inverses[index_cache];
-    auto [mul, r] = div_.divide_modulo(lhs_reduced);
-    return {mul, (r << num_zero_bits) + round_val};
-  }
-
-  MJZ_CX_ND_FN static std::pair<int64_t, int64_t> signed_divide_modulo(
-      int64_t lhs, int64_t rhs) noexcept {
-    bool is_neg = int(lhs < 0) != int(rhs < 0);
-    lhs = std::max(lhs, -lhs);
-    rhs = std::max(rhs, -rhs);
-    auto [mul, r] = divide_modulo(uint64_t(lhs), uint64_t(rhs));
-    lhs = int64_t(r);
-    rhs = int64_t(mul);
-    rhs = is_neg ? -rhs : rhs;
-    lhs = is_neg ? -lhs : lhs;
-    return {rhs, lhs};
-  }
-};
-
 template <version_t version_v, uint64_t... exclude_>
 struct exclusive_math_helper_t_ {
-  template <devide_fast_t<version_v> rhs_v>
+  template <uint64_t rhs_v>
   MJZ_CX_FN static bool divide_modulo_impl(std::pair<uint64_t, uint64_t>& ret,
                                            const uint64_t lhs,
                                            const uint64_t rhs) noexcept {
-    if (rhs != rhs_v.devide_val) {
+    if (rhs != rhs_v) {
       return false;
     }
-    if constexpr (std::has_single_bit(rhs_v.devide_val)) {
-      ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v.devide_val,
-                                          lhs % rhs_v.devide_val};
+    if constexpr (std::has_single_bit(rhs_v)) {
+      ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v, lhs % rhs_v};
       return true;
-    } else if constexpr (MJZ_MSVC_ONLY_CODE_(true) MJZ_GCC_ONLY_CODE_(false)) {
-      ret = rhs_v.divide_modulo(lhs);
     }
-    ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v.devide_val,
-                                        lhs % rhs_v.devide_val};
+    ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v, lhs % rhs_v};
     return true;
   }
 
@@ -1260,13 +1142,6 @@ template <std::floating_point f_t>
 MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
   return f_t(x);
 }
-
-
-
-
-
-
-
 
 }  // namespace mjz
 #endif  // MJZ_MATHS_LIB_HPP_FILE_

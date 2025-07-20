@@ -1735,11 +1735,13 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN static self_t s_make_str(T val) noexcept {
     self_t ret{};
     if constexpr (int_to_dec_unchekced_size_v<T> <= sso_cap) {
-      ret.m.set_sso_length(traits_type{}.template dec_from_int< sso_cap,
-                                                             alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
-                                    ret.m.m_sso_buffer_(), sso_cap, val));
+      ret.m
+          .set_sso_length(traits_type{}
+                              .template dec_from_int<sso_cap, alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
+                                  ret.m.m_sso_buffer_(), sso_cap, val));
       asserts(asserts.assume_rn,
-              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+                    ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+      ret.m.template add_null<when_t::as_sso>();
     } else {
       ret.as_integral(val, 10, false);
     }
@@ -1760,6 +1762,7 @@ struct basic_str_t : void_struct_t {
           floating_format_e::general));
       asserts(asserts.assume_rn,
               ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+      ret.m.template add_null<when_t::as_sso>();
     return ret;
   }
 

@@ -464,7 +464,7 @@ struct global_allocator_class_t<version_v, 256> : void_struct_t {
       if (!lock) return {};
       return pages.m.allocate(count, uintlen_t(align));
     }
-     thread_local pages_data_t pages{};
+    thread_local pages_data_t pages{};
     return pages.m.allocate(count, uintlen_t(align));
   }
   MJZ_NCX_FN static success_t nothrow_page_try_delete(
@@ -871,9 +871,8 @@ class alloc_base_ref_t {
     }
     return local_alloc(*ref, minsize, ai);
   }
-  MJZ_CX_FN static success_t deallocate_bytes_impl_(alloc_base *ref,
-                                                    block_info blk,
-                                                    alloc_info ai) noexcept {
+  MJZ_CX_FN static void deallocate_bytes_impl_(alloc_base *ref, block_info blk,
+                                               alloc_info ai) noexcept {
     typename alloc_vtable_t<version_v>::funcs_t::allocate allocate_fn{};
     typename alloc_vtable_t<version_v>::funcs_t::deallocate deallocate_fn{};
     const bool can_cache_ = int(!!ref) & int(!ai.is_thread_safe);
@@ -886,19 +885,19 @@ class alloc_base_ref_t {
       success |= monotonic_deallocate_bytes_cache_(*ref, blk, ai, success);
       success |= ai.cache_only_allocation;
       if (success) {
-        return true;
+        return;
       }
     }
     if (deallocate_fn) {
       local_dealloc(*ref, blk, ai);
-      return true;
+      return;
     }
     if (allocate_fn) {
       // monotonic
-      return true;
+      return;
     }
     global_allocator_t<version_v>::global_dealloc(blk, ai);
-    return true;
+    return;
   }
 
   struct alloc_log_info {
@@ -999,7 +998,7 @@ class alloc_base_ref_t {
     }
   }
   MJZ_CX_FN alloc_info get_default_info() const noexcept {
-    alloc_info info= get_vtbl().default_info;
+    alloc_info info = get_vtbl().default_info;
     asserts(asserts.assume_rn, info.size_multiplier == 1);
     return info;
   }
@@ -1008,11 +1007,12 @@ class alloc_base_ref_t {
   success_t deallocate_bytes(block_info &&blk, alloc_info ai) const noexcept {
     if constexpr (check_the_alloc_info<version_v>) {
       deallocate_bytes_log_check_fix(blk, ai);
-      auto ret = deallocate_bytes_impl_(this->ref, blk, ai);
+      deallocate_bytes_impl_(this->ref, blk, ai);
       blk = block_info{};
-      return ret;
+      return true;
     } else {
-      return deallocate_bytes_impl_(this->ref, blk, ai);
+      deallocate_bytes_impl_(this->ref, blk, ai);
+      return true;
     }
   }
   MJZ_CX_FN
@@ -1122,16 +1122,14 @@ class alloc_base_ref_t {
     info.set_alignof_z(alignof(T));
     return info;
   };
-  MJZ_CX_FN alloc_info
-  alloc_sigular_preapare_info_v(uintlen_t size_,
-                                               uintlen_t align_,
-                                               bool thread_safe,
-                                               bool is_node,bool exact_=true) const noexcept {
+  MJZ_CX_FN alloc_info alloc_sigular_preapare_info_v(
+      uintlen_t size_, uintlen_t align_, bool thread_safe, bool is_node,
+      bool exact_ = true) const noexcept {
     alloc_info info{get_default_info()};
     info.is_thread_safe = thread_safe;
     info.allocate_exactly_minsize = exact_;
     info.is_one_of_many_nodes = is_node;
-    info.size_multiplier =  size_;
+    info.size_multiplier = size_;
     info.set_alignof_z(align_);
     return info;
   };

@@ -810,12 +810,10 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   }
   template <size_t min_cap = 0, size_t min_align = 1, std::integral T>
   MJZ_CX_AL_FN static uintlen_t dec_from_int(char *out_buf, uintlen_t out_len,
-                                              T number_) noexcept {
+                                             T number_) noexcept {
     if constexpr (int_to_dec_unchekced_size_v<T> <= min_cap) {
-      return int_to_dec_unchecked<min_cap, T>(out_buf,
-                                                         number_);
-    }
-    else {
+      return int_to_dec_unchecked<min_cap, T>(out_buf, number_);
+    } else {
       return int_to_dec(out_buf, out_len, number_);
     }
   }
@@ -843,8 +841,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 #endif
     if (!len || !buf) return {};
     if (raidex == 10) {
-        uintlen_t ret = dec_from_int<min_cap, min_align>(buf, len, val_rg_);
-        return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
+      uintlen_t ret = dec_from_int<min_cap, min_align>(buf, len, val_rg_);
+      return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
     }
     return [=]() mutable noexcept -> std::optional<uintlen_t> {
       if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
@@ -1583,6 +1581,58 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   }
   MJZ_CX_FN int64_t static exponent_log10_and_component_aprox_(
       big_float_t<version_v> &val) noexcept {
+    constexpr const big_float_t<version_v> inv_ten =
+        *big_float_t<version_v>::float_from(0.1);
+    constexpr const big_float_t<version_v> ten =
+        big_float_t<version_v>::float_from_i(10);
+    constexpr const big_float_t<version_v> one =
+        big_float_t<version_v>::float_from_i(1);
+    if constexpr (true) {
+      if (val.m_coeffient == 0) {
+        return 0;
+      }
+      details_ns::double_64_t_impl_ dbl{};
+      dbl.m_coeffient = uint64_t(val.m_coeffient);
+      dbl.m_exponent = val.m_exponent;
+      int64_t ret = int64_t(details_ns::dec_width_dbl_<0>(dbl)) - 1;
+      val = val * pos_real_dbl_to_bf_impl_(
+                      *(details_ns::lookup_dbl_pow5_table_ptr_<0> - ret));
+      val.m_exponent -= ret;
+
+      uint64_t v = uint64_t(val.m_coeffient);
+      const int shift_amount =
+          std::countl_zero(v) -
+          1;  // making the bit past the signed 1 , so the value is always
+              // bigger or eq to 2^62 and less than 2^63
+      val.m_coeffient = int64_t(v <<= shift_amount);
+      val.m_exponent -= shift_amount;
+      asserts(asserts.assume_rn, val.m_exponent < 0);
+      uint64_t abs_val = uint64_t(-val.m_exponent);
+      bool less_than_1{true};
+      bool more_than_eq_10{};
+      if ((abs_val & 63) == abs_val) {
+          v >>= abs_val;
+          less_than_1 = v < 1;
+          more_than_eq_10 = 10 <= v;
+      }
+      if constexpr (false) {
+        // i dont think this should trigger
+        asserts(asserts.believe_rn, !(less_than_1 || more_than_eq_10),
+                "exponent_log10_and_component_aprox_: why did the logic fail?  "
+                "was comparison imprecise?!!!");
+      }
+      if (more_than_eq_10) {
+        val = val * inv_ten;
+        ret++;
+        return ret;
+      } 
+      if (less_than_1) {
+        val = val * ten;
+        ret--;
+      }
+      return ret;
+    }
+
     big_float_t<version_v> f_val = val;
     if (f_val.m_coeffient == 0) {
       return 0;
@@ -1616,12 +1666,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     log2_val.m_exponent = -32;
     constexpr const big_float_t<version_v> log10_2 =
         *big_float_t<version_v>::float_from(0.30102999566398119521373889472449);
-    constexpr const big_float_t<version_v> inv_ten =
-        *big_float_t<version_v>::float_from(0.1);
-    constexpr const big_float_t<version_v> ten =
-        big_float_t<version_v>::float_from_i(10);
-    constexpr const big_float_t<version_v> one =
-        big_float_t<version_v>::float_from_i(1);
+
     const big_float_t<version_v> log10_val = log2_val * log10_2;
 
     asserts(asserts.assume_rn, log10_val.m_exponent < 64);
@@ -1753,7 +1798,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
                                         : std::countr_zero(ret_0_)) >>
                                    3));
     ret_0_ |= details_ns::ascii_offset;
-    if constexpr(std::endian::big != std::endian::native) {
+    if constexpr (std::endian::big != std::endian::native) {
       ret_0_ >>= num_high_0ch << 3;
     } else {
       ret_0_ <<= num_high_0ch << 3;
@@ -2280,9 +2325,3 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
 }  // namespace mjz::bstr_ns
 #endif  // MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
-
-/*
-D\left(x\right)=\operatorname{floor}\left(\frac{\left(\operatorname{ceil}\left(\frac{2^{32}}{5^{4}}\right)\right)\operatorname{floor}\left(x\right)}{2^{32}}\right)
-f\left(x\right)=D\left(\operatorname{floor}\left(\frac{x}{2^{4}}\right)\right)-\operatorname{floor}\left(\frac{x}{10^{4}}\right)
-\int_{0}^{10^{8}}f\left(x\right)dx=0
-*/

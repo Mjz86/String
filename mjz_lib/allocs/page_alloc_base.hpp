@@ -167,11 +167,9 @@ struct stack_allocator_meta_t {
    * ...
    */
   MJZ_CX_FN std::span<char> fn_alloca(const uintlen_t min_size,
-                                      const uintlen_t align_ = align) noexcept {
-    uintlen_t size = min_size;
-    const bool bad_align = !!(size & (align - 1));
-    size &= ~(align - 1);
-    size += branchless_teranary<uintlen_t>(!bad_align, 0, align);
+                                      const uintlen_t align_ = align) noexcept { 
+    constexpr uintlen_t align_mask = align - 1;
+    const uintlen_t size = (min_size + align_mask) & ~align_mask;
 
     const bool bad = bool(int(uintlen_t(send - sptr) < size) |
                           int(align < align_) | int(!size));
@@ -255,13 +253,13 @@ struct fast_alloc_chache_t {
   uintlen_t stack_left : sizeof(uintlen_t) * 8 - 8 {};
   uintlen_t stack_log2_align : 7 {};
   uintlen_t can_use_stack : 1 {};
+  char* stack_ptr{};
   uintlen_t monotonic_left : sizeof(uintlen_t) * 8 - 8 {};
   uintlen_t monotonic_log2_align : 7 {};
   uintlen_t can_use_monotonic : 1 {};
   char* monotonic_ptr{};
-  char* stack_ptr{};
-  char* stack_begin{};
   char* monotonic_begin{};
+  char* stack_begin{};
   /*CATION !!!!!!!!!!!!!
    *WILL LEAD TO UB IF THE STACK IS MISUSED,
    * USE THE FOLLOWING TO ENSURE SAFE USE
@@ -273,13 +271,17 @@ struct fast_alloc_chache_t {
    */
   MJZ_CX_FN std::span<char> fn_alloca(const uintlen_t min_size,
                                       const uintlen_t align_,const bool bad_=false) noexcept {
-    uintlen_t align = uintlen_t(1) << stack_log2_align;
-    uintlen_t size = min_size;
-    const bool bad_align = !!(size & (align - 1));
-    size &= ~(align - 1);
-    size += branchless_teranary<uintlen_t>(!bad_align, 0, align);
-    const bool bad = bool(int(stack_left < size) | int(align < align_) |
-                          int(!size) | int(!can_use_stack) | int(bad_));
+   const uintlen_t align = uintlen_t(1) << stack_log2_align;
+    const uintlen_t align_mask = align - 1;
+   const uintlen_t size = (min_size + align_mask) & ~align_mask;
+    const bool bad =
+        (bool(int(stack_left < size) | int(align < align_) |
+                           int(!size) | int(!can_use_stack) | int(bad_)));
+   if constexpr (true) {
+     if (bad) {
+       return{};
+     }
+   }
     const auto ret = branchless_teranary(!bad, std::span<char>{stack_ptr, size},
                                          std::span<char>{});
     stack_ptr += ret.size();
@@ -303,6 +305,11 @@ struct fast_alloc_chache_t {
                          blk.data(), blk.size());
     good &= !bad_;
     good &= can_use_stack;
+    if constexpr (true) {
+      if (!good || !blk.data()) {
+        return good || !blk.data();
+      }
+    }
     char* new_stack_ptr = branchless_teranary(!good, stack_ptr, blk.data());
     stack_left += uintlen_t(stack_ptr - new_stack_ptr);
     stack_ptr = new_stack_ptr;
@@ -311,33 +318,48 @@ struct fast_alloc_chache_t {
   }
 
   MJZ_CX_FN void fn_dealloca(std::span<char>&& blk,
-                             MJZ_MAYBE_UNUSED const uintlen_t align_,
-                             const bool bad_ = false) noexcept {
-    asserts(asserts.assume_rn, fn_try_dealloca(std::move(blk), align_,bad_));
+                             MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
+  
+    if (!blk.data()) return;
+    asserts(asserts.assume_rn,
+          memory_is_inside(stack_begin,
+                             uintlen_t(stack_ptr + stack_left - stack_begin),
+                              blk.data(), blk.size()) &&
+             can_use_stack);
+    char* new_stack_ptr = blk.data();
+    stack_left += uintlen_t(stack_ptr - new_stack_ptr);
+    stack_ptr = new_stack_ptr;
   }
 
   MJZ_CX_FN std::span<char> monotonic_allocate(const uintlen_t min_size, uintlen_t align_,
       const bool bad_ = false) noexcept {
     asserts(asserts.assume_rn,
             align_ == (uintlen_t(1) << log2_of_val_create(align_)));
-    uintlen_t size = min_size;
-    const bool bad = bool(int(monotonic_left < size) |
+    const uintlen_t modular_math_op = (align_ - 1) ; 
+    align_ = modular_math_op + 1;
+    uintlen_t distance_align{};
+    MJZ_IFN_CONSTEVAL_ {
+      distance_align =
+          uintlen_t(-std::bit_cast<intptr_t>(monotonic_ptr)) & modular_math_op;
+    }
+    else {
+      distance_align =
+          uintlen_t(monotonic_begin - monotonic_ptr) & modular_math_op;
+    }
+    char*const aligned_ptr = monotonic_ptr + distance_align;
+    const uintlen_t delta_ = distance_align + min_size;
+    const bool bad = bool(int(monotonic_left < delta_) |
                           int((uintlen_t(1) << monotonic_log2_align) < align_) |
-                          int(!can_use_monotonic)|int(bad_));
-    align_ = branchless_teranary<uintlen_t>(!bad, align_, 1);
-    uintlen_t modular_math_op = align_ - 1;
-    uintlen_t distance_align =
-        uintlen_t(monotonic_ptr - monotonic_begin) & modular_math_op;
-    distance_align = (align_ - distance_align) & modular_math_op;
-    monotonic_ptr += distance_align;
-    monotonic_left -= distance_align;
-    std::span<char> ret= branchless_teranary<std::span<char>>(
-        bad, std::span<char>{},
-                                         std::span<char>{monotonic_ptr, size});
-    
-    monotonic_ptr += ret.size();
-    monotonic_left -= ret.size();
-    return ret;
+                          int(!can_use_monotonic) | int(bad_));
+  
+    if constexpr (true) {
+      if (bad) {
+        return {};
+      }
+    }
+    monotonic_ptr += bad ? 0 : delta_;
+    monotonic_left -= bad ? 0 : delta_;
+    return {bad ? nullptr : aligned_ptr, bad?0 :min_size};
   }
   MJZ_CX_FN bool is_monotonic(const std::span<char>& blk,
                               MJZ_MAYBE_UNUSED const uintlen_t align_,
@@ -359,6 +381,9 @@ struct fast_alloc_chache_t {
     return ret;
   }
 };
+
+
+
 
 };  // namespace mjz::allocs_ns
 #endif  // MJZ_ALLOCS_bump_alloc_FILE_HPP_
