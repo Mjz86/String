@@ -470,7 +470,7 @@ also , for avoiding stack overflow and security vulnerabilities,  some overhead 
 * faster converting integral types to strings:
 
 while not inheritly  part of the data structure ( the standard can adopt my algorithm  or a variation of it for  string conversion ) 
-my implementation is faster and the sso can always fit these strings. 
+my implementation is a tiny bit faster mainly because sso can always fit these strings and becuse i do some tricks and i have also branchless conversations
  
 
 
