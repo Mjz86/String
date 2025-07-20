@@ -467,6 +467,13 @@ sadly ,  a `co_await / co_yeild` in the middle of the freea and alloca ( async c
 
 also , for avoiding stack overflow and security vulnerabilities,  some overhead is in checking if the size and alignment are valid, these  failures are often not the case , making failures ( cache miss) a cold case
 
+* faster converting integral types to strings:
+
+while not inheritly  part of the data structure ( the standard can adopt my algorithm  or a variation of it for  string conversion ) 
+my implementation is faster and the sso can always fit these strings. 
+ 
+
+
 
 # Unicode Support
 
@@ -1140,3 +1147,7 @@ You may give feedback in:
  
   - [unicode standard](https://www.unicode.org/standard/standard.html)
  
+ -[mjz::int_to_dec](https://github.com/Mjz86/String/blob/main/int_to_dec.md) 
+ 
+ - [https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp](https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp)
+

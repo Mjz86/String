@@ -52,7 +52,8 @@ we continue  by :
 
   we know that we have an even number of digits left , so we multipky by 100 at each round , extracting 2 digitds by lookup , then we only let the rest of the fraction to remain,
 
-
+aldo for groups of 8 digits :
+we  use 3 sequential 128 bit integer multiplications for lookup instead of 5 sequential 64 bit multiplications
 
 
 (also some loop unrolling , cause why not)
