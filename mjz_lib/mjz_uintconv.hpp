@@ -1202,22 +1202,26 @@ uint_to_dec_pre_calc_impl_more_mul_(char* buffer,
   mjz_assume_impl_(dec_width_0_ < 11);
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
-  uint64_t n = num_ * inv_p10_b57[8];
   alignas(32) std::array<char, 32> buf32{};
   constexpr uint64_t mask = uint64_t(-1) >> 7;
   std::array<uint8_t, 5> buf_num{};
 #ifdef MJZ_uint128_type_
+  constexpr uint32_t inv10p8_b57 = uint32_t(inv_p10_b57[8]);
+  static_assert(inv_p10_b57[8] == inv10p8_b57);
   using u128_t_=MJZ_uint128_type_;
   constexpr u128_t_ const mask128 = (u128_t_(mask) << 64) | mask;
-  buf_num[0] = size_t(n >> 57);
-  u128_t_ both = (u128_t_(n) << 64) | (n * 10000);
+  constexpr u128_t_ mul128_offset = (1 + (u128_t_(10000) << 64));
+  constexpr u128_t_ mul_val = inv10p8_b57 * mul128_offset;
+  u128_t_ both = mul_val * num_;
+  buf_num[0] = uint8_t(both >> 57);
   for (size_t i{1}; i < 3; i++) {
     both &= mask128;
     both *= 100;
-    buf_num[i] = uint8_t(both >> 121);
-    buf_num[i + 2] = uint8_t(both >> 57);
+    buf_num[i+2] = uint8_t(both >> 121);
+    buf_num[i] = uint8_t(both >> 57);
   }
 #else
+  uint64_t n = num_ * inv_p10_b57[8];
   for (size_t i{}; i < 5; i++) {
     buf_num[i] = size_t(n >> 57);
     n = (n & mask) * 100;
