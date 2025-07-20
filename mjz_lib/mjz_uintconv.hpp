@@ -1140,7 +1140,7 @@ uint_to_dec_pre_calc_impl_seq_lessmul_branching_(char* buffer,
                                                  uint32_t num_) noexcept {
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
-  char* end_buf = buffer + dec_width_;
+  char*const end_buf = buffer;
   size_t char_left = dec_width_;
   uint64_t n{};
   size_t i{};
@@ -1234,7 +1234,8 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_more_mul_(
 template <size_t size_v>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
-  return uint_to_dec_pre_calc_impl_more_mul_<size_v>(buffer, dec_width_0_,
+  return uint_to_dec_pre_calc_impl_more_mul_<size_v>(
+      buffer, dec_width_0_,
                                                      num_);
 }
 template <size_t size_v>
