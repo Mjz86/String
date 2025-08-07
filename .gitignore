@@ -6,3 +6,13 @@ tests/main2
 /mjz_lib/unicode
 /mjz_lib/byte_str/json
 /mjz_lib/byte_str/command_lines
+mjz_lib/allocs/shared_ptr.hpp
+/mjz_lib/byte_str/databases
+mjz_lib/allocs/unique_ptr.hpp
+mjz_lib/threads/recursive_mutex.hpp
+/mjz_lib/encryption
+/mjz_lib/contexts
+/mjz_lib/byte_str/ropes
+/mjz_lib/byte_str/scanning
+mjz_lib/threads/jthread.hpp
+/mjz_lib/corot
