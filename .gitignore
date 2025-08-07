@@ -1,3 +1,8 @@
 .vscode/c_cpp_properties.json
 *.exe
 tests/main2
+/mjz_lib/any
+/mjz_lib/byte_str/regex
+/mjz_lib/unicode
+/mjz_lib/byte_str/json
+/mjz_lib/byte_str/command_lines
