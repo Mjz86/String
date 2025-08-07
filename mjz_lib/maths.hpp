@@ -457,7 +457,7 @@ struct uintN_t {
   MJZ_CX_FN explicit operator bool() const noexcept {
     return *this != uintN_t{0};
   }
-  MJZ_CX_FN bool operator!()const noexcept { return *this == uintN_t{0}; }
+  MJZ_CX_FN bool operator!() const noexcept { return *this == uintN_t{0}; }
 };
 
 template <version_t version_v, uint64_t... exclude_>
@@ -1169,15 +1169,15 @@ MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
 MJZ_CX_FN auto get_devision_by_mul_rs_shift_and_bit_count(
     uint64_t max_value_, uint64_t devisor_) noexcept {
   max_value_ = std::max(max_value_, devisor_);
-  const auto factor2d=uint32_t(std::countr_zero(devisor_));
-  const auto bwd = uint32_t(std::bit_width(devisor_))-factor2d;
-  const auto bwmv = uint32_t(std::bit_width(max_value_))-factor2d;
-  const auto ceil_log2_mv = bwmv  - std::has_single_bit(max_value_);
+  const auto factor2d = uint32_t(std::countr_zero(devisor_));
+  const auto bwd = uint32_t(std::bit_width(devisor_)) - factor2d;
+  const auto bwmv = uint32_t(std::bit_width(max_value_)) - factor2d;
+  const auto ceil_log2_mv = bwmv - std::has_single_bit(max_value_);
   const auto ceil_log2_d = bwd - std::has_single_bit(devisor_);
   const auto floor_log2_d = bwd - 1;
-  const auto fraction_bit_count = factor2d +ceil_log2_d + ceil_log2_mv;
-  const auto integer_bit_count = ceil_log2_mv - floor_log2_d;
-  return std::pair{fraction_bit_count, integer_bit_count + fraction_bit_count};
+  const auto fraction_bit_count = factor2d + floor_log2_d + ceil_log2_mv + 1;
+  return std::pair{fraction_bit_count,
+                   factor2d + 2 * ceil_log2_mv - ceil_log2_d + 1};
 }
 template <version_t version_v = version_t{}>
 MJZ_CX_FN auto get_devide_inverse_and_shift(uint64_t max_value_,
@@ -1187,7 +1187,8 @@ MJZ_CX_FN auto get_devide_inverse_and_shift(uint64_t max_value_,
       get_devision_by_mul_rs_shift_and_bit_count(max_value_, devisor_);
   asserts(asserts.assume_rn, bit_count < 192);
   ret <<= uintlen_t(fraction_bit_count);
-  uintN_t<version_v, 192> temp = ret.to_modulo_ret_devide(decltype(ret)(devisor_));
+  uintN_t<version_v, 192> temp =
+      ret.to_modulo_ret_devide(decltype(ret)(devisor_));
   ret = temp + decltype(ret)(!!ret);
   return std::pair{ret, fraction_bit_count};
 }
