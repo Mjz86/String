@@ -57,13 +57,13 @@ struct version_t {
     }
   };
 
-  int64_t value{};
-  MJZ_CX_FN value_t make() const noexcept { return value_t::make(value); }
+  int64_t value_{};
+  MJZ_CX_FN value_t make() const noexcept { return value_t::make(value_); }
   MJZ_CONSTANT(uint32_t) newest_m_version = MJZ_LIB_NEWEST_VERSION_;
 
   MJZ_CE_FN explicit version_t(uint32_t newest_version_ = newest_m_version,
                                uint32_t m_ver_mod_id = 0) noexcept
-      : value(value_t{.m_ver_ = (newest_version_),
+      : value_(value_t{.m_ver_ = (newest_version_),
                       .m_ver_mod_id_ = (m_ver_mod_id)}) {
     asserts(newest_version_ <= newest_m_version,
             "update the latest api version  var (=newest_m_version). "
@@ -71,7 +71,7 @@ struct version_t {
   }
   MJZ_CX_FN explicit version_t(uint32_t newest_version_, uint32_t m_ver_mod_id,
                                totally_empty_type_t) noexcept
-      : value(value_t{.m_ver_ = (newest_version_),
+      : value_(value_t{.m_ver_ = (newest_version_),
                       .m_ver_mod_id_ = (m_ver_mod_id)}) {}
 
   MJZ_CX_FN std::partial_ordering operator<=>(version_t b) const noexcept {

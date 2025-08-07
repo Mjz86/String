@@ -96,13 +96,13 @@ struct default_formatter_t<version_v, T_, 20> {
       decay_optimize_opt_to_t<version_v,
                               decltype(to_final_type_fn<version_v, T>(
                                   get_invalid_T_obj<T>()))>;
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       auto &&arg, format_context_t<version_v> &ctx) const noexcept {
-    if (!arg) return ctx.out();
+    if (!arg) return true;
     return formatter.format(*arg, ctx);
   };
 

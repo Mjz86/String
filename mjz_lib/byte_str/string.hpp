@@ -269,11 +269,11 @@ struct basic_str_t : void_struct_t {
   }
 
  private:
-  template <bool is_force_sso_v = false>
+  template <when_t when_v>
   MJZ_CX_FN success_t as_substring_impl_(uintlen_t byte_offset,
                                          uintlen_t byte_count) noexcept {
     bool has_null = make_right_then_give_has_null(byte_offset, byte_count);
-    if constexpr (!is_force_sso_v) {
+    if constexpr (!when_v.is_sso()) {
       if (!m.is_sso()) {
         m.non_sso().begin_ptr += byte_offset;
         m.non_sso().str_data.length = byte_count;
@@ -293,7 +293,7 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_FN success_t as_substring_(uintlen_t byte_offset,
                                     uintlen_t byte_count) noexcept {
     asserts(asserts.assume_rn,
-            as_substring_impl_<!!when_v>(byte_offset, byte_count));
+            as_substring_impl_<when_v>(byte_offset, byte_count));
     if constexpr (!props_v.has_null) {
       return true;
     }
@@ -681,8 +681,8 @@ struct basic_str_t : void_struct_t {
     return operator_assign_(std::forward<const basic_str_t>(val),
                             useless_tag_t_<>{});
   }
-  MJZ_CX_FN basic_str_t &operator=(basic_str_t &val) noexcept {
-    return operator_assign_(std::forward<basic_str_t &>(val),
+  MJZ_CX_FN basic_str_t &operator=(const basic_str_t &val) noexcept {
+    return operator_assign_(std::forward<const basic_str_t &>(val),
                             useless_tag_t_<>{});
   }
 
@@ -1234,7 +1234,7 @@ struct basic_str_t : void_struct_t {
 
   MJZ_CX_FN const char *as_c_str() & noexcept {
     bool good = add_null();
-    return branchless_teranary(!good, nullptr, data());
+    return branchless_teranary<const char *>(!good, nullptr, data());
   }
   /*
    *calculates the hash
@@ -1473,7 +1473,8 @@ struct basic_str_t : void_struct_t {
         }
       }();
       for (uintlen_t i{}; i < range_len; i++, ++begin_iter) {
-        auto ch = get_as_option<char>(*begin_iter);
+        auto &&itr = *begin_iter;
+        auto ch = optional_ref_t<const char>(itr);
         if (!ch) return false;
         range_ptr[i] = *ch;
       }
@@ -1499,7 +1500,8 @@ struct basic_str_t : void_struct_t {
       if (!remove_suffix(length() - offset) || !as_ownerized()) return false;
       auto front_holder_temp{std::move(*this)};
       for (; begin_iter != end_iter; ++begin_iter) {
-        auto ch = get_as_option<char>(*begin_iter);
+        auto &&itr = *begin_iter;
+        auto ch = optional_ref_t<const char>(itr);
         if (!ch) return false;
         if (!front_holder_temp.push_back(*ch)) return false;
       }
@@ -1711,7 +1713,6 @@ struct basic_str_t : void_struct_t {
   }
 
  private:
- 
  public:
   template <std::integral T>
     requires(!std::same_as<T, bool>)
@@ -1719,12 +1720,13 @@ struct basic_str_t : void_struct_t {
                                      bool upper_case = false) noexcept {
     self_t ret{};
     if constexpr (20 < sso_cap) {
-      ret.m.set_sso_length(
-          *traits_type{}
+      ret.m.set_sso_length(*traits_type{}
                                 .template from_integral_fill<T, sso_cap,
                                                              alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
-          ret.m.m_sso_buffer_(), sso_cap, val, upper_case, raidex));
-      asserts(asserts.assume_rn, ret.m.is_sso()&& ret.m.no_destroy()&& !ret.get_alloc());
+                                    ret.m.m_sso_buffer_(), sso_cap, val,
+                                    upper_case, raidex));
+      asserts(asserts.assume_rn,
+              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
     } else {
       ret.as_integral(val, raidex, upper_case);
     }
@@ -1740,7 +1742,7 @@ struct basic_str_t : void_struct_t {
                               .template dec_from_int<sso_cap, alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
                                   ret.m.m_sso_buffer_(), sso_cap, val));
       asserts(asserts.assume_rn,
-                    ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
       ret.m.template add_null<when_t::as_sso>();
     } else {
       ret.as_integral(val, 10, false);
@@ -1748,25 +1750,22 @@ struct basic_str_t : void_struct_t {
     return ret;
   }
 
-  
   template <std::floating_point T>
-  MJZ_CX_FN static self_t s_make_str(
-      T val, uint8_t accuracacy = sizeof(uintlen_t)) noexcept {
+  MJZ_CX_FN static self_t s_make_str(T val,
+                                     uint8_t accuracacy = sizeof(T)) noexcept {
     self_t ret{};
     static_assert(15 <= sso_cap);
     constexpr uint8_t max_accuracy{
         uint8_t(std::min((sso_cap - 1) / 2, sso_cap - 8))};
     accuracacy = uint8_t(std::min<uintlen_t>(max_accuracy, accuracacy));
-      ret.m.set_sso_length(traits_type{}.template from_float_format_fill<T>(
-          ret.m.m_sso_buffer_(), sso_cap, val, accuracacy, false,
-          floating_format_e::general));
-      asserts(asserts.assume_rn,
-              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
-      ret.m.template add_null<when_t::as_sso>();
+    ret.m.set_sso_length(traits_type{}.template from_float_format_fill<T>(
+        ret.m.m_sso_buffer_(), sso_cap, val, accuracacy, false,
+        floating_format_e::general));
+    asserts(asserts.assume_rn,
+            ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+    ret.m.template add_null<when_t::as_sso>();
     return ret;
   }
-
-
 
   template <std::floating_point T>
   MJZ_CX_FN success_t as_floating(
@@ -2106,6 +2105,22 @@ struct basic_str_t : void_struct_t {
     return std::partial_ordering::unordered;
   }
 };
+template <version_t version_v>
+template <typename T>
+MJZ_CX_FN auto base_out_it_t<version_v>::append_obj_impl_(
+    const T &view) noexcept {
+  using big_str_t_ =
+      basic_str_t<version_v, basic_str_props_t<version_v>{.sso_min_cap = 30}>;
+  if constexpr (requires() { view.to_base_view_pv_fn_(unsafe_ns::unsafe_v); }) {
+    return append(view.to_base_view_pv_fn_(unsafe_ns::unsafe_v));
+  } else if constexpr (requires() { big_str_t_::s_make_str(view); }) {
+    return append(
+        big_str_t_::s_make_str(view).to_base_view_pv_fn_(unsafe_ns::unsafe_v));
+  } else {
+    return;
+  }
+}
+
 };  // namespace mjz::bstr_ns
 
 namespace mjz ::bstr_ns {

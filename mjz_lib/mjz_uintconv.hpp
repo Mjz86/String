@@ -53,12 +53,13 @@ static constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
   }
   return ret;
 }();
-constexpr static inline std::array<uint64_t, 20> floor10_table = []() noexcept {
-  std::array<uint64_t, 20> ret{};
+constexpr static inline std::array<uint64_t, 21> floor10_table = []() noexcept {
+  std::array<uint64_t, 21> ret{};
   ret[0] = 1;
   for (size_t i{1}; i < 20; i++) {
     ret[i] = ret[i - 1] * 10;
-  }
+  }/*coudnt show max pow 10*/
+  ret[20]=uint64_t(-1);
   return ret;
 }();
 
@@ -229,6 +230,7 @@ constexpr static uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
 }
 [[maybe_unused]] constexpr static std::array<uint16_t, 5>
 lookup_iota_10digits_ascii_noif(const uint64_t n) noexcept {
+    
   alignas(8) std::array<uint16_t, 5> ret{std::bit_cast<std::array<uint16_t, 5>>(
       std::array{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0'})};
   constexpr uint64_t mask = uint64_t(-1) >> 7;
@@ -413,12 +415,12 @@ constexpr static std::array<char, 4> iota_forward_3digits(uint32_t n) noexcept {
     num0ch = std::countl_zero(awnser) >> 3;
     num0ch = std::max(num0ch, 3);
     awnser <<= num0ch << 3;
-    awnser |= 4 - num0ch;
+    awnser |= uint32_t(4 - num0ch);
   } else {
     num0ch = std::countr_zero(awnser) >> 3;
     num0ch = std::max(num0ch, 3);
     awnser >>= num0ch << 3;
-    awnser |= (4 - num0ch) << 24;
+    awnser |= uint32_t(4 - num0ch) << 24;
   }
   return std::bit_cast<std::array<char, 4>>(awnser |
                                             std::bit_cast<uint32_t>("000"));
@@ -487,7 +489,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint64_t number_) noexcept {
     word_register[2] = u128_[1];
   }
   str_int_buf = word_register | zero_8parallel_ascii;
-  uint64_t u64ch = word_register[iteration_count_backwards];
+  uint64_t u64ch = word_register[size_t(iteration_count_backwards)];
 
   const size_t num_high_0ch =
       size_t((std::endian::big == std::endian::native
@@ -789,7 +791,7 @@ constexpr static MJZ_forceinline_ int dec_width(
   }
   const int correct_or_1_plus_correct = ((log2_ceil * log10_2_bx) >> bx);
   const bool is_correct =
-      details_ns::floor10_table[size_t(correct_or_1_plus_correct)] <= x;
+      details_ns::floor10_table[size_t(correct_or_1_plus_correct)] <= x &&(x!=uint64_t(-1)/*coudnt show max pow 10*/);
   return correct_or_1_plus_correct + is_correct;
 }
 
@@ -1091,7 +1093,7 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   uint64_t n{};
   size_t i{};
   end_buf = buffer;
-  mjz_assume_impl_(num_ < 100000000); 
+  mjz_assume_impl_(num_ < 100000000);
   if (round_left & 1) {
     if (round_left != 1) {
       n = num_ * inv_p10_b57[round_left ^ 1];
@@ -1140,7 +1142,7 @@ uint_to_dec_pre_calc_impl_seq_lessmul_branching_(char* buffer,
                                                  uint32_t num_) noexcept {
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
-  char*const end_buf = buffer;
+  char* const end_buf = buffer;
   size_t char_left = dec_width_;
   uint64_t n{};
   size_t i{};
@@ -1234,8 +1236,7 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_more_mul_(
 template <size_t size_v>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
     char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
-  return uint_to_dec_pre_calc_impl_more_mul_<size_v>(
-      buffer, dec_width_0_,
+  return uint_to_dec_pre_calc_impl_more_mul_<size_v>(buffer, dec_width_0_,
                                                      num_);
 }
 template <size_t size_v>
@@ -1322,13 +1323,18 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
   }
   return dec_width_;
 }
-
+template <size_t size_of_myt>
+using uint_sizeof_t =
+    type_at_index_t<size_of_myt, uint8_t, uint8_t, uint16_t, uint32_t, uint32_t,
+                    uint64_t, uint64_t, uint64_t, uint64_t>;
+template <size_t size_of_myt>
+using int_sizeof_t = std::make_signed<uint_sizeof_t<size_of_myt>>;
 template <size_t size_v, std::unsigned_integral T>
 constexpr static MJZ_forceinline_ size_t
 uint_to_dec_pre_calc_impl_seq_less_mul_(char* buffer, const size_t dec_width_0_,
                                         T num_) noexcept {
-  return uint_to_dec_pre_calc_impl_seq_lessmul_<size_v>(buffer, dec_width_0_,
-                                                        num_);
+  return uint_to_dec_pre_calc_impl_seq_lessmul_<size_v>(
+      buffer, dec_width_0_, uint_sizeof_t<sizeof(num_)>(num_));
 }
 
 template <size_t size_v, std::unsigned_integral T>
@@ -1437,19 +1443,19 @@ template <int I_0_ = 0>
 constexpr static MJZ_forceinline_ int dec_width_dbl_(
     const double_64_t_impl_ x_pos_real_) noexcept {
   uint64_t x = uint64_t(x_pos_real_.m_coeffient);
-  const int log2_exp = int(x_pos_real_.m_exponent);
+  const int32_t log2_exp = int32_t(x_pos_real_.m_exponent);
   const bool had_1bit = std::has_single_bit(x);
-  const int log2_ceil = std::bit_width(x) - had_1bit + log2_exp;
-  const int log10_2_bx = 19729;
-  const int bx = 16;
+  const int32_t log2_ceil = int32_t(std::bit_width(x)) - had_1bit + log2_exp;
+  const int32_t log10_2_bx = 19729;
+  const int32_t bx = 16;
   bool is_neg_log = log2_ceil < 0;
-  const int correct_or_1_plus_correct_abs =
-      int((uint32_t(is_neg_log ? +(!had_1bit) - log2_ceil : log2_ceil) *
-           log10_2_bx) >>
-          bx);
-  const int correct_or_1_plus_correct = is_neg_log
-                                            ? -correct_or_1_plus_correct_abs
-                                            : correct_or_1_plus_correct_abs;
+  const int32_t correct_or_1_plus_correct_abs =
+      int32_t((uint32_t(is_neg_log ? +(!had_1bit) - log2_ceil : log2_ceil) *
+               log10_2_bx) >>
+              bx);
+  const int32_t correct_or_1_plus_correct = is_neg_log
+                                                ? -correct_or_1_plus_correct_abs
+                                                : correct_or_1_plus_correct_abs;
   double_64_t_impl_ dbl = *(details_ns::lookup_dbl_pow5_table_ptr_<I_0_> +
                             correct_or_1_plus_correct);
   dbl.m_exponent += correct_or_1_plus_correct;

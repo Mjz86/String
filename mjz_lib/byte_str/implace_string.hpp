@@ -48,8 +48,8 @@ struct implace_string_data_t<version_v, props_v, stack_cap>
   sso_cap_v_{((stack_cap / sizeof(uintlen_t)) +
               uintlen_t(!!(stack_cap % sizeof(uintlen_t)))) *
              sizeof(uintlen_t)};
- 
-  union m_stack_buffer_t_{
+
+  union m_stack_buffer_t_ {
     char dummy_{};
     char data[sso_cap_v_];
   } m_stack_buffer_{};
@@ -99,8 +99,8 @@ struct implace_str_t
   using hash_t = hash_bytes_t<version_v>;
 
   using dont_mess_up_t = unsafe_ns::i_know_what_im_doing_t;
-  using str_t::npos;
   using str_t::nops;
+  using str_t::npos;
 
   MJZ_CX_FN std::optional<owned_stack_buffer_t<version_v>>
   my_stack_buffer() noexcept {
@@ -114,14 +114,13 @@ struct implace_str_t
       return {};
     }();
   }
-  MJZ_CX_FN str_t &m_str() noexcept {
-    return *this;
-  }
-  MJZ_CX_FN const str_t &m_str() const noexcept { return *this;
-  }  
+  MJZ_CX_FN str_t &m_str() noexcept { return *this; }
+  MJZ_CX_FN const str_t &m_str() const noexcept { return *this; }
   MJZ_CX_FN success_t init_stack(str_t &where) noexcept {
     std::optional<owned_stack_buffer_t<version_v>> msb = my_stack_buffer();
-    if (!msb) return true;
+    if (!msb) {
+      return true;
+    }
     std::destroy_at(&where);
     std::construct_at(&where, unsafe_ns::unsafe_v, std::move(*msb));
     return !where.is_error();
@@ -130,7 +129,8 @@ struct implace_str_t
  public:
   MJZ_CX_FN implace_str_t() noexcept {
     asserts(asserts.assume_rn, init_stack(m_str()));
-    asserts(asserts.assume_rn, m_str().unsafe_handle_pv_(unsafe_ns::unsafe_v).no_destroy());
+    asserts(asserts.assume_rn,
+            m_str().unsafe_handle_pv_(unsafe_ns::unsafe_v).no_destroy());
   }
 
   MJZ_CX_FN implace_str_t(str_t &&source_, void_struct_t) noexcept
@@ -156,7 +156,7 @@ struct implace_str_t
       requires std::same_as<U, std::remove_cvref_t<U>>;
       typename U::implace_str_t_unique_tag_;
     }
-      : implace_str_t() { 
+      : implace_str_t() {
     m_str().reset_to_error_on_fail(
         std::move(source_).move_to_dest(m_str()),
         "[Error]implace_str_t::implace_str_t( "
@@ -169,7 +169,7 @@ struct implace_str_t
       requires std::same_as<U, std::remove_reference_t<U> &>;
       typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
     }
-      : implace_str_t() { 
+      : implace_str_t() {
     m_str().reset_to_error_on_fail(
         m_str().assign(source_.m_str()),
         "[Error]implace_str_t::implace_str_t( "
@@ -182,7 +182,7 @@ struct implace_str_t
       requires std::same_as<U, std::remove_cvref_t<U>>;
       typename U::implace_str_t_unique_tag_;
     }
-  MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept { 
+  MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
     m_str().reset_to_error_on_fail(
         source_.move_to_dest(m_str()),
         "[Error]implace_str_t::implace_str_t &operator_assign( "
@@ -196,7 +196,7 @@ struct implace_str_t
                    std::is_const_v<U>;
       typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
     }
-  MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept { 
+  MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
     m_str().reset_to_error_on_fail(
         m_str().assign(source_.m_str()),
         "[Error]implace_str_t::implace_str_t &operator_assign( "
@@ -205,14 +205,14 @@ struct implace_str_t
     return *this;
   }
 
-  MJZ_CX_FN implace_str_t &operator_assign(const str_t &source_) noexcept { 
+  MJZ_CX_FN implace_str_t &operator_assign(const str_t &source_) noexcept {
     m_str().reset_to_error_on_fail(m_str().assign(source_),
                                    "[Error]implace_str_t::implace_str_t "
                                    "&operator_assign(const str_t &):  failed "
                                    "string assign");
     return *this;
   }
-  MJZ_CX_FN implace_str_t &operator_assign(str_t &&source_) noexcept { 
+  MJZ_CX_FN implace_str_t &operator_assign(str_t &&source_) noexcept {
     m_str().reset_to_error_on_fail(
         reinit_stack(source_) && m_str().move_init(std::move(source_)),
         "[Error]implace_str_t::implace_str_t "
@@ -230,27 +230,27 @@ struct implace_str_t
   MJZ_CX_FN implace_str_t &operator=(const implace_str_t &source_) noexcept {
     return operator_assign(std::forward<const implace_str_t &>(source_));
   }
-   
+
  public:
-  MJZ_CX_FN success_t move_to_dest(str_t &dest) && noexcept { 
+  MJZ_CX_FN success_t move_to_dest(str_t &dest) && noexcept {
     if (m_str().is_stacked()) {
       return dest.assign(m_str());
     }
     return dest.assign_move(std::move(m_str()));
   }
-  template <class type_t >
-    requires(!partial_same_as<implace_str_t,type_t&&> &&
+  template <class type_t>
+    requires(!partial_same_as<implace_str_t, type_t &&> &&
              std::is_rvalue_reference_v<type_t &&>)
   MJZ_CX_FN operator type_t &&() const noexcept = delete;
 
   MJZ_CX_FN const str_t &get() const noexcept { return m_str(); }
-  
+
   MJZ_CX_FN success_t as_substring(uintlen_t byte_offset, uintlen_t byte_count,
                                    bool try_to_add_null = true) noexcept {
     return get().as_substring(byte_offset, byte_count, try_to_add_null);
   }
-  MJZ_CX_ND_FN implace_str_t
-  make_implace_substring(uintlen_t byte_offset, uintlen_t byte_count) const noexcept {
+  MJZ_CX_ND_FN implace_str_t make_implace_substring(
+      uintlen_t byte_offset, uintlen_t byte_count) const noexcept {
     implace_str_t ret{};
     str_t &str = ret.m_str();
     m_str().reset_to_error_on_fail(
@@ -260,14 +260,16 @@ struct implace_str_t
     return ret;
   }
   MJZ_CX_ND_FN implace_str_t operator()(uintlen_t begin_i = 0,
-                                        uintlen_t end_i = nops)const noexcept {
-    if (end_i < begin_i) return {};
+                                        uintlen_t end_i = nops) const noexcept {
+    if (end_i < begin_i) {
+      return {};
+    }
     return make_implace_substring(begin_i, end_i - begin_i);
   }
 
   /* similar to as_substring*/
   MJZ_CX_FN implace_str_t &to_implace_substring(uintlen_t byte_offset,
-                                        uintlen_t byte_count) noexcept {
+                                                uintlen_t byte_count) noexcept {
     m_str().reset_to_error_on_fail(
         as_substring(byte_offset, byte_count),
         "[Error]implace_str_t::to_substring: cannot init string");
@@ -275,8 +277,8 @@ struct implace_str_t
   }
   MJZ_CX_ND_FN implace_str_t
   make_implace_substrview(const dont_mess_up_t &idk, uintlen_t byte_offset,
-                  uintlen_t byte_count, bool propgate_alloc = true,
-                  bool unsafe_assume_static_ = false) const & noexcept {
+                          uintlen_t byte_count, bool propgate_alloc = true,
+                          bool unsafe_assume_static_ = false) const & noexcept {
     return get().make_substrview(idk, byte_offset, byte_count, propgate_alloc,
                                  unsafe_assume_static_);
   }

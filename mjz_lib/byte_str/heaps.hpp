@@ -105,7 +105,9 @@ class str_heap_manager_t {
       return;
     }
     else {
+      MJZ_DISABLE_ALL_WANINGS_START_;
       *reinterpret_cast<uintlen_t *>(rc_ptr) = 1;
+      MJZ_DISABLE_ALL_WANINGS_END_;
       // ref.store(1, std::memory_order_relaxed);
       return;
     }
@@ -235,8 +237,9 @@ class str_heap_manager_t {
         !!*this,
         branchless_teranary<uintlen_t>(
             get_is_threaded(),
-            branchless_teranary<uintlen_t>(m.heap_data_size <= cow_threaded_threshold(), 0,
-                                threaded_rf_block),
+            branchless_teranary<uintlen_t>(
+                !(cow_threaded_threshold() < m.heap_data_size), 0,
+                threaded_rf_block),
             non_threaded_rf_block),
         0);
   }

@@ -52,11 +52,11 @@ struct default_formatter_t<version_v, T_, 100> {
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       const std::remove_reference_t<T_> &arg,
       format_context_t<version_v> &ctx) const noexcept {
     bool good{true};
@@ -66,7 +66,7 @@ struct default_formatter_t<version_v, T_, 100> {
       ctx.as_error(
           "[Error]default_formatter_t<is_stream_formatter_c>::format:cannot allocate more "
           "memory");
-      return nullptr;
+      return false;
     }
     MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
     good &= MJZ_NOEXCEPT {
@@ -87,13 +87,13 @@ struct default_formatter_t<version_v, T_, 100> {
       good &= !!ctx.advance_to(
           formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
     };
-    if (good) return ctx.out();
+    if (good) return true;
 
     ctx.as_error(
         "[Error]default_formatter_t<is_stream_formatter_c>: an error "
         "was thrown "
         "during output");
-    return nullptr;
+    return false;
   };
 };
 

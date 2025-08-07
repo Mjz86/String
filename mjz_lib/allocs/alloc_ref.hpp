@@ -1078,8 +1078,12 @@ class alloc_base_ref_t {
       return {};
     }
     asserts(asserts.believe_rn, blk.length == count * sizeof(T) && blk.ptr);
+    MJZ_DISABLE_ALL_WANINGS_START_
+
+        ;
     return {reinterpret_cast<T *>(blk.ptr), count};
   }
+  MJZ_DISABLE_ALL_WANINGS_END_;
   template <typename T>
   MJZ_CX_ND_ALLOC_FN block_info_ot<T> allocate_helper_(
       uintlen_t count, alloc_info strategy, const T *const) const noexcept {

@@ -46,13 +46,12 @@ struct default_formatter_t<version_v, T, 30> {
   // this is an empty forwarding implementation
   using decay_optimize_to_t =
       decltype(std::string_view(just_some_invalid_obj<T &&>()));
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &) noexcept {
-    return nullptr;
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &) noexcept {
+    return false;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      T &&, format_context_t<version_v> &) const noexcept {
-    return nullptr;
+  MJZ_CX_FN success_t format(T &&,
+                             format_context_t<version_v> &) const noexcept {
+    return false;
   };
 };
 template <version_t version_v, typename T>
@@ -68,13 +67,12 @@ struct default_formatter_t<version_v, T, 19> {
   // this is an empty forwarding implementation
   using decay_optimize_to_t =
       decltype(std::string_view(just_some_invalid_obj<T &&>()));
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &) noexcept {
-    return nullptr;
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &) noexcept {
+    return false;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      T &&, format_context_t<version_v> &) const noexcept {
-    return nullptr;
+  MJZ_CX_FN success_t format(T &&,
+                             format_context_t<version_v> &) const noexcept {
+    return false;
   };
 };
 
@@ -90,13 +88,11 @@ struct default_formatter_t<version_v, T, 30> {
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      const std::string_view &view,
-      format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(const std::string_view &view,
+                             format_context_t<version_v> &ctx) const noexcept {
     view_t v = view_t::make(view.data(), view.size(), encodings_e::ascii);
     return formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx);
   };

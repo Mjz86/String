@@ -308,7 +308,7 @@ parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
             .unsafe_handle());
     main_ctx().remaining_format_string_index = val.formatting_str_index_end;
     if (!base_ctx().cache_format_call_at(val.index_of_element,
-                                         val.formatter_ptr)) {
+                                         val.formatter_ptr,uint8_t(val.type))) {
       return false;
     }
   }

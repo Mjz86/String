@@ -95,13 +95,13 @@ struct data_meta_t {
                         uintlen_t align = 1) noexcept {
     blk_align_log2 = log2_of_val_create(uintlen_t(align));
     uintlen_t blk_count = data.size() >> blk_align_log2;
-    pages = data.subspan(0, blk_count << blk_align_log2);
+    pages = data.subspan(0, uintlen_t(blk_count << blk_align_log2));
   }
   MJZ_CX_FN std::span<char> to_real(block_range range) const noexcept {
     if (!range.blk_count) return {};
     return pages.subspan((range.page_index << (blk_align_log2 + log2_page)) +
-                             (range.blk_index << blk_align_log2),
-                         range.blk_count << blk_align_log2);
+                           size_t  (range.blk_index << blk_align_log2),
+                         size_t(range.blk_count << blk_align_log2));
   }
   MJZ_CX_FN block_range to_meta(std::span<char> real_meta) const noexcept {
     if (!real_meta.size()) return {};

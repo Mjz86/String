@@ -89,7 +89,9 @@ struct default_formatter_t<version_v, T_, 60> {
     }
     len++;
     result &= fn_v.template operator()<I_v>();
-    if (!result) return false;
+    if (!result) {
+      return false;
+    }
     return true;
   }
 
@@ -107,27 +109,28 @@ struct default_formatter_t<version_v, T_, 60> {
     return ret;
   }
 
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     if (ctx.encoding() != encodings_e::ascii) {
       ctx.as_error(
           "[Error]default_formatter_t::parse(tuple,auto):"
           "only ascii is "
           "suppoerted!(note that this "
           "may change in later versions)");
-      return nullptr;
+      return false;
     }
     if (!partial_spec.parse_align(ctx)) {
-      return nullptr;
+      return false;
     }
     if (!partial_spec.parse_width(ctx)) {
-      return nullptr;
+      return false;
     }
     auto ch = ctx.front();
     if (ch && *ch == '[') {
       std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
           slice = ctx.get_slice();
-      if (!slice) return nullptr;
+      if (!slice) {
+        return false;
+      }
       slice_index = slice->first;
       slice_length = slice->second;
       ch = ctx.front();
@@ -135,7 +138,7 @@ struct default_formatter_t<version_v, T_, 60> {
     if (ch && *ch == 'n') {
       open_braket = sview("");
       close_braket = sview("");
-      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return false;
       ch = ctx.front();
     }
     if (is_m || (ch && *ch == 'm')) {
@@ -145,13 +148,13 @@ struct default_formatter_t<version_v, T_, 60> {
             "[Error]default_formatter_t::parse(tuple,"
             "auto):"
             "invalid range spec of m with size other than 2");
-        return nullptr;
+        return false;
       }
       open_braket = sview("");
       close_braket = sview("");
       separator = sview(": ");
       if (!is_m) {
-        if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+        if (!ctx.unchecked_advance_amount_(1)) return false;
         ch = ctx.front();
       }
     }
@@ -159,7 +162,7 @@ struct default_formatter_t<version_v, T_, 60> {
       open_braket = sview("");
       close_braket = sview("");
       separator = sview("");
-      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return false;
       ch = ctx.front();
     }
 
@@ -191,17 +194,17 @@ struct default_formatter_t<version_v, T_, 60> {
           }
           return true;
         }))
-      return nullptr;
+      return false;
     if (ch && *ch != '}') {
       ctx.as_error(
           "[Error]default_formatter_t::parse(tuple,auto):"
           "invalid range spec");
-      return nullptr;
+      return false;
     }
-    return ctx.begin();
+    return true;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      const T &arg, format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(const T &arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     return partial_spec.template format_fill<T>(
         [&]() noexcept {
           bool not_first{false};
@@ -259,27 +262,26 @@ struct default_formatter_t<version_v, T, 50> {
   uintlen_t slice_length{uintlen_t(-1)};
   basic_format_specs_t<version_v> partial_spec{};
 
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     if (ctx.encoding() != encodings_e::ascii) {
       ctx.as_error(
           "[Error]default_formatter_t::parse(std::ranges::forward_range,auto):"
           "only ascii is "
           "suppoerted!(note that this "
           "may change in later versions)");
-      return nullptr;
+      return false;
     }
     if (!partial_spec.parse_align(ctx)) {
-      return nullptr;
+      return false;
     }
     if (!partial_spec.parse_width(ctx)) {
-      return nullptr;
+      return false;
     }
     auto ch = ctx.front();
     if (ch && *ch == '[') {
       std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
           slice = ctx.get_slice();
-      if (!slice) return nullptr;
+      if (!slice) return false;
       slice_index = slice->first;
       slice_length = slice->second;
       ch = ctx.front();
@@ -287,7 +289,7 @@ struct default_formatter_t<version_v, T, 50> {
     if (ch && *ch == 'n') {
       open_braket = sview("");
       close_braket = sview("");
-      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return false;
       ch = ctx.front();
     }
     if (ch && *ch == 'm') {
@@ -301,36 +303,36 @@ struct default_formatter_t<version_v, T, 50> {
             "[Error]default_formatter_t::parse(std::ranges::forward_range,"
             "auto):"
             "invalid range spec of m with size other than 2");
-        return nullptr;
+        return false;
       } else {
         formatter.is_m = true;
       }
 
       open_braket = sview("{");
       close_braket = sview("}");
-      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return false;
       ch = ctx.front();
     }
     if (ch && *ch == 's') {
       open_braket = sview("");
       close_braket = sview("");
       separator = sview("");
-      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return false;
       ch = ctx.front();
     }
     if (ch && *ch == ':') {
-      if (!ctx.unchecked_advance_amount_(1)) return nullptr;
+      if (!ctx.unchecked_advance_amount_(1)) return false;
       ch = ctx.front();
     } else if (ch && *ch != '}') {
       ctx.as_error(
           "[Error]default_formatter_t::parse(std::ranges::forward_range,auto):"
           "invalid range spec");
-      return nullptr;
+      return false;
     }
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      auto &&arg, format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(auto &&arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     auto may_throw = [&]() noexcept(false) {
       const auto &f = formatter;
       auto beg = std::ranges::begin(arg);
@@ -342,7 +344,7 @@ struct default_formatter_t<version_v, T, 50> {
       uintlen_t len{};
       uintlen_t slice_index_var{slice_index};
       uintlen_t slice_index_len{slice_length};
-    
+
       if constexpr (std::ranges::sized_range<T>) {
         uintlen_t length_of_range = uintlen_t(std::ranges::distance(arg));
         slice_index_var = std::min(slice_index_var, length_of_range);
@@ -370,8 +372,7 @@ struct default_formatter_t<version_v, T, 50> {
           it.append(separator.unsafe_handle());
         }
         value_t v = *beg;
-        if (!ctx.advance_to(
-                f.format(to_final_type_fn<version_v, CVT_pv>(v), ctx)))
+        if (!f.format(to_final_type_fn<version_v, CVT_pv>(v), ctx))
           return false;
         (void)++beg;
         len++;
@@ -412,13 +413,12 @@ struct default_formatter_t<version_v, T, 40> {
   using decay_optimize_to_t =
       std::span<std::remove_reference_t<typename decltype(std::span(
           just_some_invalid_obj<T &&>()))::reference>>;
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &) noexcept {
-    return nullptr;
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &) noexcept {
+    return false;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      T &&, format_context_t<version_v> &) const noexcept {
-    return nullptr;
+  MJZ_CX_FN success_t format(T &&,
+                             format_context_t<version_v> &) const noexcept {
+    return false;
   };
 };
 

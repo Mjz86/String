@@ -339,7 +339,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     return find_ch(lhs, lhs_len, 0, rhs) != npos;
   }
 
-  MJZ_CX_ND_FN static std::optional<uint8_t> ascii_to_num(char c) noexcept {
+  MJZ_CX_ND_FN static uint8_t ascii_to_num_impl_(char c) noexcept {
     if (c >= '0' && c <= '9') {
       return (uint8_t)(c - '0');
     }
@@ -349,7 +349,22 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     if (c >= 'a' && c <= 'z') {
       return (uint8_t)(c - 'a' + 10);
     }
-    return std::nullopt;
+    return uint8_t(-1);
+  }
+
+  static constexpr inline const std::array<uint8_t, 256>
+      ascii_to_num_impl_table_ = []() {
+        std::array<uint8_t, 256> ret{};
+        for (uintlen_t i{}; i < 256; i++) {
+          ret[i] = ascii_to_num_impl_(char(uint8_t(i)));
+        }
+        return ret;
+      }();
+
+  MJZ_CX_ND_FN static std::optional<uint8_t> ascii_to_num(char c) noexcept {
+   const uint8_t u = ascii_to_num_impl_table_[uint8_t(c)];
+    return uint8_t(~u) ? std::optional<uint8_t>(u)
+                       : std::optional<uint8_t>(std::nullopt);
   }
 
  private:
@@ -452,18 +467,12 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   };
   template <std::floating_point T,
             callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-                decltype(defualt_is_point_fn),
-            callable_c<std::optional<
-                std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
-                const char &, const uint8_t &) noexcept>
-                power_fn_t = decltype(defualt_power_fn)>
+                decltype(defualt_is_point_fn)>
   MJZ_CX_ND_FN static std::optional<T> to_real_floating_pv(
       const char *ptr, uintlen_t len, const uint8_t raidex_,
-      is_point_fn_t &&is_point_fn = is_point_fn_t{},
-      power_fn_t &&power_fn = power_fn_t{}) noexcept {
-    if (36 < raidex_ || !ptr || !len || !raidex_ || is_point_fn('+', raidex_) ||
-        is_point_fn('-', raidex_) || power_fn('+', raidex_) ||
-        power_fn('-', raidex_))
+      is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
+    if (!(10 == raidex_ || raidex_ == 16) || !ptr || !len || !raidex_ ||
+        is_point_fn('+', raidex_) || is_point_fn('-', raidex_))
       return std::nullopt;
     bool is_neg{};
     if (*ptr == '-' || *ptr == '+') {
@@ -495,7 +504,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       uint8_t raidex =
           &sientific_exponent == previous_section ? exponent_raidex : raidex_;
       if (auto ch = ascii_to_num(ptr[i]); ch && *ch < raidex) {
-        if (power_fn(ptr[i], raidex) || is_point_fn(ptr[i], raidex))
+        if (defualt_power_fn(ptr[i], raidex) || is_point_fn(ptr[i], raidex))
           return std::nullopt;  // ambiguous!
         previous_section->len++;
         continue;
@@ -503,7 +512,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       MJZ_RELEASE { previous_section->i = 1 + i; };
       if (is_point_fn(ptr[i], raidex)) {
         if (&sientific_coeffient_section1 != previous_section ||
-            power_fn(ptr[i], raidex))
+            defualt_power_fn(ptr[i], raidex))
           return std::nullopt;
         if (i + 1 == len) {
           previous_section = &dummy;
@@ -512,7 +521,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         previous_section = &sientific_coeffient_section2;
         continue;
       }
-      if (auto pow = power_fn(ptr[i], raidex)) {
+      if (auto pow = defualt_power_fn(ptr[i], raidex)) {
         if (&sientific_exponent == previous_section || i + 2 > len) {
           return std::nullopt;
         }
@@ -523,7 +532,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       }
       if (ptr[i] == '+' || ptr[i] == '-') {
         if (i + 2 > len || previous_section != &sientific_exponent ||
-            !power_fn(ptr[i - 1], raidex))
+            !defualt_power_fn(ptr[i - 1], raidex))
           return std::nullopt;
         neg_sientific_exponent = ptr[i] == '-';
         continue;
@@ -533,41 +542,146 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     using mjz_float_t = big_float_t<version_v>;
 
     auto get_sec1_val = [=](uint8_t raidex, const char *begin,
-                            uintlen_t length) noexcept -> mjz_float_t {
-      mjz_float_t var{};
-      for (uintlen_t i{}; i < length; i++) {
-        auto digit = ascii_to_num(begin[i]);
-        var = var * mjz_float_t::float_from_i(raidex);
-        var = var + mjz_float_t::float_from_i(*digit);
+                            uintlen_t length) noexcept -> uint16_t {
+      {
+        uintlen_t i{};
+        for (; i < length && begin[i] == '0'; i++);
+        ;
+        begin += i;
+        length -= i;
+        i = 0;
+      }
+      if (3 < length || !length) {
+        return 1000;
       }
 
-      return var;
+      if (raidex == 16) {
+        uint16_t buf_{};
+        for (uintlen_t i{}; i < length; i++) {
+          auto digit = ascii_to_num(begin[i]);
+          buf_ <<= 4;
+          buf_ |= *digit;
+        }
+        return buf_;
+      }
+
+      uint8_t buf_[4]{};
+      for (uintlen_t i{}; i < length; i++) {
+        buf_[length - i] = uint8_t(begin[i] & ~'0');
+      }
+
+      // mjz_assume_impl_(raidex == 10);
+      uint64_t var{10 | (uint64_t(100) << 32)};
+      var *= buf_[2] | (uint64_t(buf_[3]) << 16);
+      var = (var >> 48) + uint16_t(var) + buf_[1];
+      // mjz_assume_impl_(uint16_t(var) == var);
+      return uint16_t(var);
     };
     auto get_sec2_val = [=](uint8_t raidex, const char *begin,
                             uintlen_t length) noexcept -> mjz_float_t {
       mjz_float_t var{};
-      mjz_float_t r = mjz_float_t::float_from_i(1);
-      mjz_float_t inverse = r / mjz_float_t::float_from_i(raidex);
-      for (uintlen_t i{}; i < length; i++) {
-        auto digit = ascii_to_num(begin[i]);
-        r = r * inverse;
-        var = var + r * mjz_float_t::float_from_i(*digit);
+      uintlen_t real_accuracy{16};
+      uintlen_t i{};
+      length = std::min(details_ns::lookup_dbl_pow5_table_len_, length);
+      for (; i < length && begin[i] == '0'; i++);
+      ;
+      if (raidex == 16) {
+        for (; i < length; i++) {
+          if (begin[i] == '0') {
+            real_accuracy--;
+            continue;
+          }
+          auto digit = ascii_to_num(begin[i]);
+          mjz_float_t val_ = mjz_float_t::float_from_i(*digit);
+          val_.m_exponent -= (i + 1) << 4;
+          var = var + val_;
+          if (!(real_accuracy--)) break;
+        }
+        return var;
+      }
+
+      for (; i < length; i++) {
+        if (begin[i] == '0') {
+          real_accuracy--;
+          continue;
+        }
+        auto digit = uint8_t(begin[i] & ~'0');
+        mjz_float_t val_ =
+            mjz_float_t::float_from_i(digit) *
+            pos_real_dbl_to_bf_impl_(
+                *(details_ns::lookup_dbl_pow5_table_ptr_<0> - (i + 1)));
+        val_.m_exponent -= int64_t(i + 1);
+        var = var + val_;
+        if (!(real_accuracy--)) break;
       }
 
       return var;
     };
-    mjz_float_t exponent{};
+    auto get_sec3_val = [=](uint8_t raidex, const char *begin,
+                            uintlen_t length) noexcept -> mjz_float_t {
+      mjz_float_t var{};
+      uintlen_t real_accuracy{16};
+      uintlen_t i{};
+      for (; i < length && begin[i] == '0'; i++);
+      ;
+      begin += i;
+      length -= i;
+      i = 0;
+      if (details_ns::lookup_dbl_pow5_table_len_ <= length) {
+        mjz_float_t val_{};
+        val_.m_exponent = int64_t(uint32_t(-1));
+        return val_;
+      }
+      if (raidex == 16) {
+        for (; i < length; i++) {
+          if (begin[i] == '0') {
+            real_accuracy--;
+            continue;
+          }
+          auto digit = ascii_to_num(begin[i]);
+          mjz_float_t val_ = mjz_float_t::float_from_i(*digit);
+          val_.m_exponent += (length - i - 1) << 4;
+          var = var + val_;
+          if (!(real_accuracy--)) break;
+        }
+        return var;
+      }
+      for (; i < length; i++) {
+        if (begin[i] == '0') {
+          real_accuracy--;
+          continue;
+        }
+        auto digit = uint8_t(begin[i] & ~'0');
+        mjz_float_t val_ =
+            mjz_float_t::float_from_i(digit) *
+            pos_real_dbl_to_bf_impl_(
+                *(details_ns::lookup_dbl_pow5_table_ptr_<0> + length - i - 1));
+
+        val_.m_exponent += int64_t(length - i - 1);
+        var = var + val_;
+        if (!(real_accuracy--)) break;
+      }
+
+      return var;
+    };
+    int32_t exponent{};
     if (&sientific_exponent == previous_section) {
-      auto v = get_sec1_val(exponent_raidex, ptr + sientific_exponent.i,
-                            sientific_exponent.len);
+      int32_t v = int32_t(get_sec1_val(
+          exponent_raidex, ptr + sientific_exponent.i, sientific_exponent.len));
+      if (1000 == v) {
+        return std::nullopt;
+      }
+      if (exponent_raidex != 16 &&
+          details_ns::lookup_dbl_pow5_table_len_ <= uint32_t(v)) {
+        return std::nullopt;
+      }
       exponent = neg_sientific_exponent ? -v : v;
     }
 
     mjz_float_t coeffient{};
     if (sientific_coeffient_section1.len) {
-      coeffient = coeffient + get_sec1_val(raidex_,
-                                           ptr + sientific_coeffient_section1.i,
-                                           sientific_coeffient_section1.len);
+      coeffient = get_sec3_val(raidex_, ptr + sientific_coeffient_section1.i,
+                               sientific_coeffient_section1.len);
     }
 
     if (sientific_coeffient_section2.len) {
@@ -579,29 +693,18 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         !sientific_coeffient_section2.len && !had_some_numbers_first) {
       return std::nullopt;
     }
-    std::optional<std::pair<int64_t, mjz_float_t>> opt =
-        exponent.to_integral_and_fraction();
-    if (!opt) {
-      return std::nullopt;
+
+    int32_t power{exponent};
+
+    if (exponent_base == 16) {
+      coeffient.m_exponent += int64_t(power) << 4;
+    } else {
+      coeffient =
+          coeffient * pos_real_dbl_to_bf_impl_(
+                          *(details_ns::lookup_dbl_pow5_table_ptr_<0> + power));
+      coeffient.m_exponent += int64_t(power);
     }
-    auto &&[power, idk] = *opt;
-    if (mjz_float_t::float_from(.5) < idk) {
-      if (power >= int64_t(uint64_t(-1) >> 2)) return std::nullopt;
-      power++;
-    }
-    mjz_float_t value_exp = mjz_float_t::float_from_i(exponent_base);
-    if (power < 0) {
-      power = -power;
-      value_exp = mjz_float_t::float_from_i(1) / value_exp;
-    }
-    uint64_t power_v{uint64_t(power)};
-    for (; power_v;) {
-      if (power_v & 1) {
-        coeffient = coeffient * value_exp;
-      }
-      value_exp = value_exp * value_exp;
-      power_v >>= 1;
-    }
+
     if (is_neg) {
       coeffient = -coeffient;
     }
@@ -610,27 +713,20 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
   template <std::floating_point T,
             callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-                decltype(defualt_is_point_fn),
-            callable_c<std::optional<
-                std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
-                const char &, const uint8_t &) noexcept>
-                power_fn_t = decltype(defualt_power_fn)>
+                decltype(defualt_is_point_fn)>
   MJZ_CX_ND_FN static std::optional<T> to_floating_pv(
       const char *ptr, uintlen_t len,
-      is_point_fn_t &&is_point_fn = is_point_fn_t{},
-      power_fn_t &&power_fn = power_fn_t{}) noexcept {
+      is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
     uint8_t raidex = 10;
     if (ascii_to_num(std::min(std::min('N', 'A'), std::min('I', 'F'))) <
         raidex) {
       return std::nullopt;  // ambigous , NAN or INF could be a valid number!
     }
-    if (std::optional<T> v =
-            to_real_floating<T>(ptr, len, is_point_fn, power_fn)) {
+    if (std::optional<T> v = to_real_floating<T>(ptr, len, is_point_fn)) {
       return v;
     }
     if (36 < raidex || !ptr || !len || !raidex || is_point_fn('+', raidex) ||
-        is_point_fn('-', raidex) || power_fn('+', raidex) ||
-        power_fn('-', raidex))
+        is_point_fn('-', raidex))
       return std::nullopt;
     bool is_neg{};
     bool had_sign{};
@@ -641,7 +737,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       is_neg = *ptr == '-';
       if (!len) return std::nullopt;
     }
-    auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
+    auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
       uintlen_t i{};
       while (i < len && i < N - 1 &&
              ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {
@@ -734,17 +830,17 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     auto div_fn = [&]<std::unsigned_integral T_01_>(T_01_ number) noexcept {
       asserts(asserts.assume_rn, 0 <= i_1000modolo);
       for (;;) {
-        int16_t modolos{int16_t(number)};
+        uint16_t modolos{uint16_t(number)};
         bool small_ = number < 1000;
         if (!small_) {
           const T_01_ number_div = T_01_(number / 1000);
-          modolos = int16_t(number % 1000);
+          modolos = uint16_t(number % 1000);
           number = number_div;
         }
         const int offset = (i_1000modolo--) * 3;
         asserts(asserts.assume_rn, 0 <= offset);
         std ::array<char, 4> div_res =
-            details_ns::iota_forward_3digits(modolos);
+            details_ns::iota_forward_3digits(uint32_t(modolos));
         modolo10[offset] = div_res[0];
         modolo10[offset + 1] = div_res[1];
         modolo10[offset + 2] = div_res[2];
@@ -817,6 +913,35 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       return int_to_dec(out_buf, out_len, number_);
     }
   }
+
+  template <size_t min_cap = 0, size_t min_align = 1, std::unsigned_integral T>
+  MJZ_CX_AL_FN static uintlen_t hex_from_uint(char *out_buf, uintlen_t out_len,
+                                              T number_,
+                                              bool upper_case) noexcept {
+    std::array<char, sizeof(T) * 2> buf{};
+    out_buf = std::assume_aligned<min_align>(out_buf);
+    const auto hexes = cpy_bitcast<std::array<char, 16>>(
+        upper_case ? alphabett_table_upper : alphabett_table_lower);
+
+    uintlen_t i{};
+    for (char &c : buf) {
+      c = hexes[(uint64_t(number_) >> i) & 15];
+      i++;
+    }
+
+    const uintlen_t count =
+        uintlen_t(0 == number_) | (uintlen_t(std::bit_width(number_) + 3) >> 2);
+    if constexpr (sizeof(T) * 2 <= min_cap) {
+      cpy_bitcast(out_buf, buf);
+      return count;
+    }
+    if (out_len < count) {
+      return 0;
+    }
+    memcpy(out_buf, buf.data(), count);
+    return count;
+  }
+
   template <std::integral T, size_t min_cap = 0, size_t min_align = 1>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN static std::optional<uintlen_t> from_integral_fill(
@@ -842,6 +967,11 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     if (!len || !buf) return {};
     if (raidex == 10) {
       uintlen_t ret = dec_from_int<min_cap, min_align>(buf, len, val_rg_);
+      return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
+    }
+    if (raidex == 16) {
+      uintlen_t ret = hex_from_uint<min_cap, min_align>(
+          buf, len, std::make_unsigned_t<T>(val_rg_), upper_case);
       return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
     }
     return [=]() mutable noexcept -> std::optional<uintlen_t> {
@@ -1241,7 +1371,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     buf[-1] = std::exchange(buf[0], point_ch);
     len -= *len_diff;
     buf += *len_diff;
-    value.m_exponent += uint64_t(*len_diff - 1) << 2;
+    value.m_exponent += int64_t(*len_diff - 1) << 2;
     if (len < 2) return 0;
     *buf = upper_case ? 'P' : 'p';
     len -= 1;
@@ -1322,15 +1452,10 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
   template <std::floating_point T,
             callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-                decltype(defualt_is_point_fn),
-            callable_c<std::optional<
-                std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
-                const char &, const uint8_t &) noexcept>
-                power_fn_t = decltype(defualt_power_fn)>
+                decltype(defualt_is_point_fn)>
   MJZ_CX_ND_FN static std::optional<T> to_real_floating(
       const char *ptr, uintlen_t len,
-      is_point_fn_t &&is_point_fn = is_point_fn_t{},
-      power_fn_t &&power_fn = power_fn_t{}) noexcept {
+      is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
     uint8_t raidex_{10};
 
     bool is_neg{};
@@ -1344,7 +1469,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       len--;
     }
     if (len && *ptr != '0') {
-      return to_real_floating_pv<T>(ptr, len, 10, is_point_fn, power_fn);
+      return to_real_floating_pv<T>(ptr, len, 10, is_point_fn);
     }
     if (len) {
       ptr++;
@@ -1358,22 +1483,17 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }
 
     std::optional<T> ret =
-        to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn, power_fn);
+        to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
     if (ret) *ret = is_neg ? -*ret : *ret;
     return ret;
   }
 
   template <std::floating_point T,
             callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
-                std::remove_cvref_t<decltype(defualt_is_point_fn)>,
-            callable_c<std::optional<
-                std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>>(
-                const char &, const uint8_t &) noexcept>
-                power_fn_t = std::remove_cvref_t<decltype(defualt_power_fn)>>
+                std::remove_cvref_t<decltype(defualt_is_point_fn)>>
   MJZ_CX_ND_FN static std::optional<T> to_floating(
       const char *ptr, uintlen_t len,
-      is_point_fn_t &&is_point_fn = is_point_fn_t{},
-      power_fn_t &&power_fn = power_fn_t{}) noexcept {
+      is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
     uint8_t raidex_{10};
     bool is_neg{};
     while (len && *ptr == ' ') {
@@ -1386,7 +1506,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       len--;
     }
     if (len && *ptr != '0') {
-      return to_floating_pv<T>(ptr, len, is_point_fn, power_fn);
+      return to_floating_pv<T>(ptr, len, is_point_fn);
     }
     if (len) {
       ptr++;
@@ -1400,7 +1520,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }
 
     std::optional<T> ret =
-        to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn, power_fn);
+        to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
     if (ret) *ret = is_neg ? -*ret : *ret;
     return ret;
   }
@@ -1512,7 +1632,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     };
     bool good{true};
     for (uintlen_t i{}; i < 6; i++) {
-      good &= IEE754_array_[i] == std_array_[i];
+      good &= std::bit_cast<uint64_t>(IEE754_array_[i]) ==
+              std::bit_cast<uint64_t>(std_array_[i]);
       good &= std_array_bits[i] == IEE754_array_bits[i];
     }
     good &=
@@ -1611,9 +1732,9 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       bool less_than_1{true};
       bool more_than_eq_10{};
       if ((abs_val & 63) == abs_val) {
-          v >>= abs_val;
-          less_than_1 = v < 1;
-          more_than_eq_10 = 10 <= v;
+        v >>= abs_val;
+        less_than_1 = v < 1;
+        more_than_eq_10 = 10 <= v;
       }
       if constexpr (false) {
         // i dont think this should trigger
@@ -1625,7 +1746,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
         val = val * inv_ten;
         ret++;
         return ret;
-      } 
+      }
       if (less_than_1) {
         val = val * ten;
         ret--;
@@ -1730,30 +1851,29 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     number >>= uintlen_t(-f_val.m_exponent);
     *ptr++ = char(number.nth_word(1) + '0');
     *ptr++ = '.';
-    constexpr uintN_t<version_v, 128> ten_p3(1000);
-    for (uintlen_t i{}; i < f_accuracacy;) {
-      number.nth_word(1) = 0;
-      number *= ten_p3;
-      constexpr uint64_t zero_8parallel_ascii =
-          cpy_bitcast<uint64_t>("00000000");
-
-      uint64_t u64val =
-          details_ns ::iota_3digits_u64(uint32_t(number.nth_word(1))) |
-          zero_8parallel_ascii;
-      if constexpr (version_v.is_LE()) {
-        u64val >>= 40;
-      } else {
-        u64val <<= 40;
+    constexpr uintN_t<version_v, 128> ten_p1(10);
+    constexpr uintN_t<version_v, 128> ten_p2(100);
+    {
+      uintlen_t i{};
+      if (f_accuracacy & 1) {
+        number.nth_word(1) = 0;
+        number *= ten_p1;
+        *ptr++ = char(char(number.nth_word(1)) | '0');
       }
-      const auto uch64 = make_bitcast(u64val);
-      for (uintlen_t j{}; j < 3; j++) {
-        bool good = i < f_accuracacy;
-        *ptr = branchless_teranary(good, uch64[j], *ptr);
-        ptr += good;
-        i += good;
+      f_accuracacy >>= 1;
+      for (; i < f_accuracacy; i++) {
+        number.nth_word(1) = 0;
+        number *= ten_p2;
+        cpy_bitcast(
+            ptr, details_ns ::radix_ascii_p2_v_[uint32_t(number.nth_word(1))]);
+        ptr += 2;
       }
     }
-    if (number.nth_bit(63)) {
+    bool needs_rounding{(uint64_t(1) << 63) < number.nth_word(0)};
+    if (number.nth_word(0) == (uint64_t(1) << 63)) {
+      needs_rounding = !!(number.nth_word(1) & 1);
+    }
+    if (needs_rounding) {
       ptr--;
       while (*ptr == '9') {
         ptr--;
@@ -1838,6 +1958,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
           f_buf, f_len, f_val, exponent_log10, f_accuracacy, upper_case);
     }
   }
+  MJZ_DEPRECATED
   MJZ_CX_FN static uintlen_t from_dec_positive_float_fill_general(
       char *const f_buf, const uintlen_t f_len,
       big_float_t<version_v> /* normalized */ f_val, int64_t exponent_log10,
@@ -1901,7 +2022,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       }
     }
 
-    if (!number.nth_bit(63)) {
+    if (!((uint64_t(1) << 63) < number.nth_word(0))) {
       remove_stupid_zeros();
       return uintlen_t(ptr - f_buf);
     }
@@ -2197,98 +2318,100 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     const char *const ptr_end = f_buf + f_len;
     big_float_t<version_v> frac_ = f_val;
 
-    constexpr uintN_t<version_v, 128> ten_p3(1000);
+    constexpr uintN_t<version_v, 128> ten_p1(10);
     constexpr uintN_t<version_v, 128> ten_p2(100);
     uintN_t<version_v, 128> number{0 /*float error*/,
                                    uint64_t(frac_.m_coeffient)};
     number >>= uintlen_t(-frac_.m_exponent);
-    number *= ten_p2;  // prossesing is 3 digits at a time
-    int64_t number_of_chars_rem =
-        std::max(exponent_log10, -exponent_log10) + 1 + f_accuracacy;
-    if (ptr_end - ptr < number_of_chars_rem + 2) {
+
+    uintlen_t number_of_chars_rem =
+        uintlen_t(std::max(exponent_log10, -exponent_log10)) + 1 + f_accuracacy;
+    if (uintlen_t(ptr_end - ptr) < number_of_chars_rem + 2) {
       return {};
     }
-    bool is_past_dot{};
-    if (exponent_log10 < 0) {
+    uint64_t buf{};
+    uintlen_t buf_len{};
+    auto push_buf = [&](auto chs) noexcept {
+      const auto ubuf =
+          uint64_t(std::bit_cast<uint_sizeof_t<sizeof(chs)>>(chs));
+      if constexpr (std::endian::big == std::endian::native) {
+        buf <<= sizeof(chs) * 8;
+        buf |= ubuf;
+      } else {
+        buf >>= sizeof(chs) * 8;
+        buf |= ubuf << (64 - sizeof(chs) * 8);
+      }
+      buf_len += sizeof(chs);
+    };
+    auto pop_buf = [&](auto &chs) noexcept {
+      uint64_t ubuf{};
+
+      buf_len -= sizeof(chs);
+      if constexpr (std::endian::big == std::endian::native) {
+        ubuf = buf >> (buf_len * 8);
+      } else {
+        ubuf = (buf << (buf_len * 8)) >> (64 - sizeof(chs) * 8);
+      }
+      chs = std::bit_cast<std::remove_cvref_t<decltype(chs)>>(
+          uint_sizeof_t<sizeof(chs)>(ubuf));
+    };
+
+    if (number_of_chars_rem & 1) {
+      push_buf(char(char(number.nth_word(1)) | '0'));
+    } else {
+      number *= ten_p1;
+      push_buf(details_ns::radix_ascii_p2_v_[uint32_t(number.nth_word(1))]);
+    }
+
+    uintlen_t digits_till_dot{
+        uintlen_t(std::max<intlen_t>(0, exponent_log10 + 1))};
+    uintlen_t digits_past_dot{number_of_chars_rem - digits_till_dot};
+    if (digits_till_dot) {
+      if (digits_till_dot & 1) {
+        pop_buf(*ptr++);
+      }
+      digits_till_dot >>= 1;
+      for (uintlen_t i{}; i < digits_till_dot; i++) {
+        number.nth_word(1) = 0;
+        number *= ten_p2;
+        push_buf(details_ns ::radix_ascii_p2_v_[uint32_t(number.nth_word(1))]);
+        uint16_t b_{};
+        pop_buf(b_);
+        cpy_bitcast(ptr, b_);
+        ptr += 2;
+      }
+    } else {
       *ptr++ = '0';
     }
-    uint64_t ch64u8{};
-    uintlen_t ch64u8_count{};
 
-    for (intlen_t i{}; i < (number_of_chars_rem); i++) {
-      const bool need_dot = !is_past_dot && exponent_log10 < 0;
-      if (need_dot) {
-        *ptr++ = '.';
+    if (digits_past_dot) {
+      *ptr++ = '.';
+      if (digits_past_dot & 1) {
+        pop_buf(*ptr++);
       }
-      is_past_dot |= need_dot;
-
-      uintlen_t num_parallel = uintlen_t(number_of_chars_rem - i);
-      num_parallel = branchless_teranary(is_past_dot, num_parallel,
-                                         uintlen_t(exponent_log10 + 1));
-      num_parallel = std::min<uintlen_t>(num_parallel, 6);
-      if (!num_parallel) continue;
-      if (ch64u8_count < num_parallel) {
-        const uintlen_t zero_bytes = 6 - ch64u8_count;
-        constexpr uint64_t ascii3_par = cpy_bitcast<uint64_t>(
-            "000"
-            "\0\0\0\0\0");
-
-        uint64_t ch64u8_val{};
-        for (uintlen_t j{ch64u8_count}; j < zero_bytes; j += 3) {
-          asserts(asserts.assume_rn, number.nth_word(1) < 1000);
-          uint64_t u64val =
-              details_ns ::iota_3digits_u64(uint32_t(number.nth_word(1)));
-          if constexpr (version_v.is_LE()) {
-            u64val >>= 40;
-          } else {
-            u64val <<= 40;
-          }
-          const uint64_t ch3par = u64val | ascii3_par;
-          if constexpr (version_v.is_BE()) {
-            ch64u8_val |= ch3par >> (j * 8);
-          } else {
-            ch64u8_val |= ch3par << (j * 8);
-          }
-          number.nth_word(1) = 0;
-          if (number.nth_word(0)) {
-            number *= ten_p3;
-          }
-        }
-        ch64u8 |= ch64u8_val;
-      }
-      uint64_t ch64u8_val{ch64u8};
-      if constexpr (version_v.is_BE()) {
-        ch64u8 <<= num_parallel * 8;
-      } else {
-        ch64u8 >>= num_parallel * 8;
-      }
-      ch64u8_count -= num_parallel;
-      exponent_log10 -= intlen_t(num_parallel);
-      i += intlen_t(num_parallel);
-      for (uintlen_t j{}; j < 48; j += 8) {
-        uint8_t ch_{};
-        if constexpr (version_v.is_BE()) {
-          ch_ = uint8_t(ch64u8_val >> (56 - j));
-        } else {
-          ch_ = uint8_t(ch64u8_val >> j);
-        }
-        const char ch = char(ch_);
-        const bool good = j < num_parallel * 8;
-        *ptr = branchless_teranary(good, ch, *ptr);
-        ptr = branchless_teranary(good, ptr + 1, ptr);
+      digits_past_dot >>= 1;
+      for (uintlen_t i{}; i < digits_past_dot; i++) {
+        number.nth_word(1) = 0;
+        number *= ten_p2;
+        push_buf(details_ns ::radix_ascii_p2_v_[uint32_t(number.nth_word(1))]);
+        uint16_t b_{};
+        pop_buf(b_);
+        cpy_bitcast(ptr, b_);
+        ptr += 2;
       }
     }
-    bool needs_rounding{number.nth_bit(63)};
-    {
-      char ch{};
-      if constexpr (version_v.is_BE()) {
-        ch = char(uint8_t(ch64u8 >> 56));
+
+    bool needs_rounding{(uint64_t(1) << 63) < number.nth_word(0)};
+    if (number.nth_word(0) == (uint64_t(1) << 63)) {
+      if (!buf_len) {
+        needs_rounding = !!(number.nth_word(1) & 1);
       } else {
-        ch = char(uint8_t(ch64u8));
+        uint8_t c_{};
+        pop_buf(c_);
+        needs_rounding = !!(c_ & 1);
       }
-      needs_rounding =
-          branchless_teranary<bool>(!!ch, '5' <= ch, needs_rounding);
     }
+
     if (!needs_rounding) {
       ptr--;
       while (*ptr == '0') {

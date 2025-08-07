@@ -52,10 +52,10 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   union data_u_t {
     obj_t obj;
     MJZ_NO_MV_NO_CPY(data_u_t);
-    MJZ_DISABLE_WANINGS_START_;
+    MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_CX_FN ~data_u_t() noexcept {}
     MJZ_CX_FN data_u_t() noexcept {}
-    MJZ_DISABLE_WANINGS_END_;
+    MJZ_DISABLE_ALL_WANINGS_END_;
   };
   data_u_t data{};
   alloc_ref upstream{};

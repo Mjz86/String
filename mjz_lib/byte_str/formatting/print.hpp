@@ -35,7 +35,7 @@ struct standard_output_it_t : file_output_it_t<version_v> {
   MJZ_NO_MV_NO_CPY(standard_output_it_t);
 #if MJZ_WITH_iostream
 
-  threads_ns::bit_mutex_t<> &output_muext() noexcept {
+  static threads_ns::bit_mutex_t<> &output_muext() noexcept {
     alignas(
         hardware_destructive_interference_size) static threads_ns::bit_mutex_t<>
         mutex{};
@@ -56,8 +56,9 @@ struct standard_output_it_t : file_output_it_t<version_v> {
       this->Stream = stdout;
     }
   }
-  MJZ_CX_FN standard_output_it_t(FILE *Stream_)
-      : standard_output_it_t{true, Stream_} {}
+  MJZ_CX_FN standard_output_it_t(FILE *Stream_) : standard_output_it_t{true} {
+    if (this->Stream) this->Stream = Stream_;
+  }
   MJZ_CX_FN ~standard_output_it_t() noexcept {
     if (!bad) {
       output_muext().unlock();
@@ -169,12 +170,13 @@ struct print_t {
       [&]() noexcept {
         err_view.unsafe_handle() =
             obj.main_ctx().base_ctx().err_content.unsafe_handle();
-        if (err_view) {
-          err_view =
-              "[Error]status_view_t<version_v>print_t::format_to: failed to "
-              "output";
+        if (err_view) { 
+         err_view =
+            "[Error]status_view_t<version_v>print_t::format_to: failed to "
+            "output";
           return;
         }
+      
         if (!meta_data_.log_print_failure) {
           return;
         }
@@ -186,9 +188,10 @@ struct print_t {
         err_it.it = out_it;
         std::ignore = obj.format_to(
             err_it,
-            fmt_litteral_ns::operator_fmt<version_v,
-                                          "\n\n at index {3} \"{0}\":\n\n{1}\n\n<<VV-----["
-                                          "ERROR]----------here\n\n{2}\n">(),
+            fmt_litteral_ns::operator_fmt<
+                version_v,
+                "\n\n at index {3} \"{0}\":\n\n{1}\n\n<<VV-----["
+                "ERROR]----------here\n\n{2}\n">(),
             err_view, format_text(0, index), format_text(index), index);
         std::ignore = out_it.flush_buffer();
         return;

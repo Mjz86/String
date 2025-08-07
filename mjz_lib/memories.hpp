@@ -137,20 +137,21 @@ MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
   }
   return needle + needle_len <= hey_len + hey_stack;
 }
+
 template <typename T>
-  requires(std::is_trivially_copy_constructible_v<T> &&
+concept aligned_bitcastable_c=
+std::is_trivially_copy_constructible_v<T> &&
            std::is_trivially_default_constructible_v<T> &&
-           std::is_trivially_destructible_v<T>)
+           std::is_trivially_destructible_v<T>;
+
+template <aligned_bitcastable_c T> 
 MJZ_NCX_FN T cpy_aligned_bitcast(const void *src) noexcept {
   T ret{};
   std::memcpy(&ret, std::assume_aligned<alignof(T)>(src), sizeof(src));
   return ret;
 }
 
-template <typename T>
-  requires(std::is_trivially_copy_constructible_v<T> &&
-           std::is_trivially_default_constructible_v<T> &&
-           std::is_trivially_destructible_v<T>)
+template <aligned_bitcastable_c T>
 MJZ_NCX_FN void cpy_aligned_bitcast(void *dest, const T &src) noexcept {
   std::memcpy(std::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
 }

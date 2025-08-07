@@ -39,10 +39,10 @@ class big_mutex_t {
     MJZ_DISABLE_ALL_WANINGS_START_;
     alignas(alignof(std::mutex)) char r_mutex_[sizeof(std::mutex)];
     bit_mutex_t<T_E_> cx_mutex;
-    MJZ_DISABLE_WANINGS_END_;
+    MJZ_DISABLE_ALL_WANINGS_END_;
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_CX_FN data_t() noexcept {
-      MJZ_DISABLE_WANINGS_END_;
+      MJZ_DISABLE_ALL_WANINGS_END_;
       MJZ_IF_CONSTEVAL { std::construct_at(&cx_mutex); }
       else {
         std::construct_at(reinterpret_cast<std::mutex*>(r_mutex_));
@@ -53,7 +53,7 @@ class big_mutex_t {
       return *std::launder( reinterpret_cast<std::mutex*>(r_mutex_));
     }
     MJZ_CX_FN ~data_t() noexcept {
-      MJZ_DISABLE_WANINGS_END_;
+      MJZ_DISABLE_ALL_WANINGS_END_;
       MJZ_IF_CONSTEVAL {
         asserts(!cx_mutex, "you forgot to unlock this object!!");
         std::destroy_at(&cx_mutex);
@@ -84,7 +84,7 @@ class big_mutex_t {
     else {
       MJZ_DISABLE_ALL_WANINGS_START_;
       std::ignore = std::unique_lock{m.get_r()}.release();
-      MJZ_DISABLE_WANINGS_END_;
+      MJZ_DISABLE_ALL_WANINGS_END_;
     }
   }
   MJZ_CX_FN void unlock() noexcept {
@@ -92,7 +92,7 @@ class big_mutex_t {
     else {
       MJZ_DISABLE_ALL_WANINGS_START_;
       std::ignore = std::unique_lock{m.get_r(), std::adopt_lock};
-      MJZ_DISABLE_WANINGS_END_;
+      MJZ_DISABLE_ALL_WANINGS_END_;
     }
   }
 };

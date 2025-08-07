@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include <optional>
 
 #include "asserts.hpp"
@@ -31,14 +30,9 @@ SOFTWARE.
 namespace mjz {
 template <typename T>
 struct optional_ref_t {
-   
   single_object_pointer_t<T> ptr{};
-  MJZ_CX_ND_FN T &operator*() const noexcept { 
-    return *ptr;
-  }
-  MJZ_CX_ND_FN T &value() const noexcept { 
-    return *ptr;
-  }
+  MJZ_CX_ND_FN T &operator*() const noexcept { return *ptr; }
+  MJZ_CX_ND_FN T &value() const noexcept { return *ptr; }
   MJZ_CX_ND_FN T &value_or(T &&) const noexcept = delete;
   MJZ_CX_ND_FN T &value_or(T &other) const noexcept {
     if (*this) {
@@ -47,9 +41,7 @@ struct optional_ref_t {
     return other;
   }
   MJZ_CX_ND_FN
-  single_object_pointer_t<T> operator->() const noexcept { 
-    return ptr;
-  }
+  single_object_pointer_t<T> operator->() const noexcept { return ptr; }
   MJZ_CX_ND_FN explicit operator bool() const noexcept { return !!ptr; }
   MJZ_CX_ND_FN bool operator!() const noexcept { return !ptr; }
   MJZ_CX_ND_FN bool has_value() const noexcept { return !!ptr; }
@@ -60,11 +52,19 @@ struct optional_ref_t {
   single_object_pointer_t<T> get() const noexcept { return ptr; }
 
   template <typename U>
-  MJZ_CX_ND_FN decltype(auto) operator->*(U &&arg) const noexcept { 
+  MJZ_CX_ND_FN decltype(auto) operator->*(U &&arg) const noexcept {
     return ptr->*std::forward<U>(arg);
   }
   MJZ_CX_FN optional_ref_t(single_object_pointer_t<T> ptr_ = nullptr) noexcept
       : ptr(ptr_) {}
+
+  template <typename U>
+  MJZ_CX_FN optional_ref_t(std::optional<U> &op) noexcept
+      : ptr(op ? &*op : nullptr) {}
+  template <typename U>
+    requires(std::is_const_v<T>)
+  MJZ_CX_FN optional_ref_t(const std::optional<U> &op) noexcept
+      : ptr(op ? &*op : nullptr) {}
 
   MJZ_CX_FN optional_ref_t(const optional_ref_t &opt) noexcept : ptr(opt.ptr) {}
 
@@ -161,7 +161,9 @@ struct char_storage_as_temp_t : public optional_ref_t<T> {
     }
     ptr_to_real_obj = ptr_to_obj;
     MJZ_IFN_CONSTEVAL {
+      MJZ_DISABLE_ALL_WANINGS_START_;
       ptr = reinterpret_cast<T *>(ptr_to_obj);
+      MJZ_DISABLE_ALL_WANINGS_END_;
       return;
     }
     struct A {
@@ -272,7 +274,7 @@ struct better_runtime_only_union_mimic_t : runtime_only_union_mimic_t<T> {
 };
 
 /* suppress the deleted copy/move assignment or construction stuff */
-MJZ_DISABLE_WANINGS_START_;
+MJZ_DISABLE_ALL_WANINGS_START_;
 template <class lam_t>
 concept multilambda_segment_ne_c = requires(lam_t &&arg) {
   { (std::remove_cvref_t<lam_t>(std::forward<lam_t>(arg))) } noexcept;
@@ -285,7 +287,7 @@ struct multilambda_t : public std::remove_cvref_t<lambdas_t>... {
       (multilambda_segment_ne_c<lambdas_t> && ...))
       : std::remove_cvref_t<lambdas_t>(std::forward<lambdas_t>(args))... {}
 };
-MJZ_DISABLE_WANINGS_END_;
+MJZ_DISABLE_ALL_WANINGS_END_;
 
 template <class... lambdas_t>
 multilambda_t(lambdas_t &&...) -> multilambda_t<lambdas_t &&...>;
@@ -335,7 +337,7 @@ struct typeless_function_t<ret_t(args_t...) noexcept> {
     return fn(*obj, std::forward<args_t>(args)...);
   }
 };
-MJZ_DISABLE_WANINGS_START_;
+MJZ_DISABLE_ALL_WANINGS_START_;
 template <typename, typename T>
 struct function_holder_t {
   MJZ_CX_FN void operator+() noexcept;
@@ -361,7 +363,7 @@ MJZ_CX_FN auto make(callable_c<fn_t> auto &&lambda) noexcept {
       std::forward<decltype(lambda)>(lambda)};
 }
 
-MJZ_DISABLE_WANINGS_END_;
+MJZ_DISABLE_ALL_WANINGS_END_;
 };  // namespace no_type_ns
 }  // namespace mjz
 #endif  // MJZ_OPTIONALS_LIB_HPP_FILE_

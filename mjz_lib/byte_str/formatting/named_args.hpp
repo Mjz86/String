@@ -27,7 +27,7 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_named_args_HPP_FILE_
 
 namespace mjz::bstr_ns::format_ns {
-MJZ_DISABLE_WANINGS_START_;
+MJZ_DISABLE_ALL_WANINGS_START_;
 template <version_t version_v, typename T>
 struct named_arg_t {
   using view_t = basic_string_view_t<version_v>;
@@ -53,7 +53,7 @@ struct named_arg_t {
   MJZ_CX_FN T operator()() const noexcept { return obj; }
 };
 
-MJZ_DISABLE_WANINGS_END_;
+MJZ_DISABLE_ALL_WANINGS_END_;
 template <version_t version_v, typename T>
 struct is_named_arg_t {};
 
@@ -99,11 +99,11 @@ struct default_formatter_t<version_v, T_, 20> {
       typename format_context_t<version_v>::template formatter_type<T>;
   Formatter formatter{};
 
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN  success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       const std::remove_reference_t<T_> &arg,
       format_context_t<version_v> &ctx) const noexcept {
     return formatter.format(arg(), ctx);

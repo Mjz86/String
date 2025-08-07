@@ -49,11 +49,11 @@ struct default_formatter_t<version_v, T, 30> {
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       const std::exception &err,
       format_context_t<version_v> &ctx) const noexcept {
     bool ret{};
@@ -63,8 +63,8 @@ struct default_formatter_t<version_v, T, 30> {
       ret = ctx.advance_to(
           formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
     };
-    if (ret) return ctx.out();
-    return nullptr;
+    if (ret) return true;
+    return false;
   };
 };
 
@@ -80,11 +80,11 @@ struct default_formatter_t<version_v, T, 30> {
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_NCX_FN base_out_it_t<version_v> format(
+  MJZ_NCX_FN  success_t format(
       const std::error_code &err,
       format_context_t<version_v> &ctx) const noexcept {
     bool ret{};
@@ -94,8 +94,8 @@ struct default_formatter_t<version_v, T, 30> {
       ret = ctx.advance_to(
           formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
     };
-    if (ret) return ctx.out();
-    return nullptr;
+    if (ret) return true;
+    return false;
   };
 };
 }  // namespace mjz::bstr_ns::format_ns

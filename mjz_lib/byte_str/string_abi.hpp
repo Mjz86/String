@@ -312,7 +312,9 @@ struct str_abi_t_ {
         cntrl_and_cap = cpy_bitcast<uintlen_t>(ptr_);
       }
       else {
+        MJZ_DISABLE_ALL_WANINGS_START_; 
         cntrl_and_cap = *reinterpret_cast<const uintlen_t*>(ptr_);
+      MJZ_DISABLE_ALL_WANINGS_END_;
       }
 
       if constexpr (version_v.is_BE()) {
@@ -378,8 +380,11 @@ struct str_abi_t_ {
         ptr_ = buf_;
         ret = cpy_bitcast<uintlen_t>(ptr_);
       }
-      else {
+      else {  MJZ_DISABLE_ALL_WANINGS_START_  ;
+
         ret = *reinterpret_cast<const uintlen_t*>(ptr_);
+        
+         MJZ_DISABLE_ALL_WANINGS_END_;
       }
       if constexpr (version_v.is_BE()) {
         ret >>= 8;
@@ -488,8 +493,9 @@ struct str_abi_t_ {
         std::array<uint64_t, string_size / 8> This_) noexcept {
       static_assert(sizeof(data_t) == string_size);
       alignas(data_t) char bytes_[sizeof(data_t)]{};
-      std::memcpy(&bytes_, &This_, sizeof(data_t));
+      std::memcpy(&bytes_, &This_, sizeof(data_t));  MJZ_DISABLE_ALL_WANINGS_START_  ; 
       data_t* This =std::launder(reinterpret_cast<data_t*>(bytes_));
+  MJZ_DISABLE_ALL_WANINGS_END_;
       This->destruct_to_invalid_impl_big_();
     }
     template<bool multi_branch_version_=true>

@@ -184,8 +184,7 @@ template <class>
 class my_totatlly_empty_template1_class_t {};
 MJZ_CX_AL_ND_FN static uint8_t log2_of_val_create(
     std::integral auto val) noexcept {
-  uint8_t ret = uint8_t(std::bit_width(val));
-  return branchless_teranary<uint8_t>(ret == 0, 0, uint8_t(ret - 1));
+  return uint8_t(std::bit_width(val)-(val != 0));
 }
 MJZ_CX_AL_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
   return static_cast<uint64_t>(1ull << log2_val);
@@ -194,10 +193,8 @@ MJZ_CX_AL_ND_FN static uint8_t log2_ceil_of_val_create(
     std::integral auto val) noexcept
   requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
 {
-  auto log2v = log2_of_val_create(val);
-  return uint8_t(
-      uint64_t(log2v) +
-      uint64_t(int(log2_of_val_to_val(log2v) != uint64_t(val)) & int(!!val)));
+
+  return uint8_t(std::bit_width(val)-std::has_single_bit(val));
 }
 
 template <uint64_t max_val>

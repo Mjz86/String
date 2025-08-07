@@ -650,7 +650,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     *ch_ptr_ = branchless_teranary(!b_plus, ' ', '+');
     stack.buf -= branch;
 
-    *stack.length += stack.offset - (stack.buf - stack.buf_arr);
+    *stack.length += stack.offset -uintlen_t(stack.buf - stack.buf_arr);
   }
 
   base_out_it_t<version_v> it = ctx.out();
@@ -739,7 +739,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_start(
 
 template <version_t version_v>
 template <typename T>
-MJZ_CX_FN base_out_it_t<version_v> basic_format_specs_t<version_v>::format_fill(
+MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill(
     auto &&place_stuff, format_context_t<version_v> &ctx) const noexcept {
   struct Place_t : void_struct_t {
     std::remove_reference_t<decltype(place_stuff)> *function{};
@@ -754,7 +754,7 @@ MJZ_CX_FN base_out_it_t<version_v> basic_format_specs_t<version_v>::format_fill(
     ctx.as_error(
         "[Error]basic_format_specs_t::format_fill:cannot allocate more "
         "memory");
-    return nullptr;
+    return false;
   }
   MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
   return format_fill_pv(Place_t::place_fn, p, blk_0_.data(), blk_0_.size(),
@@ -762,7 +762,7 @@ MJZ_CX_FN base_out_it_t<version_v> basic_format_specs_t<version_v>::format_fill(
 }
 
 template <version_t version_v>
-MJZ_CX_FN base_out_it_t<version_v>
+MJZ_CX_FN success_t
 basic_format_specs_t<version_v>::format_fill_pv(
     success_t (*place_fn)(void_struct_t &) noexcept, void_struct_t &place_obj,
     char *buffer, uintlen_t buffer_size,
@@ -779,7 +779,7 @@ basic_format_specs_t<version_v>::format_fill_pv(
           [&](uint64_t val) noexcept { my_width = uintlen_t(val); })) {
     ctx.as_error(
         "[Error]basic_format_specs_t::format_specs():couldnt get width");
-    return nullptr;
+    return false;
   } else {
     my_width = width;
   }
@@ -799,15 +799,15 @@ basic_format_specs_t<version_v>::format_fill_pv(
       if (ctx.out()) ctx.advance_to(output);
     };
 
-    if (!ctx.advance_to(output_buffer)) return nullptr;
-    if (!place_stuff()) return nullptr;
+    if (!ctx.advance_to(output_buffer)) return false;
+    if (!place_stuff()) return false;
     output_buffer_was_used = true;
   };
   if (output_buffer.invalid) {
     ctx.as_error(
         "[Error]default_formatter_t::format(tuple,auto):"
         "error at counting the output");
-    return nullptr;
+    return false;
   }
   base_out_it_t<version_v> actual_it = ctx.out();
   auto &output = actual_it;
@@ -816,7 +816,7 @@ basic_format_specs_t<version_v>::format_fill_pv(
   it = output;
   uintlen_t delta = my_width - length;
   std::ignore = actual_it.reserve(my_width, ctx.encoding());
-  if (!ctx.advance_to(it)) return nullptr;
+  if (!ctx.advance_to(it)) return false;
   if (alignment == align_e::right || alignment == align_e::center) {
     uintlen_t rigth_delta{delta >> uint8_t(alignment == align_e::center)};
     delta -= rigth_delta;
@@ -825,12 +825,12 @@ basic_format_specs_t<version_v>::format_fill_pv(
   if (output_buffer_was_used) {
     std::ignore = it.append(output_buffer.bview());
   } else {
-    if (!place_stuff()) return nullptr;
+    if (!place_stuff()) return false;
   }
   if (alignment == align_e::left || alignment == align_e::center) {
     std::ignore = it.multi_push_back(fill_char, delta, ctx.encoding());
   }
-  return actual_it;
+  return !!actual_it;
 }
 
 };  // namespace mjz::bstr_ns::format_ns

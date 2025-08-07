@@ -136,31 +136,31 @@ struct default_formatter_t<version_v, T, 10> {
   using sview_t = static_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   easy_formatter_t<std::remove_cvref_t<T>> easy_formatter{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     view_t view = ctx.view();
     uintlen_t pos = view.find_first_of(sview_t{"}"});
     if (pos == view.nops) {
-      return ctx.begin();
+      return true;
     }
-    if (!ctx.advance_amount(pos)) return nullptr;
+    if (!ctx.advance_amount(pos)) return false;
     status_view_t<version_v> status = easy_formatter.parse(view(0, pos));
     if (status) {
-      return ctx.begin();
+      return true;
     }
     ctx.as_error(status.sview());
-    return nullptr;
+    return false;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       const std::remove_reference_t<T> &arg,
       format_context_t<version_v> &ctx) const noexcept {
     easy_output_data_t<version_v> data{ctx};
     status_view_t<version_v> status = easy_formatter.format(arg, data.it());
     if (status) {
-      return ctx.out();
+      return true;
     }
     ctx.as_error(status.sview());
-    return nullptr;
+    return false;
   };
 };
 

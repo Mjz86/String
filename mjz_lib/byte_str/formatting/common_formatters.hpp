@@ -21,7 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include "../string.hpp"
 #include "base.hpp"
+
 #ifndef MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_
 
@@ -31,19 +33,42 @@ template <version_t version_v>
 struct common_data_t {
   using sview_t = static_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
+  using big_str_t =
+      basic_str_t<version_v, basic_str_props_t<version_v>{.sso_min_cap = 30}>;
   MJZ_NO_MV_NO_CPY(common_data_t);
   format_context_t<version_v> &ctx;
   view_t input{};
-  sview_t err_view{""};
+  sview_t err_view{std::nullopt};
   MJZ_CX_FN common_data_t(format_context_t<version_v> &base,
                           view_t input_) noexcept
       : ctx{base}, input{input_} {}
+  MJZ_CX_FN ~common_data_t() noexcept {}
+
+  MJZ_CX_FN common_data_t &operator_ll(const auto &v) noexcept
+    requires std::same_as<
+        success_t, decltype(base_out_it_t<version_v>{}.append_obj_impl_(v))>
+  {
+    if (ctx.out().append_obj_impl_(v)) {
+      return *this;
+    }
+    err_view = sview_t{
+        "[Error]common_data_t&operator<<(view_t view):could not output the "
+        "view"};
+    return *this;
+  }
+
+  MJZ_CX_FN common_data_t &operator<<(const auto &val) noexcept
+    requires requires() { this->operator_ll(val); }
+  {
+    return operator_ll(val);
+  }
 };
 
 template <version_t version_v, typename T>
 concept common_formatted_c =
     requires(const std::remove_cvref_t<T> &obj, common_data_t<version_v> &cf) {
       { cf << obj } noexcept;
+      requires(!requires() { cf.operator_ll(obj); });
     };
 template <version_t version_v, typename T>
   requires common_formatted_c<version_v, T>
@@ -54,27 +79,25 @@ struct default_formatter_t<version_v, T, 15> {
   using sview_t = static_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   view_t input{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     view_t view = ctx.view();
     uintlen_t pos = view.find_first_of(sview_t{"}"});
     if (pos == view.nops) {
-      return ctx.begin();
+      return true;
     }
     input = view(0, pos);
-    if (ctx.advance_amount(pos)) return ctx.begin();
-    return nullptr;
+    if (ctx.advance_amount(pos)) return true;
+    return false;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      const std::remove_reference_t<T> &arg,
-      format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(const std::remove_reference_t<T> &arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     common_data_t<version_v> cd{ctx, input};
     cd << arg;
-    if (!cd.err_view) {
-      return ctx.out();
+    if (!cd.err_view.data()) {
+      return true;
     }
     ctx.as_error(cd.err_view);
-    return nullptr;
+    return false;
   };
 };
 

@@ -34,13 +34,13 @@ struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
   MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
-      parse_context_t<version_v> &ctx) noexcept {
-    return ctx.begin();
+  MJZ_CX_FN success_t parse(
+      parse_context_t<version_v> & ) noexcept {
+    return true;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
-      const auto &, format_context_t<version_v> &ctx) const noexcept {
-    return ctx.out();
+  MJZ_CX_FN success_t format(
+      const auto &, format_context_t<version_v> &) const noexcept {
+    return true;
   };
 };
 template <version_t version_v, partial_same_as<std::nullopt_t> T>
@@ -145,11 +145,11 @@ struct basic_format_specs_t {
   MJZ_CX_FN success_t format_specs(T &&arg,
                                    format_context_t<version_v> &ctx) noexcept;
   template <typename>
-  MJZ_CX_FN base_out_it_t<version_v> format_fill(
+  MJZ_CX_FN  success_t format_fill(
       auto &&fill_up, format_context_t<version_v> &ctx) const noexcept;
 
  private:
-  MJZ_CX_FN base_out_it_t<version_v> format_fill_pv(
+  MJZ_CX_FN success_t format_fill_pv(
       success_t (*)(void_struct_t &) noexcept, void_struct_t &, char *buffer,
       uintlen_t buffer_size, format_context_t<version_v> &ctx) const noexcept;
   MJZ_CX_FN success_t format_specs_finish(format_context_t<version_v> &cntx,
@@ -167,11 +167,15 @@ concept uses_basic_spec_c =
      std::is_pointer_v<std::remove_cvref_t<T>>);
 
 
+
 template <version_t version_v, uses_basic_spec_c<version_v> T>
 struct default_formatter_t<version_v, T, 20> {
   MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
   MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
   MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+
+////
+
   using decay_optimize_to_t = std::conditional_t<
       std::is_pointer_v<std::remove_cvref_t<T>> ||
           partial_same_as<nullptr_t, T>,
@@ -185,19 +189,19 @@ struct default_formatter_t<version_v, T, 20> {
                              uintptr_t>,
           T>>;
   basic_format_specs_t<version_v> data{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN  success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
-    if (!data.parse_specs(ctx)) return nullptr;
-    if (!data.template check_specs<std::remove_cvref_t<T>>(ctx)) return nullptr;
-    return ctx.begin();
+    if (!data.parse_specs(ctx)) return false;
+    if (!data.template check_specs<std::remove_cvref_t<T>>(ctx)) return false;
+    return true;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       std::remove_cvref_t<T> arg,
       format_context_t<version_v> &ctx) const noexcept {
     if (!basic_format_specs_t<version_v>(data)
              .template format_specs<const std::remove_cvref_t<T> &>(arg, ctx))
-      return nullptr;
-    return ctx.out();
+      return false;
+    return true;
   };
 };
 
@@ -216,19 +220,19 @@ struct default_formatter_t<version_v, T, 20> {
 
   using decay_optimize_to_t = base_string_view_arg_t<version_v>;
   basic_format_specs_t<version_v> data{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
-    if (!data.parse_specs(ctx)) return nullptr;
+    if (!data.parse_specs(ctx)) return false;
     if (!data.template check_specs<base_lazy_view_t<version_v>>(ctx))
-      return nullptr;
-    return ctx.begin();
+      return false;
+    return true;
   };
-  MJZ_CX_FN base_out_it_t<version_v> format(
+  MJZ_CX_FN success_t format(
       auto &&arg, format_context_t<version_v> &ctx) const noexcept {
     if (!basic_format_specs_t<version_v>(data).format_specs(
             base_lazy_view_t<version_v>(decay_optimize_to_t(arg)), ctx))
-      return nullptr;
-    return ctx.out();
+      return false;
+    return true;
   };
 };
 };  // namespace mjz::bstr_ns::format_ns

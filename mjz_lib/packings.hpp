@@ -26,7 +26,7 @@ SOFTWARE.
 #ifndef MJZ_PACKING_LIB_HPP_FILE_
 #define MJZ_PACKING_LIB_HPP_FILE_
 namespace mjz {
-MJZ_PACKING_START_NAW_;
+MJZ_PACKING_START_;
 /*NOTE:
 1.don't cause UB
 2.be careful
@@ -129,7 +129,7 @@ union unaligned_optional_holder_t {
   MJZ_CX_FN T *AAP() & noexcept { return assume_aligned_ptr(); }
   MJZ_CX_FN const T *AAP() const & noexcept { return assume_aligned_ptr(); }
 };
-MJZ_PACKING_END_NAW_;
+MJZ_PACKING_END_;
 
 namespace raw_string_object_laoyouts_maybe_ {
 MJZ_BAD_COMPILER(sizeof(char) == 1);

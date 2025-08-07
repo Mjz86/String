@@ -26,7 +26,7 @@ SOFTWARE.
 
 /*
  * shows if we can assume an expression in an assumbtion macro
- *  0 means no assumbtion
+ * 0 means no assumbtion
  */
 
 #ifndef MJZ_TRUST_LEVEL_
@@ -45,7 +45,7 @@ SOFTWARE.
 #endif  // !MJZ_assert_TRUST_LEVEL_
 /*
  * shows if we can assume liklyhood of an operation.
- *  0 means no assumbtion */
+ * 0 means no assumbtion */
 #ifndef MJZ_LIKELYHOD_LEVEL_
 #define MJZ_LIKELYHOD_LEVEL_ 2
 #endif  // !MJZ_LIKELYHOD_LEVEL_
@@ -70,13 +70,12 @@ SOFTWARE.
 #define MJZ_TEST_MODE_ false
 #endif  // !MJZ_TEST_MODE_
 /*
- *  log allocations in the allocators when using new.
+ * log allocations in the allocators when using new.
  */
 
 #ifndef MJZ_PMR_GLOBAL_ALLOCATIONS_
 #define MJZ_PMR_GLOBAL_ALLOCATIONS_ false
 #endif  // !MJZ_PMR_GLOBAL_ALLOCATIONS_
-
 
 #ifndef MJZ_SANE_MEMMOVE_IMPLS
 #define MJZ_SANE_MEMMOVE_IMPLS true
@@ -190,12 +189,12 @@ SOFTWARE.
 #define MJZ_IL_CX_FN MJZ_MAYBE_UNUSED MJZ_USED_CXIL_FN inline
 #define MJZ_NCX_FN MJZ_MAYBE_UNUSED MJZ_USED_NCXIL_FN
 #define MJZ_IL_NCX_FN MJZ_MAYBE_UNUSED MJZ_USED_NCXIL_FN inline
-// for a typical no discard of return  constexpr function atribute
+// for a typical no discard of return constexpr function atribute
 #define MJZ_CX_ND_FN MJZ_MAYBE_UNUSED MJZ_NODISCRAD MJZ_USED_CXIL_FN
 #define MJZ_NCX_ND_FN MJZ_MAYBE_UNUSED MJZ_NODISCRAD MJZ_USED_NCXIL_FN
 #define MJZ_IL_CX_ND_FN MJZ_MAYBE_UNUSED MJZ_NODISCRAD MJZ_USED_CXIL_FN inline
 #define MJZ_IL_NCX_ND_FN MJZ_MAYBE_UNUSED MJZ_NODISCRAD MJZ_USED_NCXIL_FN inline
-// for a typical no discard of return  constexpr function atribute
+// for a typical no discard of return constexpr function atribute
 #define MJZ_CX_NDF_FN(R_reason_R_) \
   MJZ_MAYBE_UNUSED MJZ_NODISCRAD_FOR(R_reason_R_) MJZ_USED_CXIL_FN
 #define MJZ_NCX_NDF_FN(R_reason_R_) \
@@ -229,9 +228,9 @@ SOFTWARE.
 
 #define MJZ_JUST_SUBOPTIMAL \
   MJZ_DEPRECATED_R("this is slow , use the newer function insted")
-#define MJZ_SUBOPTIMAL(F_FUNCTION_NAME_F_)                                \
-  MJZ_DEPRECATED_R("this is slow , use the newer  \"" #F_FUNCTION_NAME_F_ \
-                   "\"  function  insted")
+#define MJZ_SUBOPTIMAL(F_FUNCTION_NAME_F_)                               \
+  MJZ_DEPRECATED_R("this is slow , use the newer \"" #F_FUNCTION_NAME_F_ \
+                   "\" function insted")
 #define MJZ_VARY_SLOW MJZ_DEPRECATED_R("[info]:this is vary slow")
 #if MJZ_LIKELYHOD_LEVEL_ > 3
 #define MJZ_MAYBE_LIKELY MJZ_AS_CPP_ATTREBUTE(likely)
@@ -314,17 +313,63 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #ifndef MJZ_VERBOSE_FORMAT_ERROR
 #define MJZ_VERBOSE_FORMAT_ERROR false
 #endif  // !MJZ_VERBOSE_FORMAT_ERROR
+#define MJZ_DISABLED_MSVC_WANINGS_ \
+  5264 26495 4180 4412 4455 4494 4514 4574 4582 4583 4587 4588 4619 4623 4625 4626 4643 4648 4702 4793 4820 4988 5026 5027 5045 6294 4710 4711 4868 4866 5246 4702 6385 26115 26110 6236 26495 6287 28020 26816 6386
+
+#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_   \
+  MJZ_MSVC_ONLY_PRAGMA_(warning(push, 0)) \
+  MJZ_MSVC_ONLY_PRAGMA_(warning(disable : MJZ_DISABLED_MSVC_WANINGS_))
+
+#define MJZ_WARNINGS_IGNORE_END_IMPL_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
+
 #elif defined(__GNUC__)
+
 #undef MJZ_GCC_ATTRIBUTES_
 #undef MJZ_GCC_ONLY_CODE_
 #undef MJZ_restrict
 #undef MJZ_GCC_ONLY_PRAGMA_
-#define MJZ_restrict __restrict__
+
+#define MJZ_MACRO_PRAGMA_(X) _Pragma(#X)
+
 #define MJZ_GCC_ONLY_CODE_(X) X
+#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(warnoption0) \
+  MJZ_MACRO_PRAGMA_(GCC diagnostic ignored warnoption0)
+#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_   \
+  MJZ_MACRO_PRAGMA_(GCC diagnostic push);                      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wall");                       \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wextra");                     \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Walloca");                    \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-align");                \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-qual");                 \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wctor-dtor-privacy");         \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdeprecated-copy-dtor");      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdouble-promotion");          \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wenum-conversion");           \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wfloat-equal");               \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat-signedness");         \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat=2");                  \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmismatched-tags");           \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmultichar");                 \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wnon-virtual-dtor");          \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Woverloaded-virtual");        \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wpointer-arith");             \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wrange-loop-construct");      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wshadow");                    \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wuninitialized");             \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wvla");                       \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wwrite-strings");             \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wsign-conversion");           \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(                                \
+      "-Wdelete-non-"                     \
+      "virtual-dtor")
+      
+
+#define MJZ_WARNINGS_IGNORE_END_IMPL_ MJZ_MACRO_PRAGMA_(GCC diagnostic pop)
+
+#define MJZ_restrict __restrict__
 #define MJZ_GCC_ATTRIBUTES_(X) __attribute__((X))
 #define JUST_MJZ_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_(always_inline)
-#define JUST_MJZ_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline) noinline
-#define MJZ_MACRO_PRAGMA_(X) _Pragma(#X)
+#define JUST_MJZ_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline) 
 #if __has_cpp_attribute(assume)
 #define MJZ_JUST_ASSUME_(X_expression_) \
   MJZ_AS_CPP_ATTREBUTE(assume(X_expression_))
@@ -383,8 +428,8 @@ THIS DOSE NOT GENERATE ANY CODE !!
 INVISIBLE FOR THE COMPILER !!
 
 
-used for understanding the consequenses of a    valid pointer, true boolean flag
-, template specilization, value of a function argument  ,active enum member,
+used for understanding the consequenses of a valid pointer, true boolean flag
+, template specilization, value of a function argument ,active enum member,
 active union member...
 */
 #define MJZ_ALWAYS_BELIEVE(X_expression_)
@@ -395,8 +440,8 @@ THIS DOSE NOT GENERATE ANY CODE !!
 INVISIBLE FOR THE COMPILER !!
 
 
-used for understanding the consequenses of a    valid pointer, true boolean flag
-, template specilization, value of a function argument  ,active enum member,
+used for understanding the consequenses of a valid pointer, true boolean flag
+, template specilization, value of a function argument ,active enum member,
 active union member... IF the first statement is true
 
 */
@@ -524,75 +569,15 @@ active union member... IF the first statement is true
         MJZ_name_of_nameless_type(UNION_OR_STRUCT_UOS_, VAR_NAME));        \
   })
 
-#define MJZ_DISABLED_MSVC_WANINGS_ \
-  5264 26495 4180 4412 4455 4494 4514 4574 4582 4583 4587 4588 4619 4623 4625 4626 4643 4648 4702 4793 4820 4988 5026 5027 5045 6294 4710 4711 4868 4866 5246 4702 6385 26115 26110 6236 26495 6287 28020 26816 6386
-#define MJZ_WARNING_LEVEL_ 3
 #define MJZ_PACKING_START_      \
   MJZ_MACRO_PRAGMA_(pack(push)) \
   MJZ_MACRO_PRAGMA_(pack(1))
 
 #define MJZ_PACKING_END_ MJZ_MACRO_PRAGMA_(pack(pop))
 
-#define MJZ_DISABLE_WANINGS_START_      \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(push)); \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(disable : MJZ_DISABLED_MSVC_WANINGS_));
+#define MJZ_DISABLE_ALL_WANINGS_START_ MJZ_WARNINGS_IGNORE_BEGIN_IMPL_
 
-#define MJZ_DISABLE_WANINGS_END_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop))
-
-#define MJZ_DISABLE_ALL_WANINGS_START_    \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(push, 0)) \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(disable : MJZ_DISABLED_MSVC_WANINGS_))
-
-#define MJZ_DISABLE_ALL_WANINGS_END_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
-
-#define MJZ_PADDING_TEST_START_         \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(push)); \
-  MJZ_MSVC_ONLY_PRAGMA_(warning(4 : 4820));
-
-#define MJZ_PADDING_TEST_END_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
-
-#define MJZ_PACKING_START_NW_ \
-  MJZ_DISABLE_WANINGS_START_; \
-  MJZ_PACKING_START_;
-
-#define MJZ_PACKING_END_NW_ \
-  MJZ_PACKING_END_          \
-  MJZ_DISABLE_WANINGS_END_
-
-#define MJZ_PACKING_START_NAW_   \
-  MJZ_DISABLE_ALL_WANINGS_START_ \
-  MJZ_PACKING_START_
-
-#define MJZ_PACKING_END_NAW_ \
-  MJZ_PACKING_END_           \
-  MJZ_DISABLE_ALL_WANINGS_END_
-
-#define MJZ_Trust_me_bro(CODE) CODE
-
-#define MJZ_W_Trust_me_bro(CODE) \
-  MJZ_DISABLE_WANINGS_START_     \
-  CODE MJZ_DISABLE_WANINGS_END_
-
-#define MJZ_WA_Trust_me_bro(CODE) \
-  MJZ_DISABLE_ALL_WANINGS_START_  \
-  CODE MJZ_DISABLE_ALL_WANINGS_END_
-
-#define MJZ_P_Trust_me_bro(CODE) \
-  MJZ_PACKING_START_             \
-  CODE MJZ_PACKING_END_
-
-#define MJZ_WP_Trust_me_bro(CODE) \
-  MJZ_PACKING_START_NW_           \
-  CODE MJZ_PACKING_END_NW_
-
-#define MJZ_WAP_Trust_me_bro(CODE) \
-  MJZ_PACKING_START_NAW_           \
-  CODE MJZ_PACKING_END_NAW_
-
-#define MJZ_MSASSERT(EXPRESTION_, MASSAGE_) \
-  static_assert(bool(EXPRESTION_), MASSAGE_)
-#define MJZ_SASSERT(EXPRESTION_) \
-  MJZ_MSASSERT(EXPRESTION_, "  requremets are not met ")
+#define MJZ_DISABLE_ALL_WANINGS_END_ MJZ_WARNINGS_IGNORE_END_IMPL_
 
 #define MJZ_NUMBEROF(Array_) (sizeof(Array_) / sizeof(Array_[0]))
 
@@ -601,7 +586,7 @@ active union member... IF the first statement is true
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
   MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__forceinline)
 
-#define MJZ_NCX_AL_FN                                 \
+#define MJZ_NCX_AL_FN                                \
   MJZ_MAYBE_UNUSED                                   \
   MJZ_GCC_ONLY_CODE_(__attribute__((always_inline))) \
   inline MJZ_MSVC_ONLY_CODE_(__forceinline)
@@ -638,19 +623,19 @@ struct mjz_unreachable_t {
 #define MJZ_TO_STRING_V(X) MJZ_TO_STRING(X)
 
 namespace MJZ_NORETURN_SPECIAL_namespace_ {
-MJZ_DISABLE_WANINGS_START_;
+MJZ_DISABLE_ALL_WANINGS_START_;
 MJZ_NORETURN
 MJZ_WILL_USE constexpr static void inline STATUS_ACSESS_VOILATION_bye_mjz_() noexcept {  //-V1082
   MJZ_NEVER_RUN_PATH();
 }
-MJZ_DISABLE_WANINGS_END_;
+MJZ_DISABLE_ALL_WANINGS_END_;
 };  // namespace MJZ_NORETURN_SPECIAL_namespace_
 
 #define MJZ_NOT_IMPLEMENTATED_HEAPER_()                                    \
   do {                                                                     \
     MJZ_RASSUME_(                                                          \
         false,                                                             \
-        "this cntrol path IS UNDEFINED  and will be optimized out and :( " \
+        "this cntrol path IS UNDEFINED and will be optimized out and :( "  \
         "\n runing this has UNDEFINED BEHAVIOUR .");                       \
     ::MJZ_NORETURN_SPECIAL_namespace_::STATUS_ACSESS_VOILATION_bye_mjz_(); \
   } while (0)
@@ -765,7 +750,8 @@ MJZ_DISABLE_WANINGS_END_;
                        const std::nothrow_t &) = delete;                       \
   void *operator new(std::size_t count, void *ptr) = delete;                   \
   void *operator new[](std::size_t count, void *ptr) = delete
-
+#define MJZ_MSASSERT static_assert
+#define MJZ_SASSERT(X) static_assert(X, "")
 #define MJZ_BAD_COMPILER(EXP) \
   MJZ_MSASSERT(               \
       EXP, "[unexpected standard violation] bad compiler macro definition")

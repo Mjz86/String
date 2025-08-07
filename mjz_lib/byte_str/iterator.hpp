@@ -92,7 +92,7 @@ class iterator_t {
 
   MJZ_CX_FN iterator_t &operator+=(const difference_type diff) noexcept {
     MJZ_UNUSED auto checker = check();
-    index += diff;
+    index += uintlen_t(diff);
 
     return *this;
   }
@@ -359,6 +359,8 @@ class base_out_it_t : public void_struct_t {
     }
     return !opt_view_or_reserve.len;
   }
+  template<typename T0_>
+  MJZ_CX_FN auto  append_obj_impl_(const T0_ &)noexcept;
   MJZ_CX_FN success_t append_u_(bview opt_view_or_reserve) noexcept {
     if (!opt_view_or_reserve.len) return true;
     return !!fn(opt_view_or_reserve);

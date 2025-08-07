@@ -57,12 +57,12 @@ struct default_formatter_t<version_v, T_, 90> {
       get_invalid_T_obj<CVT_pv>()));
   using str_t = basic_str_t<version_v, true>;
   str_t parse_content{};
-  MJZ_CX_FN typename basic_string_view_t<version_v>::const_iterator parse(
+  MJZ_CX_FN success_t parse(
       parse_context_t<version_v> &ctx) noexcept {
     view_t view = ctx.view();
     uintlen_t pos = view.find_first_of(sview_t{"}"});
     if (pos == view.nops) {
-      return ctx.begin();
+      return true;
     }
     replace_flags_t<version_v> rp{};
     rp.change_alloc_v = decltype(rp)::change_e::always_force_change;
@@ -71,10 +71,10 @@ struct default_formatter_t<version_v, T_, 90> {
       ctx.as_error(
           "[Error]default_formatter_t<is_std_formatter_c>parse:allocation "
           "failed");
-      return nullptr;
+      return false;
     }
     if (ctx.advance_amount(pos)) return ctx.begin();
-    return nullptr;
+    return false;
   };
   MJZ_CX_FN base_out_it_t<version_v> format(
       const std::remove_reference_t<T_> &arg,
@@ -87,7 +87,7 @@ struct default_formatter_t<version_v, T_, 90> {
           "[Error]default_formatter_t<is_std_formatter_c>::format:cannot allocate "
           "more "
           "memory");
-      return nullptr;
+      return false;
     }
     MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
     good &= MJZ_NOEXCEPT {
@@ -117,11 +117,11 @@ struct default_formatter_t<version_v, T_, 90> {
           bview_t::make(buffer.data(), buffer.size(), encodings_e::ascii);
       good &= ctx.out().append(v);
     };
-    if (good) return ctx.out();
+    if (good) return true;
     ctx.as_error(
         "[Error]default_formatter_t<is_std_formatter_c>: an  exeption was "
         "thrown during the output");
-    return nullptr;
+    return false;
   };
 };
 
