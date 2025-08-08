@@ -52,6 +52,9 @@ the generation of the lookup and multiply needed my big and handy uintN_t type ,
 # refrences :
 https://github.com/ridiculousfish/libdivide
 
+https://github.com/Mjz86/String/blob/main/mjz_lib/maths.hpp 
+( the function  uint_to_dec_par  in math.h) 
+
 https://github.com/Mjz86/String/blob/main/uint_conv_old.md
 
 // also the math header , because i needed the uint192_t from there for the devition lib
