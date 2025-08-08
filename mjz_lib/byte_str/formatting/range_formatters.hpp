@@ -181,7 +181,7 @@ struct default_formatter_t<version_v, T_, 60> {
             ch = ctx.front();
             had_scope = true;
           }
-          if (!ctx.advance_to(std::get<I>(formatters).parse(ctx))) return false;
+          if (!(std::get<I>(formatters).parse(ctx))) return false;
           if (ch && *ch != '}') {
             ctx.as_error(
                 "[Error]default_formatter_t::parse(tuple,"
@@ -215,7 +215,7 @@ struct default_formatter_t<version_v, T_, 60> {
                 if (not_first) {
                   it.append(separator.unsafe_handle());
                 }
-                if (!ctx.advance_to(
+                if (!(
                         mjz::get<I>(formatters)
                             .format(to_final_type_fn<version_v, CVT_pv<I>>(val),
                                     ctx)))

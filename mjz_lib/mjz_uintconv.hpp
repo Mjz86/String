@@ -34,9 +34,18 @@ SOFTWARE.
 #endif
 #endif  // ! MJZ_STD_HAS_SIMD_LIB_
 
+#ifdef __SIZEOF_INT128__
+#define MJZ_uint128_type_ unsigned __int128
+#elif 1 < _MSC_VER
+#include<__msvc_int128.hpp>
+#define MJZ_uint128_type_ std::_Unsigned128
+#else
+#endif
+
 #include <stdint.h>
 
 #include <array>
+#include <span>
 #include <bit>
 #include <concepts>
 #include <cstring>
@@ -76,7 +85,7 @@ static constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
                               "8081828384858687888990919293949596979899\0"});
 constexpr static inline auto radix_ascii_p2_inv100_v_ = []() {
   std::array<uint16_t, 128> ret{};
-  for (uintlen_t i{}; i < 128; i++) {
+  for (size_t i{}; i < 128; i++) {
     ret[i] = radix_ascii_p2_v_[(i * 100) >> 7];
   }
   return ret;
@@ -1018,13 +1027,6 @@ inv10p8_b57_num_to_iota_impl_(uint64_t& n) noexcept {
   }
   return u16x4_num_to_iota_impl_(std::bit_cast<uint64_t>(indexies));
 }
-
-#ifdef __SIZEOF_INT128__
-#define MJZ_uint128_type_ unsigned __int128
-#elif 1 < _MSC_VER
-#define MJZ_uint128_type_ std::_Unsigned128
-#else
-#endif
 
 [[maybe_unused]] constexpr static MJZ_forceinline_ uint64_t
 inv10p8_b57_num_to_iota_impl_ascii_(uint64_t& n) noexcept {
