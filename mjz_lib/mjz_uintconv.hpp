@@ -47,9 +47,10 @@ namespace details_ns {
 
 static constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
   std::array<uint64_t, 9> ret{};
-  ret[0] = (uint64_t(1) << 57);
-  for (size_t i{1}; i < 9; i++) {
-    ret[i] = (ret[i - 1] / 10) + !!(ret[i - 1] % 10);
+  uint64_t p10_{1};
+  for (size_t i{}; i < 9; i++) {
+    ret[i] = ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
+    p10_*=10;
   }
   return ret;
 }();

@@ -660,8 +660,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
   width = std::max(width, *stack.length);
   std::ignore = it.reserve(width, ctx.encoding());
   uintlen_t delta{};
-  if (bool(int(!!this->leading_zero) & (int(alignment == align_e::right) |
-                                        int(alignment == align_e::none)))) {
+  if (operator_and(!!this->leading_zero,operator_or(alignment == align_e::right,alignment == align_e::none))) {
     uintlen_t prefix_len = uintlen_t(numeric_begin - stack.buf);
     std::ignore =
         it.append(bcview::make(stack.buf, prefix_len, ctx.encoding()));

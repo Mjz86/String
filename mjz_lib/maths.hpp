@@ -22,6 +22,7 @@ SOFTWARE.
 */
 
 #include "traits.hpp"
+#include "tuple.hpp"
 #include "versions.hpp"
 #ifndef MJZ_MATHS_LIB_HPP_FILE_
 #define MJZ_MATHS_LIB_HPP_FILE_
@@ -137,17 +138,17 @@ struct uintN_t {
     MJZ_JUST_ASSUME_(amount < n_bits);
     const uint64_t ub_annoying_mask = (~uint64_t(internal_amount != 0)) + 1;
     uintN_t upper_half{*this}, lower_half{*this};
-    for (uint64_t& word : upper_half.words) word = (word << internal_amount);
+    for (uint64_t& word : lower_half.words) word = (word << internal_amount);
     internal_amount |= 0 == internal_amount;
-    for (uint64_t& word : lower_half.words)
+    for (uint64_t& word : upper_half.words)
       word = ub_annoying_mask & (word >> (64 - internal_amount));
-    for (intlen_t i{1}; i < intlen_t(word_count); i++) {
-      lower_half.nth_word(i) |= upper_half.nth_word(i - 1);
+    for (intlen_t i{}; i < intlen_t(word_count) - 1; i++) {
+      lower_half.nth_word(i + 1) |= upper_half.nth_word(i);
     }
     std::array<uint64_t, word_count * 2> temp{};
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       intlen_t dest = i + external_amount;
-      temp[size_t(dest)] = upper_half.nth_word(i);
+      temp[size_t(dest)] = lower_half.nth_word(i);
     }
 
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
@@ -285,7 +286,7 @@ struct uintN_t {
       for (uintlen_t i{}; i < n_bits / 64; i++) {
         for (uintlen_t j{}; j < n_bits / 64; j++) {
           u128_t0_ x{nth_word(i)};
-          x *= amount.nth_word(j);
+          x *= u128_t0_(amount.nth_word(j));
           ret += uintN_t{x.nth_word(0), x.nth_word(1)} << ((i + j) * 64);
         }
       }
@@ -330,28 +331,73 @@ struct uintN_t {
     }
     return {};
   }
+  MJZ_CX_FN uintlen_t countr_zero() const noexcept {
+    uintlen_t ret{};
+    for (uint64_t n : std::views::iota(uintlen_t(0), n_bits / 64)) {
+      n = uintlen_t(std::countr_zero(nth_word(n)));
+      if (n == 64) {
+        ret += 64;
+        continue;
+      }
+      ret += n;
+      break;
+    }
+    return ret;
+  }
+  MJZ_CX_FN uintlen_t countl_zero() const noexcept {
+    uintlen_t ret{};
+    for (uint64_t n :
+         std::views::iota(uintlen_t(0), n_bits / 64) | std::views::reverse) {
+      n = uintlen_t(std::countl_zero(nth_word(n)));
+      if (n == 64) {
+        ret += 64;
+        continue;
+      }
+      ret += n;
+      break;
+    }
+    return ret;
+  }
+  MJZ_CX_FN uintlen_t countr_one() const noexcept {
+    uintlen_t ret{};
+    for (uint64_t n : std::views::iota(uintlen_t(0), n_bits / 64)) {
+      n = uintlen_t(std::countr_one(nth_word(n)));
+      if (n == 64) {
+        ret += 64;
+        continue;
+      }
+      ret += n;
+      break;
+    }
+    return ret;
+  }
+  MJZ_CX_FN uintlen_t countl_one() const noexcept {
+    uintlen_t ret{};
+    for (uint64_t n :
+         std::views::iota(uintlen_t(0), n_bits / 64) | std::views::reverse) {
+      n = uintlen_t(std::countl_one(nth_word(n)));
+      if (n == 64) {
+        ret += 64;
+        continue;
+      }
+      ret += n;
+      break;
+    }
+    return ret;
+  }
 
   MJZ_CX_FN uintN_t to_modulo_ret_devide(const uintN_t& rhs) noexcept {
+    asserts(asserts.assume_rn, rhs != uintN_t{},
+            " it is undefined behaviour to call with rhs of 0");
     uintN_t intermidiate{};
-    std::optional<uintlen_t> clog2_lhs_ = ceil_log2();
-    if (!clog2_lhs_) {
-      return intermidiate;
-    }
-    intlen_t clog2_lhs = intlen_t(*clog2_lhs_);
-    intlen_t flog2_rhs = intlen_t(*rhs.floor_log2());
-    intlen_t clog2_ret =
-        std::min<intlen_t>(intlen_t(n_bits - 1), clog2_lhs) - flog2_rhs;
-    if (clog2_ret < 0) {
-      return intermidiate;
-    }
-    uintN_t temp = rhs << uintlen_t(clog2_ret);
-    for (intlen_t i{clog2_ret}; 0 <= i; i--) {
+    for (intlen_t i{intlen_t(rhs.countl_zero() - this->countl_zero())}; 0 <= i;
+         i--) {
+      uintN_t temp = rhs << uintlen_t(i);
       bool is_bigger{temp <= *this};
-      intermidiate.set_nth_bit(i, is_bigger);
       if (is_bigger) {
+        intermidiate.set_nth_bit(i, is_bigger);
         *this -= temp;
-      }
-      temp >>= 1;
+      };
     }
     return intermidiate;
   }
@@ -1177,7 +1223,7 @@ MJZ_CX_FN auto get_devision_by_mul_rs_shift_and_bit_count(
   const auto floor_log2_d = bwd - 1;
   const auto fraction_bit_count = factor2d + floor_log2_d + ceil_log2_mv + 1;
   return std::pair{fraction_bit_count,
-                   factor2d + 2 * ceil_log2_mv - ceil_log2_d + 1};
+                   ceil_log2_mv - ceil_log2_d + 1 + fraction_bit_count};
 }
 template <version_t version_v = version_t{}>
 MJZ_CX_FN auto get_devide_inverse_and_shift(uint64_t max_value_,
@@ -1190,7 +1236,7 @@ MJZ_CX_FN auto get_devide_inverse_and_shift(uint64_t max_value_,
   uintN_t<version_v, 192> temp =
       ret.to_modulo_ret_devide(decltype(ret)(devisor_));
   ret = temp + decltype(ret)(!!ret);
-  return std::pair{ret, fraction_bit_count};
+  return tuple_t{ret, fraction_bit_count, bit_count};
 }
 
 }  // namespace mjz
