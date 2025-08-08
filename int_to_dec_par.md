@@ -22,7 +22,7 @@ the awnser is somtimes off by 1, so we do a final check by a lookup and we have 
 note :
 by devide i mean a multiply (with the trick from https://github.com/Mjz86/String/blob/main/uint_conv_old.md),
 
-first, thw how:
+first, the how:
 
 we can prove  that  for every fixed  point number ( the digits after the point have negetive powers of 2) F=AAAAAAAAAAAA.XYBBBBBBBBBBBB
 if we do :
