@@ -74,13 +74,6 @@ static constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
                               "4041424344454647484950515253545556575859"
                               "6061626364656667686970717273747576777879"
                               "8081828384858687888990919293949596979899\0"});
-constexpr static inline auto radix_ascii_p2_inv100_v_ = []() {
-  std::array<uint16_t, 128> ret{};
-  for (uintlen_t i{}; i < 128; i++) {
-    ret[i] = radix_ascii_p2_v_[(i * 100) >> 7];
-  }
-  return ret;
-}();
 constexpr const inline static size_t lookup_dbl_pow5_table_len_ = 325;
 template <int = 0>
 constexpr auto const inline static lookup_dbl_pow5_table_ = []() noexcept {
@@ -1086,8 +1079,9 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
 #ifdef MJZ_uint128_type_
     MJZ_uint128_type_ u128 = num_;
     u128 *= inv_10p8_b90;
-    n = (uint64_t((u128 + ((uint64_t(1) << 33) - 1))>>33) & (uint64_t(-1) >> 7));
-    num_ = decltype(num_)(uint64_t(u128 >> 90));
+    u128 >>= 33;
+    n = (uint64_t(u128) & (uint64_t(-1) >> 7));
+    num_ = decltype(num_)(uint64_t(u128 >> 57));
     cpy_bitcast_impl_(end_buf, inv10p8_b57_num_to_iota_impl_ascii_simd_(n));
 #else
     n = (num_ % p10_8) * inv_p10_b57[6];
