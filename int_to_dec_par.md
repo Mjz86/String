@@ -22,22 +22,12 @@ the awnser is somtimes off by 1, so we do a final check by a lookup and we have 
 note :
 by devide i mean a multiply (with the trick from https://github.com/Mjz86/String/blob/main/uint_conv_old.md),
 
-first, the how:
-
-we can prove  that  for every fixed  point number ( the digits after the point have negetive powers of 2) F=AAAAAAAAAAAA.XYBBBBBBBBBBBB
-if we do :
-F2=(ceil(128F)&127)
-we get :
-F2= 128*(0.XYCCCCCCC)
-and  we can extract XY  by a lookup table of 128 enteries.
 
 
 
-so , with the above  in mind  we do :
+we have a look up :`MI=ceil(2^K/pow(10,-2*i))` .( with a large enough K so that the deviation by multiply would be valid) 
 
-look up :`MI=2^K*128/pow(10,-2*i)` .( with a large enough K so that the deviation by multiply would be valid) 
-
-FI=`127&((n*MI+2^k-1)>>k)` ( same as the ceil function )
+FI=`100*((n*MI)&((1<<k)-1))` 
 and we lookup FI. 
 ( this operates on pairs of digits , but for odd cases , one of the pairs is discarded)
 
