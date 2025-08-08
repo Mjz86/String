@@ -907,8 +907,12 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   template <size_t min_cap = 0, size_t min_align = 1, std::integral T>
   MJZ_CX_AL_FN static uintlen_t dec_from_int(char *out_buf, uintlen_t out_len,
                                              T number_) noexcept {
-    if constexpr (int_to_dec_unchekced_size_v<T> <= min_cap) {
+    if constexpr (4 <= sizeof(T) && use_parralel_integer_conv_v) {
+      return details_ns::uint_to_dec_par<version_v>(out_buf, out_len, number_);
+    }else  if constexpr (int_to_dec_unchekced_size_v<T> <= min_cap) {
       return int_to_dec_unchecked<min_cap, T>(out_buf, number_);
+    } else if constexpr (2 == sizeof(T) && use_parralel_integer_conv_v) {
+      return details_ns::uint_to_dec_par<version_v>(out_buf, out_len, number_);
     } else {
       return int_to_dec(out_buf, out_len, number_);
     }

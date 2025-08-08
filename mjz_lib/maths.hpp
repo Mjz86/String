@@ -24,6 +24,7 @@ SOFTWARE.
 #include "traits.hpp"
 #include "tuple.hpp"
 #include "versions.hpp"
+#include "mjz_uintconv.hpp"
 #ifndef MJZ_MATHS_LIB_HPP_FILE_
 #define MJZ_MATHS_LIB_HPP_FILE_
 MJZ_DISABLE_ALL_WANINGS_START_;
@@ -1212,32 +1213,133 @@ MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
   return f_t(x);
 }
 
-MJZ_CX_FN auto get_devision_by_mul_rs_shift_and_bit_count(
-    uint64_t max_value_, uint64_t devisor_) noexcept {
-  max_value_ = std::max(max_value_, devisor_);
-  const auto factor2d = uint32_t(std::countr_zero(devisor_));
+MJZ_CX_AL_FN auto get_devision_by_mul_rs_shift_and_bit_count(
+    uint64_t max_value_, uint64_t devisor_,bool sensical_devide=true) noexcept {
+  auto factor2d = uint32_t(std::countr_zero(devisor_));
+  const auto mvbw_=uint32_t(std::bit_width(max_value_));
+  if (sensical_devide) {
+    max_value_ = std::max(max_value_, devisor_);
+  } else{
+    factor2d = std::min(factor2d, mvbw_);
+  }
   const auto bwd = uint32_t(std::bit_width(devisor_)) - factor2d;
-  const auto bwmv = uint32_t(std::bit_width(max_value_)) - factor2d;
+  const auto bwmv = mvbw_ - factor2d;
   const auto ceil_log2_mv = bwmv - std::has_single_bit(max_value_);
   const auto ceil_log2_d = bwd - std::has_single_bit(devisor_);
   const auto floor_log2_d = bwd - 1;
   const auto fraction_bit_count = factor2d + floor_log2_d + ceil_log2_mv + 1;
   return std::pair{fraction_bit_count,
-                   ceil_log2_mv - ceil_log2_d + 1 + fraction_bit_count};
+                   fraction_bit_count + ceil_log2_mv - ceil_log2_d + 1 };
 }
 template <version_t version_v = version_t{}>
-MJZ_CX_FN auto get_devide_inverse_and_shift(uint64_t max_value_,
-                                            uint64_t devisor_) noexcept {
+MJZ_CX_AL_FN auto get_devide_inverse_and_shift(
+    uint64_t max_value_,
+                                            uint64_t devisor_, bool reduce_ = true,
+    bool sensical_devide = true) noexcept {
   uintN_t<version_v, 192> ret{1};
   const auto [fraction_bit_count, bit_count] =
-      get_devision_by_mul_rs_shift_and_bit_count(max_value_, devisor_);
-  asserts(asserts.assume_rn, bit_count < 192);
+      get_devision_by_mul_rs_shift_and_bit_count(max_value_, devisor_,
+                                                 sensical_devide);
+  
+  asserts(asserts.assume_rn, bit_count < 192 || !sensical_devide);
   ret <<= uintlen_t(fraction_bit_count);
   uintN_t<version_v, 192> temp =
       ret.to_modulo_ret_devide(decltype(ret)(devisor_));
   ret = temp + decltype(ret)(!!ret);
-  return tuple_t{ret, fraction_bit_count, bit_count};
+  uintlen_t zcnt_ {};
+  if (reduce_) {
+    zcnt_ = ret.countr_zero();
+    ret >>= zcnt_;
+  }
+  return tuple_t{ret, uintlen_t(fraction_bit_count - zcnt_),
+                 uintlen_t(bit_count - zcnt_)};
 }
 
 }  // namespace mjz
+
+namespace mjz {
+inline namespace uint_to_ascci_ns0 {
+namespace details_ns {
+template <version_t version_v, std::unsigned_integral T>
+struct diver_radix_ascii_p2_inv100_t_ {
+  uintN_t<version_v, 128> m_add_ceil{1};
+  uint64_t m_inverse{};
+  uintlen_t m_shift{};
+  MJZ_CX_FN void init(uintlen_t pow) noexcept {
+    int64_t var10p_i{1};
+    uintlen_t i_{pow};
+    while (i_--) var10p_i *= 5;
+    auto [inv, sft_, count] = get_devide_inverse_and_shift<>(
+        uint64_t(T(-1)) >> pow, uint64_t(var10p_i));
+    sft_ += pow;
+    asserts(count <= 128 && 8 <= sft_ && !inv.nth_word(1));
+    m_inverse = inv.nth_word(0);
+    m_shift = sft_ - 7;
+    m_add_ceil = (m_add_ceil << m_shift) - m_add_ceil;
+  }
+  MJZ_CX_AL_FN uint16_t operator()(T n) const noexcept {
+    uintN_t<version_v, 128> t(n);
+    t *= uintN_t<version_v, 128>(m_inverse);
+    t += m_add_ceil;
+    t >>= m_shift;
+    return radix_ascii_p2_inv100_v_[127 & t.nth_word(0)];
+  }
+};
+
+template <version_t version_v, std::unsigned_integral T>
+constexpr static inline auto diver_radix_ascii_p2_inv100_t_range_ = []() {
+  constexpr uintlen_t count_n = (uintlen_t(dec_width(T(-1))) + 1) >> 1;
+  std::array<diver_radix_ascii_p2_inv100_t_<version_v, T>, count_n> ret{};
+  for (uintlen_t i{}; i < count_n; i++) {
+    ret[i].init((i + 1) * 2);
+  }
+  return ret;
+}();
+template <version_t version_v, std::unsigned_integral T>
+MJZ_CX_AL_FN uintlen_t uint_to_dec_pre_calc_impl_par_lessmul_(
+    char* ptr, uintlen_t len_width,
+                                                 T num) noexcept {
+  constexpr uintlen_t count_n_max =
+      (uintlen_t(dec_width(T(-1))) + 1) & ~uintlen_t(1);
+  uintlen_t count = (len_width + 1) >> 1;
+  uint16_t chs{};
+  uintlen_t i{};
+  for (; i < (count_n_max >> 1); i++) {
+    chs = diver_radix_ascii_p2_inv100_t_range_<version_v, T>[i](num);
+    if (!--count) {
+      break;
+    }
+    cpy_bitcast(ptr + len_width - 2 - +i * 2, chs);
+  }
+  if (1 & len_width) {
+    *ptr = std::bit_cast<std::array<char, 2>>(chs)[1];
+  } else {
+    cpy_bitcast(ptr + len_width - 2 - +i * 2, chs);
+  }
+  return len_width;
+}
+template <version_t version_v, std::unsigned_integral T>
+MJZ_CX_FN uintlen_t uint_to_dec_par(char* ptr, uintlen_t buf_len, T n) noexcept {
+  uintlen_t len_width = uintlen_t(dec_width(n));
+  len_width |= len_width == 0;
+  if (buf_len < len_width) return 0;
+  return details_ns::uint_to_dec_pre_calc_impl_par_lessmul_<version_v>(
+      ptr, len_width, n);
+}
+template <version_t version_v, std::signed_integral T>
+MJZ_CX_FN uintlen_t uint_to_dec_par(char* ptr, uintlen_t buf_len, T n) noexcept {
+  const bool is_neg_{n < 0};
+  const auto abs_v = std::make_unsigned_t<T>(is_neg_ ? -n : n);
+  uintlen_t len_width = uintlen_t(dec_width(abs_v));
+  len_width |= len_width == 0;
+  if (buf_len < len_width + is_neg_) return 0;
+  *ptr = '-';
+  ptr += is_neg_;
+  return details_ns::uint_to_dec_pre_calc_impl_par_lessmul_<version_v>(
+             ptr, len_width, abs_v) +
+         is_neg_;
+}
+}  // namespace details_ns
+}  // namespace uint_to_ascci_ns0
+};  // namespace mjz
 #endif  // MJZ_MATHS_LIB_HPP_FILE_
