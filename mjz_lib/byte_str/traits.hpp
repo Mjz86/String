@@ -818,8 +818,8 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }
     return n;
   }
-
-  static constexpr bool use_parralel_integer_conv_v = true;
+  // currunty the code sometimes is non optimal and maybe incorrect.
+  static constexpr bool use_parralel_integer_conv_v = false;
   template <std::unsigned_integral T>
   MJZ_CX_AL_FN static uintlen_t dec_from_uint_impl_lookup_sequential(
       char *out_buf, uintlen_t out_len, T number_0_, char *modolo10) noexcept {

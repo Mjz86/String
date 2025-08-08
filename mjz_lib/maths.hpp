@@ -55,9 +55,9 @@ struct uintN_t {
   MJZ_DISABLE_ALL_WANINGS_END_;
 
  private:
-  MJZ_CX_FN uintN_t(void_struct_t, uintlen_t) noexcept : uintN_t{} {}
+  MJZ_CX_AL_FN uintN_t(void_struct_t, uintlen_t) noexcept : uintN_t{} {}
   template <std::integral T, std::integral... Ts>
-  MJZ_CX_FN uintN_t(void_struct_t, const uintlen_t i, T lowest,
+  MJZ_CX_AL_FN uintN_t(void_struct_t, const uintlen_t i, T lowest,
                     Ts... args) noexcept
       : uintN_t{void_struct_t{}, i + 1, args...} {
     nth_word(i) = lowest;
@@ -66,27 +66,27 @@ struct uintN_t {
  public:
   template <std::integral... Ts>
     requires(sizeof...(Ts) <= word_count)
-  MJZ_CX_FN explicit uintN_t(/*low to high*/ Ts... args) noexcept
+  MJZ_CX_AL_FN explicit uintN_t(/*low to high*/ Ts... args) noexcept
       : uintN_t{void_struct_t{}, 0, uint64_t(args)...} {}
 
-  MJZ_CX_FN uint64_t& nth_word(auto i) noexcept {
+  MJZ_CX_AL_FN uint64_t& nth_word(auto i) noexcept {
     if constexpr (version_v.is_LE()) {
       return words[size_t(i)];
     } else {
       return words[size_t((word_count - 1) - i)];
     }
   }
-  MJZ_CX_FN const uint64_t& nth_word(auto i) const noexcept {
+  MJZ_CX_AL_FN const uint64_t& nth_word(auto i) const noexcept {
     if constexpr (version_v.is_LE()) {
       return words[size_t(i)];
     } else {
       return words[size_t((word_count - 1) - i)];
     }
   }
-  MJZ_CX_FN bool nth_bit(auto i) const noexcept {
+  MJZ_CX_AL_FN bool nth_bit(auto i) const noexcept {
     return !!(nth_word(i >> 6) & (uint64_t(1) << (i & 63)));
   }
-  MJZ_CX_FN void set_nth_bit(auto i, bool val) noexcept {
+  MJZ_CX_AL_FN void set_nth_bit(auto i, bool val) noexcept {
     uint64_t mask = uint64_t(1) << (i & 63);
     uint64_t& word = nth_word(i >> 6);
     word &= ~mask;
@@ -160,33 +160,33 @@ struct uintN_t {
     operator_sl(amount);
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator&=(const uintN_t amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator&=(const uintN_t amount) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       words[i] &= amount.words[i];
     }
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator|=(const uintN_t amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator|=(const uintN_t amount) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       words[i] |= amount.words[i];
     }
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator^=(const uintN_t amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator^=(const uintN_t amount) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       words[i] ^= amount.words[i];
     }
     return *this;
   }
 
-  MJZ_CX_FN uintN_t& flip() noexcept {
+  MJZ_CX_AL_FN uintN_t& flip() noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       nth_word(i) = ~nth_word(i);
     }
     return *this;
   }
 
-  MJZ_CX_FN bool add(const uintN_t& amount, bool carry = false) noexcept {
+  MJZ_CX_AL_FN bool add(const uintN_t& amount, bool carry = false) noexcept {
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       uint64_t rhs = nth_word(i);
       uint64_t lhs = amount.nth_word(i);
@@ -201,7 +201,7 @@ struct uintN_t {
     }
     return carry;
   }
-  MJZ_CX_FN uintN_t& negate() noexcept {
+  MJZ_CX_AL_FN uintN_t& negate() noexcept {
     // twos compliment (~*this + 1)
     bool carry = true;
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
@@ -213,7 +213,7 @@ struct uintN_t {
     }
     return *this;
   }
-  MJZ_CX_FN bool minus(const uintN_t& amount, bool carry = false) noexcept {
+  MJZ_CX_AL_FN bool minus(const uintN_t& amount, bool carry = false) noexcept {
     bool negate_carry = true;
     for (intlen_t i{}; i < intlen_t(word_count); i++) {
       uint64_t rhs = nth_word(i);
@@ -233,15 +233,15 @@ struct uintN_t {
     }
     return carry;
   }
-  MJZ_CX_FN uintN_t& operator-=(const uintN_t& amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator-=(const uintN_t& amount) noexcept {
     minus(amount);
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator+=(const uintN_t& amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator+=(const uintN_t& amount) noexcept {
     add(amount);
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator*=(const uintN_t& amount) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator*=(const uintN_t& amount) noexcept {
     if constexpr (word_count == 2) {
 #ifdef MJZ_uint128_t_impl_t_
       return *this = std::bit_cast<uintN_t>(
@@ -294,7 +294,7 @@ struct uintN_t {
       return *this = ret;
     }
   }
-  MJZ_CX_FN std::strong_ordering operator<=>(
+  MJZ_CX_AL_FN std::strong_ordering operator<=>(
       const uintN_t& rhs) const noexcept {
     for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
       std::strong_ordering order = nth_word(i) <=> rhs.nth_word(i);
@@ -305,9 +305,9 @@ struct uintN_t {
     return std::strong_ordering::equal;
   }
 
-  MJZ_CX_FN bool operator==(const uintN_t& rhs) const noexcept = default;
+  MJZ_CX_AL_FN bool operator==(const uintN_t& rhs) const noexcept = default;
 
-  MJZ_CX_FN std::optional<uintlen_t> floor_log2() const noexcept {
+  MJZ_CX_AL_FN std::optional<uintlen_t> floor_log2() const noexcept {
     for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
       uint64_t word = nth_word(i);
       if (!word) continue;
@@ -315,7 +315,7 @@ struct uintN_t {
     }
     return {};
   }
-  MJZ_CX_FN std::optional<uintlen_t> ceil_log2() const noexcept {
+  MJZ_CX_AL_FN std::optional<uintlen_t> ceil_log2() const noexcept {
     intlen_t i{intlen_t(word_count) - 1};
     for (; 0 <= i; i--) {
       uint64_t word = nth_word(i);
@@ -332,7 +332,7 @@ struct uintN_t {
     }
     return {};
   }
-  MJZ_CX_FN uintlen_t countr_zero() const noexcept {
+  MJZ_CX_AL_FN uintlen_t countr_zero() const noexcept {
     uintlen_t ret{};
     for (uint64_t n : std::views::iota(uintlen_t(0), n_bits / 64)) {
       n = uintlen_t(std::countr_zero(nth_word(n)));
@@ -345,7 +345,7 @@ struct uintN_t {
     }
     return ret;
   }
-  MJZ_CX_FN uintlen_t countl_zero() const noexcept {
+  MJZ_CX_AL_FN uintlen_t countl_zero() const noexcept {
     uintlen_t ret{};
     for (uint64_t n :
          std::views::iota(uintlen_t(0), n_bits / 64) | std::views::reverse) {
@@ -359,7 +359,7 @@ struct uintN_t {
     }
     return ret;
   }
-  MJZ_CX_FN uintlen_t countr_one() const noexcept {
+  MJZ_CX_AL_FN uintlen_t countr_one() const noexcept {
     uintlen_t ret{};
     for (uint64_t n : std::views::iota(uintlen_t(0), n_bits / 64)) {
       n = uintlen_t(std::countr_one(nth_word(n)));
@@ -372,29 +372,29 @@ struct uintN_t {
     }
     return ret;
   }
-  MJZ_CX_FN bool has_single_bit() const noexcept {
+  MJZ_CX_AL_FN bool has_single_bit() const noexcept {
     if constexpr (false) {
       return !!*this && !(*this & (*this - uintN_t(1)));
     } else {
       return popcount() == 1;
     }
   }
-  MJZ_CX_FN uintN_t bit_ceil() const noexcept {
+  MJZ_CX_AL_FN uintN_t bit_ceil() const noexcept {
     if (*this <= uintN_t(1)) {
       return uintN_t(1);
     }
     return uintN_t(1) << (n_bits - (*this - uintN_t(1)).countl_zero());
   }
-  MJZ_CX_FN uintN_t bit_floor() const noexcept {
+  MJZ_CX_AL_FN uintN_t bit_floor() const noexcept {
     if (!*this) {
       return uintN_t{};
     }
     return uintN_t(1) << (n_bits - 1 - countl_zero());
   }
-  MJZ_CX_FN uintlen_t bit_width() const noexcept {
+  MJZ_CX_AL_FN uintlen_t bit_width() const noexcept {
     return n_bits - countl_zero();
   }
-  MJZ_CX_FN uintN_t rotr(intlen_t r) const noexcept {
+  MJZ_CX_AL_FN uintN_t rotr(intlen_t r) const noexcept {
     r %= n_bits;
     if (!r) return *this;
     if (r < 0) {
@@ -404,16 +404,16 @@ struct uintN_t {
       return (*this >> uintlen_t(r)) | (*this << (n_bits - uintlen_t(r)));
     }
   }
-  MJZ_CX_FN uintN_t rotl(intlen_t r) const noexcept { return rotr(-r); }
+  MJZ_CX_AL_FN uintN_t rotl(intlen_t r) const noexcept { return rotr(-r); }
 
-  MJZ_CX_FN uintlen_t popcount() const noexcept {
+  MJZ_CX_AL_FN uintlen_t popcount() const noexcept {
     uintlen_t ret{};
     for (uint64_t n : std::views::iota(uintlen_t(0), n_bits / 64)) {
       ret += uintlen_t(std::popcount(nth_word(n)));
     }
     return ret;
   }
-  MJZ_CX_FN uintlen_t countl_one() const noexcept {
+  MJZ_CX_AL_FN uintlen_t countl_one() const noexcept {
     uintlen_t ret{};
     for (uint64_t n :
          std::views::iota(uintlen_t(0), n_bits / 64) | std::views::reverse) {
@@ -427,12 +427,12 @@ struct uintN_t {
     }
     return ret;
   }
-  MJZ_CX_FN uintN_t byteswap() const noexcept {
+  MJZ_CX_AL_FN uintN_t byteswap() const noexcept {
     auto ret = make_bitcast(*this);
     mem_byteswap(ret.data(), ret.size());
     return std::bit_cast<uintN_t>(ret);
   }
-  MJZ_CX_FN uintN_t to_modulo_ret_devide(const uintN_t& rhs) noexcept {
+  MJZ_CX_AL_FN uintN_t to_modulo_ret_devide(const uintN_t& rhs) noexcept {
     asserts(asserts.assume_rn, rhs != uintN_t{},
             " it is undefined behaviour to call with rhs of 0");
     uintN_t intermidiate{};
@@ -448,40 +448,40 @@ struct uintN_t {
     return intermidiate;
   }
 
-  MJZ_CX_FN uintN_t& operator%=(const uintN_t& rhs) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator%=(const uintN_t& rhs) noexcept {
     to_modulo_ret_devide(rhs);
     return *this;
   }
-  MJZ_CX_FN uintN_t& operator/=(const uintN_t& rhs) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator/=(const uintN_t& rhs) noexcept {
     return *this = to_modulo_ret_devide(rhs);
   }
-  MJZ_CX_FN uintN_t& operator_assign_devide_up(const uintN_t& rhs) noexcept {
+  MJZ_CX_AL_FN uintN_t& operator_assign_devide_up(const uintN_t& rhs) noexcept {
     uintN_t temp = to_modulo_ret_devide(rhs);
     temp.add(uintN_t(), *this != uintN_t());
     return *this = temp;
   }
-  MJZ_CX_FN friend uintN_t operator_devide_up(uintN_t x,
+  MJZ_CX_AL_FN friend uintN_t operator_devide_up(uintN_t x,
                                               const uintN_t& y) noexcept {
     x.operator_assign_devide_up(y);
     return x;
   }
 
   template <std::integral T>
-  MJZ_CX_FN explicit operator T() const noexcept {
+  MJZ_CX_AL_FN explicit operator T() const noexcept {
     static_assert(sizeof(T) <= sizeof(uint64_t));
     return static_cast<T>(nth_word(0));
   }
 
-  MJZ_CX_FN friend uintN_t operator&(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator&(uintN_t x, const uintN_t& y) noexcept {
     x &= y;
     return x;
   }
-  MJZ_CX_FN friend uintN_t operator^(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator^(uintN_t x, const uintN_t& y) noexcept {
     x ^= y;
     return x;
   }
 
-  MJZ_CX_FN friend uintN_t operator|(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator|(uintN_t x, const uintN_t& y) noexcept {
     x |= y;
     return x;
   }
@@ -496,61 +496,61 @@ struct uintN_t {
     return x;
   }
 
-  MJZ_CX_FN uintN_t operator~() const noexcept {
+  MJZ_CX_AL_FN uintN_t operator~() const noexcept {
     uintN_t x = *this;
     x.flip();
     return x;
   }
 
-  MJZ_CX_FN uintN_t operator-() const noexcept {
+  MJZ_CX_AL_FN uintN_t operator-() const noexcept {
     uintN_t x = *this;
     x.negate();
     return x;
   }
 
-  MJZ_CX_FN friend uintN_t operator+(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator+(uintN_t x, const uintN_t& y) noexcept {
     x += y;
     return x;
   }
 
-  MJZ_CX_FN friend uintN_t operator-(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator-(uintN_t x, const uintN_t& y) noexcept {
     x -= y;
     return x;
   }
-  MJZ_CX_FN friend uintN_t operator*(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator*(uintN_t x, const uintN_t& y) noexcept {
     x *= y;
     return x;
   }
-  MJZ_CX_FN friend uintN_t operator/(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator/(uintN_t x, const uintN_t& y) noexcept {
     x /= y;
     return x;
   }
 
-  MJZ_CX_FN friend uintN_t operator%(uintN_t x, const uintN_t& y) noexcept {
+  MJZ_CX_AL_FN friend uintN_t operator%(uintN_t x, const uintN_t& y) noexcept {
     x %= y;
     return x;
   }
 
-  MJZ_CX_FN uintN_t& operator--() noexcept { return *this -= 1; }
+  MJZ_CX_AL_FN uintN_t& operator--() noexcept { return *this -= 1; }
 
-  MJZ_CX_FN uintN_t& operator++() noexcept { return *this += 1; }
+  MJZ_CX_AL_FN uintN_t& operator++() noexcept { return *this += 1; }
 
-  MJZ_CX_FN uintN_t operator++(int) noexcept {
+  MJZ_CX_AL_FN uintN_t operator++(int) noexcept {
     uintN_t temp{*this};
     *this -= 1;
     return temp;
   }
 
-  MJZ_CX_FN uintN_t operator--(int) noexcept {
+  MJZ_CX_AL_FN uintN_t operator--(int) noexcept {
     uintN_t temp{*this};
     *this += 1;
     return temp;
   }
-  MJZ_CX_FN explicit operator bool() const noexcept {
+  MJZ_CX_AL_FN explicit operator bool() const noexcept {
     return *this != uintN_t{0};
   }
   template <uintlen_t n2_bits>
-  MJZ_CX_FN explicit operator uintN_t<version_v, n2_bits>() const noexcept {
+  MJZ_CX_AL_FN explicit operator uintN_t<version_v, n2_bits>() const noexcept {
     uintN_t<version_v, n2_bits> ret{};
     for (uintlen_t i{}; i < (std::min(n2_bits, n_bits)>>6); i++) {
       ret.nth_word(i) = nth_word(i);
@@ -558,69 +558,69 @@ struct uintN_t {
     return ret;
   }
   template <std::unsigned_integral UT>
-  MJZ_CX_FN explicit operator UT() const noexcept {
+  MJZ_CX_AL_FN explicit operator UT() const noexcept {
     return UT(nth_word(0));
   }
-  MJZ_CX_FN bool operator!() const noexcept { return *this == uintN_t{0}; }
+  MJZ_CX_AL_FN bool operator!() const noexcept { return *this == uintN_t{0}; }
 };
 
-MJZ_CX_FN uintlen_t countr_zero(auto v) noexcept {
+MJZ_CX_AL_FN uintlen_t countr_zero(auto v) noexcept {
   if constexpr (requires() { std::countr_zero(v); }) {
     return uintlen_t(std::countr_zero(v));
   } else {
     return v.countr_zero();
   }
 }
-MJZ_CX_FN uintlen_t countl_zero(auto v) noexcept {
+MJZ_CX_AL_FN uintlen_t countl_zero(auto v) noexcept {
   if constexpr (requires() { std::countl_zero(v); }) {
     return (uintlen_t)std::countl_zero(v);
   } else {
     return v.countl_zero();
   }
 }
-MJZ_CX_FN uintlen_t countr_one(auto v) noexcept {
+MJZ_CX_AL_FN uintlen_t countr_one(auto v) noexcept {
   if constexpr (requires() { std::countr_one(v); }) {
     return (uintlen_t)std::countr_one(v);
   } else {
     return v.countr_one();
   }
 }
-MJZ_CX_FN bool has_single_bit(auto v) noexcept {
+MJZ_CX_AL_FN bool has_single_bit(auto v) noexcept {
   if constexpr (requires() { std::has_single_bit(v); }) {
     return std::has_single_bit(v);
   } else {
     return v.has_single_bit();
   }
 }
-MJZ_CX_FN auto bit_ceil(auto v) noexcept {
+MJZ_CX_AL_FN auto bit_ceil(auto v) noexcept {
   if constexpr (requires() { std::bit_ceil(v); }) {
     return std::bit_ceil(v);
   } else {
     return v.bit_ceil();
   }
 }
-MJZ_CX_FN auto bit_floor(auto v) noexcept {
+MJZ_CX_AL_FN auto bit_floor(auto v) noexcept {
   if constexpr (requires() { std::bit_floor(v); }) {
     return std::bit_floor(v);
   } else {
     return v.bit_floor();
   }
 }
-MJZ_CX_FN uintlen_t bit_width(auto v) noexcept {
+MJZ_CX_AL_FN uintlen_t bit_width(auto v) noexcept {
   if constexpr (requires() { std::bit_width(v); }) {
     return (uintlen_t)std::bit_width(v);
   } else {
     return v.bit_width();
   }
 }
-MJZ_CX_FN auto rotr(auto v, intlen_t r) noexcept {
+MJZ_CX_AL_FN auto rotr(auto v, intlen_t r) noexcept {
   if constexpr (requires() { std::rotr(v, int(r)); }) {
     return std::rotr(v, int(uint8_t(r)));
   } else {
     return v.rotr(r);
   }
 }
-MJZ_CX_FN auto rotl(auto v, intlen_t r) noexcept {
+MJZ_CX_AL_FN auto rotl(auto v, intlen_t r) noexcept {
   if constexpr (requires() { std::rotl(v, int(r)); }) {
     return std::rotl(v, int(uint8_t(r)));
   } else {
@@ -628,14 +628,14 @@ MJZ_CX_FN auto rotl(auto v, intlen_t r) noexcept {
   }
 }
 
-MJZ_CX_FN uintlen_t popcount(auto v) noexcept {
+MJZ_CX_AL_FN uintlen_t popcount(auto v) noexcept {
   if constexpr (requires() { std::popcount(v); }) {
     return (uintlen_t)std::popcount(v);
   } else {
     return v.popcount();
   }
 }
-MJZ_CX_FN uintlen_t countl_one(auto v) noexcept {
+MJZ_CX_AL_FN uintlen_t countl_one(auto v) noexcept {
   if constexpr (requires() { std::countl_one(v); }) {
     return (uintlen_t)std::countl_one(v);
   } else {
@@ -643,7 +643,7 @@ MJZ_CX_FN uintlen_t countl_one(auto v) noexcept {
   }
 }
 
-MJZ_CX_FN auto to_modulo_ret_devide(auto& lhs, const auto& rhs) noexcept {
+MJZ_CX_AL_FN auto to_modulo_ret_devide(auto& lhs, const auto& rhs) noexcept {
   if constexpr (requires() {
                   lhs.to_modulo_ret_devide(
                       static_cast<std::remove_cvref_t<decltype(lhs)>>(rhs));
@@ -1419,8 +1419,8 @@ inline namespace uint_to_ascci_ns0 {
 namespace details_ns {
 template <version_t version_v, std::unsigned_integral T>
 struct diver_radix_ascii_p2_inv100_t_ {
-  uintN_t<version_v, 128> m_add_ceil{1};
   uintN_t<version_v, 128> m_inverse{};
+  uintN_t<version_v, 128> m_offset{};
   uintlen_t m_shift{};
   MJZ_CX_FN void init(uintlen_t pow) noexcept {
     uintN_t<version_v, 128> var10p_i{1};
@@ -1430,15 +1430,16 @@ struct diver_radix_ascii_p2_inv100_t_ {
         uintN_t<version_v, 128>(1000)* uintN_t<version_v, 128>(uint64_t(T(-1))),
         (var10p_i));
     m_inverse = decltype(m_inverse)(inv);
-    asserts(count <= 192 && 8 <= sft_ &&
+    asserts(sft_ < 128 && 8 <= sft_ &&
             !(inv ^ decltype(inv)(m_inverse)));
     m_shift = sft_ - 7;
-    m_add_ceil = (m_add_ceil << m_shift) - m_add_ceil;
+    m_offset =
+        (uintN_t<version_v, 128>(1) << m_shift) - uintN_t<version_v, 128>(1);
   }
   MJZ_CX_AL_FN uint16_t operator()(T n) const noexcept {
-    uintN_t<version_v, 192> t(n);
-    t *= uintN_t<version_v, 192>(m_inverse);
-    t += uintN_t<version_v, 192>(m_add_ceil);
+    uintN_t<version_v, 128> t(n);
+    t *= m_inverse;
+    t += m_offset;
     t >>= m_shift;
     return radix_ascii_p2_inv100_v_[127 & t.nth_word(0)];
   }
@@ -1453,6 +1454,26 @@ constexpr static inline auto diver_radix_ascii_p2_inv100_t_range_ = []() {
   }
   return ret;
 }();
+template <auto div_>
+MJZ_CX_AL_FN bool uint_to_dec_pre_calc_impl_par_lessmul_inner_loop(
+    uint16_t& chs, char* ptr, uintlen_t& count,
+                                                              auto num) {
+  chs = div_(num);
+  if (!--count) {
+    return false;
+  }
+  cpy_bitcast(ptr, chs);
+  return true;
+}
+template <version_t version_v, std::unsigned_integral T,size_t...Is>
+MJZ_CX_AL_FN bool uint_to_dec_pre_calc_impl_par_lessmul_loop(
+    uint16_t& chs, char* ptr, uintlen_t& count,
+                                                                   auto num,std::index_sequence<Is...>) {
+  return ((uint_to_dec_pre_calc_impl_par_lessmul_inner_loop<
+              diver_radix_ascii_p2_inv100_t_range_<version_v, T>[Is]>(
+              chs, ptr - Is * 2, count, num)) &&
+   ...);
+}
 template <version_t version_v, std::unsigned_integral T>
 MJZ_CX_AL_FN uintlen_t uint_to_dec_pre_calc_impl_par_lessmul_(
     char* ptr, uintlen_t len_width, T num) noexcept {
@@ -1461,17 +1482,14 @@ MJZ_CX_AL_FN uintlen_t uint_to_dec_pre_calc_impl_par_lessmul_(
   uintlen_t count = (len_width + 1) >> 1;
   uint16_t chs{};
   uintlen_t i{};
-  for (; i < (count_n_max >> 1); i++) {
-    chs = diver_radix_ascii_p2_inv100_t_range_<version_v, T>[i](num);
-    if (!--count) {
-      break;
-    }
-    cpy_bitcast(ptr + len_width - 2 - +i * 2, chs);
-  }
+  uint_to_dec_pre_calc_impl_par_lessmul_loop<version_v, T>(
+      chs,
+      ptr + len_width - 2 , count, num,
+      std::make_index_sequence<(count_n_max >> 1)>{});
   if (1 & len_width) {
     *ptr = std::bit_cast<std::array<char, 2>>(chs)[1];
   } else {
-    cpy_bitcast(ptr + len_width - 2 - +i * 2, chs);
+    cpy_bitcast(ptr + len_width - 2 - i * 2, chs);
   }
   return len_width;
 }
