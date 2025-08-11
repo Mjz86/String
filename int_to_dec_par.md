@@ -53,3 +53,5 @@ https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp
 https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/include/bits/charconv.h 
 
 
+https://compiler-explorer.com/z/P37P7v9qY
+
