@@ -2643,7 +2643,7 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 11) {  // 4 seq ,7  mul
+  if constexpr (final_dec_width == 11) {   // 4 seq , 7 muls
     mjz_assume_impl_(num_ < 100000000000);
     uint_to_dec_par_impl_exact_<6>(buffer, uint32_t(num_ / 100000));
     uint_to_dec_par_impl_exact_<5>(buffer + 6, uint32_t(num_ % 100000));
@@ -2657,65 +2657,56 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 13) {  // 5 seq, 9 muls
+  if constexpr (final_dec_width == 13) {  // 5 seq,9 muls
     mjz_assume_impl_(num_ < 10000000000000);
     uint_to_dec_par_impl_exact_<7>(buffer, uint32_t(num_ / 1000000));
     uint_to_dec_par_impl_exact_<6>(buffer + 7, uint32_t(num_ % 1000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 14) {  // 5 seq ,10 muls
+  if constexpr (final_dec_width == 14) {   // 5 seq,10 muls
     mjz_assume_impl_(num_ < 100000000000000);
     uint_to_dec_par_impl_exact_<7>(buffer, uint32_t(num_ / 10000000));
     uint_to_dec_par_impl_exact_<7>(buffer + 7, uint32_t(num_ % 10000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 15) {  // 5 seq, 10 muls
+  if constexpr (final_dec_width == 15) {   // 5 seq,11 muls
     mjz_assume_impl_(num_ < 1000000000000000);
     uint_to_dec_par_impl_exact_<8>(buffer, uint32_t(num_ / 10000000));
     uint_to_dec_par_impl_exact_<7>(buffer + 8, uint32_t(num_ % 10000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 16) {
-    mjz_assume_impl_(num_ < 10000000000000000);
-#ifdef MJZ_uint128_type_
-    // 5 seq , 11mul
-    uint_to_dec_par_impl_exact_<11>(buffer, uint64_t(num_ / 100000));
-    uint_to_dec_par_impl_exact_<5>(buffer + 11, uint32_t(num_ % 100000));
-#else
-    // 6 seq, 10 mul
+  if constexpr (final_dec_width == 16) {// 5 seq,12 muls
+    mjz_assume_impl_(num_ < 10000000000000000); 
     uint_to_dec_par_impl_exact_<8>(buffer, uint32_t(num_ / 100000000));
-    uint_to_dec_par_impl_exact_<8>(buffer + 8, uint32_t(num_ % 100000000));
-#endif
-
+    uint_to_dec_par_impl_exact_<8>(buffer + 8, uint32_t(num_ % 100000000)); 
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 17) {  // 6 seq,12 muls
+  if constexpr (final_dec_width == 17) {  // 5 seq,12 muls
     mjz_assume_impl_(num_ < 100000000000000000);
     uint_to_dec_par_impl_exact_<9>(buffer, uint32_t(num_ / 100000000));
     uint_to_dec_par_impl_exact_<8>(buffer + 9, uint32_t(num_ % 100000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 18) {  // 6 seq,14 muls
+  if constexpr (final_dec_width == 18) {  // 5 seq,12 muls
     mjz_assume_impl_(num_ < 1000000000000000000);
     uint_to_dec_par_impl_exact_<9>(buffer, uint32_t(num_ / 1000000000));
     uint_to_dec_par_impl_exact_<9>(buffer + 9, uint32_t(num_ % 1000000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 19) {  // 6 seq, 14 muls
+  if constexpr (final_dec_width == 19) {  // 5 seq,13 muls
     mjz_assume_impl_(num_ < 10000000000000000000ull);
     uint_to_dec_par_impl_exact_<10>(buffer, uint64_t(num_ / 1000000000));
     uint_to_dec_par_impl_exact_<9>(buffer + 10, uint32_t(num_ % 1000000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 20) {
-    // 6 seq, 14 muls
+  if constexpr (final_dec_width == 20) {// 6 seq,14 muls
     uint_to_dec_par_impl_exact_<10>(buffer, uint64_t(num_ / 10000000000));
     uint_to_dec_par_impl_exact_<10>(buffer + 10, uint64_t(num_ % 10000000000));
     return final_dec_width;
