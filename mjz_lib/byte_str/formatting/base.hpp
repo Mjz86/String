@@ -216,7 +216,7 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
           const_cast<cx_formatter_storage_base_ref_t<version_v> &>(
               base_ctx().cx_parse_storage_of_args[arg_i]);
       fs_ref.formatting_str_index_begin =
-          base_ctx().remaining_format_string_index-1;
+          base_ctx().remaining_format_string_index - 1;
     }
   }
 
@@ -295,7 +295,7 @@ parse_and_format_data_t<version_v>::parse_formating_string_nocache() noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
-  out_it_t  output = format_ctx().out();
+  out_it_t output = format_ctx().out();
   const uintlen_t feilds = base_ctx().number_of_cx_parse_storage_of_args;
   const cx_formatter_storage_base_ref_t<version_v> *feild_arr =
       base_ctx().cx_parse_storage_of_args;
@@ -307,8 +307,8 @@ parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
                            val.formatting_str_index_begin)
             .unsafe_handle());
     main_ctx().remaining_format_string_index = val.formatting_str_index_end;
-    if (!base_ctx().cache_format_call_at(val.index_of_element,
-                                         val.formatter_ptr,uint8_t(val.type))) {
+    if (!base_ctx().cache_format_call_at(
+            val.index_of_element, val.formatter_ptr, uint8_t(val.type))) {
       return false;
     }
   }
@@ -534,8 +534,7 @@ MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
       cx_formatter_storage_base_ref_t<version_v> &fs_ref =
           const_cast<cx_formatter_storage_base_ref_t<version_v> &>(
               base_ctx().cx_parse_storage_of_args[(uintlen_t(-2) -
-                                                   base_ctx().err_index)
-      ]);
+                                                   base_ctx().err_index)]);
       fs_ref.formatting_str_index_end =
           base_ctx().remaining_format_string_index;
       return true;
@@ -763,138 +762,154 @@ template <version_t version_v>
 template <typename L_v, is_formatted_c<version_v>... Ts>
 MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
     out_it_t iter, L_v value, Ts &&...args) noexcept {
-  constexpr const int format_optimization_lvl_v =
-      L_v::format_optimization_lvl_v;
-  static_assert(
-      requires() {
-        { view_t(L_v()()) } noexcept;
-      }, "see if you used \"...\"_fmt or not (you should) ");
-  static_assert(0 <= format_optimization_lvl_v);
-  //
-  // cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
-  auto run_function_cx_f = []() noexcept
-      -> std::pair<uintlen_t, std::optional<std::pair<uintlen_t, view_t>>> {
-    constexpr auto align_v_ =
-        allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
-    alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
-    MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-        view_t(L_v()()), alloc_ref_t{}, buffer_, align_v_,
-        std::make_index_sequence<sizeof...(Ts)>{}};
-    if (checker.successful)
-      return {uintlen_t(-1) - checker.base_ctx().err_index, nullopt};
-    return {0, std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
-                                            checker.base_ctx().err_content}};
-  };
-  using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;
-  std::ignore = run_function_cx_ft{}().first;
-
-  if constexpr (format_optimization_lvl_v && !run_function_cx_ft{}().second &&
-                run_function_cx_ft{}().first && (sizeof...(Ts))) {
-    using type_info_array_t =
-        std::array<cx_formatter_storage_base_ref_t<version_v>,
-                   run_function_cx_ft{}().first>;
-    auto generate_table_f = []() noexcept {
-      type_info_array_t ret{};
-      constexpr auto align_v_ =
-          allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
-      alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
-      MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-          view_t(L_v()()),
-          alloc_ref_t{},
-          buffer_,
-          align_v_,
-          std::make_index_sequence<sizeof...(Ts)>{},
-          ret.data()};
-      return ret;
-    };
-    using tuple_types = std::tuple<
-        cx_formatter_storage_t<version_v, formatter_type_t<version_v, Ts>>...>;
-    using generate_table_ft = static_data_t<decltype(generate_table_f)>;
-    auto generate_format_table_f = []() noexcept {
-      return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
-        std::tuple<std::tuple_element_t<
-            generate_table_ft{}()[Is].index_of_element, tuple_types>...>
-            formatters{};
-        type_info_array_t ret{cx_formatter_storage_base_ref_t<version_v>{
-            .formatter_ptr{&std::get<Is>(formatters)}}...};
+  if constexpr (requires() {
+                  { int(L_v::format_optimization_lvl_v) } noexcept;
+                }) {
+    [&]() noexcept {
+      constexpr const int format_optimization_lvl_v =
+          L_v::format_optimization_lvl_v;
+      static_assert(
+          requires() {
+            { view_t(L_v()()) } noexcept;
+          }, "see if you used \"...\"_fmt or not (you should) ");
+      static_assert(0 <= format_optimization_lvl_v);
+      //
+      // cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
+      auto run_function_cx_f = []() noexcept
+          -> std::pair<uintlen_t, std::optional<std::pair<uintlen_t, view_t>>> {
         constexpr auto align_v_ =
             allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
         alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
         MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-            view_t(L_v()()),
-            alloc_ref_t{},
-            buffer_,
-            align_v_,
-            std::make_index_sequence<sizeof...(Ts)>{},
-            ret.data()};
+            view_t(L_v()()), alloc_ref_t{}, buffer_, align_v_,
+            std::make_index_sequence<sizeof...(Ts)>{}};
+        if (checker.successful)
+          return {uintlen_t(-1) - checker.base_ctx().err_index, nullopt};
+        return {0,
+                std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
+                                             checker.base_ctx().err_content}};
+      };
+      using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;
 
-        return formatters;
-      }(std::make_index_sequence<run_function_cx_ft{}().first>{});
-    };
+      if constexpr ((sizeof...(Ts))&&format_optimization_lvl_v &&
+                    !run_function_cx_ft{}().second &&
+                    run_function_cx_ft{}().first ) {
+        using type_info_array_t =
+            std::array<cx_formatter_storage_base_ref_t<version_v>,
+                       run_function_cx_ft{}().first>;
+        auto generate_table_f = []() noexcept {
+          type_info_array_t ret{};
+          constexpr auto align_v_ =
+              allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
+                  version_v>::align;
+          alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+          MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+              view_t(L_v()()),
+              alloc_ref_t{},
+              buffer_,
+              align_v_,
+              std::make_index_sequence<sizeof...(Ts)>{},
+              ret.data()};
+          return ret;
+        };
+        using tuple_types = std::tuple<cx_formatter_storage_t<
+            version_v, formatter_type_t<version_v, Ts>>...>;
+        using generate_table_ft = static_data_t<decltype(generate_table_f)>;
+        auto generate_format_table_f = []() noexcept {
+          return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
+            std::tuple<std::tuple_element_t<
+                generate_table_ft{}()[Is].index_of_element, tuple_types>...>
+                formatters{};
+            type_info_array_t ret{cx_formatter_storage_base_ref_t<version_v>{
+                .formatter_ptr{&std::get<Is>(formatters)}}...};
+            constexpr auto align_v_ =
+                allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
+                    version_v>::align;
+            alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+            MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+                view_t(L_v()()),
+                alloc_ref_t{},
+                buffer_,
+                align_v_,
+                std::make_index_sequence<sizeof...(Ts)>{},
+                ret.data()};
 
-    using generate_format_table_ft =
-        static_data_t<decltype(generate_format_table_f)>;
-    auto link_tables_f = []() noexcept {
-      type_info_array_t ret = generate_table_ft{}();
-      auto &formatters = generate_format_table_ft{}();
-      [&]<size_t... Is>(std::index_sequence<Is...>) noexcept {
-        std::ignore =
-            ((ret[Is].formatter_ptr = &std::get<Is>(formatters), true) && ...);
-      }(std::make_index_sequence<run_function_cx_ft{}().first>{});
-      return ret;
-    };
-    using link_tables_ft = static_data_t<decltype(link_tables_f)>;
-    base_ctx().cx_parse_storage_of_args = link_tables_ft{}().data();
-    base_ctx().number_of_cx_parse_storage_of_args = link_tables_ft{}().size();
-  }
-  auto failure_f =
-      []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
-    return run_function_cx_ft{}().second;
-  };
-  using failure_ft = static_data_t<decltype(failure_f)>;
+            return formatters;
+          }(std::make_index_sequence<run_function_cx_ft{}().first>{});
+        };
+
+        using generate_format_table_ft =
+            static_data_t<decltype(generate_format_table_f)>;
+        auto link_tables_f = []() noexcept {
+          type_info_array_t ret = generate_table_ft{}();
+          auto &formatters = generate_format_table_ft{}();
+          [&]<size_t... Is>(std::index_sequence<Is...>) noexcept {
+            std::ignore =
+                ((ret[Is].formatter_ptr = &std::get<Is>(formatters), true) &&
+                 ...);
+          }(std::make_index_sequence<run_function_cx_ft{}().first>{});
+          return ret;
+        };
+        using link_tables_ft = static_data_t<decltype(link_tables_f)>;
+        base_ctx().cx_parse_storage_of_args = link_tables_ft{}().data();
+        base_ctx().number_of_cx_parse_storage_of_args =
+            link_tables_ft{}().size();
+      }
+      auto failure_f =
+          []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
+        return run_function_cx_ft{}().second;
+      };
+      using failure_ft = static_data_t<decltype(failure_f)>;
 #if MJZ_VERBOSE_FORMAT_ERROR
-  if constexpr (failure_ft{}()) {
-    constexpr bool failed = !failure_ft{}();
-    auto failure_fv = []() noexcept { return (*failure_ft{}()); };
-    using failure_t = static_data_t<decltype(failure_fv)>;
-    auto format_str_len_f = []() noexcept { return view_t(L_v()()).length(); };
-    using format_str_len_t = static_data_t<decltype(format_str_len_f)>;
-    auto second_part_fn = []() noexcept
-        -> std::array<char, format_str_len_t {}() - failure_t{}().first + 1> {
-      std::array<char, format_str_len_t{}() - failure_t{}().first + 1> ret{};
-      memcpy(ret.data(), view_t(L_v()()).data() + failure_t{}().first,
-             format_str_len_t{}() - failure_t{}().first);
-      return ret;
-    };
-    auto error_part_fn =
-        []() noexcept -> std::array<char, failure_t {}().second.length() + 1> {
-      std::array<char, failure_t{}().second.length() + 1> ret{};
-      memcpy(ret.data(), failure_t{}().second.data(),
-             failure_t{}().second.length());
-      return ret;
-    };
-    auto first_part_fn =
-        []() noexcept -> std::array<char, failure_t {}().first + 1> {
-      std::array<char, failure_t{}().first + 1> ret{};
-      memcpy(ret.data(), view_t(L_v()()).data(), failure_t{}().first);
-      return ret;
-    };
-    constexpr auto &first_part = static_data_t<decltype(first_part_fn)>{}();
-    constexpr auto &second_part = static_data_t<decltype(second_part_fn)>{}();
-    constexpr auto &error_part = static_data_t<decltype(error_part_fn)>{}();
-    static_assert(failed, "error masaage-> ");
-    err_vst<>::print(err_str_vst<error_part>{});
-    static_assert(failed, "at index -> ");
-    err_vst<>::print(err_str_vst<failure_t{}().first>{});
-    static_assert(failed, "before error-> ");
-    err_vst<>::print(err_str_vst<first_part>{});
-    static_assert(failed, "after error-> ");
-    err_vst<>::print(err_str_vst<second_part>{});
-    return false;
-  }
+      if constexpr (failure_ft{}()) {
+        constexpr bool failed = !failure_ft{}();
+        auto failure_fv = []() noexcept { return (*failure_ft{}()); };
+        using failure_t = static_data_t<decltype(failure_fv)>;
+        auto format_str_len_f = []() noexcept {
+          return view_t(L_v()()).length();
+        };
+        using format_str_len_t = static_data_t<decltype(format_str_len_f)>;
+        auto second_part_fn =
+            []() noexcept -> std::array<char, format_str_len_t {}() -
+                                                  failure_t{}().first + 1> {
+          std::array<char, format_str_len_t{}() - failure_t{}().first + 1>
+              ret{};
+          memcpy(ret.data(), view_t(L_v()()).data() + failure_t{}().first,
+                 format_str_len_t{}() - failure_t{}().first);
+          return ret;
+        };
+        auto error_part_fn = []() noexcept
+            -> std::array<char, failure_t {}().second.length() + 1> {
+          std::array<char, failure_t{}().second.length() + 1> ret{};
+          memcpy(ret.data(), failure_t{}().second.data(),
+                 failure_t{}().second.length());
+          return ret;
+        };
+        auto first_part_fn =
+            []() noexcept -> std::array<char, failure_t {}().first + 1> {
+          std::array<char, failure_t{}().first + 1> ret{};
+          memcpy(ret.data(), view_t(L_v()()).data(), failure_t{}().first);
+          return ret;
+        };
+        constexpr auto &first_part = static_data_t<decltype(first_part_fn)>{}();
+        constexpr auto &second_part =
+            static_data_t<decltype(second_part_fn)>{}();
+        constexpr auto &error_part = static_data_t<decltype(error_part_fn)>{}();
+        static_assert(failed, "error masaage-> ");
+        err_vst<>::print(err_str_vst<error_part>{});
+        static_assert(failed, "at index -> ");
+        err_vst<>::print(err_str_vst<failure_t{}().first>{});
+        static_assert(failed, "before error-> ");
+        err_vst<>::print(err_str_vst<first_part>{});
+        static_assert(failed, "after error-> ");
+        err_vst<>::print(err_str_vst<second_part>{});
+        return false;
+      }
 #else
-  MJZ_UNUSED failure_ft check{};
+      MJZ_UNUSED failure_ft check{};
 #endif
+    }();
+  }
   return vformat_to_pv(iter, value(), std::forward<Ts>(args)...);
 }
 

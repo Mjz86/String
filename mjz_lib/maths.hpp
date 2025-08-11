@@ -58,7 +58,7 @@ struct uintN_t {
   MJZ_CX_AL_FN uintN_t(void_struct_t, uintlen_t) noexcept : uintN_t{} {}
   template <std::integral T, std::integral... Ts>
   MJZ_CX_AL_FN uintN_t(void_struct_t, const uintlen_t i, T lowest,
-                    Ts... args) noexcept
+                       Ts... args) noexcept
       : uintN_t{void_struct_t{}, i + 1, args...} {
     nth_word(i) = lowest;
   }
@@ -461,7 +461,7 @@ struct uintN_t {
     return *this = temp;
   }
   MJZ_CX_AL_FN friend uintN_t operator_devide_up(uintN_t x,
-                                              const uintN_t& y) noexcept {
+                                                 const uintN_t& y) noexcept {
     x.operator_assign_devide_up(y);
     return x;
   }
@@ -552,7 +552,7 @@ struct uintN_t {
   template <uintlen_t n2_bits>
   MJZ_CX_AL_FN explicit operator uintN_t<version_v, n2_bits>() const noexcept {
     uintN_t<version_v, n2_bits> ret{};
-    for (uintlen_t i{}; i < (std::min(n2_bits, n_bits)>>6); i++) {
+    for (uintlen_t i{}; i < (std::min(n2_bits, n_bits) >> 6); i++) {
       ret.nth_word(i) = nth_word(i);
     }
     return ret;
@@ -1373,33 +1373,54 @@ template <version_t version_v = version_t{}, uintlen_t n_ = 64>
 MJZ_CX_AL_FN auto get_devision_by_mul_rs_shift_and_bit_count(
     uint_min_N_t<version_v, n_> max_value_,
     uint_min_N_t<version_v, n_> devisor_,
-    bool sensical_devide = true) noexcept {
-  auto factor2d = uint32_t(countr_zero(devisor_));
-  const auto mvbw_ = uint32_t(bit_width(max_value_));
-  if (sensical_devide) {
-    max_value_ = std::max(max_value_, devisor_);
+    uint_min_N_t<version_v, n_> modulos_percition,
+    bool two_shifts_ = false) noexcept {
+  max_value_ = std::max(max_value_, devisor_);
+  uint32_t factor2d = 0;
+  if (two_shifts_) {
+    factor2d = uint32_t(countr_zero(devisor_));
+    max_value_ >>= factor2d;
   } else {
-    factor2d = std::min(factor2d, mvbw_);
+    factor2d = 0;
   }
-  const auto bwd = uint32_t(bit_width(devisor_)) - factor2d;
+  const auto mvbw_ = uint32_t(bit_width(max_value_));
+  const auto floor_log2_plus1_divisor = uint32_t(bit_width(devisor_));
+  const auto bwd = floor_log2_plus1_divisor - factor2d;
   const auto bwmv = mvbw_ - factor2d;
   const auto ceil_log2_mv = bwmv - has_single_bit(max_value_);
   const auto ceil_log2_d = bwd - has_single_bit(devisor_);
-  const auto floor_log2_d = bwd - 1;
-  const auto fraction_bit_count = factor2d + floor_log2_d + ceil_log2_mv + 1;
-  return std::pair{fraction_bit_count,
-                   fraction_bit_count + ceil_log2_mv - ceil_log2_d + 1};
+  const auto fraction_bit_count =
+      floor_log2_plus1_divisor +
+      std::max(uint32_t(bit_width(modulos_percition)), ceil_log2_mv);
+  const auto result_bit_width =
+      fraction_bit_count + ceil_log2_mv - ceil_log2_d + 1;
+  // v\ge\operatorname{ceil}\left(\frac{m}{2^{\left(k-N\right)}}\right)
+  //  ---------
+  //  or
+  //  --------
+  //  v>\operatorname{ceil}\left(\frac{m}{2^{\left(k-N\right)}}\right)-1
+  //  -----------
+  // or
+  //-----------
+  //\frac{2^{k}}{m}v\ge2^{N}
+  const auto most_significant_bit_is_set_comparasion_shift =
+      result_bit_width-1 - fraction_bit_count;
+  return tuple_t{fraction_bit_count, result_bit_width, factor2d,
+                 most_significant_bit_is_set_comparasion_shift};
 }
 template <version_t version_v = version_t{}, uintlen_t n_ = 64>
 MJZ_CX_AL_FN auto get_devide_inverse_and_shift(
     uint_min_N_t<version_v, n_> max_value_,
     uint_min_N_t<version_v, n_> devisor_, bool reduce_ = true,
-    bool sensical_devide = true) noexcept {
-  uint_min_N_t<version_v, n_ * 2 + 2> ret{1};
-  const auto [fraction_bit_count, bit_count] =
+    uint_min_N_t<version_v, n_> modulos_percition =
+        uint_min_N_t<version_v, n_>{},
+    bool two_shifts_ = false) noexcept {
+  uint_min_N_t<version_v, n_ * 2 + 1> ret{1};
+  const auto [fraction_bit_count, bit_count, second_shift,
+              most_significant_bit_is_set_comparasion_shift] =
       get_devision_by_mul_rs_shift_and_bit_count<version_v, n_>(
-          max_value_, devisor_, sensical_devide);
-  asserts(asserts.assume_rn, bit_count < sizeof(ret) * 8 || !sensical_devide);
+          max_value_, devisor_, modulos_percition, two_shifts_);
+  asserts(asserts.assume_rn, bit_count < sizeof(ret) * 8);
   ret <<= uintlen_t(fraction_bit_count);
   auto temp = to_modulo_ret_devide(ret, devisor_);
   ret = temp + decltype(temp)(!!ret);
@@ -1408,115 +1429,12 @@ MJZ_CX_AL_FN auto get_devide_inverse_and_shift(
     zcnt_ = countr_zero(ret);
     ret >>= zcnt_;
   }
+  temp = (decltype(temp)(devisor_)
+          << most_significant_bit_is_set_comparasion_shift)- decltype(temp)(1);
   return tuple_t{ret, uintlen_t(fraction_bit_count - zcnt_),
-                 uintlen_t(bit_count - zcnt_)};
+                 uintlen_t(bit_count - zcnt_), second_shift, temp};
 }
 
 }  // namespace mjz
 
-namespace mjz {
-inline namespace uint_to_ascci_ns0 {
-namespace details_ns {
-template <version_t version_v, std::unsigned_integral T>
-struct diver_radix_ascii_p2_inv100_t_ {
-  uintN_t<version_v, 128> m_inverse{};
-  uintN_t<version_v, 128> m_offset{};
-  uintlen_t m_shift{};
-  MJZ_CX_FN void init(uintlen_t pow) noexcept {
-    uintN_t<version_v, 128> var10p_i{1};
-    uintlen_t i_{pow};
-    while (i_--) var10p_i *= uintN_t<version_v, 128>(10);
-    auto [inv, sft_, count] = get_devide_inverse_and_shift<version_v, 128>(
-        uintN_t<version_v, 128>(1000)* uintN_t<version_v, 128>(uint64_t(T(-1))),
-        (var10p_i));
-    m_inverse = decltype(m_inverse)(inv);
-    asserts(sft_ < 128 && 8 <= sft_ &&
-            !(inv ^ decltype(inv)(m_inverse)));
-    m_shift = sft_ - 7;
-    m_offset =
-        (uintN_t<version_v, 128>(1) << m_shift) - uintN_t<version_v, 128>(1);
-  }
-  MJZ_CX_AL_FN uint16_t operator()(T n) const noexcept {
-    uintN_t<version_v, 128> t(n);
-    t *= m_inverse;
-    t += m_offset;
-    t >>= m_shift;
-    return radix_ascii_p2_inv100_v_[127 & t.nth_word(0)];
-  }
-};
-
-template <version_t version_v, std::unsigned_integral T>
-constexpr static inline auto diver_radix_ascii_p2_inv100_t_range_ = []() {
-  constexpr uintlen_t count_n = (uintlen_t(dec_width(T(-1))) + 1) >> 1;
-  std::array<diver_radix_ascii_p2_inv100_t_<version_v, T>, count_n> ret{};
-  for (uintlen_t i{}; i < count_n; i++) {
-    ret[i].init((i + 1) * 2);
-  }
-  return ret;
-}();
-template <auto div_>
-MJZ_CX_AL_FN bool uint_to_dec_pre_calc_impl_par_lessmul_inner_loop(
-    uint16_t& chs, char* ptr, uintlen_t& count,
-                                                              auto num) {
-  chs = div_(num);
-  if (!--count) {
-    return false;
-  }
-  cpy_bitcast(ptr, chs);
-  return true;
-}
-template <version_t version_v, std::unsigned_integral T,size_t...Is>
-MJZ_CX_AL_FN bool uint_to_dec_pre_calc_impl_par_lessmul_loop(
-    uint16_t& chs, char* ptr, uintlen_t& count,
-                                                                   auto num,std::index_sequence<Is...>) {
-  return ((uint_to_dec_pre_calc_impl_par_lessmul_inner_loop<
-              diver_radix_ascii_p2_inv100_t_range_<version_v, T>[Is]>(
-              chs, ptr - Is * 2, count, num)) &&
-   ...);
-}
-template <version_t version_v, std::unsigned_integral T>
-MJZ_CX_AL_FN uintlen_t uint_to_dec_pre_calc_impl_par_lessmul_(
-    char* ptr, uintlen_t len_width, T num) noexcept {
-  constexpr uintlen_t count_n_max =
-      (uintlen_t(dec_width(T(-1))) + 1) & ~uintlen_t(1);
-  uintlen_t count = (len_width + 1) >> 1;
-  uint16_t chs{};
-  uintlen_t i{};
-  uint_to_dec_pre_calc_impl_par_lessmul_loop<version_v, T>(
-      chs,
-      ptr + len_width - 2 , count, num,
-      std::make_index_sequence<(count_n_max >> 1)>{});
-  if (1 & len_width) {
-    *ptr = std::bit_cast<std::array<char, 2>>(chs)[1];
-  } else {
-    cpy_bitcast(ptr + len_width - 2 - i * 2, chs);
-  }
-  return len_width;
-}
-template <version_t version_v, std::unsigned_integral T>
-MJZ_CX_FN uintlen_t uint_to_dec_par(char* ptr, uintlen_t buf_len,
-                                    T n) noexcept {
-  uintlen_t len_width = uintlen_t(dec_width(n));
-  len_width |= len_width == 0;
-  if (buf_len < len_width) return 0;
-  return details_ns::uint_to_dec_pre_calc_impl_par_lessmul_<version_v>(
-      ptr, len_width, n);
-}
-template <version_t version_v, std::signed_integral T>
-MJZ_CX_FN uintlen_t uint_to_dec_par(char* ptr, uintlen_t buf_len,
-                                    T n) noexcept {
-  const bool is_neg_{n < 0};
-  const auto abs_v = std::make_unsigned_t<T>(is_neg_ ? -n : n);
-  uintlen_t len_width = uintlen_t(dec_width(abs_v));
-  len_width |= len_width == 0;
-  if (buf_len < len_width + is_neg_) return 0;
-  *ptr = '-';
-  ptr += is_neg_;
-  return details_ns::uint_to_dec_pre_calc_impl_par_lessmul_<version_v>(
-             ptr, len_width, abs_v) +
-         is_neg_;
-}
-}  // namespace details_ns
-}  // namespace uint_to_ascci_ns0
-};  // namespace mjz
 #endif  // MJZ_MATHS_LIB_HPP_FILE_
