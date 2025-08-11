@@ -2252,9 +2252,15 @@ uint_to_dec_pre_calc_impl_seq_less_mul_(char* buffer, const size_t dec_width_0_,
       buffer, dec_width_0_, uint_sizeof_t<sizeof(num_)>(num_));
 }
 
+template <std::unsigned_integral T_>
+constexpr static inline size_t uint_to_dec_par_impl_(
+    char* const buffer, const size_t final_dec_width, const T_ num_) noexcept;
 template <size_t size_v, std::unsigned_integral T>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_(
     char* buffer, const size_t dec_width_0_, T num_) noexcept {
+  if constexpr (sizeof(T) != 1 || size_v < 3) {
+    return uint_to_dec_par_impl_(buffer, dec_width_0_, num_);
+  }
   return uint_to_dec_pre_calc_impl_seq_less_mul_<size_v, T>(buffer,
                                                             dec_width_0_, num_);
 }
@@ -2562,7 +2568,7 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
     // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'999, 1000,
     // true); C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
     // {{{{{68719477Ui64, 0Ui64, 0Ui64}}}, {36Ui64}, {54Ui64}, {0U},
-    // {{{    131071999Ui64, 0Ui64, 0Ui64}}}}} 
+    // {{{    131071999Ui64, 0Ui64, 0Ui64}}}}}
     constexpr uint64_t inv1000_val = 68719477;
     constexpr uint64_t shift_val = 36;
     constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
