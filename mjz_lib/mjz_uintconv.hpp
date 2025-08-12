@@ -2252,14 +2252,14 @@ uint_to_dec_pre_calc_impl_seq_less_mul_(char* buffer, const size_t dec_width_0_,
       buffer, dec_width_0_, uint_sizeof_t<sizeof(num_)>(num_));
 }
 
-template <std::unsigned_integral T_>
+template <size_t min_size_v, std::unsigned_integral T_>
 constexpr static inline size_t uint_to_dec_par_impl_(
     char* const buffer, const size_t final_dec_width, const T_ num_) noexcept;
 template <size_t size_v, std::unsigned_integral T>
 constexpr static MJZ_forceinline_ size_t uint_to_dec_pre_calc_impl_(
     char* buffer, const size_t dec_width_0_, T num_) noexcept {
-  if constexpr (sizeof(T) != 1 || size_v < 3) {
-    return uint_to_dec_par_impl_(buffer, dec_width_0_, num_);
+  if constexpr (sizeof(T) != 8) {
+    return uint_to_dec_par_impl_<size_v>(buffer, dec_width_0_, num_);
   }
   return uint_to_dec_pre_calc_impl_seq_less_mul_<size_v, T>(buffer,
                                                             dec_width_0_, num_);
@@ -2380,7 +2380,8 @@ constexpr static MJZ_forceinline_ int dec_width_dbl_(
   const bool is_correct = dbl <= x_pos_real_;
   return correct_or_1_plus_correct + is_correct;
 }
-template <size_t final_dec_width, std::unsigned_integral T_>
+template <size_t final_dec_width, std::unsigned_integral T_,
+          bool prefer_less_seq_muls = true>
 constexpr static MJZ_forceinline_ size_t
 uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
   if constexpr (final_dec_width == 0) {
@@ -2539,103 +2540,206 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
   }
 
   if constexpr (final_dec_width == 7) {
-    // we can do a neat trick here to achieve 4 muls !!
-    // constexpr auto ivk = get_devide_inverse_and_shift<>(9'999'999, 100,
+    if constexpr (prefer_less_seq_muls) {
+      // we can do a neat trick here to
+      // achieve 4 muls !!
+      // constexpr auto ivk = get_devide_inverse_and_shift<>(9'999'999, 100,
+      // true);
+      // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{21474837Ui64,
+      // 0Ui64, 0Ui64}}}, {31Ui64}, {49Ui64}, {0U}, {{{    13107199Ui64, 0Ui64,
+      // 0Ui64}}}}}
+      constexpr uint64_t inv100_val = 21474837;
+      constexpr uint64_t shift_val = 31;
+      constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
+      const uint64_t res = inv100_val * num_;
+      uint_to_dec_par_impl_exact_<5>(buffer, uint32_t(res >> shift_val));
+      constexpr uint64_t second_shift_val = shift_val - 2;
+      const uint64_t second_res = (mask_val & res) * 25;
+      cpy_bitcast_impl_(
+          buffer + 5,
+          details_ns::modolo_raidex_table[(second_res >> second_shift_val)]);
+      // 3 seq , 4 mul
+      return final_dec_width;
+    }
+    // constexpr auto ivk =  get_devide_inverse_and_shift<>(9'999'999, 100000,
     // true);
-    // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{21474837Ui64,
-    // 0Ui64, 0Ui64}}}, {31Ui64}, {49Ui64}, {0U}, {{{    13107199Ui64, 0Ui64,
+    // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{21990233Ui64,
+    // 0Ui64, 0Ui64}}}, {41Ui64}, {49Ui64}, {0U}, {{{    12799999Ui64, 0Ui64,
     // 0Ui64}}}}}
-    constexpr uint64_t inv100_val = 21474837;
-    constexpr uint64_t shift_val = 31;
+    constexpr uint64_t inv100000_val = 21990233;
+    constexpr uint64_t shift_val = 41;
     constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
-    const uint64_t res = inv100_val * num_;
-    uint_to_dec_par_impl_exact_<5>(buffer, uint32_t(res >> shift_val));
-    constexpr uint64_t second_shift_val = shift_val - 2;
-    const uint64_t second_res = (mask_val & res) * 25;
+    const uint64_t res = inv100000_val * num_;
+    cpy_bitcast_impl_(buffer,
+                      details_ns::modolo_raidex_table[(res >> shift_val)]);
+    const uint64_t res2 = (res & mask_val) * 25;
     cpy_bitcast_impl_(
-        buffer + 5,
-        details_ns::modolo_raidex_table[(second_res >> second_shift_val)]);
-    // 3 seq , 4 mul
-    return final_dec_width;
+        buffer + 2, details_ns::modolo_raidex_table[(res2 >> (shift_val - 2))]);
+    const uint64_t res3 = (res & (mask_val >> 2)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 4, details_ns::modolo_raidex_table[(res3 >> (shift_val - 4))]);
+    const uint64_t res4 = (res & (mask_val >> 4)) * 5;
+    buffer[6] = char(char(res4 >> (shift_val - 5)) | '0');
+    return final_dec_width;  // 4 seq , 4 muls
   }
 
   if constexpr (final_dec_width == 8) {
-    // we can do a neat trick here to achieve 4 muls  !! ((N/2) seq vs (N-2)
-    // par)
-    //  sadly we either have to do 3x2 muls or 4 muls ...
-    // -----------
-    // but we can do 5 muls( *5 is just add and shift)  with 3 seq!!
-    // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'999, 1000,
+    if constexpr (prefer_less_seq_muls) {
+      // we can do a neat trick here to achieve 4 muls  !! ((N/2) seq vs (N-2)
+      // par)
+      //  sadly we either have to do 3x2 muls or 4 muls ...
+      // -----------
+      // but we can do 5 muls( *5 is just add and shift)  with 3 seq!!
+      // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'999, 1000,
+      // true); C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
+      // {{{{{68719477Ui64, 0Ui64, 0Ui64}}}, {36Ui64}, {54Ui64}, {0U},
+      // {{{    131071999Ui64, 0Ui64, 0Ui64}}}}}
+      constexpr uint64_t inv1000_val = 68719477;
+      constexpr uint64_t shift_val = 36;
+      constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
+      const uint64_t res = inv1000_val * num_;
+      uint_to_dec_par_impl_exact_<5>(buffer, uint32_t(res >> shift_val));
+      constexpr uint64_t second_shift_val = shift_val - 2;
+      const uint64_t second_res = (mask_val & res) * 25;
+      constexpr uint64_t second_mask_val =
+          (uint64_t(1) << second_shift_val) - 1;
+      cpy_bitcast_impl_(
+          buffer + 5,
+          details_ns::modolo_raidex_table[(second_res >> second_shift_val)]);
+      const uint64_t third_res = (second_mask_val & (second_res)) * 5;
+      constexpr uint64_t third_shift_val = second_shift_val - 1;
+      buffer[7] = char(char(third_res >> third_shift_val) | '0');
+      // total: 3 seq max , 5 muls
+      return final_dec_width;
+    }
+    // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'999, 1000000,
     // true); C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
-    // {{{{{68719477Ui64, 0Ui64, 0Ui64}}}, {36Ui64}, {54Ui64}, {0U},
-    // {{{    131071999Ui64, 0Ui64, 0Ui64}}}}}
-    constexpr uint64_t inv1000_val = 68719477;
-    constexpr uint64_t shift_val = 36;
+    // {{{{{140737489Ui64, 0Ui64, 0Ui64}}}, {47Ui64}, {55Ui64}, {0U},
+    // {{{    127999999Ui64, 0Ui64, 0Ui64}}}}}
+    constexpr uint64_t inv1000000_val = 140737489;
+    constexpr uint64_t shift_val = 47;
     constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
-    const uint64_t res = inv1000_val * num_;
-    uint_to_dec_par_impl_exact_<5>(buffer, uint32_t(res >> shift_val));
-    constexpr uint64_t second_shift_val = shift_val - 2;
-    const uint64_t second_res = (mask_val & res) * 25;
-    constexpr uint64_t second_mask_val = (uint64_t(1) << second_shift_val) - 1;
+    const uint64_t res = inv1000000_val * num_;
+    cpy_bitcast_impl_(buffer,
+                      details_ns::modolo_raidex_table[(res >> shift_val)]);
+    const uint64_t res2 = (res & mask_val) * 25;
     cpy_bitcast_impl_(
-        buffer + 5,
-        details_ns::modolo_raidex_table[(second_res >> second_shift_val)]);
-    const uint64_t third_res = (second_mask_val & (second_res)) * 5;
-    constexpr uint64_t third_shift_val = second_shift_val - 1;
-    buffer[7] = char(char(third_res >> third_shift_val) | '0');
-    // total: 3 seq max , 5 muls
-    return final_dec_width;
+        buffer + 2, details_ns::modolo_raidex_table[(res2 >> (shift_val - 2))]);
+    const uint64_t res3 = (res & (mask_val >> 2)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 4, details_ns::modolo_raidex_table[(res3 >> (shift_val - 4))]);
+    const uint64_t res4 = (res & (mask_val >> 4)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 6, details_ns::modolo_raidex_table[(res4 >> (shift_val - 6))]);
+    return final_dec_width;  // 4 seq , 4 muls
   }
 
   if constexpr (final_dec_width == 9) {
-    //  constexpr auto ivk = get_devide_inverse_and_shift<>(999'999'999, 10000,
-    //  true);
-    // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1759218605Ui64,
-    // 0Ui64, 0Ui64}}}, {44Ui64}, {61Ui64}, {0U}, {{{    655359999Ui64, 0Ui64,
+    if constexpr (prefer_less_seq_muls) {
+      //  constexpr auto ivk = get_devide_inverse_and_shift<>(999'999'999,
+      //  10000, true);
+      // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1759218605Ui64,
+      // 0Ui64, 0Ui64}}}, {44Ui64}, {61Ui64}, {0U}, {{{    655359999Ui64, 0Ui64,
+      // 0Ui64}}}}}
+      // so we can get either 5x2 muls or 6muls with this trick! ( or 5 seq muls
+      // , but thats too much i think)
+      constexpr uint64_t inv10000_val = 1759218605;
+      constexpr uint64_t shift_val = 44;
+      constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
+      const uint64_t res = inv10000_val * num_;
+      uint_to_dec_par_impl_exact_<5>(buffer,
+                                     uint32_t(res >> shift_val));  // 2 seq muls
+      // 3X
+      constexpr uint64_t second_shift_val = shift_val - 2;
+      constexpr uint64_t second_mask_val =
+          (uint64_t(1) << second_shift_val) - 1;
+
+      const uint64_t second_res = ((res & mask_val) * 25);
+      cpy_bitcast_impl_(
+          buffer + 5,
+          details_ns::modolo_raidex_table[(second_res >> second_shift_val)]);
+
+      constexpr uint64_t third_shift_val = second_shift_val - 2;
+      const uint64_t third_res = (second_res & second_mask_val) * 25;
+      cpy_bitcast_impl_(
+          buffer + 7,
+          details_ns::modolo_raidex_table[(third_res >> third_shift_val)]);
+      // total: 3 seq max , 5 muls
+      return final_dec_width;
+    }
+    // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'9999,
+    // 10000000, true);
+    // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1801439851Ui64,
+    // 0Ui64, 0Ui64}}}, {54Ui64}, {61Ui64}, {0U}, {{{    639999999Ui64, 0Ui64,
     // 0Ui64}}}}}
-    // so we can get either 5x2 muls or 6muls with this trick! ( or 5 seq muls ,
-    // but thats too much i think)
-    constexpr uint64_t inv10000_val = 1759218605;
-    constexpr uint64_t shift_val = 44;
+    constexpr uint64_t inv10000000_val = 180143985;
+    constexpr uint64_t shift_val = 54;
     constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
-    const uint64_t res = inv10000_val * num_;
-    uint_to_dec_par_impl_exact_<5>(buffer,
-                                   uint32_t(res >> shift_val));  // 2 seq muls
-    // 3X
-    constexpr uint64_t second_shift_val = shift_val - 2;
-    constexpr uint64_t second_mask_val = (uint64_t(1) << second_shift_val) - 1;
-
-    const uint64_t second_res = ((res & mask_val) * 25);
+    const uint64_t res = inv10000000_val * num_;
+    cpy_bitcast_impl_(buffer,
+                      details_ns::modolo_raidex_table[(res >> shift_val)]);
+    const uint64_t res2 = (res & mask_val) * 25;
     cpy_bitcast_impl_(
-        buffer + 5,
-        details_ns::modolo_raidex_table[(second_res >> second_shift_val)]);
-
-    constexpr uint64_t third_shift_val = second_shift_val - 2;
-    const uint64_t third_res = (second_res & second_mask_val) * 25;
+        buffer + 2, details_ns::modolo_raidex_table[(res2 >> (shift_val - 2))]);
+    const uint64_t res3 = (res & (mask_val >> 2)) * 25;
     cpy_bitcast_impl_(
-        buffer + 7,
-        details_ns::modolo_raidex_table[(third_res >> third_shift_val)]);
-    // total: 3 seq max , 5 muls
-    return final_dec_width;
+        buffer + 4, details_ns::modolo_raidex_table[(res3 >> (shift_val - 4))]);
+    const uint64_t res4 = (res & (mask_val >> 4)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 6, details_ns::modolo_raidex_table[(res4 >> (shift_val - 6))]);
+    const uint64_t res5 = (res & (mask_val >> 6)) * 5;
+    buffer[8] = char(char(res5 >> (shift_val - 7)) | '0');
+    return final_dec_width;  // 5 seq , 5 muls
   }
 
   if constexpr (final_dec_width == 10) {
-    // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{22517998137Ui64,
-    // 0Ui64, 0Ui64}}}, {51Ui64}, {69Ui64}, {0U}, {{{    13107199999Ui64, 0Ui64,
-    // 0Ui64}}}}}
-    // i ran out of 64 bits :(
-    // (64<69)
-    // i now need to do it with compiler magic
-    // 128 bit ints or just let the compiler do its thing.
-    // but if we assume each are mulx'es its 5 mul(x)'es in total
-    mjz_assume_impl_(num_ < 10000000000);
-    const auto high = num_ / 100000;
-    mjz_assume_impl_(high < 100000);
-    const auto low = num_ % 100000;
-    uint_to_dec_par_impl_exact_<5>(buffer, uint32_t(high));     // 2 seq muls
-    uint_to_dec_par_impl_exact_<5>(buffer + 5, uint32_t(low));  // 3 seq muls
-    // total: 4 seq max , 6 muls
-    return final_dec_width;
+    if constexpr (prefer_less_seq_muls || sizeof(num_) != 4) {
+      // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
+      // {{{{{22517998137Ui64, 0Ui64, 0Ui64}}}, {51Ui64}, {69Ui64}, {0U},
+      // {{{    13107199999Ui64, 0Ui64, 0Ui64}}}}} i ran out of 64 bits :(
+      // also
+      //  constexpr auto ivk = get_devide_inverse_and_shift<>(9'999'999'999,
+      //  100000000, true);
+      // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
+      // {{{{{23058430093Ui64, 0Ui64, 0Ui64}}}, {61Ui64}, {69Ui64}, {0U},
+      // {{{    12799999999Ui64, 0Ui64, 0Ui64}}}}} , :(
+      //  (64<69)
+      //  i now need to do it with compiler magic
+      //  128 bit ints or just let the compiler do its thing.
+      //  but if we assume each are mulx'es its 5 mul(x)'es in total
+      mjz_assume_impl_(num_ < 10000000000);
+      const auto high = num_ / 100000;
+      mjz_assume_impl_(high < 100000);
+      const auto low = num_ % 100000;
+      uint_to_dec_par_impl_exact_<5>(buffer, uint32_t(high));     // 2 seq muls
+      uint_to_dec_par_impl_exact_<5>(buffer + 5, uint32_t(low));  // 3 seq muls
+      // total: 4 seq max , 6 muls
+      return final_dec_width;
+    }
+
+    // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1441151881Ui64,
+    // 0Ui64, 0Ui64}}}, {57Ui64}, {63Ui64}, {0U}, {{{    3199999999Ui64, 0Ui64,
+    // 0Ui64}}}}} constexpr auto ivk
+    // =get_devide_inverse_and_shift<>(uint32_t(-1), 100000000, true);
+    constexpr uint64_t inv100000000_val = 1441151881;
+    constexpr uint64_t shift_val = 57;
+    constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
+    const uint64_t res = inv100000000_val * num_;
+    cpy_bitcast_impl_(buffer,
+                      details_ns::modolo_raidex_table[(res >> shift_val)]);
+    const uint64_t res2 = (res & mask_val) * 25;
+    cpy_bitcast_impl_(
+        buffer + 2, details_ns::modolo_raidex_table[(res2 >> (shift_val - 2))]);
+    const uint64_t res3 = (res & (mask_val >> 2)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 4, details_ns::modolo_raidex_table[(res3 >> (shift_val - 4))]);
+    const uint64_t res4 = (res & (mask_val >> 4)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 6, details_ns::modolo_raidex_table[(res4 >> (shift_val - 6))]);
+    const uint64_t res5 = (res & (mask_val >> 6)) * 25;
+    cpy_bitcast_impl_(
+        buffer + 8, details_ns::modolo_raidex_table[(res5 >> (shift_val - 8))]);
+    return final_dec_width;  // 5 seq , 5 muls
   }
 
   if constexpr (sizeof(num_) == 4) {
@@ -2643,7 +2747,7 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 11) {   // 4 seq , 7 muls
+  if constexpr (final_dec_width == 11) {  // 4 seq , 7 muls
     mjz_assume_impl_(num_ < 100000000000);
     uint_to_dec_par_impl_exact_<6>(buffer, uint32_t(num_ / 100000));
     uint_to_dec_par_impl_exact_<5>(buffer + 6, uint32_t(num_ % 100000));
@@ -2664,24 +2768,24 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 14) {   // 5 seq,10 muls
+  if constexpr (final_dec_width == 14) {  // 5 seq,10 muls
     mjz_assume_impl_(num_ < 100000000000000);
     uint_to_dec_par_impl_exact_<7>(buffer, uint32_t(num_ / 10000000));
     uint_to_dec_par_impl_exact_<7>(buffer + 7, uint32_t(num_ % 10000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 15) {   // 5 seq,11 muls
+  if constexpr (final_dec_width == 15) {  // 5 seq,11 muls
     mjz_assume_impl_(num_ < 1000000000000000);
     uint_to_dec_par_impl_exact_<8>(buffer, uint32_t(num_ / 10000000));
     uint_to_dec_par_impl_exact_<7>(buffer + 8, uint32_t(num_ % 10000000));
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 16) {// 5 seq,12 muls
-    mjz_assume_impl_(num_ < 10000000000000000); 
+  if constexpr (final_dec_width == 16) {  // 5 seq,12 muls
+    mjz_assume_impl_(num_ < 10000000000000000);
     uint_to_dec_par_impl_exact_<8>(buffer, uint32_t(num_ / 100000000));
-    uint_to_dec_par_impl_exact_<8>(buffer + 8, uint32_t(num_ % 100000000)); 
+    uint_to_dec_par_impl_exact_<8>(buffer + 8, uint32_t(num_ % 100000000));
     return final_dec_width;
   }
 
@@ -2706,14 +2810,15 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
     return final_dec_width;
   }
 
-  if constexpr (final_dec_width == 20) {// 6 seq,14 muls
-    uint_to_dec_par_impl_exact_<10>(buffer, uint64_t(num_ / 10000000000));
+  if constexpr (final_dec_width == 20) {  // 6 seq,14 muls
+    uint_to_dec_par_impl_exact_<10>(buffer, uint32_t(num_ / 10000000000));
     uint_to_dec_par_impl_exact_<10>(buffer + 10, uint64_t(num_ % 10000000000));
     return final_dec_width;
   }
   mjz_unreachable_impl_();
   return final_dec_width;
 }
+
 template <size_t final_dec_width, std::unsigned_integral T_>
 constexpr static size_t uint_to_dec_par_impl_exact_nl_(char* const buffer,
                                                        const T_ num_) noexcept {
@@ -2726,28 +2831,129 @@ constexpr static MJZ_forceinline_ size_t uint_to_dec_par_impl_helper_(
     std::index_sequence<Is...>) noexcept {
   bool b{};
   b = ((b = final_dec_width == Is,
-        b && uint_to_dec_par_impl_exact_nl_<Is>(buffer, num_), b) ||
+        b && uint_to_dec_par_impl_exact_<Is>(buffer, num_), b) ||
        ...);
   mjz_assume_impl_(b);
   return final_dec_width;
 }
-template <std::unsigned_integral T_>
+template <size_t min_size_v, std::unsigned_integral T_>
 constexpr static inline size_t uint_to_dec_par_impl_(
     char* const buffer, const size_t final_dec_width, const T_ num_) noexcept {
   return uint_to_dec_par_impl_helper_(buffer, final_dec_width, num_,
                                       std::make_index_sequence<21>());
 }
+template <size_t min_size_v = 0, std::integral T_>
+constexpr static inline size_t int_to_dec_par(char* buffer,
+                                              const size_t buf_size,
+                                              const T_ num_may_neg_) noexcept {
+  const bool is_neg = num_may_neg_ < 0;
+  using u_t = std::make_unsigned_t<decltype(num_may_neg_)>;
+  const auto num_ =
+      is_neg ? u_t(u_t(~u_t(num_may_neg_)) + 1) : u_t(num_may_neg_);
+  const size_t final_dec_width = size_t(dec_width(num_) | (num_ == 0));
+  if constexpr (min_size_v < size_t(int_to_dec_unchekced_size_v<T_>)) {
+    if (buf_size < final_dec_width + is_neg) return 0;
+  }
+  mjz_assume_impl_(0 < final_dec_width);
+  *buffer = '-';
+  buffer += is_neg;
+//  constexpr size_t min_uint_size_v = min_size_v - std::is_signed_v<T_>;
 
+  if (num_ < 10) {
+    return is_neg +
+           uint_to_dec_par_impl_exact_<1, uint8_t>(buffer, uint8_t(num_));
+  }
+  mjz_assume_impl_(1 < final_dec_width);
+  if (num_ < 100) {
+    return is_neg +
+           uint_to_dec_par_impl_exact_<2, uint8_t>(buffer, uint8_t(num_));
+  }
+  if constexpr (sizeof(T_) == 1) {
+    return is_neg +
+           uint_to_dec_par_impl_exact_<3, uint8_t>(buffer, uint8_t(num_));
+  }
+  mjz_assume_impl_(2 < final_dec_width);
+  if (uint16_t(num_) == num_) {
+    if (num_ < 1000) {
+      mjz_assume_impl_(final_dec_width == 3);
+    } else if (num_ < 10000) {
+      mjz_assume_impl_(final_dec_width == 4);
+    } else {
+      mjz_assume_impl_(final_dec_width == 5);
+    }
+    if constexpr (false) {
+      std::array<char, 8> buf_{};
+      uint_to_dec_par_impl_exact_<5, uint16_t>(buf_.data(), uint16_t(num_));
+      if constexpr (std::endian::big == std::endian::native) {
+        buf_ = std::bit_cast<std::array<char, 8>>(std::bit_cast<uint64_t>(buf_)
+                                                  << (5 - final_dec_width));
+      } else {
+        buf_ = std::bit_cast<std::array<char, 8>>(
+            std::bit_cast<uint64_t>(buf_) >> (5 - final_dec_width));
+      }
+      buffer[0] = buf_[0];
+      buffer[1] = buf_[1];
+      buffer[2] = buf_[2];
+      buffer[3] = buf_[3];
+      buffer[4] = buf_[4];
+      return is_neg + final_dec_width;
+    }
+    return is_neg + uint_to_dec_par_impl_helper_<uint16_t>(
+                        buffer, final_dec_width, uint16_t(num_),
+                        std::make_index_sequence<21>());
+  }
+  mjz_assume_impl_(4 < final_dec_width);
+  if (num_ < 100000) {
+    return is_neg +
+           uint_to_dec_par_impl_exact_<5, uint32_t>(buffer, uint32_t(num_));
+  }
+  mjz_assume_impl_(5 < final_dec_width);
+  if (uint32_t(num_) == num_) {
+    if (num_ < 1000000) {
+      mjz_assume_impl_(final_dec_width == 6);
+    } else if (num_ < 10000000) {
+      mjz_assume_impl_(final_dec_width == 7);
+    } else if (num_ < 100000000) {
+      mjz_assume_impl_(final_dec_width == 8);
+    } else if (num_ < 1000000000) {
+      mjz_assume_impl_(final_dec_width == 9);
+    } else {
+      mjz_assume_impl_(final_dec_width == 10);
+    }
+    return is_neg + uint_to_dec_par_impl_helper_<uint32_t>(
+                        buffer, final_dec_width, uint32_t(num_),
+                        std::make_index_sequence<21>());
+  }
+  mjz_assume_impl_(9 < final_dec_width);
+  uint64_t low_half{num_};
+  if (10000000000 <= num_) {
+    mjz_assume_impl_(10 < final_dec_width);
+    uint_to_dec_par_impl_helper_<uint32_t>(buffer, final_dec_width - 10,
+                                           uint32_t(num_ / 10000000000),
+                                           std::make_index_sequence<21>());
+    buffer += final_dec_width - 10;
+
+    low_half = uint64_t(num_ % 10000000000);
+  } else {
+    mjz_assume_impl_(10 == final_dec_width);
+  }
+  uint_to_dec_par_impl_exact_<10, uint64_t>(buffer, low_half);
+  return is_neg + final_dec_width;
+}
 }  // namespace details_ns
 
 constexpr static inline size_t int_to_dec(char* buffer, const size_t cap,
                                           std::integral auto num_) noexcept {
+  if constexpr (true) return details_ns::int_to_dec_par(buffer, cap, num_);
+
   return details_ns::integral_to_dec_impl_(buffer, cap, num_);
 }
 template <size_t size_v, std::integral T>
   requires(int_to_dec_unchekced_size_v<T> <= size_v)
 constexpr static inline size_t int_to_dec_unchecked(char* buffer,
                                                     T num_) noexcept {
+  if constexpr (true)
+    return details_ns::int_to_dec_par<size_v>(buffer, size_v, num_);
   return details_ns::integral_to_dec_impl_unchecked_<size_v, T>(buffer, num_);
 }
 
