@@ -49,7 +49,7 @@ template <version_t version_v>
 struct cx_formatter_storage_base_ref_t {
   uintlen_t formatting_str_index_begin{};
   uintlen_t formatting_str_index_end{};
-  uintlen_t index_of_element : sizeof(uintlen_t)*8-8 {};
+  uintlen_t index_of_element : sizeof(uintlen_t) * 8 - 8 {};
   uintlen_t type : 8 {uint8_t(-1)};
   const cx_formatter_storage_base_t<version_v> *formatter_ptr{};
 };
@@ -86,25 +86,27 @@ struct help5628375_t {};
 template <class... Ts>
 struct help5628375_t<void(Ts...)> : help5628375_t<Ts>... {};
 
+// can override:
+
+template <version_t version_v>
+constexpr static inline bool remove_parse_only_in_ncx_v = false;
+
 template <class T, version_t version_v>
 concept default_formatter_has_decay_optimization_c =
     !std::derived_from<help5628375_t<basic_formatted_types_t<version_v>>,
                        help5628375_t<std::remove_cvref_t<T>>>;
 
 template <typename F_t, version_t version_v, typename T>
-concept valid_format_c = requires(F_t obj, const F_t cobj, T &&arg,
-                                  parse_context_t<version_v> &pctx,
-                                  format_context_t<version_v> &fctx) {
-  { obj.~F_t() } noexcept;
-  { F_t() } noexcept;
-  {
-    obj.parse(pctx)
-  } noexcept
-      -> std::same_as<success_t>;
-  {
-    cobj.format(std::forward<T>(arg), fctx)
-  } noexcept -> std::same_as<success_t>;
-};
+concept valid_format_c =
+    requires(F_t obj, const F_t cobj, T &&arg, parse_context_t<version_v> &pctx,
+             format_context_t<version_v> &fctx) {
+      { obj.~F_t() } noexcept;
+      { F_t() } noexcept;
+      { obj.parse(pctx) } noexcept -> std::same_as<success_t>;
+      {
+        cobj.format(std::forward<T>(arg), fctx)
+      } noexcept -> std::same_as<success_t>;
+    };
 
 template <version_t version_v>
 struct hash_context_t;
@@ -123,10 +125,9 @@ struct formatter_t {
   MJZ_NO_MV_NO_CPY(formatter_t);
   MJZ_CX_FN formatter_t() noexcept = delete;
   MJZ_CX_FN ~formatter_t() noexcept = delete;
-  MJZ_CX_FN   success_t parse(
-      parse_context_t<version_v> &ctx) noexcept = delete;
-  MJZ_CX_FN success_t format(
-      T &&s, format_context_t<version_v> &ctx) const noexcept = delete;
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept = delete;
+  MJZ_CX_FN success_t
+  format(T &&s, format_context_t<version_v> &ctx) const noexcept = delete;
 
   MJZ_CX_FN static success_t arg_name(hash_context_t<version_v> &ctx) noexcept =
       delete;
@@ -144,10 +145,9 @@ struct default_formatter_t {
   MJZ_NO_MV_NO_CPY(default_formatter_t);
   MJZ_CX_FN default_formatter_t() noexcept = delete;
   MJZ_CX_FN ~default_formatter_t() noexcept = delete;
-  MJZ_CX_FN   success_t parse(
-      parse_context_t<version_v> &ctx) noexcept = delete;
-  MJZ_CX_FN success_t format(
-      T &&s, format_context_t<version_v> &ctx) const noexcept = delete;
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept = delete;
+  MJZ_CX_FN success_t
+  format(T &&s, format_context_t<version_v> &ctx) const noexcept = delete;
   MJZ_CX_FN static success_t arg_name(const std::remove_reference_t<T> &s,
                                       hash_context_t<version_v> &ctx) noexcept =
       delete;
@@ -300,7 +300,9 @@ struct alignas(
     return (*ret.obj.parse_and_format)(ret.obj, *ret.This, ret.cx_parse);
   }
   MJZ_CX_FN bool parse_only() const noexcept {
-    MJZ_IFN_CONSTEVAL { return false; }
+    if constexpr (remove_parse_only_in_ncx_v<version_v>) {
+      MJZ_IFN_CONSTEVAL { return false; }
+    }
     return intlen_t(err_index) < 0;
   }
 
@@ -324,19 +326,17 @@ struct alignas(
       return uint8_t(i);
     }(alias_t<basic_formatted_types_t<version_v> *>{});
 
-    if (this->cx_parse_storage_of_args && !find_names) {
+    if (parse_only() && this->cx_parse_storage_of_args && !find_names) {
       const uintlen_t arg_i{uintlen_t(-1) - base_ctx().err_index};
-
       const cx_formatter_storage_base_ref_t<version_v> &fs_cref =
           base_ctx().cx_parse_storage_of_args[arg_i];
-      if (parse_only()) {
-        cx_formatter_storage_base_ref_t<version_v> &fs_ref =
-            const_cast<cx_formatter_storage_base_ref_t<version_v> &>(fs_cref);
-        fs_ref.index_of_element = index;
-        fs_ref.type = type_;
-      }
+      cx_formatter_storage_base_ref_t<version_v> &fs_ref =
+          const_cast<cx_formatter_storage_base_ref_t<version_v> &>(fs_cref);
+      fs_ref.index_of_element = index;
+      fs_ref.type = type_;
       ret0.cx_parse = fs_cref.formatter_ptr;
     }
+
     if (type_) {
       return parse_and_format_call_at_non_virt_impl_<false>(
           ret0, alias_t<basic_formatted_types_t<version_v> *>{}, type_);
@@ -365,10 +365,12 @@ struct alignas(
   template <bool cached_v, typename T>
   MJZ_CX_AL_FN static success_t parse_and_format_call_one_at_non_virt_impl_(
       parse_and_format_call_one_at_non_virt_impl_t_ ret) noexcept;
-      
+
   template <bool cached_v, typename Ts>
-  MJZ_CX_AL_FN static bool
-  parse_and_format_call_one_at_non_virt_impl_al(uintlen_t&i,success_t &ret_val, parse_and_format_call_one_at_non_virt_impl_t_ ret,   uint8_t type) noexcept {
+  MJZ_CX_AL_FN static bool parse_and_format_call_one_at_non_virt_impl_al(
+      uintlen_t &i, success_t &ret_val,
+      parse_and_format_call_one_at_non_virt_impl_t_ ret,
+      uint8_t type) noexcept {
     if (++i != type) {
       return false;
     }
@@ -382,7 +384,8 @@ struct alignas(
       uint8_t type) noexcept {
     success_t ret_val{};
     uintlen_t i{};
-    if ((parse_and_format_call_one_at_non_virt_impl_al<cached_v,Ts>(i,ret_val,ret,type) ||
+    if ((parse_and_format_call_one_at_non_virt_impl_al<cached_v, Ts>(
+             i, ret_val, ret, type) ||
          ...)) {
       return ret_val;
     }
@@ -1170,7 +1173,7 @@ struct the_typed_arg_ref_t : void_struct_t {
           static_cast<const T *>(ref.m.runtime_only_raw_ptr));
     }
   }
-  
+
   MJZ_CX_FN the_typed_arg_ref_t(T &arg) noexcept : ptr(&arg) {}
   MJZ_NO_MV_NO_CPY(the_typed_arg_ref_t);
 
@@ -1606,12 +1609,11 @@ MJZ_CX_AL_FN success_t
 base_context_t<version_v>::parse_and_format_call_one_at_non_virt_impl_(
     parse_and_format_call_one_at_non_virt_impl_t_ ret) noexcept {
   static_assert(is_formatted_exact_c<T, version_v>);
-  using Targ_t= original_typed_arg_ref_t<version_v, T>;
+  using Targ_t = original_typed_arg_ref_t<version_v, T>;
   if constexpr (!cached_v) {
-    return Targ_t::parse_and_format_outer_fn(
-        ret.obj, *ret.This, ret.cx_parse);
+    return Targ_t::parse_and_format_outer_fn(ret.obj, *ret.This, ret.cx_parse);
   }
-  if(Targ_t::parse_and_format_outer_fn!=ret.obj.parse_and_format){
+  if (Targ_t::parse_and_format_outer_fn != ret.obj.parse_and_format) {
     asserts.unreachable();
   }
   auto &&ref_v = Targ_t::get(ret.obj);
