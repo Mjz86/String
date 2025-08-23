@@ -44,7 +44,7 @@ struct implace_string_data_t<version_v, props_v, stack_cap>
  protected:
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   sso_cap_v_{((stack_cap / sizeof(uintlen_t)) +
               uintlen_t(!!(stack_cap % sizeof(uintlen_t)))) *
              sizeof(uintlen_t)};

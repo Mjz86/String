@@ -25,11 +25,6 @@ SOFTWARE.
 #include "basic_formatters.hpp"
 
 #if MJZ_WITH_iostream
-#include <memory_resource>
-#include <sstream>
-#else
-#define MJZ_BYTE_FORMATTING_stream_formatters_HPP_FILE_
-#endif
 #ifndef MJZ_BYTE_FORMATTING_stream_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_stream_formatters_HPP_FILE_
 
@@ -43,8 +38,8 @@ concept is_stream_formatter_c =
 template <version_t version_v, class T_>
   requires is_stream_formatter_c<version_v, T_>
 struct default_formatter_t<version_v, T_, 100> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
   using view_t = base_string_view_t<version_v>;
   using CVT_pv = const view_t &;
   using decayed_t = decltype(to_final_type_fn<version_v, CVT_pv>(
@@ -52,25 +47,24 @@ struct default_formatter_t<version_v, T_, 100> {
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<decayed_t>;
   Formatter formatter{};
-  MJZ_CX_FN success_t parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN success_t format(
-      const std::remove_reference_t<T_> &arg,
-      format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(const std::remove_reference_t<T_> &arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     bool good{true};
     auto blk_0_ =
         ctx.fn_alloca(conversion_buffer_size_v<T_>, alignof(uintlen_t));
     if (!blk_0_.size()) {
       ctx.as_error(
-          "[Error]default_formatter_t<is_stream_formatter_c>::format:cannot allocate more "
+          "[Error]default_formatter_t<is_stream_formatter_c>::format:cannot "
+          "allocate more "
           "memory");
       return false;
     }
     MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
     good &= MJZ_NOEXCEPT {
-      allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()}; 
+      allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()};
       std::pmr::monotonic_buffer_resource mbr{blk_0_.data(), blk_0_.size(),
                                               &alloc};
       std::pmr::polymorphic_allocator<char> pmr{&mbr};
@@ -100,3 +94,5 @@ struct default_formatter_t<version_v, T_, 100> {
 }  // namespace mjz::bstr_ns::format_ns
 
 #endif  // MJZ_BYTE_FORMATTING_stream_formatters_HPP_FILE_
+
+#endif

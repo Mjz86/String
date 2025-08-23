@@ -25,11 +25,7 @@ SOFTWARE.
 #include "base.hpp"
 #include "traits.hpp"
 //
-#include <ranges>
 #if MJZ_WITH_iostream
-#include <stdio.h>
-
-#include <iostream>
 #endif
 #ifndef MJZ_BYTE_STRING_iterator_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_iterator_LIB_HPP_FILE_
@@ -359,8 +355,8 @@ class base_out_it_t : public void_struct_t {
     }
     return !opt_view_or_reserve.len;
   }
-  template<typename T0_>
-  MJZ_CX_FN auto  append_obj_impl_(const T0_ &)noexcept;
+  template <typename T0_>
+  MJZ_CX_FN auto append_obj_impl_(const T0_ &) noexcept;
   MJZ_CX_FN success_t append_u_(bview opt_view_or_reserve) noexcept {
     if (!opt_view_or_reserve.len) return true;
     return !!fn(opt_view_or_reserve);
@@ -806,7 +802,7 @@ struct generic_base_output_it_t : void_struct_t {
   };
 
   template <class T>
-  MJZ_CONSTANT(back_insert_fnp_t)
+  MJZ_MCONSTANT(back_insert_fnp_t)
   back_insert_fn_v =
       &generic_base_output_it_t<version_v>::template back_insert_fn<T>;
   template <class T>

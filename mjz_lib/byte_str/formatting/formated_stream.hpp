@@ -23,7 +23,6 @@ SOFTWARE.
 
 #include "print.hpp"
 #if MJZ_WITH_iostream
-#include <iostream>
 #else
 #define MJZ_BYTE_FORMATTING_formated_stream_HPP_FILE_
 #endif

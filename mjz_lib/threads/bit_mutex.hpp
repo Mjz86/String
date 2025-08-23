@@ -20,14 +20,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include <atomic>
 
 #include "base.hpp"
 
 #ifndef MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
 #define MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
 namespace mjz::threads_ns {
-MJZ_CONSTANT(bool)
+MJZ_FCONSTANT(bool)
 uses_atomic_bool = std::atomic_bool::is_always_lock_free;
 using flag_t =
     std::conditional_t<uses_atomic_bool, std::atomic_bool, std::atomic_flag>;

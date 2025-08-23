@@ -49,7 +49,7 @@ struct bucket_alloc_info_t {
     };
     m_t m{};
     MJZ_NO_MV_NO_CPY(obj_t);
-    MJZ_CX_FN obj_t(alloc_t &&o, alloc_base&) noexcept {
+    MJZ_CX_FN obj_t(alloc_t &&o, alloc_base &) noexcept {
       if (!o.ptr) {
         return;
       }
@@ -144,9 +144,9 @@ struct bucket_alloc_info_t {
         return ret;
       }
       // ptr  shall point in the first block for a funcioning destructor.
-      auto align_v =  ai.get_alignof_z();
-      ret =
-          just_allocate(minsize + (needs_realignment ? m.blk_size : 0), align_v,ai.uses_best_fit);
+      auto align_v = ai.get_alignof_z();
+      ret = just_allocate(minsize + (needs_realignment ? m.blk_size : 0),
+                          align_v, ai.uses_best_fit);
       if (!ret.ptr) {
         return ret;
       }

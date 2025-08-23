@@ -41,44 +41,38 @@ struct mjz_assert_t {
     if (!value) {
       /* if you see an error hear , go to the caller , they have more context
        * for the assert*/
-      str -= uintlen_t(value) / uintlen_t(value);
       if (!consteval_only) {
-        MJZ_IFN_CONSTEVAL { panic(str); }
+        MJZ_IFN_CONSTEVAL { panic(str); };
       }
+      unreachable(str);
     }
     return *this;
   }
 
-  
-  MJZ_CX_AL_A_FN(MJZ_NORETURN)
-  void unreachable(
+  MJZ_NORETURN MJZ_NCX_AL_FN void unreachable(
       MJZ_UNUSED const char *const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
   }
 
-  MJZ_CX_AL_A_FN(MJZ_NORETURN)
-  void panic(
+  MJZ_NORETURN MJZ_NCX_AL_FN void panic(
       MJZ_UNUSED const char *const str = "assert") const noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
-    MJZ_IFN_CONSTEVAL {
 #if MJZ_WITH_iostream
-      std::abort();
+    std::abort();
 #endif
-    }
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
   }
 
-  MJZ_CX_AL_A_FN(MJZ_NORETURN)
-  void not_implemented_yet(
+  MJZ_NORETURN MJZ_NCX_AL_FN void not_implemented_yet(
       MJZ_UNUSED const char *const str = "assert") const noexcept {
     panic(str);
   }
 
-  MJZ_CX_AL_A_FN(MJZ_NORETURN)
-  void not_implemented_yet_v(auto &&...) const noexcept {
+  MJZ_NORETURN MJZ_NCX_AL_FN void not_implemented_yet_v(
+      auto &&...) const noexcept {
     panic();
   }
 
@@ -174,7 +168,7 @@ struct mjz_assert_t {
   MJZ_CX_FN void operator&() const noexcept = delete;
 };
 static_assert(std::is_empty_v<mjz_assert_t>);
-MJZ_CONSTANT(mjz_assert_t) asserts{totally_empty_type};
+MJZ_FCONSTANT(mjz_assert_t) asserts{totally_empty_type};
 }  // namespace mjz
 
 #endif  // MJZ_ASSERTS_LIB_HPP_FILE_

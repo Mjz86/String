@@ -20,23 +20,60 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include "../optional_ref.hpp"
-#ifndef MJZ_THREADS_BASE_LIB_HPP_FILE_
-#define MJZ_THREADS_BASE_LIB_HPP_FILE_
-namespace mjz::threads_ns {
-template <class lambda_t, class... args_t>
-concept mjz_jthread_can_create_c_ = requires(lambda_t lambda) {
-  requires callable_anyret_c<std::decay_t<lambda_t>,
-                             void(std::decay_t<args_t>...) noexcept>;
-  { std::decay_t<lambda_t>(std::forward<lambda_t>(lambda)) } noexcept;
+#ifndef MJZ_LIB_import_std_FILE_
+#define MJZ_LIB_import_std_FILE_
+#if !MJC_MANUAL_CXX_INCLUDES_
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-  requires((requires(args_t args) {
-             {
-               std::forward<args_t>(args)
-             } noexcept -> std::convertible_to<std::decay_t<args_t>>;
-             { std::decay_t<args_t>(std::forward<args_t>(args)) } noexcept;
-           }) && ...);
-};
-MJZ_FCONSTANT(uint64_t) defult_timeout = uint64_t(uint8_t(-1));
-}  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_BASE_LIB_HPP_FILE_
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <bit>
+#include <cfloat>
+#include <chrono>
+#include <cmath>
+#include <compare>
+#include <concepts>
+#include <coroutine>
+#include <cstdlib>
+#include <cstring>
+#include <exception>
+#include <iostream>
+#include <memory>
+#include <memory_resource>
+#include <mutex>
+#include <new>
+#include <numeric>
+#include <optional>
+#include <random>
+#include <ranges>
+#include <semaphore>
+#include <span>
+#include <sstream>
+#include <string>
+#include <string_view>
+#include <system_error>
+#include <thread>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+#include <variant>
+
+#if MJZ_CAN_USE_LIB_STD_FORMAT_
+#include <format>
+#endif
+#if MJZ_CAN_USE_LIB_STD_charconv_
+#include <charconv>
+#endif
+
+#if MJZ_STD_HAS_SIMD_LIB_
+#include <experimental/simd>
+#endif
+
+#if 1 < _MSC_VER
+#include <__msvc_int128.hpp>
+#endif
+#endif
+#endif  // MJZ_LIB_import_std_FILE_

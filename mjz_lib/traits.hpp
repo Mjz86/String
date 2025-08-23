@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <optional>
 
 #include "memories.hpp"
 
@@ -30,7 +29,7 @@ SOFTWARE.
 
 namespace mjz {
 using nullopt_t = std::nullopt_t;
-MJZ_CONSTANT(nullopt_t) nullopt{std::nullopt};
+MJZ_FCONSTANT(nullopt_t) nullopt{std::nullopt};
 template <class T>
 concept noexcept_destructable_c = requires(T obj) {
   { obj.~T() } noexcept;
@@ -139,7 +138,7 @@ concept is_totaly_trivial_after_init = requires(T t, const T ct) {
 template <auto integral_constant_maker_lambda>
   requires requires { integral_constant_maker_lambda(); }
 struct mjz_integral_constant_t {
-  MJZ_CONSTANT(auto) value = integral_constant_maker_lambda();
+  MJZ_MCONSTANT(auto) value = integral_constant_maker_lambda();
   using value_type = decltype(value);
   using type = mjz_integral_constant_t;  // using injected-class-name
   MJZ_CX_FN operator value_type &() const noexcept { return value; }
@@ -150,7 +149,7 @@ struct mjz_integral_constants_t {
   template <uintlen_t i>
   using type_at = std::tuple_element_t<
       i,
-      std::tuple<mjz_integral_constant_t<integral_constant_maker_lambdas>...>>;
+      tuple_t<mjz_integral_constant_t<integral_constant_maker_lambdas>...>>;
   template <uintlen_t i>
   using value_type = decltype(type_at<i>{}());
   using type = mjz_integral_constants_t;
@@ -158,7 +157,7 @@ struct mjz_integral_constants_t {
   MJZ_CX_FN static auto &get() noexcept {
     return type_at<i>{}();
   }
-  MJZ_CONSTANT(size_t)
+  MJZ_MCONSTANT(size_t)
   MJZ_STATIC_tuple_len_{sizeof...(integral_constant_maker_lambdas)};
 };
 
@@ -369,8 +368,9 @@ MJZ_CX_FN std::array<char, sizeof(T)> get_XE_bitcast(T val) noexcept {
   auto r_ret = std::bit_cast<std::array<char, sizeof(T)>>(val);
   std::array<char, sizeof(T)> ret{};
   for (uintlen_t i{}; i < sizeof(T); i++) {
-    ret[(size_t)i] = do_reverse_if_NE
-                         ? bit_reverse_bitcast(r_ret[(size_t)(sizeof(T) - 1 - i)])
+    ret[(size_t)i] =
+        do_reverse_if_NE
+            ? bit_reverse_bitcast(r_ret[(size_t)(sizeof(T) - 1 - i)])
             : r_ret[(size_t)(sizeof(T) - 1 - i)];
   }
   return ret;

@@ -99,11 +99,11 @@ struct generic_alloc_t : alloc_base_t<version_v> {
   friend class mjz_private_accessed_t;
 
  private:
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   Const_inequals = !requires(const obj_t &obj) {
     { obj != obj } noexcept -> std::same_as<bool>;
   };
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   has_handle = requires(const alloc_base *This, const void_struct_t *ptr) {
     {
       As(This).data.obj.handle(ptr)
@@ -215,7 +215,8 @@ struct generic_alloc_t : alloc_base_t<version_v> {
     }
     return nullptr;
   }
-  MJZ_CX_FN static success_t refresh_call(MJZ_MAYBE_UNUSED uintlen_t monotonic_minsize,
+  MJZ_CX_FN static success_t refresh_call(
+      MJZ_MAYBE_UNUSED uintlen_t monotonic_minsize,
       MJZ_MAYBE_UNUSED uintlen_t monotonic_min_align,
       MJZ_MAYBE_UNUSED uintlen_t stack_minsize,
       MJZ_MAYBE_UNUSED uintlen_t stack_min_align,
@@ -363,7 +364,7 @@ MJZ_CX_FN auto lock_gaurd_maker(bool is_threaded, char *byte_mutex_ptr,
 };  // namespace lock_details_ns
 
 template <version_t version_v>
-MJZ_CONSTANT(generic_alloc_maker_t<version_v>)
+MJZ_FCONSTANT(generic_alloc_maker_t<version_v>)
 generic_alloc_maker{totally_empty_type};
 };  // namespace mjz::allocs_ns
 

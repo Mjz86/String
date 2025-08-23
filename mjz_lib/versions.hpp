@@ -26,7 +26,8 @@ SOFTWARE.
 
 namespace mjz {
 struct version_t {
-  MJZ_CX_FN bool operator==(const version_t &)const noexcept = default;
+  MJZ_CX_FN bool operator==(const version_t &) const noexcept = default;
+
  public:
   struct value_t {
     uint64_t m_is_BE_ : 1 {!SYSTEM_is_little_endian_};
@@ -59,12 +60,12 @@ struct version_t {
 
   int64_t value_{};
   MJZ_CX_FN value_t make() const noexcept { return value_t::make(value_); }
-  MJZ_CONSTANT(uint32_t) newest_m_version = MJZ_LIB_NEWEST_VERSION_;
+  MJZ_MCONSTANT(uint32_t) newest_m_version = MJZ_LIB_NEWEST_VERSION_;
 
   MJZ_CE_FN explicit version_t(uint32_t newest_version_ = newest_m_version,
                                uint32_t m_ver_mod_id = 0) noexcept
       : value_(value_t{.m_ver_ = (newest_version_),
-                      .m_ver_mod_id_ = (m_ver_mod_id)}) {
+                       .m_ver_mod_id_ = (m_ver_mod_id)}) {
     asserts(newest_version_ <= newest_m_version,
             "update the latest api version  var (=newest_m_version). "
             "to include this version.");
@@ -72,7 +73,7 @@ struct version_t {
   MJZ_CX_FN explicit version_t(uint32_t newest_version_, uint32_t m_ver_mod_id,
                                totally_empty_type_t) noexcept
       : value_(value_t{.m_ver_ = (newest_version_),
-                      .m_ver_mod_id_ = (m_ver_mod_id)}) {}
+                       .m_ver_mod_id_ = (m_ver_mod_id)}) {}
 
   MJZ_CX_FN std::partial_ordering operator<=>(version_t b) const noexcept {
     auto v = uint32_t(make().m_ver_) <=> uint32_t(b.make().m_ver_);
@@ -107,7 +108,7 @@ struct concatabe_hash_t {
     hash = uintlen_t(uint8_t(c));
     length = 1;
   }
-  MJZ_CX_ND_FN concatabe_hash_t(const char *ptr, uintlen_t len) noexcept { 
+  MJZ_CX_ND_FN concatabe_hash_t(const char *ptr, uintlen_t len) noexcept {
     for (uintlen_t i{}; i < len; i++) {
       hash ^= uintlen_t(uint8_t(ptr[i])) << bit_rotate_t(i);
     }
@@ -145,9 +146,9 @@ struct concatabe_hash_t {
                                    const concatabe_hash_t &lhs) noexcept {
     return rhs.hash == lhs.hash;
   }
-  MJZ_CX_FN std::strong_ordering friend operator<=>(const concatabe_hash_t &rhs,
-                                   const concatabe_hash_t &lhs) noexcept {
-    return rhs.hash <=> lhs.hash ;
+  MJZ_CX_FN std::strong_ordering friend operator<=>(
+      const concatabe_hash_t &rhs, const concatabe_hash_t &lhs) noexcept {
+    return rhs.hash <=> lhs.hash;
   }
 };
 

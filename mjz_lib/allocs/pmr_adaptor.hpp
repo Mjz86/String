@@ -22,12 +22,7 @@ SOFTWARE.
 */
 #include "../threads/atomic_ref.hpp"
 #include "alloc_ref.hpp"
-
 #if MJZ_WITH_iostream
-#include <memory_resource>
-#else
-#define MJZ_ALLOCS_pmr_adaptor_FILE_HPP_
-#endif
 #ifndef MJZ_ALLOCS_pmr_adaptor_FILE_HPP_
 #define MJZ_ALLOCS_pmr_adaptor_FILE_HPP_
 namespace mjz::allocs_ns {
@@ -91,17 +86,15 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_NCX_FN static alloc_vtable vtable_val_f(bool fast_table) noexcept {
     if (fast_table) {
-      return {alloc_info{}, cow_threashold_v<version_v>,
+      return {alloc_info{},   cow_threashold_v<version_v>,
               &allocate_call, &deallocate_call,
-              nullptr,
-              &is_equal,    nullptr,
-              nullptr};
+              nullptr,        &is_equal,
+              nullptr,        nullptr};
     } else {
-      return {alloc_info{}, cow_threashold_v<version_v>,
+      return {alloc_info{},   cow_threashold_v<version_v>,
               &allocate_call, &deallocate_call,
-              &ref_call,
-              &is_equal,    nullptr,
-              nullptr};
+              &ref_call,      &is_equal,
+              nullptr,        nullptr};
     }
   }
 
@@ -181,7 +174,7 @@ struct pmr_alloc_t : alloc_base_t<version_v> {
     asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
     return;
   }
-  MJZ_CX_FN static block_info allocate_call(alloc_base *This,uintlen_t minsize,
+  MJZ_CX_FN static block_info allocate_call(alloc_base *This, uintlen_t minsize,
                                             alloc_info ai) noexcept {
     return allocate(This, minsize, ai);
   }
@@ -260,7 +253,8 @@ struct pmr_alloc_maker_t {
 };
 
 template <version_t version_v>
-MJZ_CONSTANT(pmr_alloc_maker_t<version_v>)
+MJZ_FCONSTANT(pmr_alloc_maker_t<version_v>)
 pmr_alloc_maker{totally_empty_type};
 };  // namespace mjz::allocs_ns
 #endif  // MJZ_ALLOCS_pmr_adaptor_FILE_HPP_
+#endif

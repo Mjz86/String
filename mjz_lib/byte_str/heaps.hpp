@@ -116,9 +116,9 @@ class str_heap_manager_t {
     asserts(asserts.assume_rn, !!*this);
     return remove_shareholder_then_check_has_no_owner();
   }
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   non_threaded_rf_block = sizeof(uintlen_t);
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   threaded_rf_block =
       std::max(hardware_destructive_interference_size, non_threaded_rf_block);
 

@@ -22,7 +22,7 @@ SOFTWARE.
 */
 #include "generic_alloc.hpp"
 #ifndef MJZ_ALLOCS_page_alloc_FILE_HPP_
-#define MJZ_ALLOCS_page_alloc_FILE_HPP_ 
+#define MJZ_ALLOCS_page_alloc_FILE_HPP_
 
 namespace mjz ::allocs_ns {
 namespace stack_alloc_ns {
@@ -56,7 +56,7 @@ struct stack_alloc_t {
     MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
                                strategy_t) const& noexcept {
       return mjz::memory_is_inside(stack_begin_ptr, stack_length, blk.ptr,
-                                     uintlen_t(!!blk.length));
+                                   uintlen_t(!!blk.length));
     }
     MJZ_CX_ND_FN success_t deallocate(heap_block_t&&, strategy_t) & noexcept {
       return true;
@@ -120,7 +120,7 @@ struct page_alloc_t {
     MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
                                strategy_t) const& noexcept {
       return mjz::memory_is_inside(data_begin_ptr, data_length, blk.ptr,
-                                     uintlen_t(!!blk.length));
+                                   uintlen_t(!!blk.length));
     }
     MJZ_CX_ND_FN success_t deallocate(heap_block_t&& blk,
                                       strategy_t strategy) & noexcept {

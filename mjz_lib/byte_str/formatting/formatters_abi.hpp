@@ -31,15 +31,14 @@ SOFTWARE.
 namespace mjz ::bstr_ns::format_ns {
 template <version_t version_v, partial_same_as<void_struct_t> T>
 struct default_formatter_t<version_v, T, 20> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
-  MJZ_CX_FN success_t parse(
-      parse_context_t<version_v> & ) noexcept {
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &) noexcept {
     return true;
   };
-  MJZ_CX_FN success_t format(
-      const auto &, format_context_t<version_v> &) const noexcept {
+  MJZ_CX_FN success_t format(const auto &,
+                             format_context_t<version_v> &) const noexcept {
     return true;
   };
 };
@@ -47,8 +46,9 @@ template <version_t version_v, partial_same_as<std::nullopt_t> T>
 struct default_formatter_t<version_v, T, 20>
     : formatter_type_t<version_v, void_struct_t> {};
 template <version_t version_v, typename>
-MJZ_CONSTANT(uintlen_t)
-basic_format_specs_conversion_buffer_size_v{format_basic_buffer_size_v<version_v>};
+MJZ_MCONSTANT(uintlen_t)
+basic_format_specs_conversion_buffer_size_v{
+    format_basic_buffer_size_v<version_v>};
 
 template <version_t version_v>
 struct basic_format_specs_format_fn_obj_t {
@@ -68,7 +68,7 @@ template <version_t version_v>
 struct basic_format_specs_t {
   using format_fn_obj = basic_format_specs_format_fn_obj_t<version_v>;
   template <typename T>
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   conversion_buffer_size_v{
       basic_format_specs_conversion_buffer_size_v<version_v, T>};
   enum class align_e : uint8_t { none, left, right, center };
@@ -122,17 +122,17 @@ struct basic_format_specs_t {
 
  private:
   template <typename T>
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   is_numeric = partial_is_one_of_c<
       T, signed char, unsigned char, short, unsigned short, int, unsigned int,
       long, unsigned long, long long, unsigned long long>;
   template <typename T>
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   is_numeric_or_ptr =
       is_numeric<T> || std::is_pointer_v<std::remove_cvref_t<T>> ||
       partial_same_as<nullptr_t, T>;
   template <typename T>
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   has_persitioned_argument = partial_is_one_of_c<T, base_lazy_view_t<version_v>,
                                                  float, double, long double>;
   using sview_t = static_string_view_t<version_v>;
@@ -145,8 +145,8 @@ struct basic_format_specs_t {
   MJZ_CX_FN success_t format_specs(T &&arg,
                                    format_context_t<version_v> &ctx) noexcept;
   template <typename>
-  MJZ_CX_FN  success_t format_fill(
-      auto &&fill_up, format_context_t<version_v> &ctx) const noexcept;
+  MJZ_CX_FN success_t
+  format_fill(auto &&fill_up, format_context_t<version_v> &ctx) const noexcept;
 
  private:
   MJZ_CX_FN success_t format_fill_pv(
@@ -166,15 +166,13 @@ concept uses_basic_spec_c =
                          long double, nullptr_t> ||
      std::is_pointer_v<std::remove_cvref_t<T>>);
 
-
-
 template <version_t version_v, uses_basic_spec_c<version_v> T>
 struct default_formatter_t<version_v, T, 20> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
 
-////
+  ////
 
   using decay_optimize_to_t = std::conditional_t<
       std::is_pointer_v<std::remove_cvref_t<T>> ||
@@ -189,15 +187,13 @@ struct default_formatter_t<version_v, T, 20> {
                              uintptr_t>,
           T>>;
   basic_format_specs_t<version_v> data{};
-  MJZ_CX_FN  success_t parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     if (!data.parse_specs(ctx)) return false;
     if (!data.template check_specs<std::remove_cvref_t<T>>(ctx)) return false;
     return true;
   };
-  MJZ_CX_FN success_t format(
-      std::remove_cvref_t<T> arg,
-      format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(std::remove_cvref_t<T> arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     if (!basic_format_specs_t<version_v>(data)
              .template format_specs<const std::remove_cvref_t<T> &>(arg, ctx))
       return false;
@@ -214,21 +210,20 @@ concept mjz_str_c = requires(const T &obj) {
 template <version_t version_v, class T>
   requires mjz_str_c<version_v, std::remove_cvref_t<T>>
 struct default_formatter_t<version_v, T, 20> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
 
   using decay_optimize_to_t = base_string_view_arg_t<version_v>;
   basic_format_specs_t<version_v> data{};
-  MJZ_CX_FN success_t parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     if (!data.parse_specs(ctx)) return false;
     if (!data.template check_specs<base_lazy_view_t<version_v>>(ctx))
       return false;
     return true;
   };
-  MJZ_CX_FN success_t format(
-      auto &&arg, format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(auto &&arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     if (!basic_format_specs_t<version_v>(data).format_specs(
             base_lazy_view_t<version_v>(decay_optimize_to_t(arg)), ctx))
       return false;

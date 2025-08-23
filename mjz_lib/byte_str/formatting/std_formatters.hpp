@@ -22,20 +22,12 @@ SOFTWARE.
 */
 
 #include "../../allocs/pmr_adaptor.hpp"
+#include "../string.hpp"
 #include "basic_formatters.hpp"
 
-#ifndef __cpp_lib_format
-#define MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
-#endif
-#if !MJZ_WITH_iostream
-#define MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
-#endif
+#if MJZ_CAN_USE_LIB_STD_FORMAT_
 #ifndef MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
-#include <format>
-#include <sstream>
-
-#include "../string.hpp"
 
 namespace mjz::bstr_ns::format_ns {
 template <version_t version_v, typename T>
@@ -46,9 +38,9 @@ concept is_std_formatter_c = requires(const std::remove_reference_t<T> &arg) {
 template <version_t version_v, class T_>
   requires is_std_formatter_c<version_v, T_>
 struct default_formatter_t<version_v, T_, 90> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   using bview_t = base_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   using sview_t = static_string_view_t<version_v>;
@@ -57,8 +49,7 @@ struct default_formatter_t<version_v, T_, 90> {
       get_invalid_T_obj<CVT_pv>()));
   using str_t = basic_str_t<version_v, true>;
   str_t parse_content{};
-  MJZ_CX_FN success_t parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     view_t view = ctx.view();
     uintlen_t pos = view.find_first_of(sview_t{"}"});
     if (pos == view.nops) {
@@ -80,18 +71,18 @@ struct default_formatter_t<version_v, T_, 90> {
       const std::remove_reference_t<T_> &arg,
       format_context_t<version_v> &ctx) const noexcept {
     bool good{true};
-    auto blk_0_ =
-        ctx.fn_alloca(format_stack_size_v<T_>, alignof(uintlen_t));
+    auto blk_0_ = ctx.fn_alloca(format_stack_size_v<T_>, alignof(uintlen_t));
     if (!blk_0_.size()) {
       ctx.as_error(
-          "[Error]default_formatter_t<is_std_formatter_c>::format:cannot allocate "
+          "[Error]default_formatter_t<is_std_formatter_c>::format:cannot "
+          "allocate "
           "more "
           "memory");
       return false;
     }
     MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
     good &= MJZ_NOEXCEPT {
-      allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()}; 
+      allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()};
       std::pmr::monotonic_buffer_resource mbr{blk_0_.data(), blk_0_.size(),
                                               &alloc};
       std::pmr::polymorphic_allocator<char> pmr{&mbr};
@@ -128,3 +119,5 @@ struct default_formatter_t<version_v, T_, 90> {
 }  // namespace mjz::bstr_ns::format_ns
 
 #endif  // MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
+
+#endif

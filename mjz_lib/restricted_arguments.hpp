@@ -21,8 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <algorithm>
-#include <ranges>
 
 #include "versions.hpp"
 
@@ -87,7 +85,7 @@ struct varify_t {
   }
 
  private:
-  MJZ_CONSTANT(i_know_what_im_doing_t) they_do {};
+  MJZ_MCONSTANT(i_know_what_im_doing_t) they_do {};
 };
 template <varify_t varification>
 MJZ_CX_FN i_know_what_im_doing_t operator""_dw() noexcept
@@ -96,7 +94,7 @@ MJZ_CX_FN i_know_what_im_doing_t operator""_dw() noexcept
   return **varification;
 }
 
-MJZ_CONSTANT(auto) unsafe_v = "i do know that what im doing is unsafe."_dw;
+MJZ_FCONSTANT(auto) unsafe_v = "i do know that what im doing is unsafe."_dw;
 
 };  // namespace unsafe_ns
 
@@ -105,12 +103,12 @@ template <callable_anyret_c<void() noexcept> static_data_fn_t>
     { static_data_fn_t()() } noexcept;
   }
 struct static_data_t {
-  MJZ_CONSTANT(auto) val { static_data_fn_t()() };
+  MJZ_MCONSTANT(auto) val { static_data_fn_t()() };
   MJZ_CX_FN auto &operator()() const noexcept { return val; }
 };
 template <callable_anyret_c<void() noexcept> static_range_fn_t>
   requires requires() {
-    { static_range_fn_t()() } noexcept -> std::ranges::forward_range;
+    { static_range_fn_t()() } noexcept -> std::ranges::input_range;
   }
 struct static_range_t {
  private:
@@ -125,7 +123,7 @@ struct static_range_t {
   }
 
  public:
-  MJZ_CONSTANT(auto) val { get() };
+  MJZ_MCONSTANT(auto) val { get() };
   MJZ_CX_FN auto &operator()() const noexcept { return val; }
 };
 
@@ -147,8 +145,8 @@ struct static_range_maker_t {
     return static_range_t<static_range_fn_t>()();
   }
 };
-MJZ_CONSTANT(static_range_maker_t) make_static_range{};
-MJZ_CONSTANT(static_data_maker_t) make_static_data{};
+MJZ_FCONSTANT(static_range_maker_t) make_static_range{};
+MJZ_FCONSTANT(static_data_maker_t) make_static_data{};
 
 }  // namespace mjz
 #endif  //  MJZ_RES_ARGS_LIB_HPP_FILE_

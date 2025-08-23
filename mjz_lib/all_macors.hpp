@@ -21,8 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef mjz_string_lib_HPP_FILE_
-#define mjz_string_lib_HPP_FILE_
+#include "user_include_context_.hpp"
+#ifndef MJZ_string_lib_macros_HPP_FILE_
+#define MJZ_string_lib_macros_HPP_FILE_
+#define MJZ_string_lib_macros_ true
 
 /*
  * shows if we can assume an expression in an assumbtion macro
@@ -111,18 +113,15 @@ SOFTWARE.
 #define MJZ_CATCHES_EXCEPTIONS_ true
 #endif  // !MJZ_CATCHES_EXCEPTIONS_
 
-#include <memory>
-#include <type_traits>
-#include <utility>
-
-#ifndef _CONTAINER_DEBUG_LEVEL
-#define _CONTAINER_DEBUG_LEVEL 0
+#ifdef _CONTAINER_DEBUG_LEVEL
+#define STD_DEGUG_MODE _CONTAINER_DEBUG_LEVEL
+#else
+#define STD_DEGUG_MODE 0
 #endif  // !_CONTAINER_DEBUG_LEVEL
 
 #ifndef MJZ_IN_DEBUG_MODE
 #define MJZ_IN_DEBUG_MODE \
-  (MJZ_TEST_MODE_ ||      \
-   (MJZ_CONTROL_IN_DEBUG_MODE_ && (_CONTAINER_DEBUG_LEVEL > 0)))
+  (MJZ_TEST_MODE_ || (MJZ_CONTROL_IN_DEBUG_MODE_ && (STD_DEGUG_MODE > 0)))
 #endif  // !MJZ_IN_DEBUG_MODE
 
 #ifndef MJZ_DO_DEBUG_COUT
@@ -260,10 +259,15 @@ SOFTWARE.
 #define MJZ_IS_LIKELY
 #define MJZ_IS_UNLIKELY
 #endif  // MJZ_LIKELYHOD_
-#define MJZ_CONSTANT(_TYPE_) MJZ_WILL_USE constexpr static _TYPE_ const
 #define MJZ_FCONSTANT(_TYPE_) MJZ_WILL_USE constexpr _TYPE_ const
-#define MJZ_AS_CONSTEXPR(result_, CODE) \
-  MJZ_CONSTANT(auto) result_ { [&]() mutable CODE() }
+#define MJZ_MCONSTANT(_TYPE_) MJZ_WILL_USE static inline constexpr _TYPE_ const
+
+////////////////////////////
+///////////////////
+#include "choose_include_marco_.hpp"
+/////////////////
+#include "include_externals.hpp"
+////////////////////////////
 
 #define MJZ_STD_is_constant_evaluated_FUNCTION_RET_ \
   (::std::is_constant_evaluated())
@@ -299,8 +303,8 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_GCC_ATTRIBUTES_(X)
 #define MJZ_restrict
 #if 1 < _MSC_VER
-#define JUST_MJZ_FORCED_INLINE_ __forceinline
-#define JUST_MJZ_NO_INLINE_ __declspec(noinline)
+#define MJZ_JUST_FORCED_INLINE_  __forceinline inline
+#define MJZ_JUST_NO_INLINE_  __declspec(noinline)
 #define MJZ_no_unique_address MJZ_AS_CPP_ATTREBUTE(msvc::no_unique_address)
 #define MJZ_JUST_ASSUME_(X_expression_) __assume(X_expression_)
 #define MJZ_MACRO_PRAGMA_(WHAT_) __pragma(WHAT_)
@@ -309,6 +313,8 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #undef MJZ_restrict
 #define MJZ_restrict __restrict
 #define MJZ_MSVC_ONLY_PRAGMA_(X) MJZ_MACRO_PRAGMA_(X)
+
+#define MJZ_uint128_t_impl_t_ MJZ_MSVC_ONLY_CODE_(std::)MJZ_MSVC_ONLY_CODE_(_Unsigned128)
 #define MJZ_MSVC_ONLY_CODE_(X) X
 #ifndef MJZ_VERBOSE_FORMAT_ERROR
 #define MJZ_VERBOSE_FORMAT_ERROR false
@@ -324,6 +330,9 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 
 #elif defined(__GNUC__)
 
+#ifdef __SIZEOF_INT128__
+#define MJZ_uint128_t_impl_t_ unsigned __int128
+#endif
 #undef MJZ_GCC_ATTRIBUTES_
 #undef MJZ_GCC_ONLY_CODE_
 #undef MJZ_restrict
@@ -334,42 +343,41 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_GCC_ONLY_CODE_(X) X
 #define MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(warnoption0) \
   MJZ_MACRO_PRAGMA_(GCC diagnostic ignored warnoption0)
-#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_   \
+#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_                        \
   MJZ_MACRO_PRAGMA_(GCC diagnostic push);                      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wall");                       \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wextra");                     \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Walloca");                    \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-align");                \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-qual");                 \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wctor-dtor-privacy");         \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdeprecated-copy-dtor");      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdouble-promotion");          \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wenum-conversion");           \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wfloat-equal");               \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat-signedness");         \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat=2");                  \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmismatched-tags");           \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmultichar");                 \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wnon-virtual-dtor");          \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Woverloaded-virtual");        \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wpointer-arith");             \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wrange-loop-construct");      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wshadow");                    \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wuninitialized");             \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wvla");                       \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wwrite-strings");             \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wsign-conversion");           \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(                                \
-      "-Wdelete-non-"                     \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wall");                  \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wextra");                \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Walloca");               \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-align");           \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-qual");            \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wctor-dtor-privacy");    \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdeprecated-copy-dtor"); \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdouble-promotion");     \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wenum-conversion");      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wfloat-equal");          \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat-signedness");    \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat=2");             \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmismatched-tags");      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmultichar");            \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wnon-virtual-dtor");     \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Woverloaded-virtual");   \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wpointer-arith");        \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wrange-loop-construct"); \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wshadow");               \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wuninitialized");        \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wvla");                  \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wwrite-strings");        \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wsign-conversion");      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(                           \
+      "-Wdelete-non-"                                          \
       "virtual-dtor")
-      
 
 #define MJZ_WARNINGS_IGNORE_END_IMPL_ MJZ_MACRO_PRAGMA_(GCC diagnostic pop)
 
 #define MJZ_restrict __restrict__
 #define MJZ_GCC_ATTRIBUTES_(X) __attribute__((X))
-#define JUST_MJZ_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_(always_inline)
-#define JUST_MJZ_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline) 
+#define MJZ_JUST_FORCED_INLINE_  MJZ_GCC_ATTRIBUTES_(always_inline) inline
+#define MJZ_JUST_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline)
 #if __has_cpp_attribute(assume)
 #define MJZ_JUST_ASSUME_(X_expression_) \
   MJZ_AS_CPP_ATTREBUTE(assume(X_expression_))
@@ -384,8 +392,8 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_JUST_ASSUME_(X_expression_) \
   MJZ_AS_CPP_ATTREBUTE(assume(X_expression_))
 #define MJZ_no_unique_address MJZ_AS_CPP_ATTREBUTE(no_unique_address)
-#define JUST_MJZ_FORCED_INLINE_
-#define JUST_MJZ_NO_INLINE_
+#define MJZ_JUST_FORCED_INLINE_
+#define MJZ_JUST_NO_INLINE_
 #endif
 #define MJZ_TRUST_LEVEL_OF_ASSUME_ 0
 #define MJZ_TRUST_LEVEL_OF_BELIEVE_ 1
@@ -399,8 +407,8 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #endif
 
 #if MJZ_TRUST_LEVEL_OF_BELIEVE_ < MJZ_TRUST_LEVEL_
-#define MJZ_FORCED_INLINE JUST_MJZ_FORCED_INLINE_
-#define MJZ_NO_INLINE JUST_MJZ_NO_INLINE_
+#define MJZ_FORCED_INLINE MJZ_JUST_FORCED_INLINE_
+#define MJZ_NO_INLINE MJZ_JUST_NO_INLINE_
 #define MJZ_BELIEVE_(X_expression_) MJZ_JUST_ASSUME_(X_expression_)
 #else
 #define MJZ_BELIEVE_(X_expression_)
@@ -601,58 +609,17 @@ active union member... IF the first statement is true
 #define MJZ_CX_AL_ND_FN MJZ_CX_AL_A_FN(MJZ_NODISCRAD)
 #define MJZ_CX_AL_NDR_FN(REASON) MJZ_CX_AL_A_FN(MJZ_NODISCRAD_FOR(REASON))
 
-namespace MJZ_NORETURN_SPECIAL_namespace_ {
-struct mjz_unreachable_t {
-  MJZ_CX_AL_A_FN(MJZ_NORETURN) void operator()(bool) const noexcept {
-    MJZ_IF_CONSTEVAL {
-      std::ignore = reinterpret_cast<const uint8_t &>("UB!!!!!! VVVVVVV"[0]);
-    }
-    MJZ_MSVC_ONLY_CODE_(MJZ_JUST_ASSUME_(false));
-    MJZ_GCC_ONLY_CODE_(__builtin_unreachable());
-  }
-};
+#define MJZ_JUST_UNREACHABLE_()               \
+  MJZ_GCC_ONLY_CODE_(__builtin_unreachable()) \
+  MJZ_MSVC_ONLY_CODE_(MJZ_JUST_ASSUME_(false))
 
-};  // namespace MJZ_NORETURN_SPECIAL_namespace_
-#define MJZ_UNREACHABLE() \
-  ::MJZ_NORETURN_SPECIAL_namespace_::mjz_unreachable_t()(false)
+#define MJZ_UNREACHABLE() MJZ_JUST_UNREACHABLE_()
 
 #define MJZ_NEVER_RUN_PATH() MJZ_UNREACHABLE()
 
 #define MJZ_TO_STRING(X) #X
 
 #define MJZ_TO_STRING_V(X) MJZ_TO_STRING(X)
-
-namespace MJZ_NORETURN_SPECIAL_namespace_ {
-MJZ_DISABLE_ALL_WANINGS_START_;
-MJZ_NORETURN
-MJZ_WILL_USE constexpr static void inline STATUS_ACSESS_VOILATION_bye_mjz_() noexcept {  //-V1082
-  MJZ_NEVER_RUN_PATH();
-}
-MJZ_DISABLE_ALL_WANINGS_END_;
-};  // namespace MJZ_NORETURN_SPECIAL_namespace_
-
-#define MJZ_NOT_IMPLEMENTATED_HEAPER_()                                    \
-  do {                                                                     \
-    MJZ_RASSUME_(                                                          \
-        false,                                                             \
-        "this cntrol path IS UNDEFINED and will be optimized out and :( "  \
-        "\n runing this has UNDEFINED BEHAVIOUR .");                       \
-    ::MJZ_NORETURN_SPECIAL_namespace_::STATUS_ACSESS_VOILATION_bye_mjz_(); \
-  } while (0)
-
-#define MJZ_NOT_IMPLEMENTATED()      \
-  MJZ_NOT_IMPLEMENTATED_HEAPER_();   \
-  do {                               \
-    MJZ_NOT_IMPLEMENTATED_HEAPER_(); \
-  } while (true)
-
-#define MJZ_NOT_IMPLEMENTATED_YET() MJZ_NOT_IMPLEMENTATED()
-#define MJZ_NOT_IMPLEMENTATED_YET_v() \
-  [] {                                \
-    MJZ_NOT_IMPLEMENTATED();          \
-    return;                           \
-  }()
-#define MJZ_UB() MJZ_NOT_IMPLEMENTATED()
 
 //-V:MJZ_NOT_CONSTEXPR: 779 , 1080 , 571 , 2535 , 3522
 #define MJZ_NOT_CONSTEXPR()                                                \
@@ -765,4 +732,135 @@ MJZ_DISABLE_ALL_WANINGS_END_;
 #define MJZ_VERBOSE_FORMAT_ERROR true
 #endif  // !MJZ_VERBOSE_FORMAT_ERROR
 
-#endif  // !mjz_string_lib_HPP_FILE_
+namespace mjz {
+typedef bool success_t;
+
+template <std::same_as<void> = void>
+struct releaser_helper_t {
+ private:
+  template <class releaser_LAMBDA_t>
+    requires requires(releaser_LAMBDA_t l) {
+      releaser_LAMBDA_t(std::move(l));
+      l();
+    }
+  class releaser_0_t_ {
+   public:
+    MJZ_NO_MV_NO_CPY(releaser_0_t_);
+    releaser_0_t_() = delete;
+    MJZ_CX_AL_FN
+    releaser_0_t_(releaser_LAMBDA_t &&releaser_lambda) noexcept(requires() {
+      { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
+    }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
+    MJZ_CX_AL_FN ~releaser_0_t_() { m_releaser_lambda_(); }
+
+    template <class>
+    friend class mjz_private_accessed_t;
+
+   private:
+    releaser_LAMBDA_t m_releaser_lambda_;
+    MJZ_NO_DYNAMIC_ALLOCATOR(releaser_0_t_);
+  };
+
+ public:
+  MJZ_CE_FN releaser_helper_t() noexcept {}
+  template <typename T>
+  MJZ_CX_AL_NDR_FN("this should be stored for it to be called at end of scope")
+  auto operator->*(T &&fn) const
+      noexcept(noexcept(releaser_0_t_{std::forward<T>(fn)}))
+          -> decltype(releaser_0_t_{std::forward<T>(fn)}) {
+    return releaser_0_t_{std::forward<T>(fn)};
+  };
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN explicit operator bool() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN bool operator!() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN void operator&() const noexcept = delete;
+};
+static_assert(std::is_empty_v<releaser_helper_t<>>);
+
+template <class Lmabda_t, bool no_exeptions = false>
+MJZ_CX_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
+  if constexpr (requires(Lmabda_t &&code_) {
+                  { std::forward<Lmabda_t>(code_)() } noexcept;
+                }) {
+    std::forward<Lmabda_t>(code)();
+    return true;
+  } else if constexpr (no_exeptions) {
+    std::forward<Lmabda_t>(code)();
+    return true;
+  } else {
+    MJZ_DISABLE_ALL_WANINGS_START_;
+#if MJZ_CATCHES_EXCEPTIONS_
+    try {
+      std::forward<Lmabda_t>(code)();
+    } catch (...) {
+      return false;
+    }
+#else
+    std::forward<Lmabda_t>(code)();
+#endif
+    MJZ_DISABLE_ALL_WANINGS_END_;
+
+    return true;
+  }
+}
+template <std::same_as<void> = void>
+struct noexcept_er_helper_t {
+ public:
+  MJZ_CE_FN noexcept_er_helper_t() noexcept {}
+  template <class Lmabda_t>
+  MJZ_CX_FN success_t operator->*(Lmabda_t &&fn) const noexcept {
+    return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
+  };
+  
+  template <class Lmabda_t>
+  MJZ_CX_FN success_t operator*(Lmabda_t &&fn) const noexcept {
+    success_t ret{};
+    run_and_block_exeptions(
+        [&]() noexcept(noexcept(success_t(std::forward<Lmabda_t>(fn)()))) {
+          ret = success_t(std::forward<Lmabda_t>(fn)());
+        });
+    return ret;
+  };
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN explicit operator bool() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN bool operator!() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN void operator&() const noexcept = delete;
+};
+static_assert(std::is_empty_v<noexcept_er_helper_t<>>);
+
+/*
+this is a temporary RAII object for being used for something like this:
+void f(){
+std::mutex m;
+m.lock();
+MJZ_W_RELEASE(m){m.unlock();};
+...use...m...
+}
+void g(){
+ auto p= new int;
+  MJZ_W_RELEASE(p) { delete p;};
+...use...p...
+}
+*/
+
+#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable -> void
+
+/*
+this is a temporary RAII object for being used for something like this:
+m.lock();
+MJZ_RELEASE {m.unlock();};
+p= new int;
+MJZ_RELEASE  { delete p; p=nullptr;};
+...use...m...
+...use...p...
+*/
+#define MJZ_RELEASE                                                \
+  MJZ_UNUSED const auto &&MJZ_UNIQUE_VAR_NAME(releaserr_on_line) = \
+      ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
+};  // namespace mjz
+
+#endif  // !MJZ_string_lib_macros_HPP_FILE_

@@ -148,7 +148,8 @@ struct basic_lazy_str_t {
   MJZ_CX_FN success_t
   iterate(uintlen_t offset, uintlen_t length,
           lazy_reader_fn_c<version_v> auto&& lazy_reader) const noexcept {
-    return iterate(offset, length,
+    return iterate(
+        offset, length,
         +no_type_ns::make<lazy_reader_fnt<version_v>>(
             [&](base_string_view_t<version_v> read_slice) noexcept
                 -> success_t {
@@ -251,7 +252,7 @@ struct basic_lazy_str_t {
       return true;
     }
 
-    MJZ_CONSTANT(bool)
+    MJZ_MCONSTANT(bool)
     small_enough = requires(const T val) {
       requires(sizeof(T) <= sizeof(lazy_storage_u<version_v>));
       requires(alignof(T) <= alignof(lazy_storage_u<version_v>));

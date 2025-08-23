@@ -361,7 +361,7 @@ struct blk_state_t {
     return (blk_count / 8) + uintlen_t(!!(blk_count % 8)) + blk_count * blksize;
   };
 
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   pow_of_2 = [](std::integral auto x) noexcept {
     return uint_sizeof_t<std::max(sizeof(x), sizeof(uintlen_t))>(1) << x;
   };
@@ -508,8 +508,8 @@ struct blk_state_t {
               min_number_of_blocks <= currant_index - begin_index;
           local_currant_index++;
           local_begin_index = local_currant_index;
-          local_currant_index =  branchless_teranary(!return_if_not_free,
-              local_currant_index, currant_index);
+          local_currant_index = branchless_teranary(
+              !return_if_not_free, local_currant_index, currant_index);
           local_begin_index = branchless_teranary(
               !return_if_not_free, local_begin_index, begin_index);
 

@@ -67,7 +67,7 @@ struct easy_output_data_t {
   }
 
  protected:
-  MJZ_NO_MV_NO_CPY(easy_output_data_t); 
+  MJZ_NO_MV_NO_CPY(easy_output_data_t);
   base_out_it_t<version_v> iter{};
   encodings_e encoding{};
 };
@@ -95,7 +95,7 @@ MJZ_CX_FN easy_output_it<version_v> &easy_output_it<version_v>::operator=(
 }
 template <typename T>
 struct easy_formatter_t {
-  MJZ_CONSTANT(version_t) version_v {};
+  MJZ_MCONSTANT(version_t) version_v {};
   MJZ_NO_MV_NO_CPY(easy_formatter_t);
   MJZ_CX_FN easy_formatter_t() noexcept = delete;
   MJZ_CX_FN ~easy_formatter_t() noexcept = delete;
@@ -130,14 +130,13 @@ concept easy_formatted_c =
 template <version_t version_v, typename T>
   requires easy_formatted_c<version_v, T>
 struct default_formatter_t<version_v, T, 10> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   using sview_t = static_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   easy_formatter_t<std::remove_cvref_t<T>> easy_formatter{};
-  MJZ_CX_FN success_t parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     view_t view = ctx.view();
     uintlen_t pos = view.find_first_of(sview_t{"}"});
     if (pos == view.nops) {
@@ -151,9 +150,8 @@ struct default_formatter_t<version_v, T, 10> {
     ctx.as_error(status.sview());
     return false;
   };
-  MJZ_CX_FN success_t format(
-      const std::remove_reference_t<T> &arg,
-      format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(const std::remove_reference_t<T> &arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     easy_output_data_t<version_v> data{ctx};
     status_view_t<version_v> status = easy_formatter.format(arg, data.it());
     if (status) {

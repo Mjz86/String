@@ -21,8 +21,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include "../../tuple.hpp"
 #include "../string.hpp"
 #include "base.hpp"
+#include "opt_formatters.hpp"
 
 #ifndef MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_
@@ -48,9 +50,7 @@ struct common_data_t {
     requires std::same_as<
         success_t, decltype(base_out_it_t<version_v>{}.append_obj_impl_(v))>
   {
-    if (ctx.out().append_obj_impl_(v)) {
-      return *this;
-    }
+    if (ctx.out().append_obj_impl_(v)) return *this;
     err_view = sview_t{
         "[Error]common_data_t&operator<<(view_t view):could not output the "
         "view"};
@@ -73,32 +73,28 @@ concept common_formatted_c =
 template <version_t version_v, typename T>
   requires common_formatted_c<version_v, T>
 struct default_formatter_t<version_v, T, 15> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   using sview_t = static_string_view_t<version_v>;
   using view_t = basic_string_view_t<version_v>;
   view_t input{};
   MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     view_t view = ctx.view();
     uintlen_t pos = view.find_first_of(sview_t{"}"});
-    if (pos == view.nops) {
-      return true;
-    }
+    if (pos == view.nops) return true;
     input = view(0, pos);
     if (ctx.advance_amount(pos)) return true;
     return false;
-  };
+  }
   MJZ_CX_FN success_t format(const std::remove_reference_t<T> &arg,
                              format_context_t<version_v> &ctx) const noexcept {
     common_data_t<version_v> cd{ctx, input};
     cd << arg;
-    if (!cd.err_view.data()) {
-      return true;
-    }
+    if (!cd.err_view.data()) return true;
     ctx.as_error(cd.err_view);
     return false;
-  };
+  }
 };
 
 }  // namespace mjz::bstr_ns::format_ns

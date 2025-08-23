@@ -650,7 +650,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
     *ch_ptr_ = branchless_teranary(!b_plus, ' ', '+');
     stack.buf -= branch;
 
-    *stack.length += stack.offset -uintlen_t(stack.buf - stack.buf_arr);
+    *stack.length += stack.offset - uintlen_t(stack.buf - stack.buf_arr);
   }
 
   base_out_it_t<version_v> it = ctx.out();
@@ -660,7 +660,9 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_finish(
   width = std::max(width, *stack.length);
   std::ignore = it.reserve(width, ctx.encoding());
   uintlen_t delta{};
-  if (operator_and(!!this->leading_zero,operator_or(alignment == align_e::right,alignment == align_e::none))) {
+  if (operator_and(!!this->leading_zero,
+                   operator_or(alignment == align_e::right,
+                               alignment == align_e::none))) {
     uintlen_t prefix_len = uintlen_t(numeric_begin - stack.buf);
     std::ignore =
         it.append(bcview::make(stack.buf, prefix_len, ctx.encoding()));
@@ -761,8 +763,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill(
 }
 
 template <version_t version_v>
-MJZ_CX_FN success_t
-basic_format_specs_t<version_v>::format_fill_pv(
+MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
     success_t (*place_fn)(void_struct_t &) noexcept, void_struct_t &place_obj,
     char *buffer, uintlen_t buffer_size,
     format_context_t<version_v> &ctx) const noexcept {

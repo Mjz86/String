@@ -20,7 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include <mutex>
 
 #include "bit_mutex.hpp"
 
@@ -49,8 +48,8 @@ class big_mutex_t {
       }
     }
     MJZ_DISABLE_ALL_WANINGS_START_;
-    MJZ_CX_FN std::mutex& get_r()noexcept {
-      return *std::launder( reinterpret_cast<std::mutex*>(r_mutex_));
+    MJZ_CX_FN std::mutex& get_r() noexcept {
+      return *std::launder(reinterpret_cast<std::mutex*>(r_mutex_));
     }
     MJZ_CX_FN ~data_t() noexcept {
       MJZ_DISABLE_ALL_WANINGS_END_;

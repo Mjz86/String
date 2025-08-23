@@ -21,8 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+
 #include "releasers.hpp"
-#include<bit>
+
 #ifndef MJZ_PACKING_LIB_HPP_FILE_
 #define MJZ_PACKING_LIB_HPP_FILE_
 namespace mjz {
@@ -171,13 +172,13 @@ MJZ_BAD_COMPILER(alignof(padding_test_unpacked_t_) == alignof(uint32_t));
 MJZ_DISABLE_ALL_WANINGS_START_;
 struct bit_field_test_t_ {
   char b0 : 1;
-const  char b1 : 1;
+  const char b1 : 1;
   char b2 : 1;
-const char b3 : 1;
+  const char b3 : 1;
   char b4 : 1;
-const char b5 : 1;
+  const char b5 : 1;
   char b6 : 1;
-const char b7 : 1;
+  const char b7 : 1;
 };
 MJZ_DISABLE_ALL_WANINGS_END_;
 MJZ_BAD_COMPILER(sizeof(bit_field_test_t_) == 1);
@@ -185,9 +186,9 @@ MJZ_BAD_COMPILER(sizeof(bit_field_test_t_) == 1);
 };  // namespace raw_string_object_laoyouts_maybe_
 
 template <std::integral T>
-  requires(sizeof(T) <= 16) 
+  requires(sizeof(T) <= 16)
 
-MJZ_CX_AL_FN static uint8_t get_end_bit_index(T mask) noexcept {
+MJZ_CX_AL_FN   uint8_t get_end_bit_index(T mask) noexcept {
   int16_t index{};
   while (mask) {
     mask >>= 1;
@@ -197,7 +198,7 @@ MJZ_CX_AL_FN static uint8_t get_end_bit_index(T mask) noexcept {
 }
 template <std::integral T>
   requires(sizeof(T) <= 16)
-MJZ_CX_AL_FN static uint8_t get_begin_bit_index(T mask) noexcept {
+MJZ_CX_AL_FN   uint8_t get_begin_bit_index(T mask) noexcept {
   int16_t index{(sizeof(T) * 8) - 1};
   while (static_cast<bool>(static_cast<T &>(mask <<= 1))) {  //-V2561
     index--;

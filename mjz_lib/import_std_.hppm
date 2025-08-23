@@ -20,23 +20,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include "../optional_ref.hpp"
-#ifndef MJZ_THREADS_BASE_LIB_HPP_FILE_
-#define MJZ_THREADS_BASE_LIB_HPP_FILE_
-namespace mjz::threads_ns {
-template <class lambda_t, class... args_t>
-concept mjz_jthread_can_create_c_ = requires(lambda_t lambda) {
-  requires callable_anyret_c<std::decay_t<lambda_t>,
-                             void(std::decay_t<args_t>...) noexcept>;
-  { std::decay_t<lambda_t>(std::forward<lambda_t>(lambda)) } noexcept;
+////////////////// an equivlent to this code should be compiled within module support
+module;
+///////////
+#include "user_include_context_.hpp"
+///////////
+#include "choose_include_marco_.hpp"
+////////////////
+#include "import_std_.hpp"
+///////////
+export module mjz_import_std_;
 
-  requires((requires(args_t args) {
-             {
-               std::forward<args_t>(args)
-             } noexcept -> std::convertible_to<std::decay_t<args_t>>;
-             { std::decay_t<args_t>(std::forward<args_t>(args)) } noexcept;
-           }) && ...);
-};
-MJZ_FCONSTANT(uint64_t) defult_timeout = uint64_t(uint8_t(-1));
-}  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_BASE_LIB_HPP_FILE_
+
+//// also at the end you can just do  using  all my headers in a similar way

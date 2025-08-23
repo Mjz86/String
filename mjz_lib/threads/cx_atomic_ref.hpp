@@ -20,8 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include <atomic>
-
 #include "base.hpp"
 #ifndef MJZ_THREADS_cx_atomic_ref_LIB_HPP_FILE_
 #define MJZ_THREADS_cx_atomic_ref_LIB_HPP_FILE_
@@ -31,7 +29,7 @@ template <typename T>
   requires std::is_trivially_copyable_v<T>
 class cx_atomic_ref_t {
   T &ref;
-  MJZ_CONSTANT(bool) mutable_v { !std::is_const_v<T> };
+  MJZ_MCONSTANT(bool) mutable_v { !std::is_const_v<T> };
   /*  struct byte_T_t {
     alignas(alignof(T)) char a[sizeof(T)];
     MJZ_CX_ND_FN std::strong_ordering operator<=>(
@@ -43,8 +41,8 @@ class cx_atomic_ref_t {
 
   MJZ_CX_FN cx_atomic_ref_t(const cx_atomic_ref_t &) noexcept = default;
   MJZ_CX_FN cx_atomic_ref_t &operator=(const cx_atomic_ref_t &) = delete;
-  MJZ_CONSTANT(bool) is_always_lock_free = true;
-  MJZ_CONSTANT(size_t)
+  MJZ_MCONSTANT(bool) is_always_lock_free = true;
+  MJZ_MCONSTANT(size_t)
   required_alignment = std::atomic_ref<T>::required_alignment;
 
   MJZ_CX_ND_FN bool is_lock_free() const noexcept { return true; }

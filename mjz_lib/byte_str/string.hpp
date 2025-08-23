@@ -21,8 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <compare>
-#include <utility>
 
 #include "../restricted_arguments.hpp"
 #include "string_abi.hpp"
@@ -62,11 +60,11 @@ template <version_t version_v_, basic_str_props_t<version_v_> props_v_ =
 struct basic_str_t : void_struct_t {
   template <version_t version_v_0_, basic_str_props_t<version_v_0_>>
   friend struct basic_str_t;
-  MJZ_CONSTANT(version_t)
+  MJZ_MCONSTANT(version_t)
   version_v = version_v_;
-  MJZ_CONSTANT(basic_str_props_t<version_v_>)
+  MJZ_MCONSTANT(basic_str_props_t<version_v_>)
   props_v = props_v_;
-  MJZ_CONSTANT(version_t)
+  MJZ_MCONSTANT(version_t)
   Version_v_{version_v};
 
  private:
@@ -91,7 +89,7 @@ struct basic_str_t : void_struct_t {
   using unsafe_handle_pv_t_ = m_t;
 
  public:
-  MJZ_CONSTANT(uintlen_t) sso_cap = m_t::sso_cap;
+  MJZ_MCONSTANT(uintlen_t) sso_cap = m_t::sso_cap;
   using self_t = basic_str_t;
   using traits_type = byte_traits_t<version_v>;
   using value_type = char;
@@ -109,9 +107,9 @@ struct basic_str_t : void_struct_t {
   using back_insert_iterator_t = base_out_it_t<version_v>;
   using str_t_indentity_t_ = self_t;
 
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   npos{traits_type::npos};
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   nops{traits_type::npos};
 
  private:
@@ -261,6 +259,7 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_AL_FN bool make_right_then_give_has_null(
       uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
     auto len = m.get_length();
+    byte_count = std::min(byte_count, len);
     byte_offset = std::min(byte_offset, len);
     byte_count = std::min(byte_offset + byte_count, len) - byte_offset;
     bool ret = byte_offset + byte_count == len;
@@ -858,6 +857,44 @@ struct basic_str_t : void_struct_t {
   MJZ_CX_ND_FN const alloc_ref &get_alloc() const noexcept {
     return m.get_alloc();
   }
+  MJZ_CX_FN success_t set_alloc(const alloc_ref &a,
+                                uintlen_t reserve_may = 0) noexcept {
+    if (a==m.get_alloc()) {
+      return true;
+    }
+    if constexpr (!props_v.has_alloc) {
+      return false;
+    } else {
+      if (m.no_destroy()) {
+        *m.get_alloc_ptr() = a;
+        return true;
+      }
+      uintlen_t new_len = length();
+      str_heap_manager hm{a, m.is_threaded(), m.is_ownerized()};
+      if (!hm.u_malloc(uintlen_t(props_v.has_null) +
+                       std::max(reserve_may, new_len)))
+        MJZ_IS_UNLIKELY {
+          hm.unsafe_clear();
+          return false;
+        }
+      uintlen_t cap = hm.get_heap_cap();
+      char *buf = hm.get_heap_begin();
+      const char *old_ptr = m.get_begin(); 
+      uintlen_t offset_of_beg = m.s_buffer_offset(cap, new_len);
+      char *beg = buf + offset_of_beg;
+      memcpy(beg, old_ptr, new_len);
+      m.destruct_heap();
+      m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap, true, false);
+      *m.get_alloc_ptr() = a;
+      hm.unsafe_clear();
+      if constexpr (!props_v.has_null) {
+        return true;
+      }
+      asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
+      return true;
+    }
+  }
+
   /* similar to as_substring_*/
   MJZ_CX_ND_FN self_t make_substring(uintlen_t byte_offset,
                                      uintlen_t byte_count) const noexcept {
@@ -1303,8 +1340,9 @@ struct basic_str_t : void_struct_t {
           } else {
             m.set_sso_length(new_len);
           }
-          asserts(asserts.assume_rn,
-                  !props_v.has_null || m.template add_null<when_t::no_heap>());
+          asserts(
+              asserts.assume_rn,
+              !props_v.has_null || m.template add_null<when_t::own_relax>());
         };
         bool choose_both = choose_back;
         choose_both &= choose_front;
@@ -1450,7 +1488,7 @@ struct basic_str_t : void_struct_t {
     return flag_state_ == true;
   }
   template <class R_t>
-    requires std::ranges::sized_range<R_t> && std::ranges::forward_range<R_t>
+    requires std::ranges::sized_range<R_t> && std::ranges::input_range<R_t>
   MJZ_CX_ND_FN success_t replace_data_with_range(uintlen_t offset,
                                                  uintlen_t byte_count,
                                                  R_t &&range) noexcept {
@@ -1481,7 +1519,7 @@ struct basic_str_t : void_struct_t {
       return true;
     };
   }
-  template <std::ranges::forward_range R_t>
+  template <std::ranges::input_range R_t>
   MJZ_CX_ND_FN success_t replace_data_with_range(uintlen_t offset,
                                                  uintlen_t byte_count,
                                                  R_t &&range) noexcept {
@@ -1515,16 +1553,16 @@ struct basic_str_t : void_struct_t {
     };
   }
 
-  template <std::ranges::forward_range R_t>
+  template <std::ranges::input_range R_t>
   MJZ_CX_ND_FN success_t insert_data_with_range(uintlen_t offset,
                                                 R_t &&r) noexcept {
     return replace_data_with_range(offset, 0, std::forward<R_t>(r));
   }
-  template <std::ranges::forward_range R_t>
+  template <std::ranges::input_range R_t>
   MJZ_CX_ND_FN success_t append_data_with_range(R_t &&r) noexcept {
     return insert_data_with_range(nops, std::forward<R_t>(r));
   }
-  template <std::ranges::forward_range R_t>
+  template <std::ranges::input_range R_t>
   MJZ_CX_ND_FN success_t assign_data_with_range(R_t &&r) noexcept {
     return replace_data_with_range(0, nops, std::forward<R_t>(r));
   }
@@ -1832,7 +1870,8 @@ struct basic_str_t : void_struct_t {
       if (good)
         asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     }
-    return good = true;
+     good = true;
+    return true;
   }
 
   // not implemented yet
@@ -2125,7 +2164,7 @@ MJZ_CX_FN auto base_out_it_t<version_v>::append_obj_impl_(
 
 namespace mjz ::bstr_ns {
 namespace litteral_ns {
-MJZ_CONSTANT(version_t) version_V_var1_{};
+MJZ_FCONSTANT(version_t) version_V_var1_{};
 /*
  *makes a gengeric basic_str_t  that views the string
  */

@@ -43,16 +43,20 @@ namespace mjz ::bstr_ns::format_ns {
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_context_t<version_v>::parse_starting_ulen() noexcept {
-  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       as_error(
           "[Error]parse_starting_ulen:only ascii is suppoerted!(note that this "
           "may change in later versions)");
       return nullopt;
     }
-  if (!front()) MJZ_IS_UNLIKELY {
+  }
+  if (!front()) {
+    MJZ_IS_UNLIKELY {
       as_error("[Error]parse_starting_ulen:expected an unsigned integer");
       return nullopt;
     }
+  }
 
   constexpr auto max_val = uintlen_t(std::numeric_limits<intlen_t>::max());
   constexpr auto before_max_val = max_val / uintlen_t(10);
@@ -65,26 +69,32 @@ parse_context_t<version_v>::parse_starting_ulen() noexcept {
     }
     value = value * 10 + uintlen_t(*digit - '0');
   }
-  if (value > max_val) MJZ_IS_UNLIKELY {
+  if (value > max_val) {
+    MJZ_IS_UNLIKELY {
       as_error("[Error]parse_starting_ulen:too many digits,big number!");
       return nullopt;
     }
+  }
   return value;
 }
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<hash_bytes_t<version_v>>
 parse_context_t<version_v>::parse_starting_name() noexcept {
-  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       as_error(
           "[Error]parse_starting_name:only ascii is suppoerted!(note that this "
           "may change in later versions)");
       return nullopt;
     }
-  if (!front()) MJZ_IS_UNLIKELY {
+  }
+  if (!front()) {
+    MJZ_IS_UNLIKELY {
       as_error("[Error]parse_starting_name:expected a name");
       return nullopt;
     }
+  }
 
   uintlen_t name_len{};
   for (auto digit = at(name_len); digit && !(*digit == '}' || *digit == ':' ||
@@ -92,32 +102,38 @@ parse_context_t<version_v>::parse_starting_name() noexcept {
        name_len++, digit = at(name_len)) {
   }
   view_t name = view().make_subview(0, name_len);
-  if (!advance_amount(name_len)) MJZ_IS_UNLIKELY {
+  if (!advance_amount(name_len)) {
+    MJZ_IS_UNLIKELY {
       as_error("[Error]parse_starting_name:expected an ending to name");
       return nullopt;
     }
+  }
   hash_bytes_t<version_v> ret(name.data(), name.length());
   return hash_bytes_t<version_v>{ret};
 }
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_context_t<version_v>::parse_arg_index() noexcept {
-  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       as_error(
           "[Error]parse_arg_index:only ascii is suppoerted!(note "
           "that this "
           "may change in later versions)");
       return nullopt;
     }
+  }
   auto charechter = front();
   if (!charechter || *charechter == '}' || *charechter == ':' ||
       *charechter == ';') {
     return next_arg_id();
   }
-  if (*charechter < '0' && *charechter > '9') MJZ_IS_UNLIKELY {
+  if (*charechter < '0' && *charechter > '9') {
+    MJZ_IS_UNLIKELY {
       as_error("[Error]parse_arg_index:expected an integer for id");
       return nullopt;
     }
+  }
   uintlen_t id{};
   if (*charechter != '0') {
     auto id_ = parse_starting_ulen();
@@ -128,14 +144,13 @@ parse_context_t<version_v>::parse_arg_index() noexcept {
   }
   charechter = front();
   if (charechter && *charechter != '}' && *charechter != ':' &&
-      *charechter != ';')
+      *charechter != ';') {
     MJZ_IS_UNLIKELY {
       as_error("[Error]parse_arg_index:expected an ending for id");
       return nullopt;
     }
-  if (!check_arg_id(id)) {
-    return nullopt;
   }
+  if (!check_arg_id(id)) return nullopt;
   return id;
 }
 
@@ -164,13 +179,15 @@ MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::find_name_index(
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_context_t<version_v>::parse_arg_id() noexcept {
-  if (encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       as_error(
           "[Error]parse_arg_id:only ascii is suppoerted!(note "
           "that this "
           "may change in later versions)");
       return nullopt;
     }
+  }
   auto charechter = front();
   if (!charechter || *charechter == '}' || *charechter == ':' ||
       *charechter == ';') {
@@ -196,7 +213,8 @@ parse_context_t<version_v>::parse_arg_id() noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (parse_ctx().encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]parse_format_replacement_field:only ascii is "
           "suppoerted!(note "
@@ -204,6 +222,7 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
           "may change in later versions)");
       return false;
     }
+  }
   auto charechter = parse_ctx().front();
   if (charechter == '{') {
     return parse_ctx().unchecked_advance_amount_(1) &&
@@ -241,9 +260,9 @@ parse_and_format_data_t<version_v>::parse_format_replacement_field() noexcept {
     return parse_ctx().unchecked_advance_amount_(1) &&
            call_argument_formatter(*id);
   }
-  if (!charechter || *charechter == '}') MJZ_IS_LIKELY {
-      return call_argument_formatter(*id);
-    }
+  if (!charechter || *charechter == '}') {
+    MJZ_IS_LIKELY { return call_argument_formatter(*id); }
+  }
 
   format_ctx().as_error(
       "[Error]parse_format_replacement_field:expected an replacement field "
@@ -279,13 +298,15 @@ parse_and_format_data_t<version_v>::parse_formating_string_nocache() noexcept {
     }
     asserts(asserts.assume_rn, *charechter == '}');
     auto c = parse_ctx().front();
-    if (!c || *c != '}') MJZ_IS_UNLIKELY {
+    if (!c || *c != '}') {
+      MJZ_IS_UNLIKELY {
         parse_ctx().as_error(
             "[Error]parse_formating_string: unmatched '}' , expected '}' "
             "here "
             "as an escape sequence");
         return false;
       }
+    }
     if (!parse_ctx().unchecked_advance_amount_(1)) return false;
     output.push_back('}', parse_ctx().encoding());
   }
@@ -319,46 +340,47 @@ parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
-      format_ctx().as_error(
-          "[Error]parse_formating_string:only ascii is suppoerted!(note "
-          "that this "
-          "may change in later versions)");
-      return false;
+  out_it_t /*the  copy is intentional */ output{}; 
+  success_t ret = [this, &output]() noexcept {
+    format_context_t<version_v> &fctx_ = format_ctx();
+    if (parse_ctx().encoding() != encodings_e::ascii) {
+      MJZ_IS_UNLIKELY {
+        fctx_.as_error(
+            "[Error]parse_formating_string:only ascii is suppoerted!(note "
+            "that this "
+            "may change in later versions)");
+        return false;
+      }
     }
-  base_ctx().buf_view.encoding = base_ctx().format_string.get_encoding();
-  base_ctx().buf_view.length = 0;
-  if (!format_ctx().advance_to(format_ctx().out())) {
-    return false;
-  }
-  out_it_t /*the  copy is intentional */ output = format_ctx().out();
-  MJZ_RELEASE {
-    if (format_ctx()) {
-      format_ctx().advance_to(output);
-    }
-  };
-  if (!parse_ctx().parse_only() &&
-      !output.reserve(base_ctx().format_string.length(),
-                      format_ctx().encoding()))
-    MJZ_IS_UNLIKELY {
-      parse_ctx().as_error(
-          "[Error]parse_formating_string: could't reserve an aproximation of "
-          "the "
-          "output buffer");
-      return false;
+    base_ctx().buf_view.encoding = base_ctx().format_string.get_encoding();
+    base_ctx().buf_view.length = 0;
+    if (!fctx_.advance_to(fctx_.out())) return false;
+    output = fctx_.out();
+    if (!parse_ctx().parse_only() &&
+        !output.reserve(base_ctx().format_string.length(), fctx_.encoding())) {
+      MJZ_IS_UNLIKELY {
+        parse_ctx().as_error(
+            "[Error]parse_formating_string: could't reserve an aproximation of "
+            "the "
+            "output buffer");
+        return false;
+      }
     }
 
-  if (base_ctx().number_of_cx_parse_storage_of_args) {
-    return parse_formating_string_cache();
-  }
-  return parse_formating_string_nocache();
+    if (base_ctx().number_of_cx_parse_storage_of_args)
+      return parse_formating_string_cache();
+    return parse_formating_string_nocache();
+  }();
+  if (ret) format_ctx().advance_to(output);
+  return ret;
 }
 
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t>
 parse_and_format_data_t<version_v>::get_parse_filter_numeric(
     uintlen_t defult) noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (parse_ctx().encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_parse_filter_numeric:only ascii is "
           "suppoerted!(note "
@@ -366,31 +388,35 @@ parse_and_format_data_t<version_v>::get_parse_filter_numeric(
           "may change in later versions)");
       return nullopt;
     }
+  }
   auto charechter = parse_ctx().front();
-  if (!charechter) MJZ_IS_UNLIKELY {
+  if (!charechter) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_parse_filter_numeric:unexpected end of feild");
       return nullopt;
     }
-  std::optional<uintlen_t> ret{};
-  if ('0' <= *charechter && *charechter <= '9') {
-    return parse_ctx().parse_starting_ulen();
   }
+  std::optional<uintlen_t> ret{};
+  if ('0' <= *charechter && *charechter <= '9')
+    return parse_ctx().parse_starting_ulen();
   if (*charechter != '{') return defult;
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   auto ret_id = parse_ctx().parse_arg_id();
   if (!ret_id) return nullopt;
   charechter = parse_ctx().front();
-  if (!charechter || *charechter != '}') MJZ_IS_UNLIKELY {
+  if (!charechter || *charechter != '}') {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_parse_filter_numeric:expected '}' for the dynamic "
           "filter_numeric argument id end");
       return nullopt;
     }
+  }
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   if (!parse_ctx()
            .type_v(*ret_id)
-           .template is_one_of_xcr<uint8_t, uint16_t, uint32_t, uintlen_t>())
+           .template is_one_of_xcr<uint8_t, uint16_t, uint32_t, uintlen_t>()) {
     MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]basic_format_specs_t::get_parse_filter_numeric():invalid "
@@ -398,44 +424,49 @@ parse_and_format_data_t<version_v>::get_parse_filter_numeric(
           "type(must be unsigned integral (of type uintlen_t))");
       return nullopt;
     }
+  }
   if (!parse_ctx().parse_only() &&
       !format_ctx()
            .arg(*ret_id)
            .template visit_xcr<uint8_t, uint16_t, uint32_t, uintlen_t>(
-               [&](uintlen_t val) noexcept { ret = uintlen_t(val); }))
+               [&](uintlen_t val) noexcept { ret = uintlen_t(val); })) {
     MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]basic_format_specs_t::get_parse_filter_numeric():couldnt get "
           "filter_numeric");
       return nullopt;
     }
+  }
   if (!ret) ret = defult;
   return ret;
 }
 template <version_t version_v>
 MJZ_CX_FN std::optional<uintlen_t> parse_context_t<version_v>::get_numeric(
     uintlen_t defult) noexcept {
-  if (!main_ctx().parse_and_format_data_ptr) MJZ_IS_UNLIKELY {
+  if (!main_ctx().parse_and_format_data_ptr) {
+    MJZ_IS_UNLIKELY {
       as_error(
           "parse_context_t::get_numeric:unexpected intanceiation of "
           "parse_context_t "
           "outside parse_and_format_data_t");
       return nullopt;
     }
+  }
   return main_ctx().parse_and_format_data_ptr->get_parse_filter_numeric(defult);
 }
 template <version_t version_v>
-MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
+MJZ_CX_FN std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
 
 parse_context_t<version_v>::get_slice() noexcept {
   return main_ctx().get_slice_parse_filter(false);
 }
 
 template <version_t version_v>
-MJZ_CX_FN std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
+MJZ_CX_FN std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
 parse_and_format_data_t<version_v>::get_slice_parse_filter(
     bool check_after_slice) noexcept {
-  if (parse_ctx().encoding() != encodings_e::ascii) MJZ_IS_UNLIKELY {
+  if (parse_ctx().encoding() != encodings_e::ascii) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_slice_parse_filter:only ascii is "
           "suppoerted!(note "
@@ -443,76 +474,89 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
           "may change in later versions)");
       return nullopt;
     }
+  }
 
   auto charechter = parse_ctx().front();
   std::optional<uintlen_t> beg_loc = nullopt;
   std::optional<uintlen_t> end_loc = nullopt;
-  if (!charechter) MJZ_IS_UNLIKELY {
+  if (!charechter) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error("[Error]get_slice_parse_filter: unexpected end");
       return nullopt;
     }
-  if (*charechter != '[') {
-    return std::pair<uintlen_t, uintlen_t>{0, uintlen_t(-1)};
   }
+  if (*charechter != '[')
+    return pair_t<uintlen_t, uintlen_t>{0, uintlen_t(-1)};
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   charechter = parse_ctx().front();
-  if (!charechter) MJZ_IS_UNLIKELY {
+  if (!charechter) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error("[Error]get_slice_parse_filter: unexpected end");
       return nullopt;
     }
+  }
   if (*charechter == ']') {
     if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
     //"[]"no output at all
-    return std::pair<uintlen_t, uintlen_t>{uintlen_t(-1), uintlen_t(0)};
+    return pair_t<uintlen_t, uintlen_t>{uintlen_t(-1), uintlen_t(0)};
   }
   beg_loc = get_parse_filter_numeric(uintlen_t(0));
   if (!beg_loc) return nullopt;
   charechter = parse_ctx().front();
-  if (!charechter) MJZ_IS_UNLIKELY {
+  if (!charechter) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error("[Error]get_slice_parse_filter: unexpected end");
       return nullopt;
     }
+  }
   if (*charechter == ']') {
     if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
     //"[i]" index
-    return std::pair<uintlen_t, uintlen_t>{*beg_loc, uintlen_t(1)};
+    return pair_t<uintlen_t, uintlen_t>{*beg_loc, uintlen_t(1)};
   }
-  if (*charechter != ':') MJZ_IS_UNLIKELY {
+  if (*charechter != ':') {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_slice_parse_filter: expected slice symbol(':') for "
           "range "
           "or end symbol (']') for indexed");
       return nullopt;
     }
+  }
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   end_loc = get_parse_filter_numeric(uintlen_t(-1));
   if (!end_loc) return nullopt;
   charechter = parse_ctx().front();
-  if (!charechter || *charechter != ']') MJZ_IS_UNLIKELY {
+  if (!charechter || *charechter != ']') {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_slice_parse_filter: expected ']' as slice end");
       return nullopt;
     }
+  }
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   charechter = parse_ctx().front();
   if (check_after_slice &&
       (!charechter ||
-       (*charechter != ':' && *charechter != '{' && *charechter != '[')))
+       (*charechter != ':' && *charechter != '{' && *charechter != '['))) {
     MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_slice_parse_filter:unexpected symbol in filter ");
       return nullopt;
     }
+  }
   beg_loc = beg_loc ? *beg_loc : 0;
   end_loc = end_loc ? *end_loc : uintlen_t(-1);
-  if (*end_loc < *beg_loc) MJZ_IS_UNLIKELY {
+  if (*end_loc < *beg_loc) {
+    MJZ_IS_UNLIKELY {
       format_ctx().as_error(
           "[Error]get_slice_parse_filter: end index must not be less than "
           "begin "
           "index ");
       return nullopt;
     }
-  return std::pair<uintlen_t, uintlen_t>{*beg_loc, *end_loc - *beg_loc};
+  }
+  return pair_t<uintlen_t, uintlen_t>{*beg_loc, *end_loc - *beg_loc};
 }
 template <version_t version_v>
 MJZ_CX_FN success_t
@@ -527,7 +571,8 @@ template <version_t version_v>
 MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
     uintlen_t id) noexcept {
   if (!parse_ctx().main_ctx().parse_and_format_call_at(id, false)) return false;
-  if (auto c = parse_ctx().front(); !c || *c == '}') MJZ_IS_LIKELY {
+  if (auto c = parse_ctx().front(); !c || *c == '}') {
+    MJZ_IS_LIKELY {
       if (!(!c || parse_ctx().unchecked_advance_amount_(1))) return false;
       if (!base_ctx().parse_only()) return true;
       if (!base_ctx().cx_parse_storage_of_args) return true;
@@ -539,11 +584,93 @@ MJZ_CX_FN success_t parse_and_format_data_t<version_v>::call_argument_formatter(
           base_ctx().remaining_format_string_index;
       return true;
     }
+  }
   format_ctx().as_error(
       "[Error]call_argument_formatter(): expected '}' at the end of "
       "replacement feild ");
   return false;
 }
+
+template <typename T, version_t version_v>
+concept valid_formatter_format_c =
+    requires(T &obj, parse_context_t<version_v> &pctx) {
+      { obj.~T() } noexcept;
+      { T() } noexcept;
+      { obj.parse(pctx) } noexcept -> std::same_as<success_t>;
+      { obj = std::as_const(obj) } noexcept;
+    };
+
+template <version_t version_v, valid_formatter_format_c<version_v> T>
+struct formatter_formatter_base_t {
+  using view_t = basic_string_view_t<version_v>;
+  MJZ_DEFAULTED_CLASS(formatter_formatter_base_t); 
+  MJZ_CX_FN formatter_formatter_base_t(view_t name_) noexcept : name(name_) {}
+  view_t input{};
+  view_t name{};
+  uintlen_t index_in_arragment{uintlen_t(-1)};
+  T object{};
+  template <class L>
+  MJZ_CX_FN auto make(L &&) noexcept;
+};
+template <version_t version_v, valid_formatter_format_c<version_v> T,
+          class Lambda_t = decltype([]<class... Ts>(Ts &&...) noexcept
+                                        -> success_t { return true; })>
+  requires callable_c<
+      const Lambda_t,
+      success_t(optional_ref_t<formatter_formatter_base_t<version_v, T>> obj,
+                format_context_t<version_v> &ctx) noexcept>
+struct formatter_formatter_ref_t {
+  using view_t = basic_string_view_t<version_v>;
+  using base_t = formatter_formatter_base_t<version_v, T>;
+  optional_ref_t<base_t> base{};
+  Lambda_t l{};
+};
+
+template <version_t version_v, valid_formatter_format_c<version_v> T>
+template <class L>
+MJZ_CX_FN auto formatter_formatter_base_t<version_v, T>::make(
+    L &&lambda) noexcept {
+  return formatter_formatter_ref_t<version_v, T, std::remove_cvref_t<L>>{
+      this, std::forward<L>(lambda)};
+}
+template <version_t version_v, class T>
+  requires requires() {
+    {
+      formatter_formatter_ref_t(std::declval<std::remove_cvref_t<T>>())
+    } noexcept -> std::same_as<std::remove_cvref_t<T>>;
+  }
+struct default_formatter_t<version_v, T, 55> {
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = false;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = false;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = false;
+  using sview_t = static_string_view_t<version_v>;
+  using view_t = basic_string_view_t<version_v>;
+  std::remove_cvref_t<decltype(*std::declval<T>().base)> value{};
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
+    view_t v = ctx.view();
+    if (!value.object.parse(ctx)) return false;
+    v.remove_suffix(ctx.view().size());
+    value.input = v;
+    return true;
+  }
+  MJZ_CX_FN success_t format(T &obj,
+                             format_context_t<version_v> &ctx) const noexcept {
+    if (obj.base) {
+      obj.base->object = value.object;
+      obj.base->input = value.input;
+    }
+    return obj.l(obj.base, ctx);
+  }
+  MJZ_CX_FN static success_t arg_name(const std::remove_reference_t<T> &arg,
+                                      hash_context_t<version_v> &ctx) noexcept {
+    auto opt = ctx.name();
+    if (!opt) return false;
+    argument_name_t<version_v> arg_name{*opt};
+    if (arg.base && arg_name.name_str == arg.base->name) return ctx.matched();
+    return true;
+  }
+};
+
 template <version_t version_v>
 struct formatting_object_t : parse_and_format_data_t<version_v> {
   MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
@@ -674,10 +801,50 @@ struct formatting_object_t : parse_and_format_data_t<version_v> {
   template <typename L_v, is_formatted_c<version_v>... Ts>
   MJZ_CX_FN success_t format_to_pv(out_it_t iter, L_v, Ts &&...args) noexcept;
   MJZ_CX_FN success_t run_format() noexcept {
-    return main_ctx().parse_formating_string();
+     success_t s= main_ctx().parse_formating_string();
+    return s;
   }
   template <version_t, typename...>
   friend struct cx_parser_t;
+
+ public:
+  template <class... Ts>
+  MJZ_CX_FN success_t format_formatters(
+      uintlen_t &count_of_used_args, view_t &format_in_last_out,
+      formatter_formatter_base_t<version_v, Ts> &...args) noexcept {
+    count_out_buf_t<version_v> out_{};
+    uintlen_t per_cnt{};
+    count_of_used_args = 0;
+    if (!vformat_to(
+            out_, format_in_last_out,
+            (args.make([&](auto obj, format_context_t<version_v> &ctx) noexcept
+                           -> success_t {
+              if (!ctx.out().flush_buffer() || !ctx.advance_to(out_))
+                return false;
+              if (uintlen_t(-1) != obj->index_in_arragment) {
+                ctx.as_error(
+                    "[Error]formatting_object_t::format_formatters: "
+                    "duplicated the format entery");
+                return false;
+              }
+              uintlen_t cnt = out_.count;
+              out_.count += obj->input.size() + 2;
+              obj->input =
+                  format_in_last_out.make_subview(per_cnt, cnt - per_cnt);
+              per_cnt = out_.count;
+              obj->index_in_arragment = count_of_used_args++;
+              return true;
+            }))...)) {
+      if (auto c = format_in_last_out.at(base_ctx().err_index - 1);
+          c && *c != '}')
+        return false;
+    }
+    if (out_.invalid) return false;
+    if (!format_ctx().out().flush_buffer()) return false;
+    format_in_last_out.as_subview(per_cnt, out_.count - per_cnt);
+    return true;
+  }
+
   MJZ_DISABLE_ALL_WANINGS_START_;
 };
 MJZ_DISABLE_ALL_WANINGS_END_;
@@ -720,12 +887,11 @@ struct cx_parser_t : public formatting_object_t<version_v> {
   MJZ_NO_MV_NO_CPY(cx_parser_t);
   template <size_t... Is>
     requires(sizeof...(Is) == sizeof...(Ts))
-  MJZ_CX_FN cx_parser_t(
-
-      view_t fmt_str, alloc_ref_t alloc, std::span<char> cache_ref,
-      uintlen_t cache_ref_align, std::index_sequence<Is...>,
-      cx_formatter_storage_base_ref_t<version_v> *cx_parse_storage_ptr =
-          nullptr) noexcept
+  MJZ_CX_FN cx_parser_t(view_t fmt_str, alloc_ref_t alloc,
+                        std::span<char> cache_ref, uintlen_t cache_ref_align,
+                        std::index_sequence<Is...>,
+                        cx_formatter_storage_base_ref_t<version_v>
+                            *cx_parse_storage_ptr = nullptr) noexcept
       : formatting_object_t<version_v>{std::move(alloc), cache_ref,
                                        cache_ref_align} {
     if constexpr (sizeof...(Ts)) {
@@ -776,7 +942,7 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
       //
       // cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
       auto run_function_cx_f = []() noexcept
-          -> std::pair<uintlen_t, std::optional<std::pair<uintlen_t, view_t>>> {
+          -> pair_t<uintlen_t, std::optional<pair_t<uintlen_t, view_t>>> {
         constexpr auto align_v_ =
             allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>::align;
         alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
@@ -786,84 +952,93 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
         if (checker.successful)
           return {uintlen_t(-1) - checker.base_ctx().err_index, nullopt};
         return {0,
-                std::pair<uintlen_t, view_t>{checker.base_ctx().err_index,
+                pair_t<uintlen_t, view_t>{checker.base_ctx().err_index,
                                              checker.base_ctx().err_content}};
       };
       using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;
 
-      if constexpr ((sizeof...(Ts))&&format_optimization_lvl_v &&
-                    !run_function_cx_ft{}().second &&
-                    run_function_cx_ft{}().first ) {
-        using type_info_array_t =
-            std::array<cx_formatter_storage_base_ref_t<version_v>,
-                       run_function_cx_ft{}().first>;
-        auto generate_table_f = []() noexcept {
-          type_info_array_t ret{};
-          constexpr auto align_v_ =
-              allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
-                  version_v>::align;
-          alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
-          MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-              view_t(L_v()()),
-              alloc_ref_t{},
-              buffer_,
-              align_v_,
-              std::make_index_sequence<sizeof...(Ts)>{},
-              ret.data()};
-          return ret;
-        };
-        using tuple_types = std::tuple<cx_formatter_storage_t<
-            version_v, formatter_type_t<version_v, Ts>>...>;
-        using generate_table_ft = static_data_t<decltype(generate_table_f)>;
-        auto generate_format_table_f = []() noexcept {
-          return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
-            std::tuple<std::tuple_element_t<
-                generate_table_ft{}()[Is].index_of_element, tuple_types>...>
-                formatters{};
-            type_info_array_t ret{cx_formatter_storage_base_ref_t<version_v>{
-                .formatter_ptr{&std::get<Is>(formatters)}}...};
-            constexpr auto align_v_ =
-                allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
-                    version_v>::align;
-            alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
-            MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
-                view_t(L_v()()),
-                alloc_ref_t{},
-                buffer_,
-                align_v_,
-                std::make_index_sequence<sizeof...(Ts)>{},
-                ret.data()};
+      if constexpr ((sizeof...(Ts)) && format_optimization_lvl_v) {
+        using give_first_fn_t_ = decltype([]() noexcept -> uintlen_t {
+          constexpr uintlen_t f = run_function_cx_ft{}().first;
+          return f;
+        });
+        if constexpr (!run_function_cx_ft{}().second && give_first_fn_t_{}()) {
+          [&]<int = 0>() noexcept {
+            using type_info_array_t =
+                std::array<cx_formatter_storage_base_ref_t<version_v>,
+                           give_first_fn_t_{}()>;
+            auto generate_table_f = []() noexcept {
+              type_info_array_t ret{};
+              constexpr auto align_v_ =
+                  allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
+                      version_v>::align;
+              alignas(align_v_) char buffer_[format_stack_size_v<version_v>]{};
+              MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+                  view_t(L_v()()),
+                  alloc_ref_t{},
+                  buffer_,
+                  align_v_,
+                  std::make_index_sequence<sizeof...(Ts)>{},
+                  ret.data()};
+              return ret;
+            };
+            using tuple_types = tuple_t<cx_formatter_storage_t<
+                version_v, formatter_type_t<version_v, Ts>>...>;
+            using generate_table_ft = static_data_t<decltype(generate_table_f)>;
+            auto generate_format_table_f = []() noexcept {
+              return []<size_t... Is>(std::index_sequence<Is...>) noexcept {
+                tuple_t<std::tuple_element_t<
+                    generate_table_ft{}()[Is].index_of_element, tuple_types>...>
+                    formatters{};
+                type_info_array_t ret{
+                    cx_formatter_storage_base_ref_t<version_v>{
+                        .formatter_ptr{&std::get<Is>(formatters)}}...};
+                constexpr auto align_v_ =
+                    allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
+                        version_v>::align;
+                alignas(
+                    align_v_) char buffer_[format_stack_size_v<version_v>]{};
+                MJZ_MAYBE_UNUSED cx_parser_t<version_v, Ts...> checker{
+                    view_t(L_v()()),
+                    alloc_ref_t{},
+                    buffer_,
+                    align_v_,
+                    std::make_index_sequence<sizeof...(Ts)>{},
+                    ret.data()};
 
-            return formatters;
-          }(std::make_index_sequence<run_function_cx_ft{}().first>{});
-        };
+                return formatters;
+              }(std::make_index_sequence<give_first_fn_t_{}()>{});
+            };
 
-        using generate_format_table_ft =
-            static_data_t<decltype(generate_format_table_f)>;
-        auto link_tables_f = []() noexcept {
-          type_info_array_t ret = generate_table_ft{}();
-          auto &formatters = generate_format_table_ft{}();
-          [&]<size_t... Is>(std::index_sequence<Is...>) noexcept {
-            std::ignore =
-                ((ret[Is].formatter_ptr = &std::get<Is>(formatters), true) &&
-                 ...);
-          }(std::make_index_sequence<run_function_cx_ft{}().first>{});
-          return ret;
+            using generate_format_table_ft =
+                static_data_t<decltype(generate_format_table_f)>;
+            auto link_tables_f = []() noexcept {
+              type_info_array_t ret = generate_table_ft{}();
+              auto &formatters = generate_format_table_ft{}();
+              [&]<size_t... Is>(std::index_sequence<Is...>) noexcept {
+                std::ignore =
+                    ((ret[Is].formatter_ptr = &std::get<Is>(formatters),
+                      true) &&
+                     ...);
+              }(std::make_index_sequence<give_first_fn_t_{}()>{});
+              return ret;
+            };
+            using link_tables_ft = static_data_t<decltype(link_tables_f)>;
+            base_ctx().cx_parse_storage_of_args = link_tables_ft{}().data();
+            base_ctx().number_of_cx_parse_storage_of_args =
+                link_tables_ft{}().size();
+          }();
         };
-        using link_tables_ft = static_data_t<decltype(link_tables_f)>;
-        base_ctx().cx_parse_storage_of_args = link_tables_ft{}().data();
-        base_ctx().number_of_cx_parse_storage_of_args =
-            link_tables_ft{}().size();
       }
       auto failure_f =
-          []() noexcept -> std::optional<std::pair<uintlen_t, view_t>> {
+          []() noexcept -> std::optional<pair_t<uintlen_t, view_t>> {
         return run_function_cx_ft{}().second;
       };
       using failure_ft = static_data_t<decltype(failure_f)>;
 #if MJZ_VERBOSE_FORMAT_ERROR
       if constexpr (failure_ft{}()) {
         constexpr bool failed = !failure_ft{}();
-        auto failure_fv = []() noexcept { return (*failure_ft{}()); };
+        auto failure_fv = []() noexcept { return *failure_ft{}(); };
         using failure_t = static_data_t<decltype(failure_fv)>;
         auto format_str_len_f = []() noexcept {
           return view_t(L_v()()).length();

@@ -27,17 +27,13 @@ SOFTWARE.
 #include "hash_bytes.hpp"
 #include "iterator.hpp"
 #if MJZ_WITH_iostream
-#include <iostream>
-#include <string_view>
 #endif  // MJZ_WITH_iostream
-#include <algorithm>
-#include <ranges>
 #ifndef MJZ_BYTE_STRING_views_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_views_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
 template <version_t version_v>
 struct basic_string_view_t : private base_string_view_t<version_v> {
-  MJZ_CONSTANT(version_t)
+  MJZ_MCONSTANT(version_t)
   Version_v{version_v};
   using base_t = base_string_view_t<version_v>;
   using self_t = basic_string_view_t<version_v>;
@@ -102,21 +98,40 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
   MJZ_CX_FN ~basic_string_view_t() noexcept = default;
   MJZ_CX_FN basic_string_view_t(const base_t &b) noexcept : base_t(b) {}
 
+  MJZ_CX_FN basic_string_view_t(nullopt_t) noexcept
+      : base_t{base_t::make(nullptr, 0)} {
+
+        };
+  template <size_t N>
+  MJZ_CE_FN basic_string_view_t(const char (&arr)[N]) noexcept
+      : base_t{base_t::make(arr, N - (arr[N - 1] == 0), encodings_e::ascii,
+                            (arr[N - 1] == 0), true)} {
+
+        };
+  MJZ_CX_FN basic_string_view_t(const char *ptr_, uintlen_t len_,
+                                encodings_e encoding_ = encodings_e::ascii,
+                                bool has_null_ = false,
+                                bool is_static_ = false) noexcept
+      : base_t{base_t::make(ptr_, len_, encoding_, has_null_, is_static_)} {
+
+        };
+
  private:
   /*
    *maxes out the out of bounds indexes
    */
   MJZ_CX_FN bool make_right_then_give_has_null(
       uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
+    byte_count = std::min(byte_count, length());
     byte_offset = std::min(byte_offset, length());
     byte_count = std::min(byte_offset + byte_count, length()) - byte_offset;
     return byte_offset + byte_count == length();
   }
 
  public:
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   npos{traits_type::npos};
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   nops{traits_type::npos};
   MJZ_CX_FN static uintlen_t max_size() noexcept { return nops - 1; }
   MJZ_CX_ND_FN std::optional<char> at(const uintlen_t i) const noexcept {
@@ -132,9 +147,6 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
 
   MJZ_CX_FN success_t as_subview(uintlen_t offset,
                                  uintlen_t count = nops) noexcept {
-    bool bad = !data();
-    offset = branchless_teranary<uintlen_t>(!bad, offset, 0);
-    count = branchless_teranary<uintlen_t>(!bad, count, 0);
     this->has_null_v &= make_right_then_give_has_null(offset, count);
     this->ptr += offset;
     this->len = count;
@@ -155,7 +167,7 @@ struct basic_string_view_t : private base_string_view_t<version_v> {
   }
 
   MJZ_CX_FN success_t remove_suffix(uintlen_t n) noexcept {
-    return as_subview(0, n);
+    return as_subview(0, size() - std::min(n, size()));
   }
   MJZ_CX_FN std::optional<char> pop_back() noexcept {
     if (auto v = back()) {
@@ -613,7 +625,7 @@ struct status_view_t : public static_string_view_t<version_v> {
   using sview_t::to_base_lazy_pv_fn_;
   using sview_t::to_base_view_pv_fn_;
   using sview_t::unsafe_handle;
-  MJZ_CONSTANT(sview_t) empty { nullopt };
+  MJZ_MCONSTANT(sview_t) empty { nullopt };
   template <size_t N>
   MJZ_CE_FN status_view_t(const char (&str)[N],
                           encodings_e encodings_ = encodings_e::ascii) noexcept
@@ -645,19 +657,19 @@ struct std::hash<mjz::bstr_ns::generic_string_view_t<version_v, is_static_>> {
   }
 };
 template <mjz::version_t version_v>
-MJZ_CONSTANT(bool)
+MJZ_FCONSTANT(bool)
 std::ranges::enable_borrowed_range<
     mjz::bstr_ns::basic_string_view_t<version_v>> = true;
 template <mjz::version_t version_v>
-MJZ_CONSTANT(bool)
+MJZ_FCONSTANT(bool)
 std::ranges::enable_view<mjz::bstr_ns::basic_string_view_t<version_v>> = true;
 
 template <mjz::version_t version_v, bool is_static_>
-MJZ_CONSTANT(bool)
+MJZ_FCONSTANT(bool)
 std::ranges::enable_borrowed_range<
     mjz::bstr_ns::generic_string_view_t<version_v, is_static_>> = true;
 template <mjz::version_t version_v, bool is_static_>
-MJZ_CONSTANT(bool)
+MJZ_FCONSTANT(bool)
 std::ranges::enable_view<
     mjz::bstr_ns::generic_string_view_t<version_v, is_static_>> = true;
 

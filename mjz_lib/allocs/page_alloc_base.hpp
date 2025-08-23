@@ -20,7 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include <span>
 
 #include "../optional_ref.hpp"
 #include "../versions.hpp"
@@ -29,9 +28,9 @@ SOFTWARE.
 namespace mjz ::allocs_ns {
 
 namespace page_alloc_ns {
-MJZ_CONSTANT(uintlen_t)
+MJZ_FCONSTANT(uintlen_t)
 val_page = 8 * sizeof(uintlen_t);
-MJZ_CONSTANT(uintlen_t) log2_page = log2_of_val_create(val_page);
+MJZ_FCONSTANT(uintlen_t) log2_page = log2_of_val_create(val_page);
 template <version_t>
 struct block_range_t {
   uintlen_t page_index : sizeof(uintlen_t) * 8 - 2 * log2_page{};
@@ -100,7 +99,7 @@ struct data_meta_t {
   MJZ_CX_FN std::span<char> to_real(block_range range) const noexcept {
     if (!range.blk_count) return {};
     return pages.subspan((range.page_index << (blk_align_log2 + log2_page)) +
-                           size_t  (range.blk_index << blk_align_log2),
+                             size_t(range.blk_index << blk_align_log2),
                          size_t(range.blk_count << blk_align_log2));
   }
   MJZ_CX_FN block_range to_meta(std::span<char> real_meta) const noexcept {
@@ -155,7 +154,7 @@ namespace stack_alloc_ns {
 template <version_t version_v,
           uintlen_t align_v = 16 /*dont change 16 for defualt*/>
 struct stack_allocator_meta_t {
-  MJZ_CONSTANT(uintlen_t) align { 16 };
+  MJZ_MCONSTANT(uintlen_t) align { 16 };
   using self_t = stack_allocator_meta_t;
   /*CATION !!!!!!!!!!!!!
    *WILL LEAD TO UB IF THE STACK IS MISUSED,
@@ -167,7 +166,7 @@ struct stack_allocator_meta_t {
    * ...
    */
   MJZ_CX_FN std::span<char> fn_alloca(const uintlen_t min_size,
-                                      const uintlen_t align_ = align) noexcept { 
+                                      const uintlen_t align_ = align) noexcept {
     constexpr uintlen_t align_mask = align - 1;
     const uintlen_t size = (min_size + align_mask) & ~align_mask;
 
@@ -270,18 +269,18 @@ struct fast_alloc_chache_t {
    * ...
    */
   MJZ_CX_FN std::span<char> fn_alloca(const uintlen_t min_size,
-                                      const uintlen_t align_,const bool bad_=false) noexcept {
-   const uintlen_t align = uintlen_t(1) << stack_log2_align;
+                                      const uintlen_t align_,
+                                      const bool bad_ = false) noexcept {
+    const uintlen_t align = uintlen_t(1) << stack_log2_align;
     const uintlen_t align_mask = align - 1;
-   const uintlen_t size = (min_size + align_mask) & ~align_mask;
-    const bool bad =
-        (bool(int(stack_left < size) | int(align < align_) |
+    const uintlen_t size = (min_size + align_mask) & ~align_mask;
+    const bool bad = (bool(int(stack_left < size) | int(align < align_) |
                            int(!size) | int(!can_use_stack) | int(bad_)));
-   if constexpr (true) {
-     if (bad) {
-       return{};
-     }
-   }
+    if constexpr (true) {
+      if (bad) {
+        return {};
+      }
+    }
     const auto ret = branchless_teranary(!bad, std::span<char>{stack_ptr, size},
                                          std::span<char>{});
     stack_ptr += ret.size();
@@ -300,9 +299,9 @@ struct fast_alloc_chache_t {
   MJZ_CX_FN success_t fn_try_dealloca(std::span<char>&& blk,
                                       MJZ_MAYBE_UNUSED const uintlen_t align_,
                                       const bool bad_ = false) noexcept {
-    bool good = memory_is_inside(stack_begin,
-                                 uintlen_t(stack_ptr + stack_left - stack_begin),
-                         blk.data(), blk.size());
+    bool good = memory_is_inside(
+        stack_begin, uintlen_t(stack_ptr + stack_left - stack_begin),
+        blk.data(), blk.size());
     good &= !bad_;
     good &= can_use_stack;
     if constexpr (true) {
@@ -319,23 +318,23 @@ struct fast_alloc_chache_t {
 
   MJZ_CX_FN void fn_dealloca(std::span<char>&& blk,
                              MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
-  
     if (!blk.data()) return;
     asserts(asserts.assume_rn,
-          memory_is_inside(stack_begin,
+            memory_is_inside(stack_begin,
                              uintlen_t(stack_ptr + stack_left - stack_begin),
-                              blk.data(), blk.size()) &&
-             can_use_stack);
+                             blk.data(), blk.size()) &&
+                can_use_stack);
     char* new_stack_ptr = blk.data();
     stack_left += uintlen_t(stack_ptr - new_stack_ptr);
     stack_ptr = new_stack_ptr;
   }
 
-  MJZ_CX_FN std::span<char> monotonic_allocate(const uintlen_t min_size, uintlen_t align_,
+  MJZ_CX_FN std::span<char> monotonic_allocate(
+      const uintlen_t min_size, uintlen_t align_,
       const bool bad_ = false) noexcept {
     asserts(asserts.assume_rn,
             align_ == (uintlen_t(1) << log2_of_val_create(align_)));
-    const uintlen_t modular_math_op = (align_ - 1) ; 
+    const uintlen_t modular_math_op = (align_ - 1);
     align_ = modular_math_op + 1;
     uintlen_t distance_align{};
     MJZ_IFN_CONSTEVAL_ {
@@ -346,12 +345,12 @@ struct fast_alloc_chache_t {
       distance_align =
           uintlen_t(monotonic_begin - monotonic_ptr) & modular_math_op;
     }
-    char*const aligned_ptr = monotonic_ptr + distance_align;
+    char* const aligned_ptr = monotonic_ptr + distance_align;
     const uintlen_t delta_ = distance_align + min_size;
     const bool bad = bool(int(monotonic_left < delta_) |
                           int((uintlen_t(1) << monotonic_log2_align) < align_) |
                           int(!can_use_monotonic) | int(bad_));
-  
+
     if constexpr (true) {
       if (bad) {
         return {};
@@ -359,7 +358,7 @@ struct fast_alloc_chache_t {
     }
     monotonic_ptr += bad ? 0 : delta_;
     monotonic_left -= bad ? 0 : delta_;
-    return {bad ? nullptr : aligned_ptr, bad?0 :min_size};
+    return {bad ? nullptr : aligned_ptr, bad ? 0 : min_size};
   }
   MJZ_CX_FN bool is_monotonic(const std::span<char>& blk,
                               MJZ_MAYBE_UNUSED const uintlen_t align_,
@@ -381,9 +380,6 @@ struct fast_alloc_chache_t {
     return ret;
   }
 };
-
-
-
 
 };  // namespace mjz::allocs_ns
 #endif  // MJZ_ALLOCS_bump_alloc_FILE_HPP_

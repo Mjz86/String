@@ -61,17 +61,17 @@ struct stack_alloc_t {
 
    public:
     MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
-                               strategy_t ) const & noexcept { 
+                               strategy_t) const & noexcept {
       return memory_is_inside(m.monotonic_begin,
-                                uintlen_t(m.monotonic_ptr - m.monotonic_begin),
-                                blk.ptr, blk.length);
+                              uintlen_t(m.monotonic_ptr - m.monotonic_begin),
+                              blk.ptr, blk.length);
     }
     MJZ_CX_ND_FN success_t deallocate(heap_block_t &&, strategy_t) & noexcept {
       return true;
     }
     MJZ_CX_ND_FN heap_block_t allocate(uintlen_t minsize,
                                        strategy_t strategy) & noexcept {
-      auto l = lock_gaurd(strategy.is_thread_safe); 
+      auto l = lock_gaurd(strategy.is_thread_safe);
       if (!minsize || !l) {
         return {};
       }
@@ -87,8 +87,8 @@ struct stack_alloc_t {
         : m{[&self, &a]() noexcept -> auto & {
             if (!(a.buffer && a.size)) return self.alloc_chache;
             alloc_vtable_t<version_v> table = self.vtable;
-            table.default_info.allocation_mode_val =
-            uint16_t    (alias_t<
+            table.default_info.allocation_mode_val = uint16_t(
+                alias_t<
                     typename alloc_info::allocation_mode_e>::monotonic_mode);
             table.default_info.is_thread_safe = 0;
             fast_alloc_chache_t<version_v> cache_{};
@@ -112,7 +112,6 @@ struct stack_alloc_t {
               cache_.stack_left = stack_.size();
               cache_.stack_ptr = stack_.data();
               cache_.stack_begin = stack_.data();
-              
             }
             std::destroy_at(&self);
             std::construct_at(&self, table)->alloc_chache = cache_;

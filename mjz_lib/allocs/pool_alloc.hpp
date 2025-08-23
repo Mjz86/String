@@ -37,7 +37,7 @@ struct pool_alloc_info_t {
   using blk_state = blk_state_t<version_v>;
   using bucket_info_t = bucket_alloc_info_t<version_v, false>;
   using bucket_t = typename bucket_info_t::obj_t;
-  MJZ_CONSTANT(auto) pow_of_2 = blk_state::pow_of_2;
+  MJZ_MCONSTANT(auto) pow_of_2 = blk_state::pow_of_2;
   struct this_align_val_t {
     bool right_val{};
     MJZ_CX_ND_FN this_align_val_t(auto &&var) noexcept {
@@ -185,7 +185,7 @@ struct pool_alloc_info_t {
         return false;
       }
       auto array = blk_state::template get_best_index_es<N>(
-          std::max(size, std::max(s.get_alignof_z(),s.size_multiplier)));
+          std::max(size, std::max(s.get_alignof_z(), s.size_multiplier)));
       for (uintlen_t i{0}; i < N; i++) {
         if (auto ret = Fn(array[i]); !!ret) {
           return ret;

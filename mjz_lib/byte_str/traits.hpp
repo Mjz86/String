@@ -23,17 +23,6 @@ SOFTWARE.
 #include "../maths.hpp"
 #include "../mjz_uintconv.hpp"
 #include "base.hpp"
-#ifndef MJZ_USE_cpp_lib_to_chars_int
-#define MJZ_USE_cpp_lib_to_chars_int false
-#endif
-#ifndef MJZ_USE_cpp_lib_to_chars_float
-#define MJZ_USE_cpp_lib_to_chars_float false
-#endif
-#if MJZ_USE_cpp_lib_to_chars_float || MJZ_USE_cpp_lib_to_chars_int
-#ifdef __cpp_lib_to_chars
-#include <charconv>
-#endif
-#endif
 #ifndef MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
@@ -51,7 +40,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   using enum floating_format_e;
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   npos{std::min((uintlen_t(-1) >> 8) + 1, std_view_max_size)};
 
   MJZ_CX_ND_FN static intlen_t pv_compare(const char *rhs, const char *lhs,
@@ -362,15 +351,15 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       }();
 
   MJZ_CX_ND_FN static std::optional<uint8_t> ascii_to_num(char c) noexcept {
-   const uint8_t u = ascii_to_num_impl_table_[uint8_t(c)];
+    const uint8_t u = ascii_to_num_impl_table_[uint8_t(c)];
     return uint8_t(~u) ? std::optional<uint8_t>(u)
                        : std::optional<uint8_t>(std::nullopt);
   }
 
  private:
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   alphabett_table_lower = "0123456789abcdefghijklmnopqrstuvwxyz";
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   alphabett_table_upper = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   template <std::integral T>
   MJZ_CX_FN static uint8_t max_len_of_integral(uint8_t raidex) noexcept {
@@ -441,26 +430,26 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     return T((~var) + UT(1));
   }
 
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   defualt_is_point_fn = [](char ch,
                            MJZ_UNUSED uint8_t raidex) noexcept -> bool {
     return ch == '.' || ch == ',';
   };
 
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   defualt_power_fn = [](char ch, uint8_t raidex) noexcept
       -> std::optional<
-          std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>> {
+          pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>> {
     if (raidex < *ascii_to_num('E') && (ch == 'e' || ch == 'E')) {
-      return std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
+      return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
           uintlen_t(10), uint8_t(10)};
     }
     if (raidex < *ascii_to_num('P') && (ch == 'p' || ch == 'P')) {
-      return std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
+      return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
           uintlen_t(2), uint8_t(10)};
     }
     if (ch == '^') {
-      return std::pair<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
+      return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
           uintlen_t(raidex), raidex};
     }
     return std::nullopt;
@@ -907,13 +896,15 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   template <size_t min_cap = 0, size_t min_align = 1, std::integral T>
   MJZ_CX_AL_FN static uintlen_t dec_from_int(char *out_buf, uintlen_t out_len,
                                              T number_) noexcept {
-   /* if constexpr (4 <= sizeof(T) && use_parralel_integer_conv_v) {
-      return details_ns::uint_to_dec_par<version_v>(out_buf, out_len, number_);
-    }else*/  if constexpr (int_to_dec_unchekced_size_v<T> <= min_cap) {
+    /* if constexpr (4 <= sizeof(T) && use_parralel_integer_conv_v) {
+       return details_ns::uint_to_dec_par<version_v>(out_buf, out_len, number_);
+     }else*/
+    if constexpr (int_to_dec_unchekced_size_v<T> <= min_cap) {
       return int_to_dec_unchecked<min_cap, T>(out_buf, number_);
     } /*else if constexpr (2 == sizeof(T) && use_parralel_integer_conv_v) {
       return details_ns::uint_to_dec_par<version_v>(out_buf, out_len, number_);
-    } else*/ {
+    } else*/
+    {
       return int_to_dec(out_buf, out_len, number_);
     }
   }
@@ -953,7 +944,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       const uint8_t raidex) noexcept {
     using UT = std::make_unsigned_t<T>;
 #if MJZ_USE_cpp_lib_to_chars_int
-#ifdef __cpp_lib_to_chars
+#if MJZ_CAN_USE_LIB_STD_charconv_
 #ifdef __cpp_lib_constexpr_charconv
     if constexpr (true)
 #else
@@ -1017,11 +1008,11 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
   }
 
   template <std::integral T>
-  using big_buff_t = std::pair<std::array<char, from_integral_max_len<T>(2)>,
+  using big_buff_t = pair_t<std::array<char, from_integral_max_len<T>(2)>,
                                std::optional<uintlen_t>>;
   template <std::floating_point T>
   using big_buff2_t =
-      std::pair<std::array<char, sizeof(T) * 8>, std::optional<uintlen_t>>;
+      pair_t<std::array<char, sizeof(T) * 8>, std::optional<uintlen_t>>;
   template <std::integral T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN static big_buff_t<T> from_integral(
@@ -1128,7 +1119,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     auto sb1_ = value.to_log_and_coeffient(exp_base);
     // https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
     auto &&[ceil_log_0_, fractionic_val_0_] = sb1_;
-    std::optional<std::pair<int64_t, mjz_float_t>> int_and_float =
+    std::optional<pair_t<int64_t, mjz_float_t>> int_and_float =
         fractionic_val_0_.to_integral_and_fraction();
     auto &&[Int_, Float_] = *int_and_float;
     auto len_diff = from_integral_fill(buf, len, Int_, upper_case, raidex);
@@ -1268,7 +1259,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       }
     }
 
-    std::optional<std::pair<int64_t, mjz_float_t>> int_and_float =
+    std::optional<pair_t<int64_t, mjz_float_t>> int_and_float =
         value.to_integral_and_fraction();
 
     int64_t Int_{};
@@ -1276,15 +1267,15 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     if (!int_and_float) {
       auto [ceil_log, fractionic_val] = value.to_log_and_coeffient(exp_base);
 
-      std::optional<std::pair<int64_t, mjz_float_t>> int_and_float_{
-          std::pair<int64_t, mjz_float_t>{}};
+      std::optional<pair_t<int64_t, mjz_float_t>> int_and_float_{
+          pair_t<int64_t, mjz_float_t>{}};
       mjz_float_t expo = mjz_float_t::float_from_i(exp_base);
       for (int_and_float_ = fractionic_val.to_integral_and_fraction(); ceil_log;
            ceil_log--, fractionic_val = fractionic_val * expo,
           int_and_float_ = fractionic_val.to_integral_and_fraction()) {
         if (!int_and_float_) return nullopt;
         auto [front_decimal, left_decimal] =
-            std::pair<int64_t, mjz_float_t>(*int_and_float_);
+            pair_t<int64_t, mjz_float_t>(*int_and_float_);
         fractionic_val = left_decimal;
         auto v = num_to_ascii(uint8_t(front_decimal), upper_case);
         if (!v) {
@@ -1394,7 +1385,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       floating_format_e floating_format = floating_format_e::general,
       bool add_prefix = true) noexcept {
 #if MJZ_USE_cpp_lib_to_chars_float
-#ifdef __cpp_lib_to_chars
+#if MJZ_CAN_USE_LIB_STD_charconv_
     MJZ_IFN_CONSTEVAL {
       char *buf_c_ = f_buf;
       bool add_prefix_ = add_prefix;
@@ -2253,7 +2244,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       dec_from_uint_impl_semi_parallel_impl_count_max =
           sizeof(T) == 1 ? 1 : (sizeof(T) == 2 ? 1 : (sizeof(T) == 4 ? 2 : 3));
   template <std::unsigned_integral T>
-  MJZ_CX_AL_FN static std::tuple<
+  MJZ_CX_AL_FN static tuple_t<
       std::array<uint64_t, dec_from_uint_impl_semi_parallel_impl_count_max<T>>,
       uintlen_t, uintlen_t>
   dec_from_uint_impl_semi_parallel_impl_(const T number_) noexcept {

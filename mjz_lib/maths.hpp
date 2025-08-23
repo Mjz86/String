@@ -27,25 +27,14 @@ SOFTWARE.
 #include "versions.hpp"
 #ifndef MJZ_MATHS_LIB_HPP_FILE_
 #define MJZ_MATHS_LIB_HPP_FILE_
-MJZ_DISABLE_ALL_WANINGS_START_;
-#include <cfloat>
-#include <cmath>
-MJZ_DISABLE_ALL_WANINGS_END_;
 
-#ifdef __SIZEOF_INT128__
-#define MJZ_uint128_t_impl_t_ unsigned __int128
-#elif 1 < _MSC_VER
-#define MJZ_uint128_t_impl_t_ std::_Unsigned128
-#else
-#endif
 
-#include <bit>
 namespace mjz {
 
 template <version_t version_v, uintlen_t n_bits>
   requires(64 * (n_bits / 64) == n_bits && !!n_bits)
 struct uintN_t {
-  MJZ_CONSTANT(uintlen_t) word_count = n_bits / 64;
+  MJZ_MCONSTANT(uintlen_t) word_count = n_bits / 64;
   alignas(std::min<uintlen_t>(
       hardware_constructive_interference_size,
       log2_of_val_to_val(uint8_t(std::countr_zero(word_count * 8)))))
@@ -666,27 +655,27 @@ using uint_min_N_t =
 template <version_t version_v, uint64_t... exclude_>
 struct exclusive_math_helper_t_ {
   template <uint64_t rhs_v>
-  MJZ_CX_FN static bool divide_modulo_impl(std::pair<uint64_t, uint64_t>& ret,
+  MJZ_CX_FN static bool divide_modulo_impl(pair_t<uint64_t, uint64_t>& ret,
                                            const uint64_t lhs,
                                            const uint64_t rhs) noexcept {
     if (rhs != rhs_v) {
       return false;
     }
     if constexpr (std::has_single_bit(rhs_v)) {
-      ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v, lhs % rhs_v};
+      ret = pair_t<uint64_t, uint64_t>{lhs / rhs_v, lhs % rhs_v};
       return true;
     }
-    ret = std::pair<uint64_t, uint64_t>{lhs / rhs_v, lhs % rhs_v};
+    ret = pair_t<uint64_t, uint64_t>{lhs / rhs_v, lhs % rhs_v};
     return true;
   }
 
-  MJZ_CX_FN static std::pair<uint64_t, uint64_t> divide_modulo(
+  MJZ_CX_FN static pair_t<uint64_t, uint64_t> divide_modulo(
       const uint64_t lhs, const uint64_t rhs) noexcept {
-    std::pair<uint64_t, uint64_t> ret{};
+    pair_t<uint64_t, uint64_t> ret{};
     if ((divide_modulo_impl<exclude_>(ret, lhs, rhs) || ...)) return ret;
     return {lhs / rhs, lhs % rhs};
   }
-  MJZ_CX_ND_FN static std::pair<int64_t, int64_t> signed_divide_modulo(
+  MJZ_CX_ND_FN static pair_t<int64_t, int64_t> signed_divide_modulo(
       int64_t lhs, int64_t rhs) noexcept {
     bool is_neg = int(lhs < 0) != int(rhs < 0);
     lhs = std::max(lhs, -lhs);
@@ -772,7 +761,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
         });
   }
   template <std::floating_point T>
-  MJZ_CX_FN static std::optional<std::pair<int64_t, bool>> get_exponent(
+  MJZ_CX_FN static std::optional<pair_t<int64_t, bool>> get_exponent(
       MJZ_MAYBE_UNUSED T val) noexcept {
     constexpr std::optional<bit_range_t> exp_range =
         get_exponent_bit_range<T>();
@@ -791,7 +780,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
                            uint64_t(uint64_t(1) << (i % 8))))
                << (ip);
       }
-      return std::pair<int64_t, bool>(int64_t(ret) + offset, ret == 0);
+      return pair_t<int64_t, bool>(int64_t(ret) + offset, ret == 0);
     }
   }
   template <std::floating_point T>
@@ -1108,7 +1097,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
     return ret;
   }
 
-  MJZ_CX_FN std::optional<std::pair<int64_t, big_float_t>>
+  MJZ_CX_FN std::optional<pair_t<int64_t, big_float_t>>
   to_integral_and_fraction() const noexcept {
     big_float_t ret{*this};
     bool is_negative{};
@@ -1133,10 +1122,10 @@ struct big_float_t : parse_math_helper_t_<version_v> {
     }
     ret.m_coeffient = is_negative ? -int64_t(integral_coeffient)
                                   : int64_t(integral_coeffient);
-    return std::pair<int64_t, big_float_t>(ret.m_coeffient, *this - ret);
+    return pair_t<int64_t, big_float_t>(ret.m_coeffient, *this - ret);
   }
 
-  MJZ_CX_FN std::pair<int64_t, big_float_t> to_log_and_coeffient(
+  MJZ_CX_FN pair_t<int64_t, big_float_t> to_log_and_coeffient(
       uint64_t exp_base) const noexcept {
     auto me{*this};
     if (!me.m_coeffient) return {};
@@ -1181,14 +1170,14 @@ struct big_float_t : parse_math_helper_t_<version_v> {
     return {ceil_log, fractionic_val};
   }
 
-  MJZ_CX_FN std::pair<big_float_t, big_float_t> to_big_and_fraction()
+  MJZ_CX_FN pair_t<big_float_t, big_float_t> to_big_and_fraction()
       const noexcept {
-    std::optional<std::pair<int64_t, big_float_t>> small =
+    std::optional<pair_t<int64_t, big_float_t>> small =
         to_integral_and_fraction();
     if (small)
-      return std::pair<big_float_t, big_float_t>{float_from_i(small->first),
+      return pair_t<big_float_t, big_float_t>{float_from_i(small->first),
                                                  small->second};
-    return std::pair<big_float_t, big_float_t>{*this, big_float_t{}};
+    return pair_t<big_float_t, big_float_t>{*this, big_float_t{}};
   }
   MJZ_CX_FN big_float_t() noexcept = default;
 };
@@ -1204,10 +1193,10 @@ template <bool B = 0>
 struct power2_helper_t {
   using maxfloat_t = double;
 
-  MJZ_CONSTANT(maxfloat_t) two { 2 };
-  MJZ_CONSTANT(maxfloat_t) one { 1 };
-  MJZ_CONSTANT(maxfloat_t) zero { 0 };
-  MJZ_CONSTANT(maxfloat_t) eps { DBL_EPSILON };
+  MJZ_MCONSTANT(maxfloat_t) two { 2 };
+  MJZ_MCONSTANT(maxfloat_t) one { 1 };
+  MJZ_MCONSTANT(maxfloat_t) zero { 0 };
+  MJZ_MCONSTANT(maxfloat_t) eps { DBL_EPSILON };
   MJZ_CX_FN static maxfloat_t small_exp(maxfloat_t x,
                                         uint32_t recursion_index) noexcept {
     uint64_t i_factorial{1};
@@ -1255,9 +1244,9 @@ struct power2_helper_t {
            (get_log2(input, recursion_index - 1) / maxfloat_t(1ULL << sz));
   }
 
-  MJZ_CONSTANT(maxfloat_t) e { 2.7182818284590452353602874713527 };
-  MJZ_CONSTANT(maxfloat_t) log_e_2 { 0.69314718055994530941723212145818 };
-  MJZ_CONSTANT(maxfloat_t) log_2_e { one / log_e_2 };
+  MJZ_MCONSTANT(maxfloat_t) e { 2.7182818284590452353602874713527 };
+  MJZ_MCONSTANT(maxfloat_t) log_e_2 { 0.69314718055994530941723212145818 };
+  MJZ_MCONSTANT(maxfloat_t) log_2_e { one / log_e_2 };
   MJZ_CX_FN static maxfloat_t get_pow2(
       maxfloat_t input,
       uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {
@@ -1309,7 +1298,7 @@ MJZ_CX_FN auto mjz_sqrt(std::floating_point auto x) noexcept -> decltype(x) {
   MJZ_IFN_CONSTEVAL { return decltype(x)(std::sqrt((double)(x))); }
   return decltype(x)(pow_base_e(log_base_e((double)(x)) / 2));
 }
-MJZ_CONSTANT(double)
+MJZ_MCONSTANT(double)
 PI_num_{3.1415926535897932384626433832795};
 MJZ_CX_FN auto mjz_sin(std::floating_point auto x) noexcept -> decltype(x) {
   MJZ_IFN_CONSTEVAL { return decltype(x)(std::sin((double)(x))); }
@@ -1404,7 +1393,7 @@ MJZ_CX_AL_FN auto get_devision_by_mul_rs_shift_and_bit_count(
   //-----------
   //\frac{2^{k}}{m}v\ge2^{N}
   const auto most_significant_bit_is_set_comparasion_shift =
-      result_bit_width-1 - fraction_bit_count;
+      result_bit_width - 1 - fraction_bit_count;
   return tuple_t{fraction_bit_count, result_bit_width, factor2d,
                  most_significant_bit_is_set_comparasion_shift};
 }
@@ -1430,7 +1419,8 @@ MJZ_CX_AL_FN auto get_devide_inverse_and_shift(
     ret >>= zcnt_;
   }
   temp = (decltype(temp)(devisor_)
-          << most_significant_bit_is_set_comparasion_shift)- decltype(temp)(1);
+          << most_significant_bit_is_set_comparasion_shift) -
+         decltype(temp)(1);
   return tuple_t{ret, uintlen_t(fraction_bit_count - zcnt_),
                  uintlen_t(bit_count - zcnt_), second_shift, temp};
 }

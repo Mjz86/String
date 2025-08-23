@@ -22,16 +22,13 @@ SOFTWARE.
 */
 
 #include "asserts.hpp"
-#if MJZ_WITH_iostream
-#include <iostream>
-#endif  //  MJZ_WITH_iostream
 #ifndef MJZ_OUTPUTS_LIB_HPP_FILE_
 #define MJZ_OUTPUTS_LIB_HPP_FILE_
 
 namespace mjz {
 namespace defualt_mjz_cout_namespace_stuff {
 struct MY_cout_t {
-  MJZ_CONSTANT(bool) log { MJZ_DO_DEBUG_COUT };
+  MJZ_MCONSTANT(bool) log { MJZ_DO_DEBUG_COUT };
   template <typename T>
 #if MJZ_WITH_iostream
     requires requires(T &&arg) { std::cout << std::forward<T>(arg); }
@@ -94,7 +91,7 @@ struct mjz_cout_t_ {
           return '\0';
         }(std::forward<Ts>(args)))...};
   }
-  MJZ_CONSTANT(auto)
+  MJZ_MCONSTANT(auto)
   geter = Cout_get;
 };
 using mjz_debug_cout = mjz_cout_t_<>;

@@ -20,19 +20,15 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include "macors.hpp"
+#include "tuple.hpp"
 #ifndef MJZ_RELEASER_LIB_HPP_FILE_
 #define MJZ_RELEASER_LIB_HPP_FILE_
-#include <array>
-#include <bit>
-#include <concepts>
-#include <optional>
 namespace mjz {
 template <class unique_accessor_id_t>
 class mjz_private_accessed_t {};
 struct totally_empty_type_t {};
 using nullptr_t = std::nullptr_t;
-MJZ_CONSTANT(totally_empty_type_t) totally_empty_type{};
+MJZ_FCONSTANT(totally_empty_type_t) totally_empty_type{};
 static_assert(std::is_empty_v<totally_empty_type_t>);
 using void_struct_t = totally_empty_type_t;
 template <>
@@ -93,7 +89,7 @@ class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
 using void_struct_cast_t =
     mjz_private_accessed_t<void_struct_t(void_struct_t *)>;
 enum class may_bool_t : char { no = false, yes = true, idk = 2, err = 3 };
-MJZ_CONSTANT(bool)
+MJZ_FCONSTANT(bool)
 SYSTEM_is_little_endian_{std::endian::little == std::endian::native};
 #if MJZ_uintlen_t_as_64_bit
 using uintlen_t = uint64_t;
@@ -148,16 +144,17 @@ MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
                                  const T &else_val) noexcept {
   if constexpr (std::is_scalar_v<std::remove_cvref_t<T>>) {
     T then_val_ = *std::launder(&then_val);
-    T else_val_ = *std::launder(&else_val); 
+    T else_val_ = *std::launder(&else_val);
     MJZ_IFN_CONSTEVAL_ {
       using cast_t = uint_size_of_t<sizeof(T)>;
       const cast_t mask = cast_t((~cast_t(if_expression)) + 1);
-    return std::bit_cast<T>(cast_t((std::bit_cast<cast_t>(then_val) & mask) |
-                              (std::bit_cast<cast_t>(else_val) & ~mask)));
+      return std::bit_cast<T>(
+          cast_t((std::bit_cast<cast_t>(then_val) & mask) |
+                 (std::bit_cast<cast_t>(else_val) & ~mask)));
     }
     else {
       return if_expression ? then_val_ : else_val_;
-    } 
+    }
   } else {
     const T &then_val_ = *std::launder(&then_val);
     const T &else_val_ = *std::launder(&else_val);
@@ -182,19 +179,18 @@ MJZ_CX_FN T(forced_branchless_teranary)(std::same_as<bool> auto if_expression,
 
 template <class>
 class my_totatlly_empty_template1_class_t {};
-MJZ_CX_AL_ND_FN static uint8_t log2_of_val_create(
+MJZ_CX_AL_ND_FN  uint8_t log2_of_val_create(
     std::integral auto val) noexcept {
-  return uint8_t(std::bit_width(val)-(val != 0));
+  return uint8_t(std::bit_width(val) - (val != 0));
 }
-MJZ_CX_AL_ND_FN static uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
+MJZ_CX_AL_ND_FN  uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
   return static_cast<uint64_t>(1ull << log2_val);
 }
-MJZ_CX_AL_ND_FN static uint8_t log2_ceil_of_val_create(
+MJZ_CX_AL_ND_FN  uint8_t log2_ceil_of_val_create(
     std::integral auto val) noexcept
   requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
 {
-
-  return uint8_t(std::bit_width(val)-std::has_single_bit(val));
+  return uint8_t(std::bit_width(val) - std::has_single_bit(val));
 }
 
 template <uint64_t max_val>
@@ -220,15 +216,16 @@ constexpr inline std::add_const_t<T &&> constof(T &&val) noexcept {
   return std::forward<std::add_const_t<T>>(val);
 }
 
-#define MJZ_FORWRADER_FOR_NON_INTEGRAL_OBJECTS(FN_NAME_)  \
-  template <typename T>                                   \
-    requires(!std::is_integral_v<std::remove_cvref_t<T>>) \
-  MJZ_CX_FN decltype(auto) FN_NAME_##of(                  \
-      T &&obj_for_##FN_NAME_##cast) noexcept {            \
-    return std::forward<T>(obj_for_##FN_NAME_##cast);     \
-  }
-MJZ_FORWRADER_FOR_NON_INTEGRAL_OBJECTS(unsigned);
-MJZ_FORWRADER_FOR_NON_INTEGRAL_OBJECTS(signed);
+template <typename T>
+  requires(!std::is_integral_v<std::remove_cvref_t<T>>)
+MJZ_CX_FN decltype(auto) unsignedof(T &&obj_for_unsignedcast) noexcept {
+  return std::forward<T>(obj_for_unsignedcast);
+};
+template <typename T>
+  requires(!std::is_integral_v<std::remove_cvref_t<T>>)
+MJZ_CX_FN decltype(auto) signedof(T &&obj_for_signedcast) noexcept {
+  return std::forward<T>(obj_for_signedcast);
+};
 
 template <class releaser_LAMBDA_t, typename... reasorces_t>
   requires requires(releaser_LAMBDA_t l, reasorces_t &&...args) {
@@ -237,7 +234,7 @@ template <class releaser_LAMBDA_t, typename... reasorces_t>
   }
 class releaser_t {
  public:
-  using tuple_t = std::tuple<reasorces_t...>;
+  using tuple_t_0_ = tuple_t<reasorces_t...>;
   releaser_t(releaser_t &&) = delete;
   releaser_t(const releaser_t &) = delete;
   releaser_t &operator=(releaser_t &&) = delete;
@@ -248,7 +245,7 @@ class releaser_t {
   MJZ_CX_AL_FN releaser_t(releaser_LAMBDA_t &&releaser_lambda,
                           reasorces_t &&...args) noexcept(requires() {
     { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
-    { tuple_t(std::forward<reasorces_t>(args)...) } noexcept;
+    { tuple_t_0_(std::forward<reasorces_t>(args)...) } noexcept;
   })
       : m_releaser_lambda_(std::move(releaser_lambda)),
         data(std::forward<reasorces_t>(args)...) {}
@@ -264,7 +261,7 @@ class releaser_t {
  private:
   releaser_LAMBDA_t m_releaser_lambda_;
   template <size_t INDEX>
-  using type_at = std::tuple_element_t<INDEX, tuple_t>;
+  using type_at = std::tuple_element_t<INDEX, tuple_t_0_>;
 
   template <typename... Ts>
     requires(sizeof...(Ts) < sizeof...(reasorces_t))
@@ -277,7 +274,7 @@ class releaser_t {
   }
 
  public:
-  tuple_t data;
+  tuple_t_0_ data;
   MJZ_NO_DYNAMIC_ALLOCATOR(releaser_t);
 };
 template <class releaser_LAMBDA_t>
@@ -302,184 +299,14 @@ class releaser_t<releaser_LAMBDA_t> {
   releaser_LAMBDA_t m_releaser_lambda_;
   MJZ_NO_DYNAMIC_ALLOCATOR(releaser_t);
 };
-template <std::same_as<void> = void>
-struct releaser_helper_t {
-  MJZ_CE_FN releaser_helper_t() noexcept {}
-  template <typename T>
-  MJZ_CX_AL_NDR_FN("this should be stored for it to be called at end of scope")
-  auto operator->*(T &&fn) const
-      noexcept(noexcept(releaser_t{std::forward<T>(fn)}))
-          -> decltype(releaser_t{std::forward<T>(fn)}) {
-    return releaser_t{std::forward<T>(fn)};
-  };
-  MJZ_DEPRECATED_R("confusion")
-  MJZ_CX_FN explicit operator bool() const noexcept = delete;
-  MJZ_DEPRECATED_R("confusion")
-  MJZ_CX_FN bool operator!() const noexcept = delete;
-  MJZ_DEPRECATED_R("confusion")
-  MJZ_CX_FN void operator&() const noexcept = delete;
-};
-static_assert(std::is_empty_v<releaser_helper_t<>>);
-typedef bool success_t;
-MJZ_CONSTANT(success_t) success_v = true;
-MJZ_CONSTANT(success_t) failiure_v = false;
-
-template <class Lmabda_t, bool no_exeptions = false>
-MJZ_CX_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
-  if constexpr (requires(Lmabda_t &&code_) {
-                  { std::forward<Lmabda_t>(code_)() } noexcept;
-                }) {
-    std::forward<Lmabda_t>(code)();
-    return true;
-  } else if constexpr (no_exeptions) {
-    std::forward<Lmabda_t>(code)();
-    return true;
-  } else {
-    MJZ_DISABLE_ALL_WANINGS_START_;
-#if MJZ_CATCHES_EXCEPTIONS_
-    try {
-      std::forward<Lmabda_t>(code)();
-    } catch (...) {
-      return false;
-    }
-#else
-    std::forward<Lmabda_t>(code)();
-#endif
-    MJZ_DISABLE_ALL_WANINGS_END_;
-
-    return true;
-  }
-}
-template <std::same_as<void> = void>
-struct noexcept_er_helper_t {
- public:
-  MJZ_CE_FN noexcept_er_helper_t() noexcept {}
-  template <class Lmabda_t>
-  MJZ_CX_FN success_t operator->*(Lmabda_t &&fn) const noexcept {
-    return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
-  };
-  template <class Lmabda_t>
-  MJZ_CX_FN success_t operator*(Lmabda_t &&fn) const noexcept {
-    success_t ret{};
-    run_and_block_exeptions(
-        [&]() noexcept(noexcept(success_t(std::forward<Lmabda_t>(fn)()))) {
-          ret = success_t(std::forward<Lmabda_t>(fn)());
-        });
-    return ret;
-  };
-  MJZ_DEPRECATED_R("confusion")
-  MJZ_CX_FN explicit operator bool() const noexcept = delete;
-  MJZ_DEPRECATED_R("confusion")
-  MJZ_CX_FN bool operator!() const noexcept = delete;
-  MJZ_DEPRECATED_R("confusion")
-  MJZ_CX_FN void operator&() const noexcept = delete;
-};
-static_assert(std::is_empty_v<noexcept_er_helper_t<>>);
-
-#define MJZ_RELEASE_NAME_helper_0_(WHAT) releaserr_##WHAT
-#define MJZ_RELEASE_NAME_helper_1_(WHAT) MJZ_RELEASE_NAME_helper_0_(WHAT)
-#define MJZ_RELEASE_NAME(WHAT) MJZ_RELEASE_NAME_helper_1_(WHAT)
-/*
-this is a temporary RAII object for being used for something like this:
-void f(){
-std::mutex m;
-m.lock();
-MJZ_W_RELEASE(m){m.unlock();};
-...use...m...
-}
-void g(){
- auto p= new int;
-  MJZ_W_RELEASE(p) { delete p;};
-...use...p...
-}
-*/
-#define MJZ_C_RELEASE(WHAT, CODE_BLOCK)                       \
-  MJZ_UNUSED const ::mjz::releaser_t MJZ_RELEASE_NAME(WHAT) { \
-    [&]() mutable noexcept -> void CODE_BLOCK                 \
-  }
-#define MJZ_W_RELEASE(WHAT)                        \
-  MJZ_UNUSED const auto &&MJZ_RELEASE_NAME(WHAT) = \
-      ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
-
-#define MJZ_W_TRELEASE(WHAT)                       \
-  MJZ_UNUSED const auto &&MJZ_RELEASE_NAME(WHAT) = \
-      ::mjz::releaser_helper_t<>{}->*[&, this ]() mutable noexcept -> void
-
-#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable -> void
-
-#define MJZ_TNOEXCEPT \
-  ::mjz::noexcept_er_helper_t<>{}->*[&, this ]() mutable -> void
-
-/*
-this is a temporary RAII object for being used for something like this:
-m.lock();
-MJZ_RELEASE {m.unlock();};
-p= new int;
-MJZ_RELEASE  { delete p; p=nullptr;};
-...use...m...
-...use...p...
-*/
-#define MJZ_RELEASE MJZ_W_RELEASE(MJZ_UNIQUE_VAR_NAME(line))
-/*
-this is a temporary RAII object for being used for something like this:
-void ACLASS::f(){
-this->m.lock();
-MJZ_RELEASE {m.unlock();};
-...use...m...
-}
-void ACLASS::g(){
-  this->p= new int;
-  MJZ_RELEASE  { delete p; p=nullptr;};
-...use...p...
-}
-*/
-#define MJZ_TRELEASE MJZ_W_TRELEASE(MJZ_UNIQUE_VAR_NAME(line))
-
-/*
-this is a temporary RAII object for being used for something like this:
-void ACLASS::f(){
-this->m.lock();
-MJZ_W_RELEASE(m){m.unlock();};
-...use...m...
-}
-void ACLASS::g(){
-  this->p= new int;
-  MJZ_W_RELEASE(p) { delete p; p=nullptr;};
-...use...p...
-}
-*/
-#define MJZ_C_TRELEASE(WHAT, CODE_BLOCK)                      \
-  MJZ_UNUSED const ::mjz::releaser_t MJZ_RELEASE_NAME(WHAT) { \
-    [&, this ]() mutable noexcept -> void CODE_BLOCK          \
-  }
 
 template <typename T>
 using nullable_t = T;
 template <typename T>
 using no_null_t = T;
 
-template <typename lambda_try_function, typename lambda_catch_function>
-MJZ_CX_FN void raii_try_catch_rethrow(lambda_try_function &&try_func,
-                                      lambda_catch_function &&catch_func)
-  requires requires() {
-    { std::forward<lambda_catch_function>(catch_func)() } noexcept;
-  }
-{
-  bool has_thrown = true;
-  MJZ_RELEASE {
-    if (has_thrown) {
-      std::forward<lambda_catch_function>(catch_func)();
-    }
-  };
-  std::forward<lambda_try_function>(try_func)();
-  has_thrown = false;
-}
-#define MJZ_try_catch_rethrow(TRY_BLOCK_, CATCH_BLOCK)            \
-  ::mjz::raii_try_catch_rethrow([&]() mutable -> void TRY_BLOCK_, \
-                                [&]() mutable noexcept -> void CATCH_BLOCK)
-
 MJZ_CX_NL_FN void just_do(auto &&...) noexcept {}
-template<typename T>
+template <typename T>
 MJZ_CX_NL_FN T just_ret(T &&arg) noexcept {
   return std::forward<T>(arg);
 }
@@ -504,7 +331,7 @@ class conditional_releaser_t : private T {
   MJZ_CX_FN T &operator*() noexcept { return *this; }
 
  public:
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   noexcept_v = requires(T lamda) {
     { std::move(lamda)() } noexcept;
   };

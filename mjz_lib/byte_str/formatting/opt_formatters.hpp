@@ -85,9 +85,9 @@ template <version_t version_v, class T_>
 struct default_formatter_t<version_v, T_, 20> {
   using T1 = typename is_opt_arg_t<version_v, std::remove_cvref_t<T_>>::type;
   using T = const std::remove_const_t<T1>;
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   using CVT_pv = const std::remove_reference_t<T> &;
   using Formatter =
       typename format_context_t<version_v>::template formatter_type<CVT_pv>;
@@ -96,12 +96,11 @@ struct default_formatter_t<version_v, T_, 20> {
       decay_optimize_opt_to_t<version_v,
                               decltype(to_final_type_fn<version_v, T>(
                                   get_invalid_T_obj<T>()))>;
-  MJZ_CX_FN success_t parse(
-      parse_context_t<version_v> &ctx) noexcept {
+  MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     return formatter.parse(ctx);
   };
-  MJZ_CX_FN success_t format(
-      auto &&arg, format_context_t<version_v> &ctx) const noexcept {
+  MJZ_CX_FN success_t format(auto &&arg,
+                             format_context_t<version_v> &ctx) const noexcept {
     if (!arg) return true;
     return formatter.format(*arg, ctx);
   };

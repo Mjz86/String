@@ -24,12 +24,6 @@ SOFTWARE.
 #if MJZ_LOG_ALLOCATIONS_
 #include "../outputs.hpp"
 #endif
-#include <stdlib.h>
-
-#include <cstdlib>
-#include <memory_resource>
-#include <new>
-#include <numeric>
 
 #include "../threads/big_mutext.hpp"
 #include "../threads/lock_guard.hpp"
@@ -39,42 +33,42 @@ namespace mjz::allocs_ns {
 
 // configurable
 template <version_t version_v>
-constexpr static const uintlen_t cow_threashold_v{
+constexpr  const uintlen_t cow_threashold_v{
     4 * hardware_destructive_interference_size};
 
 // configurable
 template <version_t version_v>
-constexpr static const bool uses_pmr_sync_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
+constexpr  const bool uses_pmr_sync_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
 
 // configurable
 template <version_t version_v>
-constexpr static const bool uses_pmr_async_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
+constexpr  const bool uses_pmr_async_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
 
 // configurable
 template <version_t version_v>
-constexpr static const uintlen_t page_alloc_page_count_v{0};
+constexpr  const uintlen_t page_alloc_page_count_v{0};
 // configurable
 template <version_t version_v>
-constexpr static const uintlen_t page_alloc_blk_size_v{
+constexpr  const uintlen_t page_alloc_blk_size_v{
     hardware_constructive_interference_size};
 // configurable
 template <version_t version_v>
-constexpr static const bool check_the_alloc_info{MJZ_IN_DEBUG_MODE};
+constexpr  const bool check_the_alloc_info{MJZ_IN_DEBUG_MODE};
 
 // configurable
 template <version_t version_v>
-constexpr static const bool force_deafult_alloc_v{false};
+constexpr  const bool force_deafult_alloc_v{false};
 
 // configurable
 template <version_t version_v>
-MJZ_CONSTANT(uintlen_t)
+MJZ_FCONSTANT(uintlen_t)
 thread_local_stack_size_v{
     0 /*force_deafult_alloc_v<version_v> ? 0 : 1024 * 16*/};
 
 // configurable
 
 template <version_t version_v>
-MJZ_CONSTANT(std::align_val_t)
+MJZ_FCONSTANT(std::align_val_t)
 thread_local_stack_align_v{16};
 
 template <version_t v>
@@ -1384,7 +1378,7 @@ class alloc_base_ref_t {
       block_info &&blk, uintlen_t align) const noexcept {
     return dealloca_bytes(&stack_alloc, std::move(blk), align);
   }
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   has_thread_local_stack_v = !!thread_local_stack_size_v<version_v>;
   using thread_local_stack_ref_t =
       optional_ref_t<allocs_ns::stack_alloc_ns::stack_allocator_meta_t<
@@ -1453,7 +1447,7 @@ class alloc_base_ref_t {
 };
 
 template <version_t version_v>
-constexpr static const alloc_base_ref_t<version_v> empty_alloc{};
+constexpr   const alloc_base_ref_t<version_v> empty_alloc{};
 
 template <class T, version_t version_v, bool no_threads_v = false,
           bool do_throw = MJZ_CATCHES_EXCEPTIONS_>

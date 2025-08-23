@@ -28,8 +28,8 @@ template <std::integral T>
 class mutex_ref_t : private atomic_ref_t<T> {
   template <class>
   friend class mjz_private_accessed_t;
-  MJZ_CONSTANT(T) one { 1 };
-  MJZ_CONSTANT(T) zero { 0 };
+  MJZ_MCONSTANT(T) one { 1 };
+  MJZ_MCONSTANT(T) zero { 0 };
 
  private:
   MJZ_NCX_FN bool test_and_set_m() noexcept {
@@ -113,7 +113,7 @@ class mutex_ref_t : private atomic_ref_t<T> {
   MJZ_CX_ND_RES_OBJ_FN success_t try_lock(uint64_t timeout_count) noexcept {
     return try_lock(false, timeout_count);
   }
-  MJZ_CONSTANT(uint64_t)
+  MJZ_MCONSTANT(uint64_t)
   defult_timeout = threads_ns::defult_timeout;
   MJZ_CX_ND_RES_OBJ_FN success_t try_lock() noexcept {
     return this->try_lock(defult_timeout);
@@ -136,26 +136,25 @@ class mutex_ref_t : private atomic_ref_t<T> {
 template <std::unsigned_integral T>
 struct multiread_singlewrite_mutex_ref_t {
   MJZ_NO_MV_NO_CPY(multiread_singlewrite_mutex_ref_t);
-  MJZ_CONSTANT(T) const_rc_mask = T(-1) >> 1;
-  MJZ_CONSTANT(T) mut_bit_mask = ~const_rc_mask;
+  MJZ_MCONSTANT(T) const_rc_mask = T(-1) >> 1;
+  MJZ_MCONSTANT(T) mut_bit_mask = ~const_rc_mask;
   atomic_ref_t<T> ref;
   MJZ_CX_FN multiread_singlewrite_mutex_ref_t(T &r) noexcept : ref{r} {}
-  MJZ_CX_FN void unlock(bool is_mut) noexcept { 
+  MJZ_CX_FN void unlock(bool is_mut) noexcept {
     if (is_mut) {
       ref.store(0, std::memory_order_release);
-    } else { 
+    } else {
       if ((ref.fetch_sub(1, std::memory_order_release) & const_rc_mask) != 1)
         return;
     }
     ref.try_notify_all();
   }
-  MJZ_CX_ND_RES_OBJ_FN success_t try_lock(bool is_mut) noexcept { 
+  MJZ_CX_ND_RES_OBJ_FN success_t try_lock(bool is_mut) noexcept {
     T expected =
         is_mut ? T{} : (ref.load(std::memory_order::relaxed) & const_rc_mask);
     return ref.compare_exchange_weak(
         expected, expected + (is_mut ? mut_bit_mask : 1),
-                                     std::memory_order_acquire,
-                                     std::memory_order_relaxed);
+        std::memory_order_acquire, std::memory_order_relaxed);
   }
 
   MJZ_CX_FN void lock_mut() noexcept {
@@ -167,7 +166,7 @@ struct multiread_singlewrite_mutex_ref_t {
     while (expected & const_rc_mask) {
       ref.try_wait(expected, std::memory_order_acquire);
       expected = ref.load(std::memory_order_acquire);
-    }; 
+    };
   }
   MJZ_CX_FN void lock_const() noexcept {
     T expected = ref.load(std::memory_order::relaxed);

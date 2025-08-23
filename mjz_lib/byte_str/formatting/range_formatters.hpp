@@ -29,8 +29,6 @@ SOFTWARE.
 #include "basic_formatters.hpp"
 
 //
-#include <ranges>
-#include <span>
 #ifndef MJZ_BYTE_FORMATTING_range_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_range_formatters_HPP_FILE_
 namespace mjz::bstr_ns::format_ns {
@@ -45,11 +43,11 @@ concept is_tuple_c = requires {
 
 template <version_t version_v, is_tuple_c T_>
 struct default_formatter_t<version_v, T_, 60> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   using T = std::remove_cvref_t<T_>;
-  MJZ_CONSTANT(bool) a_tuple_thingy_v { true };
+  MJZ_MCONSTANT(bool) a_tuple_thingy_v { true };
   using sview = static_string_view_t<version_v>;
   using view = basic_string_view_t<version_v>;
   template <std::size_t I>
@@ -59,7 +57,7 @@ struct default_formatter_t<version_v, T_, 60> {
       get_invalid_T_obj<CVT_pv<I>>()));
   template <std::size_t... I>
   MJZ_CX_FN auto static F_t_fn(std::index_sequence<I...>) noexcept
-      -> std::tuple<typename format_context_t<
+      -> tuple_t<typename format_context_t<
           version_v>::template formatter_type<decayed_t<I>>...> * {
     return nullptr;
   }
@@ -126,7 +124,7 @@ struct default_formatter_t<version_v, T_, 60> {
     }
     auto ch = ctx.front();
     if (ch && *ch == '[') {
-      std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
+      std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
           slice = ctx.get_slice();
       if (!slice) {
         return false;
@@ -215,10 +213,9 @@ struct default_formatter_t<version_v, T_, 60> {
                 if (not_first) {
                   it.append(separator.unsafe_handle());
                 }
-                if (!(
-                        mjz::get<I>(formatters)
-                            .format(to_final_type_fn<version_v, CVT_pv<I>>(val),
-                                    ctx)))
+                if (!(mjz::get<I>(formatters)
+                          .format(to_final_type_fn<version_v, CVT_pv<I>>(val),
+                                  ctx)))
                   return false;
                 not_first = true;
                 it = ctx.out();
@@ -231,7 +228,7 @@ struct default_formatter_t<version_v, T_, 60> {
         ctx);
   };
 };
-template <version_t version_v, std::ranges::forward_range T>
+template <version_t version_v, std::ranges::input_range T>
 struct default_formatter_t<version_v, T, 50> {
   using T_range = std::remove_const_t<std::remove_reference_t<T>>;
   using CT_range = std::conditional_t<requires(const T_range obj) {
@@ -239,10 +236,10 @@ struct default_formatter_t<version_v, T, 50> {
     std::ranges::begin(obj) == std::ranges::end(obj);
   }, const T_range, T_range>;
   using CRT_range = CT_range &;
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   no_perfect_forwarding_v = std::is_const_v<CT_range>;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   using sview = static_string_view_t<version_v>;
   using view = basic_string_view_t<version_v>;
   using value_t =
@@ -265,7 +262,7 @@ struct default_formatter_t<version_v, T, 50> {
   MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
     if (ctx.encoding() != encodings_e::ascii) {
       ctx.as_error(
-          "[Error]default_formatter_t::parse(std::ranges::forward_range,auto):"
+          "[Error]default_formatter_t::parse(std::ranges::input_range,auto):"
           "only ascii is "
           "suppoerted!(note that this "
           "may change in later versions)");
@@ -279,7 +276,7 @@ struct default_formatter_t<version_v, T, 50> {
     }
     auto ch = ctx.front();
     if (ch && *ch == '[') {
-      std::optional<std::pair<uintlen_t /*index*/, uintlen_t /*length*/>>
+      std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
           slice = ctx.get_slice();
       if (!slice) return false;
       slice_index = slice->first;
@@ -300,7 +297,7 @@ struct default_formatter_t<version_v, T, 50> {
                       requires bool(F_t::a_tuple_thingy_v);
                     }) {
         ctx.as_error(
-            "[Error]default_formatter_t::parse(std::ranges::forward_range,"
+            "[Error]default_formatter_t::parse(std::ranges::input_range,"
             "auto):"
             "invalid range spec of m with size other than 2");
         return false;
@@ -325,7 +322,7 @@ struct default_formatter_t<version_v, T, 50> {
       ch = ctx.front();
     } else if (ch && *ch != '}') {
       ctx.as_error(
-          "[Error]default_formatter_t::parse(std::ranges::forward_range,auto):"
+          "[Error]default_formatter_t::parse(std::ranges::input_range,auto):"
           "invalid range spec");
       return false;
     }
@@ -388,7 +385,7 @@ struct default_formatter_t<version_v, T, 50> {
           bool not_thrown = MJZ_NOEXCEPT { ret &= may_throw(); };
           if (!not_thrown) {
             ctx.as_error(
-                "[Error]default_formatter_t::format(std::ranges::forward_range,"
+                "[Error]default_formatter_t::format(std::ranges::input_range,"
                 "auto): exception detected while executing iterations ( take a "
                 "look at run_and_block_exeptions where its catch happened)");
           }
@@ -401,14 +398,14 @@ struct default_formatter_t<version_v, T, 50> {
 template <version_t version_v, typename T>
   requires requires() {
     { std::span(just_some_invalid_obj<T &&>()) } noexcept;
-    // to forward the span into std::ranges::forward_range
+    // to forward the span into std::ranges::input_range
     requires !partial_same_as<
         decltype(std::span(just_some_invalid_obj<T &&>())), T>;
   }
 struct default_formatter_t<version_v, T, 40> {
-  MJZ_CONSTANT(bool) no_perfect_forwarding_v = true;
-  MJZ_CONSTANT(bool) can_bitcast_optimize_v = true;
-  MJZ_CONSTANT(bool) can_have_cx_formatter_v = true;
+  MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+  MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+  MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
   // this is an empty forwarding implementation
   using decay_optimize_to_t =
       std::span<std::remove_reference_t<typename decltype(std::span(

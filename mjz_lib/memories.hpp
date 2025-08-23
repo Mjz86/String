@@ -21,31 +21,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <concepts>
-#include <cstring>
-#include <algorithm>
 #include "packings.hpp"
+
 #ifndef MJZ_MEMORIES_LIB_HPP_FILE_
 #define MJZ_MEMORIES_LIB_HPP_FILE_
-#ifndef MJZ_STD_HAS_SIMD_LIB_
-#if defined(__cpp_lib_experimental_parallel_simd) || \
-    defined(_LIBCPP_ENABLE_EXPERIMENTAL)
-#define MJZ_STD_HAS_SIMD_LIB_ true
-#else
-
-#define MJZ_STD_HAS_SIMD_LIB_ false
-#endif
-#endif  // ! MJZ_STD_HAS_SIMD_LIB_
-
-
-#if MJZ_STD_HAS_SIMD_LIB_
-#include <experimental/simd>
-#endif
 namespace mjz {
 MJZ_FCONSTANT(uintlen_t) default_new_align_z = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
 MJZ_FCONSTANT(std::align_val_t)
 default_new_align_v = std::align_val_t(default_new_align_z);
-MJZ_CONSTANT(uintlen_t)
+MJZ_FCONSTANT(uintlen_t)
 cache_fast_align_v = 8 * sizeof(uintlen_t);
 /*
 O(1) time complexity in runtime
@@ -139,12 +123,11 @@ MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
 }
 
 template <typename T>
-concept aligned_bitcastable_c=
-std::is_trivially_copy_constructible_v<T> &&
-           std::is_trivially_default_constructible_v<T> &&
-           std::is_trivially_destructible_v<T>;
+concept aligned_bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
+                                std::is_trivially_default_constructible_v<T> &&
+                                std::is_trivially_destructible_v<T>;
 
-template <aligned_bitcastable_c T> 
+template <aligned_bitcastable_c T>
 MJZ_NCX_FN T cpy_aligned_bitcast(const void *src) noexcept {
   T ret{};
   std::memcpy(&ret, std::assume_aligned<alignof(T)>(src), sizeof(src));
@@ -156,16 +139,15 @@ MJZ_NCX_FN void cpy_aligned_bitcast(void *dest, const T &src) noexcept {
   std::memcpy(std::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
 }
 template <std::integral T>
-MJZ_CX_AL_FN T *memcpy_forward(T *dest, const T *src,
-                                  uintlen_t len) noexcept {
+MJZ_CX_AL_FN T *memcpy_forward(T *dest, const T *src, uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
                        // the behavior is undefined. (NO! , len=0 defines this)
 #if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
 #endif
-    return reinterpret_cast<T *>(
-        ::std::memmove(reinterpret_cast<void *>(dest),
-                       reinterpret_cast<const void *>(src), sizeof(T)* size_t(len)));
+    return reinterpret_cast<T *>(::std::memmove(
+        reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+        sizeof(T) * size_t(len)));
   }
   T *d = dest;
   const T *s = src;
@@ -174,16 +156,15 @@ MJZ_CX_AL_FN T *memcpy_forward(T *dest, const T *src,
   }
   return dest;
 }
-template<std::integral T>
-MJZ_CX_AL_FN T *memcpy_backward(T *dest, const T *src,
-                                   uintlen_t len) noexcept {
+template <std::integral T>
+MJZ_CX_AL_FN T *memcpy_backward(T *dest, const T *src, uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
                        // the behavior is undefined. (NO! , len=0 defines this)
-               #if !MJZ_SANE_MEMMOVE_IMPLS
+#if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
 #endif
-    return reinterpret_cast<T *>(
-        ::std::memmove(reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+    return reinterpret_cast<T *>(::std::memmove(
+        reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
         sizeof(T) * size_t(len)));
   }
   T *d = dest;
@@ -195,16 +176,15 @@ MJZ_CX_AL_FN T *memcpy_backward(T *dest, const T *src,
 }
 
 template <std::integral T>
-MJZ_CX_AL_FN T *memomve_overlap(T *dest, const T *src,
-                                   uintlen_t len) noexcept {
+MJZ_CX_AL_FN T *memomve_overlap(T *dest, const T *src, uintlen_t len) noexcept {
   MJZ_IFN_CONSTEVAL {
     // If dest or src is a null pointer or invalid pointer, the behavior is
     // undefined (NO! , len=0 defines this)
 #if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
-  #endif
-    return reinterpret_cast<T *>(
-        ::std::memmove(reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+#endif
+    return reinterpret_cast<T *>(::std::memmove(
+        reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
         sizeof(T) * size_t(len)));
   }
   if (dest <= src) {
@@ -225,8 +205,8 @@ MJZ_CX_AL_FN T *memcpy(T *dest, const T *src, uintlen_t len) noexcept {
 #if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return dest;
 #endif
-    return reinterpret_cast<T *>(
-        ::std::memcpy(reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
+    return reinterpret_cast<T *>(::std::memcpy(
+        reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
         sizeof(T) * size_t(len)));
   }
   return memcpy_forward(dest, src, len);
@@ -247,7 +227,7 @@ MJZ_CX_AL_FN char *mem_byteswap(char *dest, const uintlen_t len) noexcept {
   std::ranges::reverse(dest, dest + len);
   return dest;
 }
-MJZ_CX_AL_FN auto mem_typeswap(auto *dest,  const uintlen_t len) noexcept {
+MJZ_CX_AL_FN auto mem_typeswap(auto *dest, const uintlen_t len) noexcept {
   std::ranges::reverse(dest, dest + len);
   return dest;
 }
@@ -317,16 +297,14 @@ MJZ_CX_AL_FN char *memmove(char *const dest, const char *const src,
 }
 
 template <typename T>
-MJZ_CX_FN static auto mjz_memset_lambda_createor(T val) noexcept {
+MJZ_CX_FN   auto mjz_memset_lambda_createor(T val) noexcept {
   return [val = std::move(val)](
              T &c, MJZ_UNUSED uintlen_t &i,
              MJZ_UNUSED const uintlen_t len) constexpr noexcept -> success_t {
     c = val;
     return 1;
   };
-};
-MJZ_CX_FN static auto mjz_memset_deafult_zero_lambda =
-    mjz_memset_lambda_createor<char>(0);
+}; 
 
 template <typename T, class Lambda_t>
 MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
@@ -358,26 +336,26 @@ MJZ_CX_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
   return ptr;
 }
 #ifdef MJZ_KNOWN_L1_CACHE_LINE_SIZE
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 hardware_constructive_interference_size = MJZ_KNOWN_L1_CACHE_LINE_SIZE;
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 hardware_destructive_interference_size = MJZ_KNOWN_L1_CACHE_LINE_SIZE;
 #else
 #ifdef __cpp_lib_hardware_interference_size
 /* Minimum offset between two objects to avoid false sharing. Guaranteed to be
  * at least alignof(std::max_align_t)*/
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 hardware_constructive_interference_size =
     std::hardware_constructive_interference_size;
 /* Maximum size of contiguous memory to promote true sharing. Guaranteed to be
  * at least alignof(std::max_align_t)*/
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 hardware_destructive_interference_size =
     std::hardware_destructive_interference_size;
 #else
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 hardware_constructive_interference_size = 64;
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 hardware_destructive_interference_size = 64;
 #endif
 #endif  // MJZ_KNOWN_L1_CACHE_LINE_SIZE
@@ -507,30 +485,26 @@ MJZ_CX_AL_FN T byteswap(T value) noexcept {
 #endif
 }
 
-  MJZ_CX_AL_FN   bool operator_and(bool a, bool b) noexcept {
-    return bool(int(a) & int(b));
-  }
+MJZ_CX_AL_FN bool operator_and(bool a, bool b) noexcept {
+  return bool(int(a) & int(b));
+}
 
-  MJZ_CX_AL_FN  bool operator_or(bool a, bool b) noexcept {
-    return bool(int(a) | int(b));
-  }
+MJZ_CX_AL_FN bool operator_or(bool a, bool b) noexcept {
+  return bool(int(a) | int(b));
+}
 
-  // T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
-  // std::memset(&src,0,sizeof(T));
-  // overload the template to say its true, else , deafult to (trivial destroy)
-  // T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
-  // std::destroy_at(&src); else false
-  template <typename T>
-  constexpr static inline const bool is_trivially_exchange_move_constructible_v =
-      std::is_trivially_move_constructible_v<T> &&
-      std::is_trivially_destructible_v<T>;
+// T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
+// std::memset(&src,0,sizeof(T));
+// overload the template to say its true, else , deafult to (trivial destroy)
+// T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
+// std::destroy_at(&src); else false
+template <typename T>
+constexpr  inline const bool is_trivially_exchange_move_constructible_v =
+    std::is_trivially_move_constructible_v<T> &&
+    std::is_trivially_destructible_v<T>;
 
-  
-  template <typename T ,auto concept_fn >
-  concept fn_concept_c = concept_fn.template operator()<T>();
-
-
-
+template <typename T, auto concept_fn>
+concept fn_concept_c = concept_fn.template operator()<T>();
 
 }  // namespace mjz
 #endif  // MJZ_MEMORIES_LIB_HPP_FILE_

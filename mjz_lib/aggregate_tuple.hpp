@@ -20,7 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 #include "memories.hpp"
 #ifndef MJZ_aggregate_tuple_LIB_HPP_FILE_
 #define MJZ_aggregate_tuple_LIB_HPP_FILE_
@@ -1755,12 +1754,12 @@ template <typename T>
 struct tuple_size {};
 template <std_tuple_like_c T>
 struct tuple_size<T> {
-  MJZ_CONSTANT(size_t) value = std::tuple_size<std::remove_cvref_t<T>>::value;
+  MJZ_MCONSTANT(size_t) value = std::tuple_size<std::remove_cvref_t<T>>::value;
 };
 template <size_t I, class T>
 using tuple_element_t = typename tuple_element<I, T>::type;
 template <class T>
-MJZ_CONSTANT(size_t)
+MJZ_FCONSTANT(size_t)
 tuple_size_v = tuple_size<T>::value;
 
 template <std::size_t Index, std_tuple_like_c T>

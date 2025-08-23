@@ -32,8 +32,6 @@ enum class align_direction_e : char {
   back = 0b11
 };
 
-
-
 template <version_t version_v, bool has_alloc_v_, bool has_null_v_,
           bool is_ownerized_v_, may_bool_t is_threaded_v_,
           uintlen_t user_sso_selected_cap, align_direction_e align_direction_v_>
@@ -43,10 +41,10 @@ struct str_abi_t_ {
   using alloc_ref = allocs_ns::alloc_base_ref_t<version_v>;
   MJZ_STATIC_CLASS(str_abi_t_);
   /// </summary>
-  MJZ_CONSTANT(uintlen_t) min_sso_sicap = 4 * sizeof(uintlen_t) - 2;
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t) min_sso_sicap = 4 * sizeof(uintlen_t) - 2;
+  MJZ_MCONSTANT(uintlen_t)
   old_sso_cap_helper_ = std::max(user_sso_selected_cap, min_sso_sicap);
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   old_sso_cap =
       std::same_as<
           uint_with_max_of_t<(sizeof(uintlen_t) + old_sso_cap_helper_ +
@@ -56,11 +54,11 @@ struct str_abi_t_ {
           : old_sso_cap_helper_ +
                 sizeof(uint_with_max_of_t<old_sso_cap_helper_>) +
                 sizeof(uintlen_t);
-  MJZ_CONSTANT(uintlen_t) cntrl_size = sizeof(uint8_t);
+  MJZ_MCONSTANT(uintlen_t) cntrl_size = sizeof(uint8_t);
   using cap_mins_length_t = uint_with_max_of_t<old_sso_cap>;
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   min_buffer_size = old_sso_cap + sizeof(cap_mins_length_t);
-  MJZ_CONSTANT(uintlen_t)
+  MJZ_MCONSTANT(uintlen_t)
   buffer_size =
       sizeof(uintlen_t) *
           (((min_buffer_size + cntrl_size) / sizeof(uintlen_t)) +
@@ -113,7 +111,7 @@ struct str_abi_t_ {
   static_assert((sizeof(raw_data_t) % alignof(uintlen_t)) == 0);
   struct data_t : abi_ns_::alloc_t<version_v, has_alloc_v_> {
    public:
-    MJZ_CONSTANT(uintlen_t) sso_cap = buffer_size - sizeof(cap_mins_length_t);
+    MJZ_MCONSTANT(uintlen_t) sso_cap = buffer_size - sizeof(cap_mins_length_t);
     constexpr static const alloc_ref& empty_alloc{
         allocs_ns::empty_alloc<version_v>};
 
@@ -184,7 +182,7 @@ struct str_abi_t_ {
       return m_v().control_byte;
     }
     MJZ_CX_FN control_byte_t& cntrl() noexcept { return m_v().control_byte; }
-    MJZ_CX_FN bool is_sso() const noexcept { return! cntrl().is_ref; }
+    MJZ_CX_FN bool is_sso() const noexcept { return !cntrl().is_ref; }
 
     MJZ_CX_FN bool is_ownerized() const noexcept {
       if constexpr (is_ownerized_v_) {
@@ -248,6 +246,7 @@ struct str_abi_t_ {
     }
     MJZ_CX_FN void set_sso_length(uintlen_t new_len_) noexcept {
       set_cap_minus_sso_length(sso_cap - new_len_);
+      m_sso_buffer_()[new_len_]='\0';
     }
 
     MJZ_CX_FN uintlen_t get_length() const noexcept {
@@ -312,9 +311,9 @@ struct str_abi_t_ {
         cntrl_and_cap = cpy_bitcast<uintlen_t>(ptr_);
       }
       else {
-        MJZ_DISABLE_ALL_WANINGS_START_; 
+        MJZ_DISABLE_ALL_WANINGS_START_;
         cntrl_and_cap = *reinterpret_cast<const uintlen_t*>(ptr_);
-      MJZ_DISABLE_ALL_WANINGS_END_;
+        MJZ_DISABLE_ALL_WANINGS_END_;
       }
 
       if constexpr (version_v.is_BE()) {
@@ -380,11 +379,12 @@ struct str_abi_t_ {
         ptr_ = buf_;
         ret = cpy_bitcast<uintlen_t>(ptr_);
       }
-      else {  MJZ_DISABLE_ALL_WANINGS_START_  ;
+      else {
+        MJZ_DISABLE_ALL_WANINGS_START_;
 
         ret = *reinterpret_cast<const uintlen_t*>(ptr_);
-        
-         MJZ_DISABLE_ALL_WANINGS_END_;
+
+        MJZ_DISABLE_ALL_WANINGS_END_;
       }
       if constexpr (version_v.is_BE()) {
         ret >>= 8;
@@ -473,33 +473,32 @@ struct str_abi_t_ {
     using str_heap_manager = str_heap_manager_t<version_v, is_threaded_v_,
                                                 is_ownerized_v_, has_alloc_v_>;
     MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
-      asserts(asserts.assume_rn, !is_sso());
+      asserts(asserts.assume_rn, !no_destroy());
       return str_heap_manager(get_alloc(), is_threaded(), is_ownerized(), false,
                               false, m_v().raw_data.non_sso.data_block,
                               get_non_sso_capacity());
     }
 
    private:
-    MJZ_CX_FN void destruct_heap() noexcept {
-      str_heap_manager hm = non_sso_my_heap_manager_no_own();
-      hm.u_must_free();
-      hm.unsafe_clear();
-    }
-    MJZ_CONSTANT(uintlen_t)
-    string_size = sizeof(raw_data_t) + (std::is_empty_v <
-                  abi_ns_::alloc_t<version_v, has_alloc_v_>>?0 :sizeof(uintlen_t));
+   
+    MJZ_MCONSTANT(uintlen_t)
+    string_size = sizeof(raw_data_t) +
+                  (std::is_empty_v<abi_ns_::alloc_t<version_v, has_alloc_v_>>
+                       ? 0
+                       : sizeof(uintlen_t));
 
     MJZ_NCX_FN static void destruct_to_invalid_impl_(
         std::array<uint64_t, string_size / 8> This_) noexcept {
       static_assert(sizeof(data_t) == string_size);
       alignas(data_t) char bytes_[sizeof(data_t)]{};
-      std::memcpy(&bytes_, &This_, sizeof(data_t));  MJZ_DISABLE_ALL_WANINGS_START_  ; 
-      data_t* This =std::launder(reinterpret_cast<data_t*>(bytes_));
-  MJZ_DISABLE_ALL_WANINGS_END_;
+      std::memcpy(&bytes_, &This_, sizeof(data_t));
+      MJZ_DISABLE_ALL_WANINGS_START_;
+      data_t* This = std::launder(reinterpret_cast<data_t*>(bytes_));
+      MJZ_DISABLE_ALL_WANINGS_END_;
       This->destruct_to_invalid_impl_big_();
     }
-    template<bool multi_branch_version_=true>
-    MJZ_CX_AL_FN  void destruct_to_invalid_impl_big_() noexcept {
+    template <bool multi_branch_version_ = true>
+    MJZ_CX_AL_FN void destruct_to_invalid_impl_big_() noexcept {
       if constexpr (!multi_branch_version_) {
         if (no_destroy()) {
           return;
@@ -516,7 +515,13 @@ struct str_abi_t_ {
     MJZ_CX_FN void destruct_to_invalid_impl_big() noexcept {
       return destruct_to_invalid_impl_big_();
     }
+
    public:
+    MJZ_CX_FN void destruct_heap() noexcept {
+      str_heap_manager hm = non_sso_my_heap_manager_no_own();
+      hm.u_must_free();
+      hm.unsafe_clear();
+    }
     MJZ_CX_FN bool no_destroy() const noexcept {
       const int ret =
           int(!cntrl().is_ref) | int(!is_sharable()) | int(!has_mut());
@@ -538,7 +543,7 @@ struct str_abi_t_ {
         }
       }
       else {
-        return destruct_to_invalid_impl_big(); 
+        return destruct_to_invalid_impl_big();
       }
     }
     MJZ_CX_FN void invalid_to_empty() noexcept { set_invalid_to_sso("", 0); }
@@ -554,10 +559,9 @@ struct str_abi_t_ {
       uintlen_t center = delta >> 1;
       uintlen_t back = std::max(uintlen_t(has_null_), delta) - has_null_;
       uintlen_t front = 0;
-      const uintlen_t ret  = branchless_teranary(
+      const uintlen_t ret = branchless_teranary(
           !(uint8_t(char(align)) & 2), center,
           branchless_teranary(!(uint8_t(char(align)) & 1), front, back));
-       
 
       return ret & ~uintlen_t(alignof(uintlen_t) - 1);
     }
@@ -575,6 +579,7 @@ struct str_abi_t_ {
 
       asserts(asserts.assume_rn,
               !cntrl().is_ownerized && is_sharable() && has_mut());
+              
       str_heap_manager hm = non_sso_my_heap_manager_no_own();
       bool is_owner = hm.is_owner();
       // compiler did non optimize free away if this wasnt present

@@ -20,8 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include <atomic>
-#include <thread>
 
 #include "cx_atomic_ref.hpp"
 #ifndef MJZ_THREADS_atomic_ref_LIB_HPP_FILE_
@@ -30,7 +28,7 @@ namespace mjz::threads_ns {
 template <typename T>
   requires std::is_trivially_copyable_v<T>
 class atomic_ref_t {
-  MJZ_CONSTANT(bool) mutable_v { !std::is_const_v<T> };
+  MJZ_MCONSTANT(bool) mutable_v { !std::is_const_v<T> };
   atomic_ref_t &operator=(const atomic_ref_t &) = delete;
   union ref_pair_t {
     MJZ_CX_FN ref_pair_t(const ref_pair_t &) = default;
@@ -90,9 +88,9 @@ class atomic_ref_t {
   MJZ_CX_FN explicit atomic_ref_t(T &obj) noexcept : m(obj) {}
 
   MJZ_CX_FN atomic_ref_t(const atomic_ref_t &) noexcept = default;
-  MJZ_CONSTANT(bool)
+  MJZ_MCONSTANT(bool)
   is_always_lock_free = std::atomic_ref<T>::is_always_lock_free;
-  MJZ_CONSTANT(size_t)
+  MJZ_MCONSTANT(size_t)
   required_alignment = std::atomic_ref<T>::required_alignment;
 
   MJZ_CX_ND_FN bool is_lock_free() const noexcept {

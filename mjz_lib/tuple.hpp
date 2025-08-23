@@ -23,9 +23,7 @@ SOFTWARE.
 
 #ifndef MJZ_TUPLE_LIB_HPP_FILE_
 #define MJZ_TUPLE_LIB_HPP_FILE_
-#include <tuple>
-
-#include "memories.hpp"
+#include "all_macors.hpp"
 namespace mjz {
 
 template <class, class>
@@ -291,7 +289,7 @@ struct tuple_element<I, ::mjz::tuple_t<Ts...>> {
   using type = decltype(::mjz::tuple_t<Ts...>::template type_get<I>())::type;
 };
 template <size_t index_, ::mjz::is_mjz_tuple_c_ T>
-MJZ_CX_ND_FN decltype(auto) get(T&& p) noexcept {
+MJZ_CX_ND_FN decltype(auto) get(T &&p) noexcept {
   return std::forward<T>(p).template get<index_>();
 }
 };  // namespace std
