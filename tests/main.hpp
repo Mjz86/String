@@ -105,7 +105,7 @@ MJZ_CX_FN void main_t::run() const {
   println("{} num : {} "_fmt, result, val);
 
   auto fn_do_work = [&](auto&& fn1, auto&& fn2, auto&& fn3, str_t name = ""_str,
-                        uintlen_t count = 100000ull) {
+                        uintlen_t count = 10000000ull) {
     for (auto&& timer : scoped_timer_t{name, count}) {
       timer.no_optimize(0);
     }
@@ -114,6 +114,17 @@ MJZ_CX_FN void main_t::run() const {
     }
     for (auto&& timer : scoped_timer_t{name + ":mmjz"_str, count}) {
       timer.no_optimize(implace_str_t<version_v>(fn1()));
+    }
+    
+    for (auto&& timer : scoped_timer_t{name + ":nth-omjz"_str, count}) {
+      str_t t = fn1();
+      t.set_alloc(t.get_alloc(), 0, may_bool_t::no);
+      timer.no_optimize(t.as_ownerized(), t);
+    }
+    for (auto&& timer : scoped_timer_t{name + ":nth-aomjz"_str, count}) {
+      str_t t = fn1();
+      t.set_alloc(t.get_alloc(), 0, may_bool_t::no);
+      timer.no_optimize(t.as_always_ownerized(true), t);
     }
     for (auto&& timer : scoped_timer_t{name + ":omjz"_str, count}) {
       str_t t = fn1();

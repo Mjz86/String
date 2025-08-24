@@ -138,9 +138,11 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   MJZ_CX_AL_FN success_t
   add_null_impl_(uintlen_t reserve_if_allocate_ = 0) noexcept {
     if constexpr (no_allocate_) {
-      if (!m.template has_room_for<when_v>(reserve_if_allocate_, props_v.has_null)) {
+      if (!m.template has_room_for<when_v>(reserve_if_allocate_,
+                                           props_v.has_null)) {
         str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-        if (!hm.u_malloc(uintlen_t(props_v.has_null) + reserve_if_allocate_, false))
+        if (!hm.u_malloc(uintlen_t(props_v.has_null) + reserve_if_allocate_,
+                         false))
           MJZ_IS_UNLIKELY {
             hm.unsafe_clear();
             return false;
@@ -152,7 +154,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         return true;
       }
     } else if constexpr (checked_) {
-      if (!m.template has_room_for<when_v>(reserve_if_allocate_, props_v.has_null))
+      if (!m.template has_room_for<when_v>(reserve_if_allocate_,
+                                           props_v.has_null))
         return false;
     }
     return m.template add_null<when_v, the_room_is_infront>();
@@ -314,7 +317,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
  public:
   template <when_t when_v>
   MJZ_CX_AL_FN success_t as_substring_(uintlen_t byte_offset,
-                                    uintlen_t byte_count) noexcept {
+                                       uintlen_t byte_count) noexcept {
     asserts(asserts.assume_rn,
             as_substring_impl_<when_v>(byte_offset, byte_count));
     if constexpr (!props_v.has_null || when_v.is_sso()) {
@@ -865,43 +868,102 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   MJZ_CX_ND_FN const alloc_ref &get_alloc() const noexcept {
     return m.get_alloc();
   }
-  MJZ_CX_FN success_t set_alloc(const alloc_ref &a,
-                                uintlen_t reserve_may = 0) noexcept {
-    if (a == m.get_alloc()) {
+  MJZ_CX_FN str_heap_manager make_empty_heap() noexcept {
+    return str_heap_manager{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
+  }
+
+  MJZ_CX_FN str_heap_manager
+  drop_heap(unsafe_ns::i_know_what_im_doing_t) noexcept {
+    MJZ_RELEASE { m.invalid_to_empty(); };
+    if (m.no_destroy()) {
+      return make_empty_heap();
+    }
+    return m.non_sso_my_heap_manager_no_own(true);
+  }
+  MJZ_CX_FN success_t set_heap(unsafe_ns::i_know_what_im_doing_t,
+                               str_heap_manager &&hm) noexcept {
+    if constexpr (!props_v.has_alloc) {
+      if (!!*hm.alloc_ptr()) {
+        return false;
+      }
+    }
+    if constexpr (props_v.is_threaded != may_bool_t::idk) {
+      if (bool(props_v.is_threaded) != hm.get_is_threaded()) {
+        return false;
+      }
+    }
+    uintlen_t cap = hm.get_heap_cap();
+    m.destruct_to_invalid();
+    m.set_threaded(hm.get_is_threaded());
+    if constexpr (props_v.has_alloc) {
+      *m.get_alloc_ptr() = *hm.alloc_ptr();
+    }
+    if (!cap) return true;
+    char *buf = hm.get_heap_begin();
+    uintlen_t offset_of_beg = m.s_buffer_offset(cap, 0);
+    char *beg = buf + offset_of_beg;
+    m.set_invalid_to_non_sso_begin(beg, 0, buf, cap, true, false);
+    hm.unsafe_clear();
+    return true;
+  }
+
+  MJZ_CX_FN success_t
+  set_alloc(const alloc_ref &a_, uintlen_t reserve_may = 0,
+            may_bool_t threaded_ = may_bool_t::idk) noexcept {
+    const bool good_alloc_{a_ == m.get_alloc()};
+    if (may_bool_t::yes < threaded_) threaded_ = may_bool_t(get_threaded());
+    const bool good_threaded_{bool(threaded_) == get_threaded()};
+
+    if (good_threaded_ && good_alloc_) {
       return true;
     }
     if constexpr (!props_v.has_alloc) {
-      return false;
-    } else {
-      if (m.no_destroy()) {
+      if (!good_alloc_) {
+        return false;
+      }
+    }
+    if constexpr (props_v.is_threaded != may_bool_t::idk) {
+      if (!good_threaded_) {
+        return false;
+      }
+    }
+
+    const alloc_ref &a{good_alloc_ ? m.get_alloc() : a_};
+
+    if (m.no_destroy()) {
+      if constexpr (props_v.has_alloc) {
         *m.get_alloc_ptr() = a;
-        return true;
       }
-      uintlen_t new_len = length();
-      str_heap_manager hm{a, m.is_threaded(), m.is_ownerized()};
-      if (!hm.u_malloc(uintlen_t(props_v.has_null) +
-                       std::max(reserve_may, new_len)))
-        MJZ_IS_UNLIKELY {
-          hm.unsafe_clear();
-          return false;
-        }
-      uintlen_t cap = hm.get_heap_cap();
-      char *buf = hm.get_heap_begin();
-      const char *old_ptr = m.get_begin();
-      uintlen_t offset_of_beg = m.s_buffer_offset(cap, new_len);
-      char *beg = buf + offset_of_beg;
-      memcpy(beg, old_ptr, new_len);
-      m.destruct_heap();
-      m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap, true, false);
-      *m.get_alloc_ptr() = a;
-      hm.unsafe_clear();
-      if constexpr (!props_v.has_null) {
-        return true;
-      }
-      asserts(asserts.assume_rn,
-              add_null_impl_<when_t::own_relax, false, true, true>());
+      m.set_threaded(bool(threaded_));
       return true;
     }
+    uintlen_t new_len = length();
+    str_heap_manager hm{a, bool(threaded_), m.is_ownerized()};
+    if (!hm.u_malloc(uintlen_t(props_v.has_null) +
+                     std::max(reserve_may, new_len)))
+      MJZ_IS_UNLIKELY {
+        hm.unsafe_clear();
+        return false;
+      }
+    uintlen_t cap = hm.get_heap_cap();
+    char *buf = hm.get_heap_begin();
+    const char *old_ptr = m.get_begin();
+    uintlen_t offset_of_beg = m.s_buffer_offset(cap, new_len);
+    char *beg = buf + offset_of_beg;
+    memcpy(beg, old_ptr, new_len);
+    m.destruct_heap();
+    m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap, true, false);
+    if constexpr (props_v.has_alloc) {
+      *m.get_alloc_ptr() = a;
+    }
+    m.set_threaded(bool(threaded_));
+    hm.unsafe_clear();
+    if constexpr (!props_v.has_null) {
+      return true;
+    }
+    asserts(asserts.assume_rn,
+            add_null_impl_<when_t::own_relax, false, true, true>());
+    return true;
   }
 
   /* similar to as_substring_*/
@@ -1179,7 +1241,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
  private:
   template <when_t when_v>
   MJZ_CX_AL_FN success_t reserve_(uintlen_t mincap,
-                               bool round_up = false) noexcept {
+                                  bool round_up = false) noexcept {
     if (m.template has_room_for<when_v>(mincap, props_v.has_null)) {
       return true;
     }
@@ -1579,8 +1641,9 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return replace_data_with_none(offset, byte_count, 0);
   }
 
-  MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t push_back(const std::optional<char> c) noexcept {
-  const  auto len=size();
+  MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t
+  push_back(const std::optional<char> c) noexcept {
+    const auto len = size();
     if (!replace_data_with_none(len, 0, 1, false, true,
                                 align_direction_e::front)) {
       return false;
@@ -1589,10 +1652,11 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
       remove_prefix(1);
       return true;
     }
-    m.u_get_mut_begin()[len-1] = *c;
+    m.u_get_mut_begin()[len - 1] = *c;
     return true;
   }
-  MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t push_front(const std::optional<char> c) noexcept {
+  MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t
+  push_front(const std::optional<char> c) noexcept {
     if (!replace_data_with_none(0, 0, 1, true, false,
                                 align_direction_e::back)) {
       return false;
