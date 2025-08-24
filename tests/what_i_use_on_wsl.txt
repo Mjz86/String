@@ -3,3 +3,29 @@ sudo apt install clang-19 libc++-19-dev clangd-19 clang-tools-19 clang-format-19
 
  clang-19 -std=c++2a    -O3 main.cpp -o main3 -fconstexpr-steps=12712420 -fexperimental-library  -march=native -g  -Werror -Wall -Wextra  -Walloca -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdeprecated-copy-dtor -Wdouble-promotion -Wenum-conversion -Wfloat-equal -Wformat-signedness -Wformat=2 -Wmismatched-tags  -Wmultichar -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wrange-loop-construct -Wshadow -Wuninitialized -Wvla -Wwrite-strings -Wsign-conversion -Wdelete-non-virtual-dtor -lstdc++
 
+
+
+
+
+
+my output:
+
+
+main3  main.cpp  main.hpp
+mjz:~/String/tests$ ./main3
+i am a big massage 0123456789 num : 123456789
+[:1.718ns]
+[:mjz:3.132ns]
+[:mmjz:36.443ns]
+[:std:2.249ns]
+[:stdv:1.871ns]
+[hello world:2.677ns]
+[hello world:mjz:12.095ns]
+[hello world:mmjz:19.784ns]
+[hello world:std:3.267ns]
+[hello world:stdv:2.335ns]
+[long hello world:2.088ns]
+[long hello world:mjz:3.735ns]
+[long hello world:mmjz:20.344ns]
+[long hello world:std:38.18ns]
+[long hello world:stdv:2.012ns]
