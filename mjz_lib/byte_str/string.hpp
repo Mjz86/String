@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "../restricted_arguments.hpp"
 #include "string_abi.hpp"
 
@@ -859,7 +858,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
   MJZ_CX_FN success_t set_alloc(const alloc_ref &a,
                                 uintlen_t reserve_may = 0) noexcept {
-    if (a==m.get_alloc()) {
+    if (a == m.get_alloc()) {
       return true;
     }
     if constexpr (!props_v.has_alloc) {
@@ -879,7 +878,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         }
       uintlen_t cap = hm.get_heap_cap();
       char *buf = hm.get_heap_begin();
-      const char *old_ptr = m.get_begin(); 
+      const char *old_ptr = m.get_begin();
       uintlen_t offset_of_beg = m.s_buffer_offset(cap, new_len);
       char *beg = buf + offset_of_beg;
       memcpy(beg, old_ptr, new_len);
@@ -1757,17 +1756,21 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   MJZ_CX_FN static self_t s_make_str(T val, const uint8_t raidex,
                                      bool upper_case = false) noexcept {
     self_t ret{};
-    if constexpr (20 < sso_cap) {
-      ret.m.set_sso_length(*traits_type{}
-                                .template from_integral_fill<T, sso_cap,
-                                                             alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
-                                    ret.m.m_sso_buffer_(), sso_cap, val,
-                                    upper_case, raidex));
-      asserts(asserts.assume_rn,
-              ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
-    } else {
-      ret.as_integral(val, raidex, upper_case);
+    if constexpr (int_to_dec_unchekced_size_v<T> <= sso_cap) {
+    if (9 < raidex) {
+        ret.m
+            .set_sso_length(
+                *traits_type{}
+                     .template from_integral_fill<T, sso_cap, alignof(self_t) /*sso buffer is aligned at beginning of the object*/>(
+                         ret.m.m_sso_buffer_(), sso_cap, val, upper_case,
+                         raidex));
+        asserts(asserts.assume_rn,
+                ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
+
+        return ret;
+      }
     }
+      ret.as_integral(val, raidex, upper_case);
     return ret;
   }
   template <std::integral T>
@@ -1870,7 +1873,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
       if (good)
         asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     }
-     good = true;
+    good = true;
     return true;
   }
 
