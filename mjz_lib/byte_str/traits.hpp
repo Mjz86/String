@@ -382,6 +382,34 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     return std::nullopt;
   }
 
+  template <typename UT>
+  static constexpr const auto max_len_of_integral_table_ = []() {
+    std::array<uint8_t, 37> ret{};
+    for (uintlen_t i{2}; i < 37; i++) {
+      ret[i] = uint8_t(max_len_of_integral<UT>(uint8_t(i)));
+    }
+    return ret;
+  }();
+
+  template <typename UT>
+  static constexpr const std::array<UT, 37> max_pre_max_v_table_ = []() {
+    std::array<UT, 37> ret{};
+    constexpr UT max_v = UT(-1);
+    for (uintlen_t i{2}; i < 37; i++) {
+      ret[i] = UT(divide_modulo(max_v, UT(i)).first);
+    }
+    return ret;
+  }();
+
+  template <typename UT>
+  static constexpr const auto floor5_table_ = []() {
+    std::array<UT, max_len_of_integral_table_<UT>[10]> ret{};
+    for (uintlen_t i{}; i < ret.size(); i++) {
+      ret[i] = details_ns::floor10_table[i] >> i;
+    }
+    return ret;
+  }();
+
   template <std::integral T>
     requires(!std::same_as<T, bool>)
   MJZ_CX_ND_FN static std::optional<T> to_integral_pv(const char *ptr,
@@ -389,9 +417,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
                                                       uint8_t raidex) noexcept {
     if (36 < raidex || !ptr || !len || !raidex) return std::nullopt;
     using UT = std::make_unsigned_t<T>;
-    constexpr UT max_v = UT(-1);
     constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT(~(UT(-1) >> 1));
-    const UT pre_max_v = UT(divide_modulo(max_v, UT(raidex)).first);
 
     bool is_neg{};
 
@@ -407,16 +433,63 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
     }
     if (!len) return T();
     if (is_neg && !std::is_signed_v<T>) return std::nullopt;
-    if (max_len_of_integral<UT>(raidex) < len) return std::nullopt;
     UT var{};
-    for (uintlen_t i{}; i < len; i++) {
-      auto digit = ascii_to_num(ptr[i]);
-      if (!digit || raidex <= *digit) return std::nullopt;
-      if (pre_max_v < var) {
+    if (raidex == 10) {
+      std::array<UT, max_len_of_integral_table_<UT>[10]> temp{};
+      const auto temp0 = temp;
+      if (temp.size() < len) return std::nullopt;
+      for (uintlen_t i{}; i < len; i++) {
+        temp[len - i - 1] = UT(uint8_t(uint8_t(ptr[i]) - uint8_t('0')));
+      }
+      const auto temp1 = temp;
+      for (uintlen_t i{}; i < len; i++) {
+        temp[i] *= floor5_table_<UT>[i];
+      }
+      const auto temp2 = temp;
+      for (uintlen_t i{}; i < len; i++) {
+        temp[i] <<= i;
+      }
+      for (uintlen_t i{}; i < len; i++) {
+        var += temp[i];
+      }
+      for (uintlen_t i{}; i < len; i++) {
+        temp[i] >>= i;
+      }
+
+      if (temp != temp2) return std::nullopt;
+      // unsigned-overflow is totally valid
+      for (uintlen_t i{}; i < len; i++) {
+        const auto c = int8_t(temp1[i]);
+        temp[i] = !(0 <= c && c < 10);
+      }
+      if (temp != temp0) return std::nullopt;
+
+    } else if ((raidex & (raidex - 1)) == 0) {
+      const auto shift_ = std::countr_zero(raidex);
+      const auto mask = uint8_t(~(raidex - 1));
+      if (sizeof(UT) * 8 < (len << shift_)) {
         return std::nullopt;
       }
-      var *= UT(raidex);
-      var += UT(*digit);
+      for (uintlen_t i{}; i < len; i++) {
+        auto digit = ascii_to_num(ptr[i]);
+        if (!digit || (mask & *digit)) return std::nullopt;
+        var <<= shift_;
+        var |= UT(*digit);
+      }
+
+    } else {
+      const UT pre_max_v = max_pre_max_v_table_<UT>[raidex];
+      // too expensive the loop handles it anyway
+      if (max_len_of_integral_table_<UT>[raidex] < len) return std::nullopt;
+      for (uintlen_t i{}; i < len; i++) {
+        auto digit = ascii_to_num(ptr[i]);
+        if (!digit || raidex <= *digit) return std::nullopt;
+        if (pre_max_v < var) {
+          return std::nullopt;
+        }
+        var *= UT(raidex);
+        var += UT(*digit);
+      }
     }
     if (!is_neg || !var) {
       if (sign_bit & var) {
@@ -438,15 +511,14 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
   MJZ_MCONSTANT(auto)
   defualt_power_fn = [](char ch, uint8_t raidex) noexcept
-      -> std::optional<
-          pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>> {
+      -> std::optional<pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>> {
     if (raidex < *ascii_to_num('E') && (ch == 'e' || ch == 'E')) {
       return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
           uintlen_t(10), uint8_t(10)};
     }
     if (raidex < *ascii_to_num('P') && (ch == 'p' || ch == 'P')) {
-      return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
-          uintlen_t(2), uint8_t(10)};
+      return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{uintlen_t(2),
+                                                                   uint8_t(10)};
     }
     if (ch == '^') {
       return pair_t<uintlen_t /*pow-exp*/, uint8_t /*pow-raidex*/>{
@@ -726,7 +798,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       is_neg = *ptr == '-';
       if (!len) return std::nullopt;
     }
-    auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
+    auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
       uintlen_t i{};
       while (i < len && i < N - 1 &&
              ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {
@@ -1009,7 +1081,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
 
   template <std::integral T>
   using big_buff_t = pair_t<std::array<char, from_integral_max_len<T>(2)>,
-                               std::optional<uintlen_t>>;
+                            std::optional<uintlen_t>>;
   template <std::floating_point T>
   using big_buff2_t =
       pair_t<std::array<char, sizeof(T) * 8>, std::optional<uintlen_t>>;

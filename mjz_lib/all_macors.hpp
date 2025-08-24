@@ -303,7 +303,7 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_GCC_ATTRIBUTES_(X)
 #define MJZ_restrict
 #if 1 < _MSC_VER
-#define MJZ_JUST_FORCED_INLINE_  __forceinline inline
+#define MJZ_JUST_FORCED_INLINE_  __forceinline 
 #define MJZ_JUST_NO_INLINE_  __declspec(noinline)
 #define MJZ_no_unique_address MJZ_AS_CPP_ATTREBUTE(msvc::no_unique_address)
 #define MJZ_JUST_ASSUME_(X_expression_) __assume(X_expression_)
