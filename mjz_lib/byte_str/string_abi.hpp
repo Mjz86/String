@@ -474,10 +474,10 @@ struct str_abi_t_ {
 
     using str_heap_manager = str_heap_manager_t<version_v, is_threaded_v_,
                                                 is_ownerized_v_, has_alloc_v_>;
-    MJZ_CX_FN str_heap_manager non_sso_my_heap_manager_no_own() const noexcept {
+    MJZ_CX_AL_FN str_heap_manager non_sso_my_heap_manager_no_own(bool destroy_on_exit_=false ) const noexcept {
       asserts(asserts.assume_rn, !no_destroy());
-      return str_heap_manager(get_alloc(), is_threaded(), is_ownerized(), false,
-                              false, m_v().raw_data.non_sso.data_block,
+      return str_heap_manager(get_alloc(), is_threaded(), is_ownerized(), false, destroy_on_exit_,
+          m_v().raw_data.non_sso.data_block,
                               get_non_sso_capacity());
     }
 

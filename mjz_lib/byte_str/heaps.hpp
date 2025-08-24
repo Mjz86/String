@@ -127,7 +127,7 @@ class str_heap_manager_t {
 
   MJZ_CX_AL_FN auto alloc_ptr() const noexcept {
     if constexpr (has_alloc_v_) {
-      return m.alloc_ref;
+      return m.alloc_ref ? m.alloc_ref : &allocs_ns::empty_alloc<version_v>;
     } else {
       return &allocs_ns::empty_alloc<version_v>;
     }
