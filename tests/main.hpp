@@ -117,13 +117,11 @@ MJZ_CX_FN void main_t::run() const {
     }
     for (auto&& timer : scoped_timer_t{name + ":omjz"_str, count}) {
       str_t t = fn1();
-      t.as_ownerized();
-      timer.no_optimize();
+      timer.no_optimize(t.as_ownerized(), t);
     }
     for (auto&& timer : scoped_timer_t{name + ":aomjz"_str, count}) {
       str_t t = fn1();
-      t.as_always_ownerized(true);
-      timer.no_optimize();
+      timer.no_optimize(t.as_always_ownerized(true), t);
     }
     for (auto&& timer : scoped_timer_t{name + ":std"_str, count}) {
       timer.no_optimize(fn2());
