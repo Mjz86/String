@@ -1,7 +1,7 @@
 
 sudo apt install clang-19 libc++-19-dev clangd-19 clang-tools-19 clang-format-19 clang-tidy-19 
 
- clang-19 -std=c++2a    -O3 main.cpp -o main3 -fconstexpr-steps=12712420 -fexperimental-library  -march=native -g  -Werror -Wall -Wextra  -Walloca -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdeprecated-copy-dtor -Wdouble-promotion -Wenum-conversion -Wfloat-equal -Wformat-signedness -Wformat=2 -Wmismatched-tags  -Wmultichar -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wrange-loop-construct -Wshadow -Wuninitialized -Wvla -Wwrite-strings -Wsign-conversion -Wdelete-non-virtual-dtor -lstdc++
+ clang-19 -std=c++2a    -O3 main.cpp -o main3 -fconstexpr-steps=12712420 -fexperimental-library  -march=native -g  -Werror -Wall -Wextra  -Walloca -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdeprecated-copy-dtor -Wdouble-promotion -Wenum-conversion -Wfloat-equal -Wformat-signedness -Wformat=2 -Wmismatched-tags  -Wmultichar -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wrange-loop-construct -Wshadow -Wuninitialized -Wvla -Wwrite-strings -Wsign-conversion -Wdelete-non-virtual-dtor  -stdlib=libc++
 
 
 
