@@ -32,7 +32,7 @@ SOFTWARE.
 #define MJZ_BYTE_STRING_views_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
 template <version_t version_v>
-struct basic_string_view_t : private base_string_view_t<version_v> {
+struct MJZ_trivially_relocatable basic_string_view_t : private base_string_view_t<version_v> {
   MJZ_MCONSTANT(version_t)
   Version_v{version_v};
   using base_t = base_string_view_t<version_v>;

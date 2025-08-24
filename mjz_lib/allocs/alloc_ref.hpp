@@ -596,7 +596,7 @@ using global_allocator_t =
     typename global_allocator_selector_helper_t_<version_v, -1>::type;
 
 template <version_t version_v>
-class alloc_base_ref_t {
+class MJZ_trivially_relocatable alloc_base_ref_t {
   template <class>
   friend class mjz_private_accessed_t;
 

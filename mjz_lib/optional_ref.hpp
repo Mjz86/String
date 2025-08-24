@@ -28,7 +28,7 @@ SOFTWARE.
 
 namespace mjz {
 template <typename T>
-struct optional_ref_t {
+struct MJZ_trivially_relocatable optional_ref_t {
   single_object_pointer_t<T> ptr{};
   MJZ_CX_ND_FN T &operator*() const noexcept { return *ptr; }
   MJZ_CX_ND_FN T &value() const noexcept { return *ptr; }
@@ -65,7 +65,7 @@ struct optional_ref_t {
   MJZ_CX_FN optional_ref_t(const std::optional<U> &op) noexcept
       : ptr(op ? &*op : nullptr) {}
 
-  MJZ_CX_FN optional_ref_t(const optional_ref_t &opt) noexcept : ptr(opt.ptr) {}
+  MJZ_CX_FN optional_ref_t(const optional_ref_t &opt) noexcept  =default;
 
   MJZ_CX_FN optional_ref_t(optional_ref_t &&opt) noexcept
       : ptr(std::exchange(opt.ptr, {})) {}
@@ -80,10 +80,7 @@ struct optional_ref_t {
   MJZ_CX_FN bool operator==(const optional_ref_t &opt) const noexcept {
     return ptr == opt.ptr;
   }
-  MJZ_CX_FN optional_ref_t &operator=(const optional_ref_t &opt) noexcept {
-    ptr = opt.ptr;
-    return *this;
-  }
+  MJZ_CX_FN optional_ref_t &operator=(const optional_ref_t &opt) noexcept =default;
   MJZ_CX_FN optional_ref_t &operator=(optional_ref_t &&opt) noexcept {
     ptr = std::exchange(opt.ptr, {});
     return *this;

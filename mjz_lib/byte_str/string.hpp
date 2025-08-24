@@ -57,7 +57,7 @@ struct basic_str_props_t {
 };
 template <version_t version_v_, basic_str_props_t<version_v_> props_v_ =
                                     basic_str_props_t<version_v_>{}>
-struct basic_str_t : void_struct_t {
+struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   template <version_t version_v_0_, basic_str_props_t<version_v_0_>>
   friend struct basic_str_t;
   MJZ_MCONSTANT(version_t)

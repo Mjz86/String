@@ -30,7 +30,7 @@ template <class, class>
 struct tuple_strorage_t {};
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <class T, size_t my_I>
-struct tuple_elem_storage_t {
+struct MJZ_maybe_trivially_relocatable tuple_elem_storage_t {
   MJZ_DISABLE_ALL_WANINGS_END_;
   T data;
   template <size_t I>
@@ -93,7 +93,7 @@ struct tuple_elem_storage_t {
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <typename... Ts, size_t... Is>
   requires(!!sizeof...(Ts))
-struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases))
+struct MJZ_maybe_trivially_relocatable MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases))
     tuple_strorage_t<void(Ts...), std::index_sequence<Is...>>
     : tuple_elem_storage_t<Ts, Is>... {
   MJZ_DISABLE_ALL_WANINGS_END_;
@@ -143,7 +143,7 @@ struct MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases))
 
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <typename... Ts>
-struct tuple_t
+struct MJZ_maybe_trivially_relocatable tuple_t
     : tuple_strorage_t<void(Ts...), std::make_index_sequence<sizeof...(Ts)>> {
   MJZ_DISABLE_ALL_WANINGS_END_;
   using base_t_ =
@@ -174,7 +174,7 @@ tuple_t(Ts &&...) noexcept -> tuple_t<std::remove_cvref_t<Ts>...>;
 
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <class first_t, class second_t>
-struct pair_t {
+struct MJZ_maybe_trivially_relocatable pair_t {
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_no_unique_address first_t first{};
   MJZ_no_unique_address second_t second{};

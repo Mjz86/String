@@ -246,6 +246,7 @@ struct str_abi_t_ {
     }
     MJZ_CX_FN void set_sso_length(uintlen_t new_len_) noexcept {
       set_cap_minus_sso_length(sso_cap - new_len_);
+      asserts(asserts.assume_rn, get_sso_length() == new_len_);
       m_sso_buffer_()[new_len_]='\0';
     }
 

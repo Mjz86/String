@@ -395,6 +395,14 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_JUST_FORCED_INLINE_
 #define MJZ_JUST_NO_INLINE_
 #endif
+
+#ifdef  __cpp_lib_trivially_relocatable
+#define MJZ_trivially_relocatable [[trivially_relocatable]]
+#define MJZ_maybe_trivially_relocatable [[maybe_trivially_relocatable]]
+#else
+#define MJZ_maybe_trivially_relocatable
+#define MJZ_trivially_relocatable
+#endif
 #define MJZ_TRUST_LEVEL_OF_ASSUME_ 0
 #define MJZ_TRUST_LEVEL_OF_BELIEVE_ 1
 #define MJZ_TRUST_LEVEL_OF_EXPECT_ 2

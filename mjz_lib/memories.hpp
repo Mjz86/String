@@ -297,14 +297,14 @@ MJZ_CX_AL_FN char *memmove(char *const dest, const char *const src,
 }
 
 template <typename T>
-MJZ_CX_FN   auto mjz_memset_lambda_createor(T val) noexcept {
+MJZ_CX_FN auto mjz_memset_lambda_createor(T val) noexcept {
   return [val = std::move(val)](
              T &c, MJZ_UNUSED uintlen_t &i,
              MJZ_UNUSED const uintlen_t len) constexpr noexcept -> success_t {
     c = val;
     return 1;
   };
-}; 
+};
 
 template <typename T, class Lambda_t>
 MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
@@ -379,43 +379,61 @@ MJZ_CX_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
   return array;
 }
 
-template <typename T, class F_t>
+template <typename T, class F_t, uintlen_t cache_size_v_0_ = 8>
   requires requires(F_t &&access_at, uintlen_t i, const T &value) {
-    { bool(access_at(i) <= value) } noexcept;
-    { bool(access_at(i) < value) } noexcept;
+    { std::weak_ordering(access_at(i) <=> value) } noexcept;
   }
-MJZ_CX_FN uintlen_t mjz_binary_search(const T &value, uintlen_t array_size,
-                                      F_t &&access_at,
-                                      bool exclusive_search = false) noexcept {
+MJZ_CX_AL_FN uintlen_t
+mjz_binary_search(const T &value, const uintlen_t array_size, F_t &&access_at,
+                  const bool exclusive_search = false) noexcept {
   if (!array_size) return array_size;
-  if (bool(access_at(array_size - 1) < value)) {
+  auto comp_at = [&](uintlen_t i) noexcept -> std::weak_ordering {
+    return access_at(i) <=> value;
+  };
+  ;
+  if (comp_at(array_size - 1) < 0) {
     return array_size;
   }
-  if (!bool(access_at(0) <= value)) {
+  if (0 < comp_at(0)) {
     return 0;
   }
   uintlen_t first{};
   uintlen_t count = uintlen_t(array_size);
-  while (count) {
-    uintlen_t count2{};
-    // for small ones we can do a cache friendly linear seacrh
-    if (8 < count) MJZ_MOSTLY_UNLIKELY {
-        count2 = count >> 1;
-      }
-    auto mid = first + count2;
-    bool result_{};
-    if (exclusive_search) {
-      result_ = bool(access_at(mid) <= value);
-    } else {
-      result_ = bool(access_at(mid) < value);
+  if (exclusive_search) {
+    while (cache_size_v_0_ < count) {
+      uintlen_t count2{count >> 1};
+      auto mid = first + count2;
+      const bool r1{comp_at(mid) <= 0};
+      const bool result_ = r1;
+      ++mid;
+      count2 += result_;
+      const auto c1{count - count2}, c2{count2};
+      first = result_ ? mid : first;
+      count = result_ ? c1 : c2;
     }
-    if (result_) {
-      first = ++mid;
-      count -= count2 + 1;
-    } else {
-      count = count2;
-    }
+    while (count) {
+      if (comp_at(first) > 0) return first;
+      first++;
+      count--;
+    };
+    return first;
   }
+  while (cache_size_v_0_ < count) {
+    uintlen_t count2{count >> 1};
+    auto mid = first + count2;
+    const bool r2{comp_at(mid) < 0};
+    const bool result_ = r2;
+    ++mid;
+    count2 += result_;
+    const auto c1{count - count2}, c2{count2};
+    first = result_ ? mid : first;
+    count = result_ ? c1 : c2;
+  };
+  while (count) {
+    if (comp_at(first) >= 0) return first;
+    first++;
+    count--;
+  };
   return first;
 }
 
@@ -493,15 +511,20 @@ MJZ_CX_AL_FN bool operator_or(bool a, bool b) noexcept {
   return bool(int(a) | int(b));
 }
 
-// T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
-// std::memset(&src,0,sizeof(T));
-// overload the template to say its true, else , deafult to (trivial destroy)
-// T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));
-// std::destroy_at(&src); else false
+// T dest(std::move(src)); is equivlent to std::memmove(&dest,&src,sizeof(T));//
+// ignore the *&src overload the template to say its true, else , deafult to
+// (trivial destroy) T dest(std::move(src)); is equivlent to
+// std::memmove(&dest,&src,sizeof(T)); std::destroy_at(&src); else false
 template <typename T>
-constexpr  inline const bool is_trivially_exchange_move_constructible_v =
-    std::is_trivially_move_constructible_v<T> &&
-    std::is_trivially_destructible_v<T>;
+constexpr inline const bool is_trivially_relocatable_v =
+    ((std::is_trivially_move_constructible_v<T> ||
+      std::is_trivially_copy_constructible_v<T>) &&
+     std::is_trivially_destructible_v<T>)
+#ifdef __cpp_impl_trivially_relocatable
+    || std::is_trivially_relocatable_v<T>
+#endif
+
+    ;
 
 template <typename T, auto concept_fn>
 concept fn_concept_c = concept_fn.template operator()<T>();

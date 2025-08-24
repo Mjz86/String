@@ -54,6 +54,7 @@ struct implace_string_data_t<version_v, props_v, stack_cap>
     char data[sso_cap_v_];
   } m_stack_buffer_{};
 };
+// NOT MJZ_trivially_relocatable
 template <version_t version_v,
           uintlen_t stack_cap = 256 - 4 * sizeof(uintlen_t),
           basic_str_props_t<version_v> props_v = basic_str_props_t<version_v>{}>
