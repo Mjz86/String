@@ -133,6 +133,31 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   static constexpr const dont_mess_up_t &dont_mess_up = unsafe_ns::unsafe_v;
   using when_t = typename m_t::when_t;
 
+  template <when_t when_v, bool checked_, bool no_allocate_,
+            bool the_room_is_infront>
+  MJZ_CX_AL_FN success_t
+  add_null_impl_(uintlen_t reserve_if_allocate_ = 0) noexcept {
+    if constexpr (no_allocate_) {
+      if (!m.template has_room_for<when_v>(reserve_if_allocate_, props_v.has_null)) {
+        str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
+        if (!hm.u_malloc(uintlen_t(props_v.has_null) + reserve_if_allocate_, false))
+          MJZ_IS_UNLIKELY {
+            hm.unsafe_clear();
+            return false;
+          }
+        m.template memcpy_to_non_sso<when_v>(m.get_begin(), m.get_length(),
+                                             hm.get_heap_begin(),
+                                             hm.get_heap_cap(), true);
+        hm.unsafe_clear();
+        return true;
+      }
+    } else if constexpr (checked_) {
+      if (!m.template has_room_for<when_v>(reserve_if_allocate_, props_v.has_null))
+        return false;
+    }
+    return m.template add_null<when_v, the_room_is_infront>();
+  }
+
   template <when_t when_v>
   MJZ_CX_FN void reset_to_error_fail_(static_string_view view) noexcept {
     asserts(asserts.assume_rn, !!view.unsafe_handle().is_static);
@@ -165,7 +190,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     }
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t memcpy_to_me_nonsso_alloc(const char *ptr,
+  MJZ_CX_AL_FN success_t memcpy_to_me_nonsso_alloc(const char *ptr,
                                                    uintlen_t len) noexcept {
     if constexpr (when_v) {
       m.destruct_to_invalid();
@@ -183,7 +208,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t memcpy_to_me_nonsso(const char *ptr, uintlen_t len,
+  MJZ_CX_AL_FN success_t memcpy_to_me_nonsso(const char *ptr, uintlen_t len,
                                              bool no_allocate) noexcept {
     if constexpr (!when_v.is_sso()) {
       if (!m.is_sso() &&
@@ -197,7 +222,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return memcpy_to_me_nonsso_alloc<when_v>(ptr, len);
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t memcpy_to_me_sso(const char *ptr,
+  MJZ_CX_AL_FN success_t memcpy_to_me_sso(const char *ptr,
                                           uintlen_t len) noexcept {
     asserts(asserts.assume_rn, len <= sso_cap);
     if constexpr (when_v) {
@@ -208,7 +233,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t memcpy_to_me_(const char *ptr, uintlen_t len,
+  MJZ_CX_AL_FN success_t memcpy_to_me_(const char *ptr, uintlen_t len,
                                        bool no_allocate) noexcept {
     if (len <= sso_cap) {
       return memcpy_to_me_sso<when_v>(ptr, len);
@@ -217,7 +242,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t init_view_cpy_(const generic_string_view &view,
+  MJZ_CX_AL_FN success_t init_view_cpy_(const generic_string_view &view,
                                         bool no_allocate) noexcept {
     if (!memcpy_to_me_<when_v>(view.data(), view.size(), no_allocate)) {
       return false;
@@ -226,7 +251,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return true;
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t init_view_(const generic_string_view &view,
+  MJZ_CX_AL_FN success_t init_view_(const generic_string_view &view,
                                     bool no_allocate) noexcept {
     if constexpr (props_v.is_ownerized) {
       return init_view_cpy_<when_v>(view, no_allocate);
@@ -244,7 +269,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     }
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t memcopy_assign_(str_c_<self_t> auto const &obj,
+  MJZ_CX_AL_FN success_t memcopy_assign_(str_c_<self_t> auto const &obj,
                                          bool no_allocate, uintlen_t offset,
                                          uintlen_t count) noexcept {
     if (!memcpy_to_me_<when_v>(obj.m.get_begin() + offset, count,
@@ -268,8 +293,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
 
  private:
   template <when_t when_v>
-  MJZ_CX_FN success_t as_substring_impl_(uintlen_t byte_offset,
-                                         uintlen_t byte_count) noexcept {
+  MJZ_CX_AL_FN success_t as_substring_impl_(uintlen_t byte_offset,
+                                            uintlen_t byte_count) noexcept {
     bool has_null = make_right_then_give_has_null(byte_offset, byte_count);
     if constexpr (!when_v.is_sso()) {
       if (!m.is_sso()) {
@@ -281,36 +306,25 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     }
     char *buf = m.m_sso_buffer_();
     memomve_overlap(buf, buf + byte_offset, byte_count);
-    buf[byte_count] = '\0';
+    // buf[byte_count] = '\0';
     m.set_sso_length(byte_count);
     return true;
   }
 
  public:
   template <when_t when_v>
-  MJZ_CX_FN success_t as_substring_(uintlen_t byte_offset,
+  MJZ_CX_AL_FN success_t as_substring_(uintlen_t byte_offset,
                                     uintlen_t byte_count) noexcept {
     asserts(asserts.assume_rn,
             as_substring_impl_<when_v>(byte_offset, byte_count));
-    if constexpr (!props_v.has_null) {
+    if constexpr (!props_v.has_null || when_v.is_sso()) {
       return true;
     }
-    if (m.template add_null<when_v>()) {
-      return true;
-    }
-    str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-    if (!hm.u_malloc(1 + byte_count, false)) MJZ_IS_UNLIKELY {
-        hm.unsafe_clear();
-        return false;
-      }
-    m.template memcpy_to_non_sso<when_v>(m.get_begin(), m.get_length(),
-                                         hm.get_heap_begin(), hm.get_heap_cap(),
-                                         true);
-    hm.unsafe_clear();
-    return true;
+    if (m.is_sso()) return true;
+    return add_null_impl_<when_v, true, false, false>();
   }
   template <when_t when_v, str_c_<self_t> T>
-  MJZ_CX_ND_FN success_t move_init_impl_(alias_t<T &&> str) noexcept {
+  MJZ_CX_AL_FN success_t move_init_impl_(alias_t<T &&> str) noexcept {
     constexpr bool is_same_type = partial_same_as<decltype(str), self_t>;
     auto destruct_fn = [&]() noexcept {
       if constexpr (when_v) {
@@ -374,7 +388,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   template <when_t when_v, str_c_<self_t> T>
-  MJZ_CX_ND_FN success_t move_init_(alias_t<T &&> str) noexcept {
+  MJZ_CX_AL_FN success_t move_init_(alias_t<T &&> str) noexcept {
     if (void_struct_cast_t::up_cast(this) ==
         &void_struct_cast_t::up_cast(str)) {
       return true;
@@ -382,7 +396,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return move_init_impl_<when_v>(std::move(str));
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t share_init_(str_c_<self_t> auto const &obj,
+  MJZ_CX_AL_FN success_t share_init_(str_c_<self_t> auto const &obj,
                                      bool no_allocate = false,
                                      uintlen_t offset = 0,
                                      uintlen_t count = nops) noexcept {
@@ -393,7 +407,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return share_init_impl_<when_v>(obj, no_allocate, offset, count);
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t share_init_impl_(str_c_<self_t> auto const &obj,
+  MJZ_CX_AL_FN success_t share_init_impl_(str_c_<self_t> auto const &obj,
                                           bool no_allocate = false,
                                           uintlen_t offset = 0,
                                           uintlen_t count = nops) noexcept {
@@ -441,7 +455,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return true;
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t copy_assign_(str_c_<self_t> auto const &obj,
+  MJZ_CX_AL_FN success_t copy_assign_(str_c_<self_t> auto const &obj,
                                       bool no_allocate = false,
                                       uintlen_t offset = 0,
                                       uintlen_t count = nops) noexcept {
@@ -452,7 +466,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return copy_assign_impl_<when_v>(obj, no_allocate, offset, count);
   }
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t copy_assign_impl_(str_c_<self_t> auto const &obj,
+  MJZ_CX_AL_FN success_t copy_assign_impl_(str_c_<self_t> auto const &obj,
                                            bool no_allocate = false,
                                            uintlen_t offset = 0,
                                            uintlen_t count = nops) noexcept {
@@ -468,7 +482,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   template <when_t when_v>
-  MJZ_CX_ND_FN success_t reset_(cheap_str_info &info) noexcept {
+  MJZ_CX_AL_FN success_t reset_(cheap_str_info &info) noexcept {
     if constexpr (when_v) {
       m.destruct_to_invalid();
     }
@@ -500,12 +514,11 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return true;
   }
   template <when_t when_v>
-  MJZ_CX_FN void assign_ch_(char c) noexcept {
+  MJZ_CX_AL_FN void assign_ch_(char c) noexcept {
     auto fn_ = [this, c]() noexcept {
       char *p = m.u_get_mut_begin();
       p[0] = c;
-      asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
-      m.set_length(1);
+      as_substring(0, 1);
       return;
     };
     if (m.template has_room_for<when_v>(1, true)) return fn_();
@@ -514,7 +527,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   template <when_t when_v>
-  MJZ_CX_FN void set_prpos_to_(str_c_<self_t> auto const &src) noexcept {
+  MJZ_CX_AL_FN void set_prpos_to_(str_c_<self_t> auto const &src) noexcept {
     if constexpr (!when_v) {
       if constexpr (props_v.has_null) {
         *m.get_alloc_ptr() = src.m.get_alloc();
@@ -560,12 +573,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     if constexpr (no_null_) {
       return;
     }
-    if (m.template add_null<when_t::no_heap>()) {
-      return;
-    }
-
     reset_to_error_on_fail_<when_t::no_heap>(
-        as_ownerized(true),
+        add_null_impl_<when_t::no_heap, true, false, false>(),
         "[Error] basic_str_t(const dont_mess_up_t &, owned_stack_buffer "
         "&,uintlen_t , uintlen_t,bool) : cannot add null , init fail ");
   }
@@ -729,19 +738,19 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         *p = *info.alloc_ptr;
       }
     }
-    info.reserve_capacity = std::max(info.reserve_capacity, length());
-    bool add_null_ = !!(info.add_null + props_v.has_null);
-    if (m.template has_room_for<when_t::no_heap>(info.reserve_capacity,
-                                                 add_null_)) {
-      if (add_null_) {
-        asserts(asserts.assume_rn, m.template add_null<when_t::no_heap>());
-      }
-      return;
+    bool good{};
+    if (info.add_null || props_v.has_null) {
+      good = add_null_impl_<when_t::no_heap, true, false, false>(
+          info.reserve_capacity);
+    } else {
+      good = reserve_<when_t::no_heap>(info.reserve_capacity);
     }
-    reset_to_error_on_fail_<when_t::no_heap>(
-        reserve_<when_t::no_heap>(info.reserve_capacity + uintlen_t(add_null_)),
+    reset_to_error_on_fail_<
+        when_t::no_heap /* if heap was used then it wouldnt have failed*/>(
+        good,
         "[Error]:basic_str_t(const dont_mess_up_t &, owned_stack_buffer && "
         ",cheap_str_info && , uintlen_t  , uintlen_t ): coulnt initilize");
+    return;
   }
 
  public:
@@ -889,7 +898,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
       if constexpr (!props_v.has_null) {
         return true;
       }
-      asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
+      asserts(asserts.assume_rn,
+              add_null_impl_<when_t::own_relax, false, true, true>());
       return true;
     }
   }
@@ -1168,7 +1178,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
    */
  private:
   template <when_t when_v>
-  MJZ_CX_FN success_t reserve_(uintlen_t mincap,
+  MJZ_CX_AL_FN success_t reserve_(uintlen_t mincap,
                                bool round_up = false) noexcept {
     if (m.template has_room_for<when_v>(mincap, props_v.has_null)) {
       return true;
@@ -1219,7 +1229,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     if constexpr (!props_v.has_null) {
       return true;
     }
-    asserts(asserts.assume_rn, m.template add_null<when_t::no_heap>());
+    asserts(asserts.assume_rn,
+            add_null_impl_<when_t::no_heap, false, true, true>());
     return true;
   }
 
@@ -1255,17 +1266,15 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   }
 
   MJZ_CX_FN success_t clear(bool force_ownership = false) noexcept {
-    m.set_length(0);
-    force_ownership |= props_v.has_null;
+    if (!as_substring(0, 0)) return false;
     if (force_ownership) {
-      return as_ownerized(props_v.has_null);
+      return as_ownerized();
     }
     return true;
   }
 
   MJZ_CX_FN success_t add_null() noexcept {
-    return has_null() || m.template add_null<when_t::relax>() ||
-           as_ownerized(true);
+    return has_null() || add_null_impl_<when_t::relax, true, false, false>();
   }
 
   MJZ_CX_FN const char *as_c_str() & noexcept {
@@ -1339,9 +1348,9 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
           } else {
             m.set_sso_length(new_len);
           }
-          asserts(
-              asserts.assume_rn,
-              !props_v.has_null || m.template add_null<when_t::own_relax>());
+          asserts(asserts.assume_rn,
+                  !props_v.has_null ||
+                      add_null_impl_<when_t::own_relax, false, true, true>());
         };
         bool choose_both = choose_back;
         choose_both &= choose_front;
@@ -1458,13 +1467,11 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     memset(&m.u_get_mut_begin()[offset], length_of_val, *val);
     return true;
   }
-
-  MJZ_CX_ND_FN success_t
-  as_ownerized(bool add_null = props_v.has_null) noexcept {
-    if (m.template has_room_for<when_t::relax>(m.get_length(), add_null))
+  MJZ_CX_ND_FN success_t as_ownerized() noexcept {
+    if (m.template has_room_for<when_t::relax>(m.get_length(),
+                                               props_v.has_null))
       return true;
-    return reserve(uintlen_t(add_null) + length()) &&
-           m.template add_null<when_t::own_relax>();
+    return reserve(length());
   }
 
   MJZ_CX_ND_FN success_t as_always_ownerized(bool flag_state_) noexcept {
@@ -1572,27 +1579,26 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
     return replace_data_with_none(offset, byte_count, 0);
   }
 
-  MJZ_CX_ND_FN success_t push_back(std::optional<char> c) noexcept {
-    uintlen_t len = length();
+  MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t push_back(const std::optional<char> c) noexcept {
+  const  auto len=size();
     if (!replace_data_with_none(len, 0, 1, false, true,
                                 align_direction_e::front)) {
       return false;
     }
     if (!c) {
-      m.set_length(len);
+      remove_prefix(1);
       return true;
     }
-    m.u_get_mut_begin()[len] = *c;
+    m.u_get_mut_begin()[len-1] = *c;
     return true;
   }
-  MJZ_CX_ND_FN success_t push_front(std::optional<char> c) noexcept {
-    uintlen_t len = length();
+  MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t push_front(const std::optional<char> c) noexcept {
     if (!replace_data_with_none(0, 0, 1, true, false,
                                 align_direction_e::back)) {
       return false;
     }
     if (!c) {
-      m.set_length(len);
+      remove_suffix(1);
       return true;
     }
     m.u_get_mut_begin()[0] = *c;
@@ -1743,10 +1749,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         return false;
       }
     };
-    m.set_length(new_len);
-    asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     set_encoding(dont_mess_up, encodings_e::ascii);
-    return true;
+    return as_substring_<when_t::own_relax>(0, new_len);
   }
 
  private:
@@ -1757,7 +1761,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
                                      bool upper_case = false) noexcept {
     self_t ret{};
     if constexpr (int_to_dec_unchekced_size_v<T> <= sso_cap) {
-    if (9 < raidex) {
+      if (9 < raidex) {
         ret.m
             .set_sso_length(
                 *traits_type{}
@@ -1770,7 +1774,7 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         return ret;
       }
     }
-      ret.as_integral(val, raidex, upper_case);
+    ret.as_integral(val, raidex, upper_case);
     return ret;
   }
   template <std::integral T>
@@ -1784,7 +1788,6 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
                                   ret.m.m_sso_buffer_(), sso_cap, val));
       asserts(asserts.assume_rn,
               ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
-      ret.m.template add_null<when_t::as_sso>();
     } else {
       ret.as_integral(val, 10, false);
     }
@@ -1804,7 +1807,6 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         floating_format_e::general));
     asserts(asserts.assume_rn,
             ret.m.is_sso() && ret.m.no_destroy() && !ret.get_alloc());
-    ret.m.template add_null<when_t::as_sso>();
     return ret;
   }
 
@@ -1829,11 +1831,8 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
         return false;
       }
     };
-    m.set_length(new_len);
-    asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
     set_encoding(dont_mess_up, encodings_e::ascii);
-
-    return true;
+    return as_substring_<when_t::own_relax>(0, new_len);
   }
 
   using bview = base_string_view_t<version_v>;
@@ -1863,18 +1862,10 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
       return false;
     }
     if (v.is_resurve()) {
-      m.set_length(offset);
-    } else {
-      char *ptr = &m.u_get_mut_begin()[offset];
-      good = true;
-      good &= !!v.get_value(ptr);
+      return good = as_substring(0, offset);
     }
-    if constexpr (props_v.has_null) {
-      if (good)
-        asserts(asserts.assume_rn, m.template add_null<when_t::own_relax>());
-    }
-    good = true;
-    return true;
+    char *ptr = &m.u_get_mut_begin()[offset];
+    return good = !!v.get_value(ptr);
   }
 
   // not implemented yet
