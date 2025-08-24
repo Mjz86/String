@@ -18,8 +18,9 @@
 #include "../mjz_lib/byte_str/formatting/print.hpp"
 #include "../mjz_lib/byte_str/formatting/range_formatters.hpp"
 #include "../mjz_lib/byte_str/formatting/std_view_formatters.hpp"
-#include "../mjz_lib/byte_str/string.hpp"
 #include "../mjz_lib/byte_str/implace_string.hpp"
+#include "../mjz_lib/byte_str/string.hpp"
+
 
 namespace used_mjz_ns {
 using namespace mjz;
@@ -113,8 +114,7 @@ MJZ_CX_FN void main_t::run() const {
       timer.no_optimize(fn1());
     }
     for (auto&& timer : scoped_timer_t{name + ":mmjz"_str, count}) {
-      timer.no_optimize(implace_str_t<version_v>(
-              fn1()));
+      timer.no_optimize(implace_str_t<version_v>(fn1()));
     }
     for (auto&& timer : scoped_timer_t{name + ":std"_str, count}) {
       timer.no_optimize(fn2());
@@ -137,5 +137,16 @@ MJZ_CX_FN void main_t::run() const {
              []() -> std::string { return "long hello world"; },
              []() -> std::string_view { return "long hello world"; },
              "long hello world"_str);
+  fn_do_work([]() -> str_t { return "long long hello world"_str; },
+             []() -> std::string { return "long long hello world"; },
+             []() -> std::string_view { return "long long hello world"; },
+             "long long hello world"_str);
+
+  fn_do_work([]() -> str_t { return "unsigned long long hello world"_str; },
+             []() -> std::string { return "unsigned long long hello world"; },
+             []() -> std::string_view { return "unsigned long long hello world"; },
+             "unsigned long long hello world"_str);
+
+             
 }
 };  // namespace used_mjz_ns
