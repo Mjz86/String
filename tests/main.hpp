@@ -33,7 +33,7 @@ using namespace format_ns;
 using namespace fmt_litteral_ns;
 using namespace print_ns;
 
-MJZ_CONSTANT(version_t) version_v{};
+MJZ_FCONSTANT(version_t) version_v{};
 struct main_t {
   MJZ_NO_MV_NO_CPY(main_t);
   using str_t = basic_str_t<version_v>;
