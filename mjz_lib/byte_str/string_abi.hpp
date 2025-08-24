@@ -488,16 +488,6 @@ struct str_abi_t_ {
                        ? 0
                        : sizeof(uintlen_t));
 
-    MJZ_NCX_FN static void destruct_to_invalid_impl_(
-        std::array<uint64_t, string_size / 8> This_) noexcept {
-      static_assert(sizeof(data_t) == string_size);
-      alignas(data_t) char bytes_[sizeof(data_t)]{};
-      std::memcpy(&bytes_, &This_, sizeof(data_t));
-      MJZ_DISABLE_ALL_WANINGS_START_;
-      data_t* This = std::launder(reinterpret_cast<data_t*>(bytes_));
-      MJZ_DISABLE_ALL_WANINGS_END_;
-      This->destruct_to_invalid_impl_big_();
-    }
     template <bool multi_branch_version_ = true>
     MJZ_CX_AL_FN void destruct_to_invalid_impl_big_() noexcept {
       if constexpr (!multi_branch_version_) {
@@ -536,16 +526,9 @@ struct str_abi_t_ {
       invalid_to_empty();
     }
     MJZ_CX_FN void destruct_to_invalid() noexcept {
-      MJZ_IFN_CONSTEVAL_ {
-        if constexpr ((sizeof(data_t) / 8) < 6) {
-          std::array<uint64_t, sizeof(data_t) / 8> temp{};
-          std::memcpy(&temp, this, sizeof(data_t));
-          destruct_to_invalid_impl_(temp);
-        }
-      }
-      else {
+    
         return destruct_to_invalid_impl_big();
-      }
+      
     }
     MJZ_CX_FN void invalid_to_empty() noexcept { set_invalid_to_sso("", 0); }
 
