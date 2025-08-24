@@ -29,3 +29,12 @@ i am a big massage 0123456789 num : 123456789
 [long hello world:mmjz:20.344ns]
 [long hello world:std:38.18ns]
 [long hello world:stdv:2.012ns]
+
+
+
+
+mjz:~/String/tests$  clang-19 --version
+Debian clang version 19.1.4 (1~deb12u1)
+Target: x86_64-pc-linux-gnu
+Thread model: posix
+InstalledDir: /usr/lib/llvm-19/bin
