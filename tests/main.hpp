@@ -21,7 +21,6 @@
 #include "../mjz_lib/byte_str/implace_string.hpp"
 #include "../mjz_lib/byte_str/string.hpp"
 
-
 namespace used_mjz_ns {
 using namespace mjz;
 using namespace bstr_ns;
@@ -116,6 +115,16 @@ MJZ_CX_FN void main_t::run() const {
     for (auto&& timer : scoped_timer_t{name + ":mmjz"_str, count}) {
       timer.no_optimize(implace_str_t<version_v>(fn1()));
     }
+    for (auto&& timer : scoped_timer_t{name + ":omjz"_str, count}) {
+      str_t t = fn1();
+      t.as_ownerized();
+      timer.no_optimize();
+    }
+    for (auto&& timer : scoped_timer_t{name + ":aomjz"_str, count}) {
+      str_t t = fn1();
+      t.as_always_ownerized(true);
+      timer.no_optimize();
+    }
     for (auto&& timer : scoped_timer_t{name + ":std"_str, count}) {
       timer.no_optimize(fn2());
     }
@@ -142,11 +151,22 @@ MJZ_CX_FN void main_t::run() const {
              []() -> std::string_view { return "long long hello world"; },
              "long long hello world"_str);
 
-  fn_do_work([]() -> str_t { return "unsigned long long hello world"_str; },
-             []() -> std::string { return "unsigned long long hello world"; },
-             []() -> std::string_view { return "unsigned long long hello world"; },
-             "unsigned long long hello world"_str);
+  fn_do_work(
+      []() -> str_t { return "unsigned long long hello world"_str; },
+      []() -> std::string { return "unsigned long long hello world"; },
+      []() -> std::string_view { return "unsigned long long hello world"; },
+      "unsigned long long hello world"_str);
 
-             
+  fn_do_work(
+      []() -> str_t {
+        return "std::pair<unsigned long long,unsigned long long> hello hello world"_str;
+      },
+      []() -> std::string {
+        return "std::pair<unsigned long long,unsigned long long> hello world";
+      },
+      []() -> std::string_view {
+        return "std::pair<unsigned long long,unsigned long long> hello world";
+      },
+      "std::pair<unsigned long long,unsigned long long> hello world"_str);
 }
 };  // namespace used_mjz_ns
