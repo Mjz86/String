@@ -80,7 +80,7 @@ struct pool_alloc_info_t {
       if constexpr (i >= N || i == 0) {
         return ptr;
       } else {
-        return std::assume_aligned<pow_of_2(i)>(ptr);
+        return mjz::assume_aligned<pow_of_2(i)>(ptr);
       }
     };
     template <uintlen_t I>

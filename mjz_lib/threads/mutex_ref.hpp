@@ -214,7 +214,7 @@ struct multiread_singlewrite_lock_ref_t {
         ref{MJZ_STD_is_constant_evaluated_FUNCTION_RET_
                 ? (cx_val = cpy_bitcast<T>(cx_ptr = ptr))
                 : *reinterpret_cast<T *>(
-                      std::assume_aligned<alignof(T)>(ptr))} {
+                      mjz::assume_aligned<alignof(T)>(ptr))} {
     ref.lock(is_mut);
   }
   MJZ_CX_FN ~multiread_singlewrite_lock_ref_t() noexcept {

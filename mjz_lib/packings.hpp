@@ -41,10 +41,10 @@ struct unaligned_holder_t {
 
  public:
   MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
-    return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
+    return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
   MJZ_CX_FN const T *assume_aligned_ptr() const & noexcept {
-    return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
+    return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
   MJZ_CX_FN const T &&assume_aligned() const && noexcept {
     return std::move(*assume_aligned_ptr());
@@ -86,20 +86,20 @@ union unaligned_optional_holder_t {
 
  public:
   MJZ_CX_FN T *assume_aligned_dead_ptr() & noexcept {
-    return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
+    return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
   MJZ_CX_FN const T *assume_aligned_dead_ptr() const & noexcept {
-    return std::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
+    return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
   }
   MJZ_CX_FN T *assume_aligned_dead_ptr() && noexcept = delete;
   MJZ_CX_FN const T *assume_aligned_dead_ptr() const && noexcept = delete;
 
   MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
-    return std::assume_aligned<alignof(T)>(
+    return mjz::assume_aligned<alignof(T)>(
         std::launder(std::addressof(unaligned_data)));
   }
   MJZ_CX_FN const T *assume_aligned_ptr() const & noexcept {
-    return std::assume_aligned<alignof(T)>(
+    return mjz::assume_aligned<alignof(T)>(
         std::launder(std::addressof(unaligned_data)));
   }
   MJZ_CX_FN const T &&assume_aligned() const && noexcept {

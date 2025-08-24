@@ -986,7 +986,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
                                               T number_,
                                               bool upper_case) noexcept {
     std::array<char, sizeof(T) * 2> buf{};
-    out_buf = std::assume_aligned<min_align>(out_buf);
+    out_buf = mjz::assume_aligned<min_align>(out_buf);
     const auto hexes = cpy_bitcast<std::array<char, 16>>(
         upper_case ? alphabett_table_upper : alphabett_table_lower);
 

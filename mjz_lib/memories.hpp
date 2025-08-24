@@ -130,13 +130,13 @@ concept aligned_bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
 template <aligned_bitcastable_c T>
 MJZ_NCX_FN T cpy_aligned_bitcast(const void *src) noexcept {
   T ret{};
-  std::memcpy(&ret, std::assume_aligned<alignof(T)>(src), sizeof(src));
+  std::memcpy(&ret, mjz::assume_aligned<alignof(T)>(src), sizeof(src));
   return ret;
 }
 
 template <aligned_bitcastable_c T>
 MJZ_NCX_FN void cpy_aligned_bitcast(void *dest, const T &src) noexcept {
-  std::memcpy(std::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
+  std::memcpy(mjz::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
 }
 template <std::integral T>
 MJZ_CX_AL_FN T *memcpy_forward(T *dest, const T *src, uintlen_t len) noexcept {

@@ -138,7 +138,7 @@ struct print_t {
         }
       }
       else {
-        ptr_ = reinterpret_cast<format_obj_t *>(std::assume_aligned<align_v_>(
+        ptr_ = reinterpret_cast<format_obj_t *>(mjz::assume_aligned<align_v_>(
             storage_resurve_.ptr - sizeof(format_obj_t)));
       }
       ptr_ = std::construct_at(
@@ -205,7 +205,7 @@ struct print_t {
       if (meta_data_.cache_size <= aliged_stack_.size_bytes()) {
         asserts(asserts.assume_rn, !!aliged_stack_.data());
         storage_resurve_.ptr =
-            std::assume_aligned<align_v_>(aliged_stack_.data());
+            mjz::assume_aligned<align_v_>(aliged_stack_.data());
         storage_resurve_.length = aliged_stack_.size_bytes();
         return;
       }

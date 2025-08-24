@@ -168,10 +168,10 @@ struct str_abi_t_ {
     }
     MJZ_CX_FN static bool has_alloc_v() noexcept { return has_alloc_v_; }
     MJZ_CX_FN const raw_data_t& m_v() const noexcept {
-      return *std::assume_aligned<alignof(uintlen_t)>(&m);
+      return *mjz::assume_aligned<alignof(uintlen_t)>(&m);
     }
     MJZ_CX_FN raw_data_t& m_v() noexcept {
-      return *std::assume_aligned<alignof(uintlen_t)>(&m);
+      return *mjz::assume_aligned<alignof(uintlen_t)>(&m);
     }
     MJZ_CX_FN non_sso_t& non_sso() noexcept { return m_v().raw_data.non_sso; }
     MJZ_CX_FN const non_sso_t& non_sso() const noexcept {
@@ -216,9 +216,9 @@ struct str_abi_t_ {
     MJZ_CX_FN static auto m_sso_buffer_(
         partial_same_as<data_t> auto&& self_) noexcept {
       const auto This_ =
-          std::launder(std::assume_aligned<alignof(uintlen_t)>(&self_));
+          std::launder(mjz::assume_aligned<alignof(uintlen_t)>(&self_));
       const auto ptr_ = This_->m_v().raw_data.sso_buffer;
-      return std::assume_aligned<alignof(uintlen_t)>(ptr_);
+      return mjz::assume_aligned<alignof(uintlen_t)>(ptr_);
     }
 
     MJZ_CX_FN char* m_sso_buffer_() noexcept { return m_sso_buffer_(*this); }
@@ -304,7 +304,7 @@ struct str_abi_t_ {
       cntrl().is_ref = true;
       const auto cntrl_0_ = cntrl();
       uintlen_t cntrl_and_cap{};
-      char* ptr_ = std::assume_aligned<alignof(uintlen_t)>(data.raw_capacity);
+      char* ptr_ = mjz::assume_aligned<alignof(uintlen_t)>(data.raw_capacity);
       char buf_[sizeof(uintlen_t)]{};
       MJZ_IF_CONSTEVAL {
         memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);
@@ -333,11 +333,11 @@ struct str_abi_t_ {
         asserts(asserts.assume_rn, cntrl_0_ == cntrl());
         // out of bound of raw_capacity, but the value is in a way that cntrl is
         // unchanged
-        memcpy(std::assume_aligned<alignof(uintlen_t)>(
+        memcpy(mjz::assume_aligned<alignof(uintlen_t)>(
                    reinterpret_cast<std::byte*>(this) +
                    (reinterpret_cast<std::byte*>(ptr_) -
                     reinterpret_cast<std::byte*>(this))),
-               std::assume_aligned<alignof(uintlen_t)>(
+               mjz::assume_aligned<alignof(uintlen_t)>(
                    reinterpret_cast<std::byte*>(&cntrl_and_cap)),
                sizeof(uintlen_t));
         asserts(asserts.assume_rn, cntrl_0_ == cntrl());
@@ -373,7 +373,7 @@ struct str_abi_t_ {
     MJZ_CX_FN uintlen_t get_non_sso_capacity() const noexcept {
       char buf_[sizeof(uintlen_t)]{};
       const char* ptr_ =
-          std::assume_aligned<alignof(uintlen_t)>(non_sso().raw_capacity);
+          mjz::assume_aligned<alignof(uintlen_t)>(non_sso().raw_capacity);
       uintlen_t ret{};
       MJZ_IF_CONSTEVAL {
         memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);

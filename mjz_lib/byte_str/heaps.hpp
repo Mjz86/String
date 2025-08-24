@@ -94,7 +94,7 @@ class str_heap_manager_t {
   };
   MJZ_CX_FN void init_heap() noexcept {
     alignas(non_threaded_rf_block) char dummy[sizeof(non_threaded_rf_block)]{};
-    char *rc_ptr = std::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr);
+    char *rc_ptr = mjz::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr);
     rc_ptr =
         branchless_teranary<char *>(!can_add_shareholder(), &dummy[0], rc_ptr);
     MJZ_IF_CONSTEVAL {
@@ -142,7 +142,7 @@ class str_heap_manager_t {
     bool succuss = !!blk.ptr;
     m.reduce_rc_on_manager_destruction = succuss;
     // as far as i know nullptr is aligned
-    m.heap_data_ptr = std::assume_aligned<non_threaded_rf_block>(blk.ptr);
+    m.heap_data_ptr = mjz::assume_aligned<non_threaded_rf_block>(blk.ptr);
     m.heap_data_size = blk.length;
     bool is_valid_len = !(byte_traits_t<version_v>::npos - 1 < blk.length);
     if constexpr (MJZ_IN_DEBUG_MODE) {
@@ -244,7 +244,7 @@ class str_heap_manager_t {
         0);
   }
   MJZ_CX_AL_FN char *get_heap_begin() const noexcept {
-    return std::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr) +
+    return mjz::assume_aligned<non_threaded_rf_block>(m.heap_data_ptr) +
            buffer_overhead();
   }
   MJZ_CX_AL_FN char *steal_heap_begin(bool change_rc) noexcept {
@@ -361,7 +361,7 @@ class str_heap_manager_t {
                                   char *heap_begin,
                                   uintlen_t capacity = 0) noexcept
       : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
-    m.heap_data_ptr = std::assume_aligned<non_threaded_rf_block>(heap_begin);
+    m.heap_data_ptr = mjz::assume_aligned<non_threaded_rf_block>(heap_begin);
     m.heap_data_size = capacity;
     uintlen_t overhead = buffer_overhead();
     m.heap_data_size += overhead;

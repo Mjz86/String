@@ -173,7 +173,7 @@ struct stack_allocator_meta_t {
     const bool bad = bool(int(uintlen_t(send - sptr) < size) |
                           int(align < align_) | int(!size));
     const auto ret = branchless_teranary<std::span<char>>(
-        !bad, std::span<char>{std::assume_aligned<align>(sptr), size},
+        !bad, std::span<char>{mjz::assume_aligned<align>(sptr), size},
         std::span<char>{});
     sptr += ret.size();
     return ret;
@@ -188,7 +188,7 @@ struct stack_allocator_meta_t {
    * ...
    */
   MJZ_CX_FN void fn_dealloca(std::span<char>&& blk) noexcept {
-    sptr = std::assume_aligned<align>(
+    sptr = mjz::assume_aligned<align>(
         branchless_teranary(!blk.size(), sptr, blk.data()));
   }
 
@@ -221,7 +221,7 @@ struct stack_allocator_meta_t {
   MJZ_CX_FN stack_allocator_meta_t(std::span<char> bytes = std::span<char>{},
                                    uintlen_t align_ = 0) noexcept {
     if (align_ < align) return;
-    sptr = std::assume_aligned<align>(bytes.data());
+    sptr = mjz::assume_aligned<align>(bytes.data());
     send = sptr + bytes.size();
   }
 
@@ -233,7 +233,7 @@ struct stack_allocator_meta_t {
 template <version_t version_v, uintlen_t buffer_size_v, uintlen_t align_v = 16>
 struct areana_t : stack_allocator_meta_t<version_v, align_v> {
   MJZ_CX_FN areana_t() noexcept : stack_allocator_meta_t<version_v, align_v>{} {
-    this->sptr = std::assume_aligned<align_v>(&(raw.raw_buffer_[0] = 0));
+    this->sptr = mjz::assume_aligned<align_v>(&(raw.raw_buffer_[0] = 0));
     this->send = this->sptr + buffer_size_v;
   }
 

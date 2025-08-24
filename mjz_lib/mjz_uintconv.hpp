@@ -1629,7 +1629,7 @@ template <std::unsigned_integral T, size_t min_align_v = 1>
   if (cap < sizeof(str_int_buf) || !buffer) {
     mjz_unreachable_impl_();
   }
-  char* ptr = std::assume_aligned<min_align_v>(buffer);
+  char* ptr = mjz::assume_aligned<min_align_v>(buffer);
   constexpr size_t num_words = sizeof(str_int_buf) / 4;
 
   std::array<uint32_t, num_words> words =

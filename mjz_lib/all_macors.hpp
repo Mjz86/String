@@ -640,51 +640,6 @@ active union member... IF the first statement is true
     MJZ_MSVC_ONLY_PRAGMA_(warning(pop));                                   \
   }
 
-//-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESV_GET(PTR_, alignof_Ptr_) \
-  (::std::assume_aligned<alignof_Ptr_>(PTR_))
-
-//-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESVNN_GET(PTR_, alignof_Ptr_)          \
-  ([](auto *ptr_just_ptr_) noexcept {                          \
-    MJZ_ASSUME_(ptr_just_ptr_ != nullptr);                     \
-    return ::std::assume_aligned<alignof_Ptr_>(ptr_just_ptr_); \
-  }(PTR_))
-//-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESVNN_GET_C(PTR_, alignof_Ptr_)       \
-  ([&](auto *ptr_just_ptr_) noexcept {                        \
-    MJZ_ASSUME_(ptr_just_ptr_ != nullptr);                    \
-    return ptr_just_ptr_; /* no dynamic assume was provided*/ \
-  }(PTR_))
-//-V:MJZ_ASSUME_ALIGNES_GET: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNES_GET(PTR_, TYPE_) \
-  MJZ_ASSUME_ALIGNESV_GET(PTR_, alignof(TYPE_))
-//-V:MJZ_ASSUME_ALIGNES_GET: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESNN_GET(PTR_, TYPE_) \
-  MJZ_ASSUME_ALIGNESVNN_GET(PTR_, alignof(TYPE_))
-
-//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESV(PTR_, TYPE_A_) \
-  MJZ_ASSUME_((PTR_) == ::std::assume_aligned<TYPE_A_>(PTR_))
-//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNES(PTR_, TYPE_) \
-  MJZ_ASSUME_ALIGNESV(PTR_, alignof(TYPE_))
-
-//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESVNN(PTR_, TYPE_A_)                    \
-  MJZ_ASSUME_((PTR_) == ::std::assume_aligned<TYPE_A_>(PTR_) && \
-              (PTR_) != nullptr)
-
-//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
-#define MJZ_ASSUME_ALIGNESNN(PTR_, TYPE_) \
-  MJZ_ASSUME_ALIGNESVNN(PTR_, alignof(TYPE_))
-
-#define MJZ_UNSAFE_CODE_BLOCK(BLOCK_) BLOCK_
-
-#define MJZ_ASSUME_IF_THEN(CONDITION_STATEMENT_, THEN_STATEMENT_) \
-  MJZ_ASSUME_(!static_cast<bool>(CONDITION_STATEMENT_) ||         \
-              static_cast<bool>(THEN_STATEMENT_))
-
 #define MJZ_NO_DYNAMIC_ALLOCATOR(T_TYPE_T_)                                    \
   void operator delete(void *ptr) noexcept = delete;                           \
   void operator delete[](void *ptr) noexcept = delete;                         \
@@ -869,6 +824,72 @@ MJZ_RELEASE  { delete p; p=nullptr;};
 #define MJZ_RELEASE                                                \
   MJZ_UNUSED const auto &&MJZ_UNIQUE_VAR_NAME(releaserr_on_line) = \
       ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
+
+
+template<uintlen_t align_v>
+  MJZ_CX_FN auto*    assume_aligned(auto*ptr)noexcept{
+/*/usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:30:36: note: alignment of the base pointee object (1 byte) is less than the asserted 8 bytes
+   30 |     (void)__builtin_assume_aligned(__ptr, _Np);
+      |                                    ^
+/usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:43:10: note: in call to '__assume_aligned<8UL, char>(&{*new char[64]#1}[0])'
+
+  note that assume_aligned<8UL, char>(&{*new char[64]#1}[0]) failed!  even tho its at offset 0 of new char[N] !
+  
+  
+  */
+ MJZ_IF_CONSTEVAL_{return ptr;}
+ return ::std::assume_aligned<align_v>(ptr);
+
+  }
+
+
+
+      
+//-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESV_GET(PTR_, alignof_Ptr_) \
+  (::mjz::assume_aligned<alignof_Ptr_>(PTR_))
+
+//-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESVNN_GET(PTR_, alignof_Ptr_)          \
+  ([](auto *ptr_just_ptr_) noexcept {                          \
+    MJZ_ASSUME_(ptr_just_ptr_ != nullptr);                     \
+    return ::mjz::assume_aligned<alignof_Ptr_>(ptr_just_ptr_); \
+  }(PTR_))
+//-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESVNN_GET_C(PTR_, alignof_Ptr_)       \
+  ([&](auto *ptr_just_ptr_) noexcept {                        \
+    MJZ_ASSUME_(ptr_just_ptr_ != nullptr);                    \
+    return ptr_just_ptr_; /* no dynamic assume was provided*/ \
+  }(PTR_))
+//-V:MJZ_ASSUME_ALIGNES_GET: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNES_GET(PTR_, TYPE_) \
+  MJZ_ASSUME_ALIGNESV_GET(PTR_, alignof(TYPE_))
+//-V:MJZ_ASSUME_ALIGNES_GET: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESNN_GET(PTR_, TYPE_) \
+  MJZ_ASSUME_ALIGNESVNN_GET(PTR_, alignof(TYPE_))
+
+//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESV(PTR_, TYPE_A_) \
+  MJZ_ASSUME_((PTR_) == ::mjz::assume_aligned<TYPE_A_>(PTR_))
+//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNES(PTR_, TYPE_) \
+  MJZ_ASSUME_ALIGNESV(PTR_, alignof(TYPE_))
+
+//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESVNN(PTR_, TYPE_A_)                    \
+  MJZ_ASSUME_((PTR_) == ::mjz::assume_aligned<TYPE_A_>(PTR_) && \
+              (PTR_) != nullptr)
+
+//-V:MJZ_ASSUME_ALIGNES: 3546 , 2571,1080
+#define MJZ_ASSUME_ALIGNESNN(PTR_, TYPE_) \
+  MJZ_ASSUME_ALIGNESVNN(PTR_, alignof(TYPE_))
+
+#define MJZ_UNSAFE_CODE_BLOCK(BLOCK_) BLOCK_
+
+#define MJZ_ASSUME_IF_THEN(CONDITION_STATEMENT_, THEN_STATEMENT_) \
+  MJZ_ASSUME_(!static_cast<bool>(CONDITION_STATEMENT_) ||         \
+              static_cast<bool>(THEN_STATEMENT_))
+
 };  // namespace mjz
 
 #endif  // !MJZ_string_lib_macros_HPP_FILE_
