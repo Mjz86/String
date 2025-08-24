@@ -1148,6 +1148,9 @@ You may give feedback in:
   - [unicode standard](https://www.unicode.org/standard/standard.html)
  
  -[mjz::int_to_dec](https://github.com/Mjz86/String/blob/main/int_to_dec.md) 
+
+ -[the c++ abi from the gruond up](https://www.youtube.com/watch?v=DZ93lP1I7wU)
  
  - [https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp](https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp)
+
 
