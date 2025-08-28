@@ -297,7 +297,7 @@ MJZ_CX_AL_FN char *memmove(char *const dest, const char *const src,
 }
 
 template <typename T>
-MJZ_CX_FN auto mjz_memset_lambda_createor(T val) noexcept {
+MJZ_CX_AL_FN auto mjz_memset_lambda_createor(T val) noexcept {
   return [val = std::move(val)](
              T &c, MJZ_UNUSED uintlen_t &i,
              MJZ_UNUSED const uintlen_t len) constexpr noexcept -> success_t {
@@ -307,7 +307,7 @@ MJZ_CX_FN auto mjz_memset_lambda_createor(T val) noexcept {
 };
 
 template <typename T, class Lambda_t>
-MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
+MJZ_CX_AL_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
                              Lambda_t &&lambda) noexcept
   requires requires(uintlen_t &i, T *ptr) {
     {
@@ -322,7 +322,7 @@ MJZ_CX_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
   }
   return dest;
 }
-MJZ_CX_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
+MJZ_CX_AL_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
   MJZ_IFN_CONSTEVAL {
 #if !MJZ_SANE_MEMMOVE_IMPLS
     if (!len) return ptr;
@@ -373,7 +373,7 @@ static_assert(
     log2_of_val_create(hardware_constructive_interference_size));
 
 template <uintlen_t N>
-MJZ_CX_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
+MJZ_CX_AL_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
                                              char val) noexcept {
   memset(array, N, val);
   return array;
@@ -442,18 +442,18 @@ concept bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
                         std::is_trivially_destructible_v<T>;
 
 template <bitcastable_c T>
-MJZ_CX_FN T cpy_bitcast(const char *src) noexcept {
+MJZ_CX_AL_FN T cpy_bitcast(const char *src) noexcept {
   alignas(alignof(T)) std::array<char, sizeof(T)> buf{};
   memcpy(buf.data(), src, sizeof(T));
   return std::bit_cast<T>(buf);
 }
 
 template <bitcastable_c T>
-MJZ_CX_FN auto make_bitcast(const T &src) noexcept {
+MJZ_CX_AL_FN auto make_bitcast(const T &src) noexcept {
   return std::bit_cast<std::array<char, sizeof(T)>>(src);
 }
 template <bitcastable_c T>
-MJZ_CX_FN void cpy_bitcast(char *dest, const T &src) noexcept {
+MJZ_CX_AL_FN void cpy_bitcast(char *dest, const T &src) noexcept {
   alignas(alignof(T)) auto buf = make_bitcast<T>(src);
   memcpy(dest, buf.data(), sizeof(T));
   return;

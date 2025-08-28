@@ -329,17 +329,18 @@ struct MJZ_trivially_relocatable basic_str_t : void_struct_t {
   template <when_t when_v, str_c_<self_t> T>
   MJZ_CX_AL_FN success_t move_init_impl_(alias_t<T &&> str) noexcept {
     constexpr bool is_same_type = partial_same_as<decltype(str), self_t>;
-    auto destruct_fn = [&]() noexcept {
+    auto destruct_fn = [this]() noexcept {
       if constexpr (when_v) {
         m.destruct_to_invalid();
       }
+    std::ignore=  this;
     };
     if constexpr (is_same_type && when_v.is_sso()) {
       destruct_fn();
       m = std::exchange(str.m, {});
       return true;
     }
-    auto cpy_mv_assign = [&]() noexcept {
+    auto cpy_mv_assign = [&str,this]() noexcept {
       MJZ_RELEASE {
         std::destroy_at(&str);
         std::construct_at(&str);

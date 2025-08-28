@@ -139,7 +139,7 @@ using uint_size_of_t = uint_sizeof_t<S>;
 /*this actually performas better in general cases than
  * forced_branchless_teranary  */
 template <class T>
-MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
+MJZ_CX_AL_ND_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
                                  const T &then_val,
                                  const T &else_val) noexcept {
   if constexpr (std::is_scalar_v<std::remove_cvref_t<T>>) {
@@ -163,7 +163,8 @@ MJZ_CX_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
 }
 
 template <class T>
-MJZ_CX_FN T(forced_branchless_teranary)(std::same_as<bool> auto if_expression,
+MJZ_CX_AL_ND_FN T(forced_branchless_teranary)(
+    std::same_as<bool> auto if_expression,
                                         const T &then_val,
                                         const T &else_val) noexcept {
   if constexpr (std::is_scalar_v<T>) {
@@ -304,8 +305,9 @@ template <typename T>
 using nullable_t = T;
 template <typename T>
 using no_null_t = T;
-
+MJZ_MSVC_ONLY_PRAGMA_(optimize("", off));
 MJZ_CX_NL_FN void just_do(auto &&...) noexcept {}
+MJZ_MSVC_ONLY_PRAGMA_(optimize("", on));
 template <typename T>
 MJZ_CX_NL_FN T just_ret(T &&arg) noexcept {
   return std::forward<T>(arg);

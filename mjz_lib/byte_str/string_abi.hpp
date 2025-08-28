@@ -65,9 +65,11 @@ struct str_abi_t_ {
            uintlen_t(!!((min_buffer_size + cntrl_size) % sizeof(uintlen_t)))) -
       cntrl_size;
   struct str_data_t {
+    uintlen_t should_destroy : 1 {1};
     uintlen_t is_sharable : 1 {};
     uintlen_t has_null : 1 {};
-    uintlen_t length : sizeof(uintlen_t) * 8 - 2 {};
+    uintlen_t reserved_0_ : 5 {};
+    uintlen_t length : sizeof(uintlen_t) * 8 - 8 {};
   };
   MJZ_PACKING_START_;
   static_assert(sizeof(str_data_t) == sizeof(uintlen_t));
@@ -173,7 +175,9 @@ struct str_abi_t_ {
     MJZ_CX_AL_FN raw_data_t& m_v() noexcept {
       return *mjz::assume_aligned<alignof(uintlen_t)>(&m);
     }
-    MJZ_CX_AL_FN non_sso_t& non_sso() noexcept { return m_v().raw_data.non_sso; }
+    MJZ_CX_AL_FN non_sso_t& non_sso() noexcept {
+      return m_v().raw_data.non_sso;
+    }
     MJZ_CX_AL_FN const non_sso_t& non_sso() const noexcept {
       return m_v().raw_data.non_sso;
     }
@@ -342,11 +346,13 @@ struct str_abi_t_ {
                sizeof(uintlen_t));
         asserts(asserts.assume_rn, cntrl_0_ == cntrl());
       }
+      data.str_data.should_destroy = !no_destroy_impl_0_();
     }
     template <when_t when_v>
     MJZ_CX_AL_FN void memcpy_to_non_sso(const char* ptr, uintlen_t len,
-                                     char* buffer_begin_, uintlen_t capacity_,
-                                     bool is_shared_) noexcept {
+                                        char* buffer_begin_,
+                                        uintlen_t capacity_,
+                                        bool is_shared_) noexcept {
       check_buffer_correct_ness_(ptr, len, nullptr, 0);
       check_buffer_correct_ness_(buffer_begin_, capacity_, nullptr, 0);
       uintlen_t cap = capacity_;
@@ -407,7 +413,7 @@ struct str_abi_t_ {
     }
 
     MJZ_CX_AL_FN void set_invalid_to_sso(const char* non_overlapping_ptr,
-                                      uintlen_t len) noexcept {
+                                         uintlen_t len) noexcept {
       asserts(asserts.assume_rn, len <= sso_cap);
       m_v().raw_data.sso_buffer[0] = 0;  // make the buffer alive
       char* buf = m_sso_buffer_();
@@ -474,11 +480,12 @@ struct str_abi_t_ {
 
     using str_heap_manager = str_heap_manager_t<version_v, is_threaded_v_,
                                                 is_ownerized_v_, has_alloc_v_>;
-    MJZ_CX_AL_FN str_heap_manager non_sso_my_heap_manager_no_own(bool destroy_on_exit_=false ) const noexcept {
+    MJZ_CX_AL_FN str_heap_manager non_sso_my_heap_manager_no_own(
+        bool destroy_on_exit_ = false) const noexcept {
       asserts(asserts.assume_rn, !no_destroy());
-      return str_heap_manager(get_alloc(), is_threaded(), is_ownerized(), false, destroy_on_exit_,
-          m_v().raw_data.non_sso.data_block,
-                              get_non_sso_capacity());
+      return str_heap_manager(
+          get_alloc(), is_threaded(), is_ownerized(), false, destroy_on_exit_,
+          m_v().raw_data.non_sso.data_block, get_non_sso_capacity());
     }
 
    private:
@@ -488,23 +495,24 @@ struct str_abi_t_ {
                        ? 0
                        : sizeof(uintlen_t));
 
-    template <bool multi_branch_version_ = true>
     MJZ_CX_AL_FN void destruct_to_invalid_impl_big_() noexcept {
-      if constexpr (!multi_branch_version_) {
-        if (no_destroy()) {
-          return;
-        }
-      } else {
-        if (is_sso()) return;
-        if (!is_sharable()) return;
-        if (!has_mut()) return;
+      if (no_destroy()) {
+        return;
       }
-
       destruct_heap();
       return;
     }
     MJZ_CX_FN void destruct_to_invalid_impl_big() noexcept {
       return destruct_to_invalid_impl_big_();
+    }
+    MJZ_CX_AL_FN bool no_destroy_impl_0_() const noexcept {
+      const int ret =
+          int(!cntrl().is_ref) | int(!is_sharable()) | int(!has_mut());
+      return !!ret;
+    }
+    MJZ_CX_AL_FN bool no_destroy_impl_1_() const noexcept {
+      MJZ_IF_CONSTEVAL { return is_sso() || !non_sso().str_data.should_destroy; }
+      return !(cntrl().is_ref&str_data_().should_destroy);
     }
 
    public:
@@ -513,10 +521,11 @@ struct str_abi_t_ {
       hm.u_must_free();
       hm.unsafe_clear();
     }
+
     MJZ_CX_FN bool no_destroy() const noexcept {
-      const int ret =
-          int(!cntrl().is_ref) | int(!is_sharable()) | int(!has_mut());
-      return !!ret;
+      bool b = no_destroy_impl_1_();
+      asserts(asserts.assume_rn, b == no_destroy_impl_0_());
+      return b;
     }
     MJZ_CX_FN void destruct_all() noexcept {
       if (no_destroy()) {
@@ -526,9 +535,7 @@ struct str_abi_t_ {
       invalid_to_empty();
     }
     MJZ_CX_FN void destruct_to_invalid() noexcept {
-    
-        return destruct_to_invalid_impl_big();
-      
+      return destruct_to_invalid_impl_big();
     }
     MJZ_CX_FN void invalid_to_empty() noexcept { set_invalid_to_sso("", 0); }
 
@@ -604,7 +611,7 @@ struct str_abi_t_ {
     };
     template <when_t when_v>
     MJZ_CX_AL_FN bool has_room_for(uintlen_t new_size,
-                                bool with_null = false) const noexcept {
+                                   bool with_null = false) const noexcept {
       if constexpr (when_v.is_sso()) {
         asserts(asserts.assume_rn, is_sso());
         return uintlen_t(with_null) + new_size <= sso_cap;
