@@ -28,7 +28,6 @@ SOFTWARE.
 #ifndef MJZ_MATHS_LIB_HPP_FILE_
 #define MJZ_MATHS_LIB_HPP_FILE_
 
-
 namespace mjz {
 
 template <version_t version_v, uintlen_t n_bits>
@@ -1176,7 +1175,7 @@ struct big_float_t : parse_math_helper_t_<version_v> {
         to_integral_and_fraction();
     if (small)
       return pair_t<big_float_t, big_float_t>{float_from_i(small->first),
-                                                 small->second};
+                                              small->second};
     return pair_t<big_float_t, big_float_t>{*this, big_float_t{}};
   }
   MJZ_CX_FN big_float_t() noexcept = default;

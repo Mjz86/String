@@ -202,10 +202,10 @@ struct argument_name_t {
 
 // configurable
 template <version_t version_v>
-  const constexpr uintlen_t format_basic_buffer_size_v = 64;
+const constexpr uintlen_t format_basic_buffer_size_v = 64;
 // configurable
 template <version_t version_v>
-  const constexpr uintlen_t format_stack_size_v = 128 * sizeof(uintlen_t);
+const constexpr uintlen_t format_stack_size_v = 128 * sizeof(uintlen_t);
 
 template <version_t version_v>
 struct alignas(
@@ -255,7 +255,7 @@ struct alignas(
   // forth 8 words
   uintlen_t err_index{};                                      // 1w
   static_string_view_t<version_v> err_content_bfr_{nullopt};  // 2w
-  view_t err_content{nullopt};                                       // 2w
+  view_t err_content{nullopt};                                // 2w
   out_it_t err_output{};                                      // 3w
                                                               //---//
 

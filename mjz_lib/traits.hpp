@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "memories.hpp"
 
 #ifndef MJZ_TRAIS_LIB_HPP_FILE_
@@ -148,8 +147,7 @@ template <auto... integral_constant_maker_lambdas>
 struct mjz_integral_constants_t {
   template <uintlen_t i>
   using type_at = std::tuple_element_t<
-      i,
-      tuple_t<mjz_integral_constant_t<integral_constant_maker_lambdas>...>>;
+      i, tuple_t<mjz_integral_constant_t<integral_constant_maker_lambdas>...>>;
   template <uintlen_t i>
   using value_type = decltype(type_at<i>{}());
   using type = mjz_integral_constants_t;

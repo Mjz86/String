@@ -22,7 +22,7 @@ SOFTWARE.
 */
 #ifndef MJZ_LIB_import_std_FILE_
 #define MJZ_LIB_import_std_FILE_
-#if !MJC_MANUAL_CXX_INCLUDES_
+#if !MJZ_MANUAL_CXX_INCLUDES_
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,6 +60,9 @@ SOFTWARE.
 #include <type_traits>
 #include <utility>
 #include <variant>
+#if MJZ_PAINC_TRACE_
+#include <stacktrace>
+#endif
 
 #if MJZ_CAN_USE_LIB_STD_FORMAT_
 #include <format>

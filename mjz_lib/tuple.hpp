@@ -93,7 +93,8 @@ struct MJZ_maybe_trivially_relocatable tuple_elem_storage_t {
 MJZ_DISABLE_ALL_WANINGS_START_;
 template <typename... Ts, size_t... Is>
   requires(!!sizeof...(Ts))
-struct MJZ_maybe_trivially_relocatable MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases))
+struct MJZ_maybe_trivially_relocatable MJZ_MSVC_ONLY_CODE_(
+    __declspec(empty_bases))
     tuple_strorage_t<void(Ts...), std::index_sequence<Is...>>
     : tuple_elem_storage_t<Ts, Is>... {
   MJZ_DISABLE_ALL_WANINGS_END_;

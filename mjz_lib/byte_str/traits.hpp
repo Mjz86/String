@@ -798,7 +798,7 @@ struct byte_traits_t : parse_math_helper_t_<version_v> {
       is_neg = *ptr == '-';
       if (!len) return std::nullopt;
     }
-    auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
+    auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
       uintlen_t i{};
       while (i < len && i < N - 1 &&
              ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {

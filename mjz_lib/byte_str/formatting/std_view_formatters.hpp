@@ -23,7 +23,7 @@ SOFTWARE.
 
 #include "../../allocs/pmr_adaptor.hpp"
 #include "basic_formatters.hpp"
-#if MJZ_WITH_iostream 
+#if MJZ_WITH_iostream
 #ifndef MJZ_BYTE_FORMATTING_std_view_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_std_view_formatters_HPP_FILE_
 namespace mjz::bstr_ns::format_ns {

@@ -53,7 +53,7 @@ namespace mjz {
 inline namespace uint_to_ascci_ns0 {
 namespace details_ns {
 
- constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
+constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
   std::array<uint64_t, 9> ret{};
   uint64_t p10_{1};
   for (size_t i{}; i < 9; i++) {
@@ -68,7 +68,7 @@ namespace details_ns {
    }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we know that
  this is correct ret[20] = uint64_t(-1); return ret;
  }(); */
-  constexpr inline const auto floor10_table =
+constexpr inline const auto floor10_table =
     std::array<uint64_t, 21>{1ull,
                              10ull,
                              100ull,
@@ -94,7 +94,7 @@ namespace details_ns {
 constexpr std::span<const uint64_t, 10> pow_ten_table =
     std::span(floor10_table).subspan<1, 10>();
 
-  constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
+constexpr inline std::array<uint16_t, 101> radix_ascii_p2_v_ =
     std::bit_cast<std::array<uint16_t, 101>>(
         std::array<char, 202>{"0001020304050607080910111213141516171819"
                               "2021222324252627282930313233343536373839"
@@ -949,7 +949,7 @@ T(15581492618384294731)+(T(1)<<64),
 };
 template <>
 struct inv10p_i_table_t_<uint8_t> {
-  constexpr static  inline std::array<uint16_t, 2> inv10p_16b_iplus1_table{
+  constexpr static inline std::array<uint16_t, 2> inv10p_16b_iplus1_table{
       6554,
       656,
   };
@@ -957,7 +957,7 @@ struct inv10p_i_table_t_<uint8_t> {
 };
 template <>
 struct inv10p_i_table_t_<uint16_t> {
-  constexpr static  inline std::array<uint32_t, 6> inv10p_32b_iplus1_table{
+  constexpr static inline std::array<uint32_t, 6> inv10p_32b_iplus1_table{
       429496730, 42949673, 4294968, 429497, 42950, 4295,
   };
 
@@ -965,7 +965,7 @@ struct inv10p_i_table_t_<uint16_t> {
 };
 template <>
 struct inv10p_i_table_t_<uint32_t> {
-  constexpr  static inline std::span<const uint64_t, 8> inv10p_57b_iplus1_table{
+  constexpr static inline std::span<const uint64_t, 8> inv10p_57b_iplus1_table{
       std::span(inv_p10_b57).subspan<1>()};
   using mask_type_t = uint64_t;
 };
@@ -978,7 +978,7 @@ struct inv10p_i_table_t_<uint64_t> {
   using mask_type_t = fallback_u128_type_t_;
 #endif  // ! MJZ_uint128_t_impl_t_
   using T = mask_type_t;
-  constexpr  static  inline std::array<T, 19> inv10p_128b_iplus1_table{
+  constexpr static inline std::array<T, 19> inv10p_128b_iplus1_table{
       T(11068046444225730970ull) + (T(1844674407370955161ull) << 64),
       T(2951479051793528259ull) + (T(184467440737095516ull) << 64),
       T(11363194349405083796ull) + (T(18446744073709551ull) << 64),
@@ -1001,9 +1001,9 @@ struct inv10p_i_table_t_<uint64_t> {
   };
 };
 
-constexpr const inline  size_t lookup_dbl_pow5_table_len_ = 325;
+constexpr const inline size_t lookup_dbl_pow5_table_len_ = 325;
 template <int = 0>
-constexpr auto const inline  lookup_dbl_pow5_table_ = []() noexcept {
+constexpr auto const inline lookup_dbl_pow5_table_ = []() noexcept {
   constexpr auto len_ = lookup_dbl_pow5_table_len_;
   std::array<double, len_ * 2> ret{};
   ret[len_] = 1;
@@ -1016,10 +1016,10 @@ constexpr auto const inline  lookup_dbl_pow5_table_ = []() noexcept {
 }();
 
 template <int i = 0>
- inline constexpr const double* const lookup_dbl_pow5_table_ptr_ =
+inline constexpr const double* const lookup_dbl_pow5_table_ptr_ =
     lookup_dbl_pow5_table_<i>.data() + lookup_dbl_pow5_table_len_;
 
-constexpr  auto simd_8digit_conv_u64(auto n) noexcept {
+constexpr auto simd_8digit_conv_u64(auto n) noexcept {
   constexpr uint64_t inv10p4_b40 = 109951163;
   constexpr uint64_t inv10p2_b19 = 5243;
   constexpr uint64_t inv10p1_b10 = 103;
@@ -1080,7 +1080,7 @@ constexpr  auto simd_8digit_conv_u64(auto n) noexcept {
 
 constexpr uint64_t ascii_offset =
     std::bit_cast<uint64_t>(std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
-constexpr  const std::span<const uint16_t, 100> modolo_raidex_table =
+constexpr const std::span<const uint16_t, 100> modolo_raidex_table =
     std::span(radix_ascii_p2_v_).subspan<0, 100>(); /* []() {
    std::array<uint16_t, 100> ret{};
    for (uint32_t i{}; i < 100; i++) {
@@ -1097,10 +1097,9 @@ constexpr  const std::span<const uint16_t, 100> modolo_raidex_table =
    }
    return ret;
  }();*/
- constexpr inline const uint16_t* radix_ascii_p2_ =
-    radix_ascii_p2_v_.data();
+constexpr inline const uint16_t* radix_ascii_p2_ = radix_ascii_p2_v_.data();
 
-constexpr  uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
+constexpr uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
   alignas(8) std::array<uint16_t, 4> ret{
       std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
   constexpr uint64_t inv10p2xi_b57[4]{1ull << 57, 1441151880758559,
@@ -1131,12 +1130,12 @@ constexpr  uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
   return std::bit_cast<uint64_t>(ret);
 }
 
-[[maybe_unused]] constexpr  uint64_t lookup_iota_8digits(
+[[maybe_unused]] constexpr uint64_t lookup_iota_8digits(
     const uint64_t n) noexcept {
   return lookup_iota_8digits_ascii(n) & ~ascii_offset;
 }
 
-[[maybe_unused]] constexpr  uint64_t lookup_iota_8digits_ascii_noif(
+[[maybe_unused]] constexpr uint64_t lookup_iota_8digits_ascii_noif(
     const uint64_t n) noexcept {
   alignas(8) std::array<uint16_t, 4> ret{
       std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
@@ -1156,7 +1155,7 @@ constexpr  uint64_t lookup_iota_8digits_ascii(const uint64_t n) noexcept {
   ret[3] = modolo_raidex_table[(val) >> 57];
   return std::bit_cast<uint64_t>(ret);
 }
-[[maybe_unused]] constexpr  std::array<uint16_t, 5>
+[[maybe_unused]] constexpr std::array<uint16_t, 5>
 lookup_iota_10digits_ascii_noif(const uint64_t n) noexcept {
   alignas(8) std::array<uint16_t, 5> ret{std::bit_cast<std::array<uint16_t, 5>>(
       std::array{'0', '0', '0', '0', '0', '0', '0', '0', '0', '0'})};
@@ -1180,8 +1179,8 @@ lookup_iota_10digits_ascii_noif(const uint64_t n) noexcept {
   return std::bit_cast<std::array<uint16_t, 5>>(ret);
 }
 
-[[maybe_unused]] constexpr  uint64_t
-hybrid_iota_8digits_ascii_noif_noload(const uint64_t n) noexcept {
+[[maybe_unused]] constexpr uint64_t hybrid_iota_8digits_ascii_noif_noload(
+    const uint64_t n) noexcept {
   alignas(8) std::array<uint16_t, 4> ret{
       std::bit_cast<std::array<uint16_t, 4>>(ascii_offset)};
   constexpr uint64_t mask = uint64_t(-1) >> 7;
@@ -1211,7 +1210,7 @@ hybrid_iota_8digits_ascii_noif_noload(const uint64_t n) noexcept {
   }
 }
 
-[[maybe_unused]] constexpr  auto hybrid_iota_8digits_noif_noload_u64(
+[[maybe_unused]] constexpr auto hybrid_iota_8digits_noif_noload_u64(
     auto n) noexcept {
   const uint64_t inv10p7_60b = 115292150461;
   n *= inv10p7_60b;
@@ -1227,12 +1226,12 @@ hybrid_iota_8digits_ascii_noif_noload(const uint64_t n) noexcept {
   }
   return ret;
 }
-[[maybe_unused]] constexpr  uint64_t
-hybrid_iota_8digits_noif_ascii_noload(uint64_t n) noexcept {
+[[maybe_unused]] constexpr uint64_t hybrid_iota_8digits_noif_ascii_noload(
+    uint64_t n) noexcept {
   return hybrid_iota_8digits_noif_noload_u64(n) | ascii_offset;
 }
 
-constexpr  uint32_t iota_3digits(uint32_t n) noexcept {
+constexpr uint32_t iota_3digits(uint32_t n) noexcept {
   constexpr uint32_t inv100_28b = 2684355;
   constexpr uint32_t mask = uint32_t(-1) >> 4;
   n *= inv100_28b;
@@ -1247,7 +1246,7 @@ constexpr  uint32_t iota_3digits(uint32_t n) noexcept {
   return std::bit_cast<uint32_t>(ret);
 }
 
-constexpr  auto iota_4_u32digits(auto n) noexcept {
+constexpr auto iota_4_u32digits(auto n) noexcept {
   constexpr uint32_t inv1000_28b = 268436;
   constexpr uint32_t mask = uint32_t(-1) >> 4;
   n *= inv1000_28b;
@@ -1277,7 +1276,7 @@ constexpr  auto iota_4_u32digits(auto n) noexcept {
   }
   return ret;
 }
-constexpr  auto iota_2_u16digits(auto n) noexcept {
+constexpr auto iota_2_u16digits(auto n) noexcept {
   constexpr uint16_t inv10_10b = 103;
   constexpr uint16_t mask = uint16_t(uint16_t(-1) >> 9);
   n *= inv10_10b;
@@ -1297,7 +1296,7 @@ constexpr  auto iota_2_u16digits(auto n) noexcept {
   return ret;
 }
 
-constexpr  uint64_t iota_5_u32_tou64digits(uint64_t n) noexcept {
+constexpr uint64_t iota_5_u32_tou64digits(uint64_t n) noexcept {
   constexpr uint64_t inv10000_32b = 429497;
   constexpr uint64_t mask = uint32_t(-1);
   n *= inv10000_32b;
@@ -1335,7 +1334,7 @@ constexpr  uint64_t iota_5_u32_tou64digits(uint64_t n) noexcept {
 }
 
 [[maybe_unused]]
-constexpr  std::array<char, 4> iota_forward_3digits(uint32_t n) noexcept {
+constexpr std::array<char, 4> iota_forward_3digits(uint32_t n) noexcept {
   uint32_t awnser = iota_3digits(n);
   int num0ch{};
   if constexpr (std::endian::big == std::endian::native) {
@@ -1352,8 +1351,7 @@ constexpr  std::array<char, 4> iota_forward_3digits(uint32_t n) noexcept {
   return std::bit_cast<std::array<char, 4>>(awnser |
                                             std::bit_cast<uint32_t>("000"));
 }
-[[maybe_unused]] constexpr  uint64_t iota_3digits_u64(
-    uint32_t n) noexcept {
+[[maybe_unused]] constexpr uint64_t iota_3digits_u64(uint32_t n) noexcept {
   return std::bit_cast<uint64_t>(std::array{uint32_t(0), iota_3digits(n)});
 }
 template <bool branch_less_v = true>
@@ -1612,11 +1610,10 @@ template <std::unsigned_integral T>
 constexpr size_t uint_to_dec_aligned_unchekced_size_v{sizeof(
     std::get<0>(details_ns::dec_from_uint_impl_semi_parallel_impl_ncx_(T())))};
 
-  [[noreturn]] inline void mjz_unreachable_impl_() noexcept {
+[[noreturn]] inline void mjz_unreachable_impl_() noexcept {
   MJZ_JUST_UNREACHABLE_();
 }
-constexpr MJZ_JUST_FORCED_INLINE_  void mjz_assume_impl_(
-    const bool b) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ void mjz_assume_impl_(const bool b) noexcept {
   if (b) return;
   mjz_unreachable_impl_();
 }
@@ -1694,7 +1691,7 @@ template <std::unsigned_integral T, size_t min_align_v = 1>
 }
 
 // 1+floor(log_10(x)) , x=0 -> 0
-constexpr  MJZ_JUST_FORCED_INLINE_ int dec_width(
+constexpr MJZ_JUST_FORCED_INLINE_ int dec_width(
     const std::unsigned_integral auto x_pos_) noexcept {
   constexpr bool give_hints_v = true;
   const uint64_t x = uint64_t(x_pos_) | 1;
@@ -1765,23 +1762,21 @@ constexpr  MJZ_JUST_FORCED_INLINE_ int dec_width(
 }
 
 template <std::integral T>
-constexpr  MJZ_JUST_FORCED_INLINE_ int signed_dec_width(
-    const T x) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ int signed_dec_width(const T x) noexcept {
   const bool is_neg = x < 0;
   using ut = std::make_unsigned_t<T>;
   return dec_width<ut>(is_neg ? ut(~ut(x) + 1) : ut(x)) + is_neg;
 }
 template <std::integral T>
-constexpr  inline size_t int_to_dec_unchekced_size_v =
+constexpr inline size_t int_to_dec_unchekced_size_v =
     size_t(std::max(signed_dec_width(std::numeric_limits<T>::max()),
                     signed_dec_width(std::numeric_limits<T>::min())));
 
 namespace details_ns {
 
 template <size_t size_v, std::unsigned_integral T>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
-uint_to_dec_pre_calc_impl_semi_par_(char* buffer, const size_t dec_width_0_,
-                                    T num_) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_semi_par_(
+    char* buffer, const size_t dec_width_0_, T num_) noexcept {
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
   char* end_buf = buffer + dec_width_;
@@ -1889,8 +1884,8 @@ uint_to_dec_pre_calc_impl_semi_par_(char* buffer, const size_t dec_width_0_,
   return dec_width_;
 }
 
-constexpr  MJZ_JUST_FORCED_INLINE_ void cpy_bitcast_impl_(
-    char* ptr, auto v) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ void cpy_bitcast_impl_(char* ptr,
+                                                         auto v) noexcept {
   if (!std::is_constant_evaluated()) {
     std::memmove(ptr, &v, sizeof(v));
   }
@@ -1900,7 +1895,7 @@ constexpr  MJZ_JUST_FORCED_INLINE_ void cpy_bitcast_impl_(
   }
 }
 template <typename T>
-constexpr  MJZ_JUST_FORCED_INLINE_ T
+constexpr MJZ_JUST_FORCED_INLINE_ T
 cpy_bitcast_impl_(const char* ptr) noexcept {
   if (!std::is_constant_evaluated()) {
     T ret{};
@@ -1915,7 +1910,7 @@ cpy_bitcast_impl_(const char* ptr) noexcept {
 }
 
 template <size_t size_v, std::unsigned_integral T>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_(
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_(
     char* buffer, const size_t dec_width_0_, T num_) noexcept {
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
@@ -1945,7 +1940,7 @@ constexpr  MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_(
   return dec_width_;
 }
 
-constexpr  MJZ_JUST_FORCED_INLINE_ uint64_t
+constexpr MJZ_JUST_FORCED_INLINE_ uint64_t
 u16x4_num_to_iota_impl_(uint64_t temp) noexcept {
   constexpr uint64_t inv10p1_b10 = 103;
   constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00;
@@ -1959,7 +1954,7 @@ u16x4_num_to_iota_impl_(uint64_t temp) noexcept {
   }
   return temp;
 }
-[[maybe_unused]] constexpr  MJZ_JUST_FORCED_INLINE_ uint64_t
+[[maybe_unused]] constexpr MJZ_JUST_FORCED_INLINE_ uint64_t
 inv10p8_b57_mul100_num_to_iota_impl_(uint64_t& n) noexcept {
   std::array<uint16_t, 4> indexies{};
   for (uint16_t& index : indexies) {
@@ -1971,7 +1966,7 @@ inv10p8_b57_mul100_num_to_iota_impl_(uint64_t& n) noexcept {
 }
 
 [[maybe_unused]]
-constexpr  MJZ_JUST_FORCED_INLINE_ uint64_t
+constexpr MJZ_JUST_FORCED_INLINE_ uint64_t
 inv10p8_b57_num_to_iota_impl_(uint64_t& n) noexcept {
   std::array<uint16_t, 4> indexies{};
   for (uint16_t& index : indexies) {
@@ -1982,7 +1977,7 @@ inv10p8_b57_num_to_iota_impl_(uint64_t& n) noexcept {
   return u16x4_num_to_iota_impl_(std::bit_cast<uint64_t>(indexies));
 }
 
-[[maybe_unused]] constexpr  MJZ_JUST_FORCED_INLINE_ uint64_t
+[[maybe_unused]] constexpr MJZ_JUST_FORCED_INLINE_ uint64_t
 inv10p8_b57_num_to_iota_impl_ascii_(uint64_t& n) noexcept {
   uint8_t indexies[4]{};
   for (uint8_t& index : indexies) {
@@ -1995,7 +1990,7 @@ inv10p8_b57_num_to_iota_impl_ascii_(uint64_t& n) noexcept {
                  radix_ascii_p2_[indexies[2]], radix_ascii_p2_[indexies[3]]});
 }
 
-constexpr  MJZ_JUST_FORCED_INLINE_ uint64_t
+constexpr MJZ_JUST_FORCED_INLINE_ uint64_t
 inv10p8_b57_num_to_iota_impl_ascii_simd_(uint64_t& n) noexcept {
 #ifdef MJZ_uint128_t_impl_t_
   MJZ_uint128_t_impl_t_ n128 = n;
@@ -2024,9 +2019,8 @@ inv10p8_b57_num_to_iota_impl_ascii_simd_(uint64_t& n) noexcept {
 }
 
 template <size_t size_v>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
-uint_to_dec_pre_calc_impl_seq_lessmul_(char* buffer, const size_t dec_width_0_,
-                                       uint64_t num_) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
+    char* buffer, const size_t dec_width_0_, uint64_t num_) noexcept {
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
   char* end_buf = buffer + dec_width_;
@@ -2110,7 +2104,7 @@ uint_to_dec_pre_calc_impl_seq_lessmul_(char* buffer, const size_t dec_width_0_,
 }
 
 template <size_t size_v>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
+constexpr MJZ_JUST_FORCED_INLINE_ size_t
 uint_to_dec_pre_calc_impl_seq_lessmul_branching_(char* buffer,
                                                  const size_t dec_width_0_,
                                                  uint32_t num_) noexcept {
@@ -2167,9 +2161,8 @@ uint_to_dec_pre_calc_impl_seq_lessmul_branching_(char* buffer,
 }
 
 template <size_t size_v>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
-uint_to_dec_pre_calc_impl_more_mul_(char* buffer, const size_t dec_width_0_,
-                                    uint32_t num_) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_more_mul_(
+    char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
   mjz_assume_impl_(dec_width_0_ < 11);
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
@@ -2209,16 +2202,14 @@ uint_to_dec_pre_calc_impl_more_mul_(char* buffer, const size_t dec_width_0_,
   return dec_width_;
 }
 template <size_t size_v>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
-uint_to_dec_pre_calc_impl_seq_lessmul_(char* buffer, const size_t dec_width_0_,
-                                       uint32_t num_) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
+    char* buffer, const size_t dec_width_0_, uint32_t num_) noexcept {
   return uint_to_dec_pre_calc_impl_more_mul_<size_v>(buffer, dec_width_0_,
                                                      num_);
 }
 template <size_t size_v>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
-uint_to_dec_pre_calc_impl_seq_lessmul_(char* buffer, const size_t dec_width_0_,
-                                       uint16_t num_) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
+    char* buffer, const size_t dec_width_0_, uint16_t num_) noexcept {
   mjz_assume_impl_(dec_width_0_ < 6);
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
@@ -2263,9 +2254,8 @@ uint_to_dec_pre_calc_impl_seq_lessmul_(char* buffer, const size_t dec_width_0_,
 }
 
 template <size_t size_v>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
-uint_to_dec_pre_calc_impl_seq_lessmul_(char* buffer, const size_t dec_width_0_,
-                                       uint8_t num_) noexcept {
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_seq_lessmul_(
+    char* buffer, const size_t dec_width_0_, uint8_t num_) noexcept {
   mjz_assume_impl_(dec_width_0_ < 4);
   const size_t floor_log10 = dec_width_0_ - (0 != dec_width_0_);
   const size_t dec_width_ = floor_log10 + 1;
@@ -2309,7 +2299,7 @@ template <size_t size_of_myt>
 using int_sizeof_t = std::make_signed<uint_sizeof_t<size_of_myt>>;
 
 template <size_t size_v, std::unsigned_integral T>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
+constexpr MJZ_JUST_FORCED_INLINE_ size_t
 uint_to_dec_pre_calc_impl_seq_less_mul_(char* buffer, const size_t dec_width_0_,
                                         T num_) noexcept {
   return uint_to_dec_pre_calc_impl_seq_lessmul_<size_v>(
@@ -2317,10 +2307,11 @@ uint_to_dec_pre_calc_impl_seq_less_mul_(char* buffer, const size_t dec_width_0_,
 }
 
 template <size_t min_size_v, std::unsigned_integral T_>
-constexpr  inline size_t uint_to_dec_par_impl_(
-    char* const buffer, const size_t final_dec_width, const T_ num_) noexcept;
+constexpr inline size_t uint_to_dec_par_impl_(char* const buffer,
+                                              const size_t final_dec_width,
+                                              const T_ num_) noexcept;
 template <size_t size_v, std::unsigned_integral T>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_(
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_(
     char* buffer, const size_t dec_width_0_, T num_) noexcept {
   if constexpr (sizeof(T) != 8) {
     return uint_to_dec_par_impl_<size_v>(buffer, dec_width_0_, num_);
@@ -2330,9 +2321,8 @@ constexpr  MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_pre_calc_impl_(
 }
 
 template <std::integral T>
-constexpr  inline size_t integral_to_dec_impl_(char* buffer,
-                                                     const size_t cap,
-                                                     T num_) noexcept {
+constexpr inline size_t integral_to_dec_impl_(char* buffer, const size_t cap,
+                                              T num_) noexcept {
   const bool is_neg = num_ < 0;
   using u_t = std::make_unsigned_t<decltype(num_)>;
   const auto abs_n = is_neg ? u_t(u_t(~u_t(num_)) + 1) : u_t(num_);
@@ -2347,8 +2337,8 @@ constexpr  inline size_t integral_to_dec_impl_(char* buffer,
 }
 template <size_t size_v, std::integral T>
   requires(int_to_dec_unchekced_size_v<T> <= size_v)
-constexpr  inline size_t integral_to_dec_impl_unchecked_(
-    char* buffer, T num_) noexcept {
+constexpr inline size_t integral_to_dec_impl_unchecked_(char* buffer,
+                                                        T num_) noexcept {
   const bool is_neg = num_ < 0;
   using u_t = std::make_unsigned_t<decltype(num_)>;
   const auto abs_n = is_neg ? u_t(u_t(~u_t(num_)) + 1) : u_t(num_);
@@ -2374,7 +2364,7 @@ struct double_64_t_impl_ {
     return ret != ret.equal ? ret : ret2;
   }
 
-  [[maybe_unused]] constexpr  inline std::weak_ordering
+  [[maybe_unused]] constexpr inline std::weak_ordering
   operator_spaceship_idk_has_bug(
       double_64_t_impl_ lhs, double_64_t_impl_ rhs,
       uint64_t relative_epsilon = uint64_t(1 << 16)) noexcept {
@@ -2421,7 +2411,7 @@ struct double_64_t_impl_ {
 
 // 1+floor(log_10(x)) , x=0 -> 0
 template <int I_0_ = 0>
-constexpr  MJZ_JUST_FORCED_INLINE_ int dec_width_dbl_(
+constexpr MJZ_JUST_FORCED_INLINE_ int dec_width_dbl_(
     const double_64_t_impl_ x_pos_real_) noexcept {
   uint64_t x = uint64_t(x_pos_real_.m_coeffient);
   const int32_t log2_exp = int32_t(x_pos_real_.m_exponent);
@@ -2446,7 +2436,7 @@ constexpr  MJZ_JUST_FORCED_INLINE_ int dec_width_dbl_(
 }
 template <size_t final_dec_width, std::unsigned_integral T_,
           bool prefer_less_seq_muls = false>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t
+constexpr MJZ_JUST_FORCED_INLINE_ size_t
 uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
   if constexpr (final_dec_width == 0) {
     mjz_assume_impl_(num_ < 1);
@@ -2919,13 +2909,13 @@ uint_to_dec_par_impl_exact_(char* const buffer, const T_ num_) noexcept {
 }
 
 template <size_t final_dec_width, std::unsigned_integral T_>
-constexpr  size_t uint_to_dec_par_impl_exact_nl_(char* const buffer,
-                                                       const T_ num_) noexcept {
+constexpr size_t uint_to_dec_par_impl_exact_nl_(char* const buffer,
+                                                const T_ num_) noexcept {
   return uint_to_dec_par_impl_exact_<final_dec_width>(buffer, num_);
 }
 
 template <std::unsigned_integral T_, size_t... Is>
-constexpr  MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_par_impl_helper_(
+constexpr MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_par_impl_helper_(
     char* const buffer, const size_t final_dec_width, const T_ num_,
     std::index_sequence<Is...>) noexcept {
   bool b{};
@@ -2936,15 +2926,15 @@ constexpr  MJZ_JUST_FORCED_INLINE_ size_t uint_to_dec_par_impl_helper_(
   return final_dec_width;
 }
 template <size_t min_size_v, std::unsigned_integral T_>
-constexpr  inline size_t uint_to_dec_par_impl_(
-    char* const buffer, const size_t final_dec_width, const T_ num_) noexcept {
+constexpr inline size_t uint_to_dec_par_impl_(char* const buffer,
+                                              const size_t final_dec_width,
+                                              const T_ num_) noexcept {
   return uint_to_dec_par_impl_helper_(buffer, final_dec_width, num_,
                                       std::make_index_sequence<21>());
 }
 template <size_t min_size_v = 0, std::integral T_>
-constexpr  inline size_t int_to_dec_par(char* buffer,
-                                              const size_t buf_size,
-                                              const T_ num_may_neg_) noexcept {
+constexpr inline size_t int_to_dec_par(char* buffer, const size_t buf_size,
+                                       const T_ num_may_neg_) noexcept {
   const bool is_neg = num_may_neg_ < 0;
   using u_t = std::make_unsigned_t<decltype(num_may_neg_)>;
   const auto num_ =
@@ -3067,16 +3057,15 @@ constexpr  inline size_t int_to_dec_par(char* buffer,
 }
 }  // namespace details_ns
 
-constexpr  inline size_t int_to_dec(char* buffer, const size_t cap,
-                                          std::integral auto num_) noexcept {
+constexpr inline size_t int_to_dec(char* buffer, const size_t cap,
+                                   std::integral auto num_) noexcept {
   if constexpr (true) return details_ns::int_to_dec_par(buffer, cap, num_);
 
   return details_ns::integral_to_dec_impl_(buffer, cap, num_);
 }
 template <size_t size_v, std::integral T>
   requires(int_to_dec_unchekced_size_v<T> <= size_v)
-constexpr  inline size_t int_to_dec_unchecked(char* buffer,
-                                                    T num_) noexcept {
+constexpr inline size_t int_to_dec_unchecked(char* buffer, T num_) noexcept {
   if constexpr (true)
     return details_ns::int_to_dec_par<size_v>(buffer, size_v, num_);
   return details_ns::integral_to_dec_impl_unchecked_<size_v, T>(buffer, num_);
@@ -3085,9 +3074,8 @@ constexpr  inline size_t int_to_dec_unchecked(char* buffer,
 }  // namespace uint_to_ascci_ns0
 };  // namespace mjz
 
-
 #ifndef MJZ_string_lib_macros_
-#undef MJZ_JUST_FORCED_INLINE_ 
+#undef MJZ_JUST_FORCED_INLINE_
 #undef MJZ_JUST_UNREACHABLE_
 #endif
 #endif  // MJZ_UINTCONV_LIB_HPP_FILE_

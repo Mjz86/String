@@ -140,8 +140,8 @@ using uint_size_of_t = uint_sizeof_t<S>;
  * forced_branchless_teranary  */
 template <class T>
 MJZ_CX_AL_ND_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
-                                 const T &then_val,
-                                 const T &else_val) noexcept {
+                                       const T &then_val,
+                                       const T &else_val) noexcept {
   if constexpr (std::is_scalar_v<std::remove_cvref_t<T>>) {
     T then_val_ = *std::launder(&then_val);
     T else_val_ = *std::launder(&else_val);
@@ -164,9 +164,8 @@ MJZ_CX_AL_ND_FN T(branchless_teranary)(std::same_as<bool> auto if_expression,
 
 template <class T>
 MJZ_CX_AL_ND_FN T(forced_branchless_teranary)(
-    std::same_as<bool> auto if_expression,
-                                        const T &then_val,
-                                        const T &else_val) noexcept {
+    std::same_as<bool> auto if_expression, const T &then_val,
+    const T &else_val) noexcept {
   if constexpr (std::is_scalar_v<T>) {
     MJZ_IFN_CONSTEVAL_ {
       using cast_t = uint_size_of_t<sizeof(T)>;
@@ -180,15 +179,13 @@ MJZ_CX_AL_ND_FN T(forced_branchless_teranary)(
 
 template <class>
 class my_totatlly_empty_template1_class_t {};
-MJZ_CX_AL_ND_FN  uint8_t log2_of_val_create(
-    std::integral auto val) noexcept {
+MJZ_CX_AL_ND_FN uint8_t log2_of_val_create(std::integral auto val) noexcept {
   return uint8_t(std::bit_width(val) - (val != 0));
 }
-MJZ_CX_AL_ND_FN  uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
+MJZ_CX_AL_ND_FN uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
   return static_cast<uint64_t>(1ull << log2_val);
 }
-MJZ_CX_AL_ND_FN  uint8_t log2_ceil_of_val_create(
-    std::integral auto val) noexcept
+MJZ_CX_AL_ND_FN uint8_t log2_ceil_of_val_create(std::integral auto val) noexcept
   requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
 {
   return uint8_t(std::bit_width(val) - std::has_single_bit(val));

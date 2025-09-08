@@ -79,6 +79,10 @@ SOFTWARE.
 #define MJZ_PMR_GLOBAL_ALLOCATIONS_ false
 #endif  // !MJZ_PMR_GLOBAL_ALLOCATIONS_
 
+#ifndef MJZ_cow_threashold_CACHE_LINE_N_
+#define MJZ_cow_threashold_CACHE_LINE_N_ 4
+#endif  // !MJZ_cow_threashold_CACHE_LINE_N_
+
 #ifndef MJZ_SANE_MEMMOVE_IMPLS
 #define MJZ_SANE_MEMMOVE_IMPLS true
 #endif  // !MJZ_SANE_MEMMOVE_IMPLS
@@ -262,6 +266,8 @@ SOFTWARE.
 #define MJZ_FCONSTANT(_TYPE_) MJZ_WILL_USE constexpr _TYPE_ const
 #define MJZ_MCONSTANT(_TYPE_) MJZ_WILL_USE static inline constexpr _TYPE_ const
 
+#define MJZ_EXPAND_(X) X
+
 ////////////////////////////
 ///////////////////
 #include "choose_include_marco_.hpp"
@@ -303,8 +309,8 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_GCC_ATTRIBUTES_(X)
 #define MJZ_restrict
 #if 1 < _MSC_VER
-#define MJZ_JUST_FORCED_INLINE_  __forceinline 
-#define MJZ_JUST_NO_INLINE_  __declspec(noinline)
+#define MJZ_JUST_FORCED_INLINE_ __forceinline
+#define MJZ_JUST_NO_INLINE_ __declspec(noinline)
 #define MJZ_no_unique_address MJZ_AS_CPP_ATTREBUTE(msvc::no_unique_address)
 #define MJZ_JUST_ASSUME_(X_expression_) __assume(X_expression_)
 #define MJZ_MACRO_PRAGMA_(WHAT_) __pragma(WHAT_)
@@ -314,7 +320,8 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_restrict __restrict
 #define MJZ_MSVC_ONLY_PRAGMA_(X) MJZ_MACRO_PRAGMA_(X)
 
-#define MJZ_uint128_t_impl_t_ MJZ_MSVC_ONLY_CODE_(std::)MJZ_MSVC_ONLY_CODE_(_Unsigned128)
+#define MJZ_uint128_t_impl_t_ \
+  MJZ_MSVC_ONLY_CODE_(std::) MJZ_MSVC_ONLY_CODE_(_Unsigned128)
 #define MJZ_MSVC_ONLY_CODE_(X) X
 #ifndef MJZ_VERBOSE_FORMAT_ERROR
 #define MJZ_VERBOSE_FORMAT_ERROR false
@@ -376,7 +383,7 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 
 #define MJZ_restrict __restrict__
 #define MJZ_GCC_ATTRIBUTES_(X) __attribute__((X))
-#define MJZ_JUST_FORCED_INLINE_  MJZ_GCC_ATTRIBUTES_(always_inline) inline
+#define MJZ_JUST_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_(always_inline) inline
 #define MJZ_JUST_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline)
 #if __has_cpp_attribute(assume)
 #define MJZ_JUST_ASSUME_(X_expression_) \
@@ -396,7 +403,7 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_JUST_NO_INLINE_
 #endif
 
-#ifdef  __cpp_lib_trivially_relocatable
+#ifdef __cpp_lib_trivially_relocatable
 #define MJZ_trivially_relocatable [[trivially_relocatable]]
 #define MJZ_maybe_trivially_relocatable [[maybe_trivially_relocatable]]
 #else
@@ -776,7 +783,7 @@ struct noexcept_er_helper_t {
   MJZ_CX_FN success_t operator->*(Lmabda_t &&fn) const noexcept {
     return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
   };
-  
+
   template <class Lmabda_t>
   MJZ_CX_FN success_t operator*(Lmabda_t &&fn) const noexcept {
     success_t ret{};
@@ -825,26 +832,30 @@ MJZ_RELEASE  { delete p; p=nullptr;};
   MJZ_UNUSED const auto &&MJZ_UNIQUE_VAR_NAME(releaserr_on_line) = \
       ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
 
+template <size_t align_v>
+MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
+  /*/usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:30:36:
+  note: alignment of the base pointee object (1 byte) is less than the asserted
+  8 bytes 30 |     (void)__builtin_assume_aligned(__ptr, _Np); | ^
+  /usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:43:10: note:
+  in call to '__assume_aligned<8UL, char>(&{*new char[64]#1}[0])'
 
-template<size_t align_v>
-  MJZ_CX_FN auto*    assume_aligned(auto*ptr)noexcept{
-/*/usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:30:36: note: alignment of the base pointee object (1 byte) is less than the asserted 8 bytes
-   30 |     (void)__builtin_assume_aligned(__ptr, _Np);
-      |                                    ^
-/usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:43:10: note: in call to '__assume_aligned<8UL, char>(&{*new char[64]#1}[0])'
+    note that assume_aligned<8UL, char>(&{*new char[64]#1}[0]) failed!  even tho
+  its at offset 0 of new char[N] !
 
-  note that assume_aligned<8UL, char>(&{*new char[64]#1}[0]) failed!  even tho its at offset 0 of new char[N] !
-  
-  
-  */
- MJZ_IF_CONSTEVAL_{return ptr;}
- return ::std::assume_aligned<align_v>(ptr);
 
+    */
+  MJZ_IF_CONSTEVAL_ { return ptr; }
+  return ::std::assume_aligned<align_v>(ptr);
+}
+
+#define MJZ_BAD_DEBUG_0_                                                    \
+  MJZ_IFN_CONSTEVAL {                                                       \
+    std::cout << MJZ_EXPAND_(                                               \
+                                                                            \
+        __FILE__ MJZ_TO_STRING_V( : MJZ_LINE_())) "hereeeeeeeeeeeeeeee!\n"; \
   }
 
-
-
-      
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
 #define MJZ_ASSUME_ALIGNESV_GET(PTR_, alignof_Ptr_) \
   (::mjz::assume_aligned<alignof_Ptr_>(PTR_))

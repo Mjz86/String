@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "asserts.hpp"
 #ifndef MJZ_OPTIONALS_LIB_HPP_FILE_
 #define MJZ_OPTIONALS_LIB_HPP_FILE_
@@ -65,7 +64,7 @@ struct MJZ_trivially_relocatable optional_ref_t {
   MJZ_CX_FN optional_ref_t(const std::optional<U> &op) noexcept
       : ptr(op ? &*op : nullptr) {}
 
-  MJZ_CX_FN optional_ref_t(const optional_ref_t &opt) noexcept  =default;
+  MJZ_CX_FN optional_ref_t(const optional_ref_t &opt) noexcept = default;
 
   MJZ_CX_FN optional_ref_t(optional_ref_t &&opt) noexcept
       : ptr(std::exchange(opt.ptr, {})) {}
@@ -80,7 +79,8 @@ struct MJZ_trivially_relocatable optional_ref_t {
   MJZ_CX_FN bool operator==(const optional_ref_t &opt) const noexcept {
     return ptr == opt.ptr;
   }
-  MJZ_CX_FN optional_ref_t &operator=(const optional_ref_t &opt) noexcept =default;
+  MJZ_CX_FN optional_ref_t &operator=(const optional_ref_t &opt) noexcept =
+      default;
   MJZ_CX_FN optional_ref_t &operator=(optional_ref_t &&opt) noexcept {
     ptr = std::exchange(opt.ptr, {});
     return *this;
@@ -148,7 +148,7 @@ struct char_storage_as_temp_t : public optional_ref_t<T> {
   using optional_ref_t<T>::ptr;
   std::remove_const_t<T> buffer_obj{};
   std::conditional_t<std::is_const_v<T>, const char, char> *ptr_to_real_obj{};
-  MJZ_CX_FN char_storage_as_temp_t(
+  MJZ_CX_AL_FN char_storage_as_temp_t(
       std::conditional_t<std::is_const_v<T>, const char, char>
           *ptr_to_obj) noexcept {
     ptr = nullptr;

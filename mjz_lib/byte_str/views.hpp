@@ -32,7 +32,8 @@ SOFTWARE.
 #define MJZ_BYTE_STRING_views_LIB_HPP_FILE_
 namespace mjz::bstr_ns {
 template <version_t version_v>
-struct MJZ_trivially_relocatable basic_string_view_t : private base_string_view_t<version_v> {
+struct MJZ_trivially_relocatable basic_string_view_t
+    : private base_string_view_t<version_v> {
   MJZ_MCONSTANT(version_t)
   Version_v{version_v};
   using base_t = base_string_view_t<version_v>;
@@ -515,18 +516,17 @@ struct owned_stack_buffer_t {
 namespace litteral_ns {
 template <std::size_t N>
 struct str_litteral_t {
-  template <std::size_t... I>
-  MJZ_CX_FN str_litteral_t(const char8_t (&r)[N],
-                           std::index_sequence<I...>) noexcept
-      : s{std::bit_cast<char>(r[I])...}, was_unicode{true} {}
   MJZ_CX_FN str_litteral_t(const char8_t (&r)[N]) noexcept
-      : str_litteral_t(r, std::make_index_sequence<N>()) {}
-  template <std::size_t... I>
-  MJZ_CX_FN str_litteral_t(const char (&r)[N],
-                           std::index_sequence<I...>) noexcept
-      : s{r[I]...}, was_unicode{false} {}
+      : str_litteral_t(void_struct_t{}, r, std::make_index_sequence<N>()) {}
   MJZ_CX_FN str_litteral_t(const char (&r)[N]) noexcept
-      : str_litteral_t(r, std::make_index_sequence<N>()) {}
+      : str_litteral_t(void_struct_t{}, r, std::make_index_sequence<N>()) {}
+  MJZ_CX_FN str_litteral_t(std::span<const char8_t, N> r) noexcept
+      : str_litteral_t(void_struct_t{}, r.data(),
+                       std::make_index_sequence<N>()) {}
+  MJZ_CX_FN str_litteral_t(std::span<const char, N> r) noexcept
+      : str_litteral_t(void_struct_t{}, r.data(),
+                       std::make_index_sequence<N>()) {}
+
   MJZ_DEFAULTED_CLASS(str_litteral_t);
   char s[N]{};
   bool was_unicode{};
@@ -583,7 +583,22 @@ struct str_litteral_t {
   MJZ_CX_ND_FN std::optional<char> at(const uintlen_t i) const noexcept {
     return i < length() ? std::optional<char>(data()[i]) : std::nullopt;
   }
+
+ private:
+  template <std::size_t... I>
+  MJZ_CX_FN str_litteral_t(void_struct_t, const char8_t *r,
+                           std::index_sequence<I...>) noexcept
+      : s{std::bit_cast<char>(r[I])...}, was_unicode{true} {
+    asserts(!r[N - 1]);
+  }
+  template <std::size_t... I>
+  MJZ_CX_FN str_litteral_t(void_struct_t, const char *r,
+                           std::index_sequence<I...>) noexcept
+      : s{r[I]...}, was_unicode{false} {
+    asserts(!r[N - 1]);
+  }
 };
+
 template <char... cs>
 MJZ_CX_FN auto &operator""_cs() noexcept {
   return static_data_t<decltype([]() noexcept {

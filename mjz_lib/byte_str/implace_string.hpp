@@ -285,6 +285,7 @@ struct implace_str_t
   }
 };
 namespace litteral_ns {
+
 /*
  *makes a gengeric implace_str_t  that views the string
  */
@@ -297,7 +298,6 @@ operator_icxstr() noexcept
   return implace_str_t<version_v, stack_cap, props_v>(
       operator_str<L, version_v, props_v>());
 };
-
 };  // namespace litteral_ns
 };  // namespace mjz::bstr_ns
 template <mjz::version_t version_v,

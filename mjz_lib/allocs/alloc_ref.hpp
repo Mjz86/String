@@ -33,31 +33,31 @@ namespace mjz::allocs_ns {
 
 // configurable
 template <version_t version_v>
-constexpr  const uintlen_t cow_threashold_v{
-    4 * hardware_destructive_interference_size};
+constexpr const uintlen_t cow_threashold_v{
+    MJZ_cow_threashold_CACHE_LINE_N_ * hardware_destructive_interference_size};
 
 // configurable
 template <version_t version_v>
-constexpr  const bool uses_pmr_sync_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
+constexpr const bool uses_pmr_sync_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
 
 // configurable
 template <version_t version_v>
-constexpr  const bool uses_pmr_async_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
+constexpr const bool uses_pmr_async_v{MJZ_PMR_GLOBAL_ALLOCATIONS_};
 
 // configurable
 template <version_t version_v>
-constexpr  const uintlen_t page_alloc_page_count_v{0};
+constexpr const uintlen_t page_alloc_page_count_v{0};
 // configurable
 template <version_t version_v>
-constexpr  const uintlen_t page_alloc_blk_size_v{
+constexpr const uintlen_t page_alloc_blk_size_v{
     hardware_constructive_interference_size};
 // configurable
 template <version_t version_v>
-constexpr  const bool check_the_alloc_info{MJZ_IN_DEBUG_MODE};
+constexpr const bool check_the_alloc_info{MJZ_IN_DEBUG_MODE};
 
 // configurable
 template <version_t version_v>
-constexpr  const bool force_deafult_alloc_v{false};
+constexpr const bool force_deafult_alloc_v{false};
 
 // configurable
 template <version_t version_v>
@@ -352,10 +352,9 @@ struct alignas(16) alloc_base_t : void_struct_t {
               alloc_vtable_t<version_v> vtable_{vtable_val};
               uintlen_t min = hardware_destructive_interference_size;
               uintlen_t align_log2 = log2_ceil_of_val_create(min);
-              vtable_.cow_threashold >>= align_log2;
-              vtable_.cow_threashold <<= align_log2;
-              vtable_.cow_threashold += (size_t)branchless_teranary<uintlen_t>(
-                  vtable_.cow_threashold != vtable_val.cow_threashold, min, 0);
+              vtable_.cow_threashold +=
+                  align_log2 - (vtable_val.cow_threashold != 0);
+              vtable_.cow_threashold &= ~uintlen_t(align_log2 - 1);
               return vtable_;
             },
             void_struct_t{}) {}
@@ -1447,7 +1446,7 @@ class MJZ_trivially_relocatable alloc_base_ref_t {
 };
 
 template <version_t version_v>
-constexpr   const alloc_base_ref_t<version_v> empty_alloc{};
+constexpr const alloc_base_ref_t<version_v> empty_alloc{};
 
 template <class T, version_t version_v, bool no_threads_v = false,
           bool do_throw = MJZ_CATCHES_EXCEPTIONS_>

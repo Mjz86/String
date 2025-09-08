@@ -31,7 +31,39 @@ MJZ_FCONSTANT(std::align_val_t)
 default_new_align_v = std::align_val_t(default_new_align_z);
 MJZ_FCONSTANT(uintlen_t)
 cache_fast_align_v = 8 * sizeof(uintlen_t);
-/*
+
+MJZ_NCX_AL_FN bool memory_has_overlap_ncx(const void *const a_ptr_,
+                                          uintlen_t a_len,
+                                          const void *const b_ptr_,
+                                          uintlen_t b_len) noexcept {
+  const uintlen_t a_ptr{std::bit_cast<uintptr_t>(a_ptr_)};
+  const uintlen_t b_ptr{std::bit_cast<uintptr_t>(b_ptr_)};
+  auto b_end = b_ptr + b_len;
+  auto a_end = a_ptr + a_len;
+  bool a_beg_is_in_b = (b_ptr <= a_ptr);
+  a_beg_is_in_b &= (a_ptr < b_end);
+  bool b_beg_is_in_a = (a_ptr <= b_ptr);
+  b_beg_is_in_a &= (b_ptr < a_end);
+  auto a_last = a_end - 1;
+  auto b_last = b_end - 1;
+  bool a_last_is_in_b = (b_ptr <= a_last);
+  a_last_is_in_b &= (a_last < b_end);
+  bool b_last_is_in_a = (a_ptr <= b_last);
+  b_last_is_in_a &= (b_last < a_end);
+  bool ret = a_beg_is_in_b;
+  ret |= b_beg_is_in_a;
+  ret |= a_last_is_in_b;
+  ret |= b_last_is_in_a;
+  return ret;
+}
+
+MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
+                                     const char *const b_ptr_,
+                                     uintlen_t b_len) noexcept {
+  MJZ_IFN_CONSTEVAL {
+    return memory_has_overlap_ncx(a_ptr_, a_len, b_ptr_, b_len);
+  }
+  /*
 O(1) time complexity in runtime
 O(b_len*a_len)  time complexity in compile-time.
 NOTE:
@@ -40,64 +72,38 @@ diffrence is due to constexpr's pointer comparason limitation.
 IF THIS FUNCTION GIVES AN ERROR IN CONSTEXPR GCC < 12 :
 https://gcc.gnu.org/bugzilla/show_bug.cgi?id=89074
 */
-MJZ_CX_AL_FN bool memory_has_overlap(const char *const a_ptr_, uintlen_t a_len,
-                                     const char *const b_ptr_,
-                                     uintlen_t b_len) noexcept {
-  MJZ_IF_CONSTEVAL {
-    if (b_len && a_len) {
-      const char *a_ptr{a_ptr_};
-      for (uintlen_t i{}; i < a_len; a_ptr++, i++) {  //-V2528
-        const char *b_ptr{b_ptr_};
-        for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
-          if (b_ptr == a_ptr) {
-            return true;
-          }
-        }
-      }
-    } else if (!a_len) {
-      const char *const a_ptr{a_ptr_};
+  if (b_len && a_len) {
+    const char *a_ptr{a_ptr_};
+    for (uintlen_t i{}; i < a_len; a_ptr++, i++) {  //-V2528
       const char *b_ptr{b_ptr_};
       for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
       }
-    } else if (!b_len) {
-      const char *a_ptr{a_ptr_};
-      const char *const b_ptr{b_ptr_};
-      for (uintlen_t j{}; j < a_len; a_ptr++, j++) {  //-V2528
-        if (b_ptr == a_ptr) {
-          return true;
-        }
-      }
-    } else {
-      const char *const a_ptr{a_ptr_};
-      const char *const b_ptr{b_ptr_};
-      return b_ptr == a_ptr;
     }
-    return false;
+  } else if (!a_len) {
+    const char *const a_ptr{a_ptr_};
+    const char *b_ptr{b_ptr_};
+    for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
+      if (b_ptr == a_ptr) {
+        return true;
+      }
+    }
+  } else if (!b_len) {
+    const char *a_ptr{a_ptr_};
+    const char *const b_ptr{b_ptr_};
+    for (uintlen_t j{}; j < a_len; a_ptr++, j++) {  //-V2528
+      if (b_ptr == a_ptr) {
+        return true;
+      }
+    }
+  } else {
+    const char *const a_ptr{a_ptr_};
+    const char *const b_ptr{b_ptr_};
+    return b_ptr == a_ptr;
   }
-  else {
-    const uintlen_t a_ptr{std::bit_cast<uintptr_t>(a_ptr_)};
-    const uintlen_t b_ptr{std::bit_cast<uintptr_t>(b_ptr_)};
-    auto b_end = b_ptr + b_len;
-    auto a_end = a_ptr + a_len;
-    bool a_beg_is_in_b = (b_ptr <= a_ptr);
-    a_beg_is_in_b &= (a_ptr < b_end);
-    bool b_beg_is_in_a = (a_ptr <= b_ptr);
-    b_beg_is_in_a &= (b_ptr < a_end);
-    auto a_last = a_end - 1;
-    auto b_last = b_end - 1;
-    bool a_last_is_in_b = (b_ptr <= a_last);
-    a_last_is_in_b &= (a_last < b_end);
-    bool b_last_is_in_a = (a_ptr <= b_last);
-    b_last_is_in_a &= (b_last < a_end);
-    bool ret = a_beg_is_in_b;
-    ret |= b_beg_is_in_a;
-    ret |= a_last_is_in_b;
-    ret |= b_last_is_in_a;
-    return ret;
-  }
+  return false;
 }
 
 MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
@@ -123,18 +129,17 @@ MJZ_CX_AL_FN bool memory_is_inside(const char *const hey_stack,
 }
 
 template <typename T>
-concept aligned_bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
-                                std::is_trivially_default_constructible_v<T> &&
-                                std::is_trivially_destructible_v<T>;
+concept bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
+                        std::is_trivially_destructible_v<T>;
 
-template <aligned_bitcastable_c T>
+template <bitcastable_c T>
 MJZ_NCX_FN T cpy_aligned_bitcast(const void *src) noexcept {
-  T ret{};
-  std::memcpy(&ret, mjz::assume_aligned<alignof(T)>(src), sizeof(src));
-  return ret;
+  alignas(alignof(T)) std::array<char, sizeof(T)> ret{};
+  std::memcpy(&ret, mjz::assume_aligned<alignof(T)>(src), sizeof(T));
+  return std::bit_cast<T>(ret);
 }
 
-template <aligned_bitcastable_c T>
+template <bitcastable_c T>
 MJZ_NCX_FN void cpy_aligned_bitcast(void *dest, const T &src) noexcept {
   std::memcpy(mjz::assume_aligned<alignof(T)>(dest), &src, sizeof(src));
 }
@@ -308,7 +313,7 @@ MJZ_CX_AL_FN auto mjz_memset_lambda_createor(T val) noexcept {
 
 template <typename T, class Lambda_t>
 MJZ_CX_AL_FN T *mjz_mem_iterate(T *dest, const uintlen_t len,
-                             Lambda_t &&lambda) noexcept
+                                Lambda_t &&lambda) noexcept
   requires requires(uintlen_t &i, T *ptr) {
     {
       std::forward<Lambda_t>(lambda)(ptr[i], i, len)
@@ -374,7 +379,7 @@ static_assert(
 
 template <uintlen_t N>
 MJZ_CX_AL_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
-                                             char val) noexcept {
+                                                char val) noexcept {
   memset(array, N, val);
   return array;
 }
@@ -437,10 +442,6 @@ mjz_binary_search(const T &value, const uintlen_t array_size, F_t &&access_at,
   return first;
 }
 
-template <typename T>
-concept bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
-                        std::is_trivially_destructible_v<T>;
-
 template <bitcastable_c T>
 MJZ_CX_AL_FN T cpy_bitcast(const char *src) noexcept {
   alignas(alignof(T)) std::array<char, sizeof(T)> buf{};
@@ -457,6 +458,22 @@ MJZ_CX_AL_FN void cpy_bitcast(char *dest, const T &src) noexcept {
   alignas(alignof(T)) auto buf = make_bitcast<T>(src);
   memcpy(dest, buf.data(), sizeof(T));
   return;
+}
+
+template <bitcastable_c T>
+MJZ_CX_AL_FN T cpy_aligned_bitcast(const char *src) noexcept {
+  MJZ_IF_CONSTEVAL { return cpy_bitcast<T>(src); }
+  else {
+    return cpy_aligned_bitcast<T>(static_cast<const void *>(src));
+  }
+}
+
+template <bitcastable_c T>
+MJZ_CX_AL_FN void cpy_aligned_bitcast(char *dest, const T &src) noexcept {
+  MJZ_IF_CONSTEVAL { return cpy_bitcast(dest, src); }
+  else {
+    return cpy_aligned_bitcast(static_cast<void *>(dest), src);
+  }
 }
 
 template <class Like_what_t_, class U>

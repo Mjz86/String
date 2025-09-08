@@ -358,8 +358,7 @@ struct basic_lazy_str_t {
       this->iterate_fnp = &iterate_fn_;
       this->trivial_destroy = std::is_trivially_destructible_v<T>;
       this->trivial_copy = std::is_trivially_copy_constructible_v<T>;
-      this->trivial_destructive_move =
-          is_trivially_relocatable_v<T>;
+      this->trivial_destructive_move = is_trivially_relocatable_v<T>;
       this->is_small = small_enough;
       this->obj_size = sizeof(T);
       this->obj_align_log2 = log2_ceil_of_val_create(alignof(T));

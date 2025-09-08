@@ -340,7 +340,7 @@ parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
 template <version_t version_v>
 MJZ_CX_FN success_t
 parse_and_format_data_t<version_v>::parse_formating_string() noexcept {
-  out_it_t /*the  copy is intentional */ output{}; 
+  out_it_t /*the  copy is intentional */ output{};
   success_t ret = [this, &output]() noexcept {
     format_context_t<version_v> &fctx_ = format_ctx();
     if (parse_ctx().encoding() != encodings_e::ascii) {
@@ -485,8 +485,7 @@ parse_and_format_data_t<version_v>::get_slice_parse_filter(
       return nullopt;
     }
   }
-  if (*charechter != '[')
-    return pair_t<uintlen_t, uintlen_t>{0, uintlen_t(-1)};
+  if (*charechter != '[') return pair_t<uintlen_t, uintlen_t>{0, uintlen_t(-1)};
   if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
   charechter = parse_ctx().front();
   if (!charechter) {
@@ -603,7 +602,7 @@ concept valid_formatter_format_c =
 template <version_t version_v, valid_formatter_format_c<version_v> T>
 struct formatter_formatter_base_t {
   using view_t = basic_string_view_t<version_v>;
-  MJZ_DEFAULTED_CLASS(formatter_formatter_base_t); 
+  MJZ_DEFAULTED_CLASS(formatter_formatter_base_t);
   MJZ_CX_FN formatter_formatter_base_t(view_t name_) noexcept : name(name_) {}
   view_t input{};
   view_t name{};
@@ -801,7 +800,7 @@ struct formatting_object_t : parse_and_format_data_t<version_v> {
   template <typename L_v, is_formatted_c<version_v>... Ts>
   MJZ_CX_FN success_t format_to_pv(out_it_t iter, L_v, Ts &&...args) noexcept;
   MJZ_CX_FN success_t run_format() noexcept {
-     success_t s= main_ctx().parse_formating_string();
+    success_t s = main_ctx().parse_formating_string();
     return s;
   }
   template <version_t, typename...>
@@ -951,8 +950,7 @@ MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
             std::make_index_sequence<sizeof...(Ts)>{}};
         if (checker.successful)
           return {uintlen_t(-1) - checker.base_ctx().err_index, nullopt};
-        return {0,
-                pair_t<uintlen_t, view_t>{checker.base_ctx().err_index,
+        return {0, pair_t<uintlen_t, view_t>{checker.base_ctx().err_index,
                                              checker.base_ctx().err_content}};
       };
       using run_function_cx_ft = static_data_t<decltype(run_function_cx_f)>;

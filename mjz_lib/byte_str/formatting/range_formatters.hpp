@@ -57,8 +57,8 @@ struct default_formatter_t<version_v, T_, 60> {
       get_invalid_T_obj<CVT_pv<I>>()));
   template <std::size_t... I>
   MJZ_CX_FN auto static F_t_fn(std::index_sequence<I...>) noexcept
-      -> tuple_t<typename format_context_t<
-          version_v>::template formatter_type<decayed_t<I>>...> * {
+      -> tuple_t<typename format_context_t<version_v>::template formatter_type<
+          decayed_t<I>>...> * {
     return nullptr;
   }
 
@@ -124,8 +124,8 @@ struct default_formatter_t<version_v, T_, 60> {
     }
     auto ch = ctx.front();
     if (ch && *ch == '[') {
-      std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
-          slice = ctx.get_slice();
+      std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>> slice =
+          ctx.get_slice();
       if (!slice) {
         return false;
       }
@@ -276,8 +276,8 @@ struct default_formatter_t<version_v, T, 50> {
     }
     auto ch = ctx.front();
     if (ch && *ch == '[') {
-      std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
-          slice = ctx.get_slice();
+      std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>> slice =
+          ctx.get_slice();
       if (!slice) return false;
       slice_index = slice->first;
       slice_length = slice->second;

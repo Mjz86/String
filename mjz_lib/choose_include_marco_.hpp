@@ -52,7 +52,6 @@ SOFTWARE.
 #define MJZ_USE_CXX_MODULES_ false
 #endif
 
-
 #ifndef MJZ_STD_HAS_SIMD_LIB_
 #define MJZ_STD_HAS_SIMD_LIB_ false
 #else
@@ -77,7 +76,14 @@ SOFTWARE.
 #define MJZ_USE_CXX_STD_MODULES_ false
 #endif
 
+#ifndef MJZ_MANUAL_CXX_INCLUDES_
+#define MJZ_MANUAL_CXX_INCLUDES_ false
+#endif
 
-#ifndef MJC_MANUAL_CXX_INCLUDES_
-#define MJC_MANUAL_CXX_INCLUDES_ false
+#if !defined(__cpp_lib_stacktrace)
+#undef MJZ_PAINC_TRACE_
+#define MJZ_PAINC_TRACE_ false
+#endif
+#ifndef MJZ_PAINC_TRACE_
+#define MJZ_PAINC_TRACE_ true
 #endif

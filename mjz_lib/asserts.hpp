@@ -55,15 +55,28 @@ struct mjz_assert_t {
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
   }
-
-  MJZ_NORETURN MJZ_NCX_AL_FN void panic(
-      MJZ_UNUSED const char *const str = "assert") const noexcept {
+  MJZ_NORETURN MJZ_NCX_FN static void panic_handle_deafult() noexcept {
+#if MJZ_PAINC_TRACE_
+    std::cout << std::stacktrace::current();
+#endif
+    std::terminate();
+  }
+  MJZ_NCX_AL_FN static auto &panic_handle_fn_ptr() noexcept {
+    static std::atomic<decltype(&panic_handle_deafult)> a{
+        &panic_handle_deafult};
+    return a;
+  }
+  MJZ_NORETURN MJZ_NO_INLINE static void panic_handler() noexcept {
     MJZ_DISABLE_ALL_WANINGS_START_;
 #if MJZ_WITH_iostream
-    std::abort();
+    panic_handle_fn_ptr().load(std::memory_order_acquire)();
 #endif
     MJZ_UNREACHABLE();
     MJZ_DISABLE_ALL_WANINGS_END_;
+  }
+  MJZ_NORETURN MJZ_NCX_AL_FN void panic(
+      MJZ_UNUSED const char *const str = "assert") const noexcept {
+    panic_handler();
   }
 
   MJZ_NORETURN MJZ_NCX_AL_FN void not_implemented_yet(

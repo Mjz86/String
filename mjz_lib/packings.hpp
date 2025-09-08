@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #include "releasers.hpp"
 
 #ifndef MJZ_PACKING_LIB_HPP_FILE_
@@ -188,7 +187,7 @@ MJZ_BAD_COMPILER(sizeof(bit_field_test_t_) == 1);
 template <std::integral T>
   requires(sizeof(T) <= 16)
 
-MJZ_CX_AL_FN   uint8_t get_end_bit_index(T mask) noexcept {
+MJZ_CX_AL_FN uint8_t get_end_bit_index(T mask) noexcept {
   int16_t index{};
   while (mask) {
     mask >>= 1;
@@ -198,7 +197,7 @@ MJZ_CX_AL_FN   uint8_t get_end_bit_index(T mask) noexcept {
 }
 template <std::integral T>
   requires(sizeof(T) <= 16)
-MJZ_CX_AL_FN   uint8_t get_begin_bit_index(T mask) noexcept {
+MJZ_CX_AL_FN uint8_t get_begin_bit_index(T mask) noexcept {
   int16_t index{(sizeof(T) * 8) - 1};
   while (static_cast<bool>(static_cast<T &>(mask <<= 1))) {  //-V2561
     index--;
