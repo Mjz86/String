@@ -43,7 +43,8 @@ enum class align_direction_e : char {
   back = 3
 }align;
 };
-// template pram 
+// template pram
+(NOTE: THE ABI HAS BEEN CHANGED , SOME OF THESE MAY OR MAY NOT APPLY , BUT ITS OVERALLY EQUIVLENT)
 <properties>// determine if dome grantees can be made to improve performance because of edge case reduction,  and to add some api components like `c_str` or mutatable iteration. 
 struct {
   (allocator reference as empty base);
@@ -1155,6 +1156,7 @@ You may give feedback in:
 -[What is an ABI, and Why is Breaking it Bad? - Marshall Clow - CppCon 2020](https://www.youtube.com/watch?v=7RoTDjLLXJQ)
  
  - [https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp](https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp)
+
 
 
 
