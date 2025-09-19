@@ -26,8 +26,7 @@ SOFTWARE.
 
 MJZ_EXPORT namespace mjz ::allocs_ns {
   namespace stack_alloc_ns {
-  template <version_t version_v, uintlen_t align_v_ = 16>
-  struct stack_alloc_t {
+  template <version_t version_v, uintlen_t align_v_ = 16> struct stack_alloc_t {
     using alloc_t = stack_alloc_t;
     using alloc_base = alloc_base_t<version_v>;
     using block_info = block_info_t<version_v>;
@@ -43,22 +42,22 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
 
     struct obj_t {
       stack_ref_t stack_refrence{};
-      char* stack_begin_ptr{};
+      char *stack_begin_ptr{};
       uintlen_t stack_length{};
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
-      MJZ_CX_ND_FN friend bool operator==(const obj_t& a,
-                                          const obj_t& b) noexcept = delete;
+    private:
+      MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
+                                          const obj_t &b) noexcept = delete;
 
-     public:
-      MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
-                                 strategy_t) const& noexcept {
+    public:
+      MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
+                                 strategy_t) const & noexcept {
         return mjz::memory_is_inside(stack_begin_ptr, stack_length, blk.ptr,
                                      uintlen_t(!!blk.length));
       }
-      MJZ_CX_ND_FN success_t deallocate(heap_block_t&&, strategy_t) & noexcept {
+      MJZ_CX_ND_FN success_t deallocate(heap_block_t &&,
+                                        strategy_t) & noexcept {
         return true;
       }
       MJZ_CX_ND_FN heap_block_t allocate(uintlen_t minsize,
@@ -79,9 +78,10 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return ret;
       }
 
-     public:
-      MJZ_CX_FN obj_t(alloc_t a, alloc_base&) noexcept {
-        if (!a.stack_refrence) return;
+    public:
+      MJZ_CX_FN obj_t(alloc_t a, alloc_base &) noexcept {
+        if (!a.stack_refrence)
+          return;
         this->stack_refrence = a.stack_refrence;
         this->stack_begin_ptr = a.stack_refrence->sptr;
         this->stack_length =
@@ -89,11 +89,10 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
     };
   };
-  };  // namespace stack_alloc_ns
+  }; // namespace stack_alloc_ns
 
   namespace page_alloc_ns {
-  template <version_t version_v>
-  struct page_alloc_t {
+  template <version_t version_v> struct page_alloc_t {
     using alloc_t = page_alloc_t;
     using alloc_base = alloc_base_t<version_v>;
     using block_info = block_info_t<version_v>;
@@ -107,22 +106,21 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     meta_ref_t meta_refrence{};
     struct obj_t {
       meta_ref_t meta_refrence{};
-      char* data_begin_ptr{};
+      char *data_begin_ptr{};
       uintlen_t data_length{};
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
-      MJZ_CX_ND_FN friend bool operator==(const obj_t& a,
-                                          const obj_t& b) noexcept = delete;
+    private:
+      MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
+                                          const obj_t &b) noexcept = delete;
 
-     public:
-      MJZ_CX_ND_FN bool is_owner(const heap_block_t& blk,
-                                 strategy_t) const& noexcept {
+    public:
+      MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
+                                 strategy_t) const & noexcept {
         return mjz::memory_is_inside(data_begin_ptr, data_length, blk.ptr,
                                      uintlen_t(!!blk.length));
       }
-      MJZ_CX_ND_FN success_t deallocate(heap_block_t&& blk,
+      MJZ_CX_ND_FN success_t deallocate(heap_block_t &&blk,
                                         strategy_t strategy) & noexcept {
         bool bad = strategy.cant_bother_with_good_size().is_thread_safe;
         bad |= !blk.length;
@@ -153,16 +151,17 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return ret;
       }
 
-     public:
-      MJZ_CX_FN obj_t(alloc_t a, alloc_base&) noexcept {
-        if (!a.meta_refrence) return;
+    public:
+      MJZ_CX_FN obj_t(alloc_t a, alloc_base &) noexcept {
+        if (!a.meta_refrence)
+          return;
         this->meta_refrence = a.meta_refrence;
         this->data_begin_ptr = a.meta_refrence->data_ptr.pages.data();
         this->data_length = a.meta_refrence->data_ptr.pages.size_bytes();
       }
     };
   };
-  };  // namespace page_alloc_ns
+  }; // namespace page_alloc_ns
 
-}  // namespace mjz::allocs_ns
-#endif  // MJZ_ALLOCS_bump_alloc_FILE_HPP_
+} // namespace mjz::allocs_ns
+#endif // MJZ_ALLOCS_bump_alloc_FILE_HPP_

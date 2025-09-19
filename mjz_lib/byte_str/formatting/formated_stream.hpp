@@ -46,7 +46,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     status_view_t<version_v> status = printer_t_::format_to(
         alias_t<typename printer_t_::meta_data_t>{false, nullptr, false}, it,
         fmt_litteral_ns::operator_fmt<version_v, "{}">(), std::forward<T>(arg));
-    if (status) return cout_v;
+    if (status)
+      return cout_v;
     std::ostream &ref = *it.Stream;
     MJZ_RELEASE {
       MJZ_NOEXCEPT {
@@ -68,11 +69,11 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   namespace shl_litteral_ns {
   template <typename T>
     requires is_streamed_c_helper_<version_t{}, T>
-  MJZ_NCX_FN std::ostream &operator<<(std::ostream &cout_v, T &&arg) {
+  MJZ_NCX_FN std::ostream &operator<<(std::ostream & cout_v, T && arg) {
     return operator_shift_left<T, version_t{}>(cout_v, std::forward<T>(arg));
   }
-  }  // namespace shl_litteral_ns
-  }  // namespace fmt_litteral_ns
-}  // namespace mjz::bstr_ns::format_ns
+  } // namespace shl_litteral_ns
+  } // namespace fmt_litteral_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_formated_stream_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_formated_stream_HPP_FILE_

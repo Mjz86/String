@@ -41,7 +41,7 @@ MJZ_EXPORT namespace mjz {
     MJZ_DEFAULTED_CLASS(uintN_t);
     MJZ_DISABLE_ALL_WANINGS_END_;
 
-   private:
+  private:
     MJZ_CX_AL_FN uintN_t(void_struct_t, uintlen_t) noexcept : uintN_t{} {}
     template <std::integral T, std::integral... Ts>
     MJZ_CX_AL_FN uintN_t(void_struct_t, const uintlen_t i, T lowest,
@@ -50,20 +50,20 @@ MJZ_EXPORT namespace mjz {
       nth_word(i) = lowest;
     }
 
-   public:
+  public:
     template <std::integral... Ts>
       requires(sizeof...(Ts) <= word_count)
     MJZ_CX_AL_FN explicit uintN_t(/*low to high*/ Ts... args) noexcept
         : uintN_t{void_struct_t{}, 0, uint64_t(args)...} {}
 
-    MJZ_CX_AL_FN uint64_t& nth_word(auto i) noexcept {
+    MJZ_CX_AL_FN uint64_t &nth_word(auto i) noexcept {
       if constexpr (version_v.is_LE()) {
         return words[size_t(i)];
       } else {
         return words[size_t((word_count - 1) - i)];
       }
     }
-    MJZ_CX_AL_FN const uint64_t& nth_word(auto i) const noexcept {
+    MJZ_CX_AL_FN const uint64_t &nth_word(auto i) const noexcept {
       if constexpr (version_v.is_LE()) {
         return words[size_t(i)];
       } else {
@@ -75,14 +75,15 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN void set_nth_bit(auto i, bool val) noexcept {
       uint64_t mask = uint64_t(1) << (i & 63);
-      uint64_t& word = nth_word(i >> 6);
+      uint64_t &word = nth_word(i >> 6);
       word &= ~mask;
       word |= val ? mask : 0;
     }
     MJZ_CX_AL_FN void operator_sr(uintlen_t amount) noexcept {
       bool zero_out = amount < n_bits;
       const uint64_t zero_out_mask64 = (~uint64_t(zero_out)) + 1;
-      for (uint64_t& word : words) word &= zero_out_mask64;
+      for (uint64_t &word : words)
+        word &= zero_out_mask64;
       amount &= zero_out_mask64;
       intlen_t abs_amount = intlen_t(amount);
       intlen_t internal_amount{abs_amount & 63};
@@ -92,9 +93,10 @@ MJZ_EXPORT namespace mjz {
       const uint64_t ub_annoying_mask = (~uint64_t(internal_amount != 0)) + 1;
 
       uintN_t upper_half{*this}, lower_half{*this};
-      for (uint64_t& word : upper_half.words) word = (word >> internal_amount);
+      for (uint64_t &word : upper_half.words)
+        word = (word >> internal_amount);
       internal_amount |= 0 == internal_amount;
-      for (uint64_t& word : lower_half.words)
+      for (uint64_t &word : lower_half.words)
         word = ub_annoying_mask & (word << (64 - internal_amount));
 
       for (intlen_t i{1}; i < intlen_t(word_count); i++) {
@@ -108,7 +110,7 @@ MJZ_EXPORT namespace mjz {
         nth_word(i) = temp[size_t(i + external_amount)];
       }
     }
-    MJZ_CX_AL_FN uintN_t& operator>>=(uintlen_t amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator>>=(uintlen_t amount) noexcept {
       operator_sr(amount);
 
       return *this;
@@ -117,7 +119,8 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN void operator_sl(uintlen_t amount) noexcept {
       bool zero_out = amount < n_bits;
       const uint64_t zero_out_mask64 = (~uint64_t(zero_out)) + 1;
-      for (uint64_t& word : words) word &= zero_out_mask64;
+      for (uint64_t &word : words)
+        word &= zero_out_mask64;
       amount &= zero_out_mask64;
       intlen_t abs_amount = intlen_t(amount);
       intlen_t internal_amount{abs_amount & 63};
@@ -126,9 +129,10 @@ MJZ_EXPORT namespace mjz {
       MJZ_JUST_ASSUME_(amount < n_bits);
       const uint64_t ub_annoying_mask = (~uint64_t(internal_amount != 0)) + 1;
       uintN_t upper_half{*this}, lower_half{*this};
-      for (uint64_t& word : lower_half.words) word = (word << internal_amount);
+      for (uint64_t &word : lower_half.words)
+        word = (word << internal_amount);
       internal_amount |= 0 == internal_amount;
-      for (uint64_t& word : upper_half.words)
+      for (uint64_t &word : upper_half.words)
         word = ub_annoying_mask & (word >> (64 - internal_amount));
       for (intlen_t i{}; i < intlen_t(word_count) - 1; i++) {
         lower_half.nth_word(i + 1) |= upper_half.nth_word(i);
@@ -143,37 +147,37 @@ MJZ_EXPORT namespace mjz {
         nth_word(i) = temp[size_t(i)];
       }
     }
-    MJZ_CX_AL_FN uintN_t& operator<<=(uintlen_t amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator<<=(uintlen_t amount) noexcept {
       operator_sl(amount);
       return *this;
     }
-    MJZ_CX_AL_FN uintN_t& operator&=(const uintN_t amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator&=(const uintN_t amount) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
         words[i] &= amount.words[i];
       }
       return *this;
     }
-    MJZ_CX_AL_FN uintN_t& operator|=(const uintN_t amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator|=(const uintN_t amount) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
         words[i] |= amount.words[i];
       }
       return *this;
     }
-    MJZ_CX_AL_FN uintN_t& operator^=(const uintN_t amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator^=(const uintN_t amount) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
         words[i] ^= amount.words[i];
       }
       return *this;
     }
 
-    MJZ_CX_AL_FN uintN_t& flip() noexcept {
+    MJZ_CX_AL_FN uintN_t &flip() noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
         nth_word(i) = ~nth_word(i);
       }
       return *this;
     }
 
-    MJZ_CX_AL_FN bool add(const uintN_t& amount, bool carry = false) noexcept {
+    MJZ_CX_AL_FN bool add(const uintN_t &amount, bool carry = false) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
         uint64_t rhs = nth_word(i);
         uint64_t lhs = amount.nth_word(i);
@@ -188,7 +192,7 @@ MJZ_EXPORT namespace mjz {
       }
       return carry;
     }
-    MJZ_CX_AL_FN uintN_t& negate() noexcept {
+    MJZ_CX_AL_FN uintN_t &negate() noexcept {
       // twos compliment (~*this + 1)
       bool carry = true;
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
@@ -200,7 +204,7 @@ MJZ_EXPORT namespace mjz {
       }
       return *this;
     }
-    MJZ_CX_AL_FN bool minus(const uintN_t& amount,
+    MJZ_CX_AL_FN bool minus(const uintN_t &amount,
                             bool carry = false) noexcept {
       bool negate_carry = true;
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
@@ -221,21 +225,21 @@ MJZ_EXPORT namespace mjz {
       }
       return carry;
     }
-    MJZ_CX_AL_FN uintN_t& operator-=(const uintN_t& amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator-=(const uintN_t &amount) noexcept {
       minus(amount);
       return *this;
     }
-    MJZ_CX_AL_FN uintN_t& operator+=(const uintN_t& amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator+=(const uintN_t &amount) noexcept {
       add(amount);
       return *this;
     }
-    MJZ_CX_AL_FN uintN_t& operator*=(const uintN_t& amount) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator*=(const uintN_t &amount) noexcept {
       if constexpr (word_count == 2) {
 #ifdef MJZ_uint128_t_impl_t_
         return *this = std::bit_cast<uintN_t>(
                    std::bit_cast<MJZ_uint128_t_impl_t_>(amount) *
                    std::bit_cast<MJZ_uint128_t_impl_t_>(*this));
-#endif  //  MJZ_uint128_t_impl_t_
+#endif //  MJZ_uint128_t_impl_t_
 
         // https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/src/c%2B%2B17/uint128_t.h
         const uint64_t x = nth_word(0);
@@ -282,8 +286,8 @@ MJZ_EXPORT namespace mjz {
         return *this = ret;
       }
     }
-    MJZ_CX_AL_FN std::strong_ordering operator<=>(
-        const uintN_t& rhs) const noexcept {
+    MJZ_CX_AL_FN std::strong_ordering
+    operator<=>(const uintN_t &rhs) const noexcept {
       for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
         std::strong_ordering order = nth_word(i) <=> rhs.nth_word(i);
         if (order != std::strong_ordering::equal) {
@@ -293,12 +297,13 @@ MJZ_EXPORT namespace mjz {
       return std::strong_ordering::equal;
     }
 
-    MJZ_CX_AL_FN bool operator==(const uintN_t& rhs) const noexcept = default;
+    MJZ_CX_AL_FN bool operator==(const uintN_t &rhs) const noexcept = default;
 
     MJZ_CX_AL_FN std::optional<uintlen_t> floor_log2() const noexcept {
       for (intlen_t i{intlen_t(word_count) - 1}; 0 <= i; i--) {
         uint64_t word = nth_word(i);
-        if (!word) continue;
+        if (!word)
+          continue;
         return uintlen_t(log2_of_val_create(word)) + uintlen_t(i * 64);
       }
       return {};
@@ -307,7 +312,8 @@ MJZ_EXPORT namespace mjz {
       intlen_t i{intlen_t(word_count) - 1};
       for (; 0 <= i; i--) {
         uint64_t word = nth_word(i);
-        if (!word) continue;
+        if (!word)
+          continue;
         uintlen_t awnser = uintlen_t(log2_of_val_create(word));
         bool ceil_ = (uintlen_t(1) << awnser) != word;
         awnser += uintlen_t(i * 64);
@@ -384,7 +390,8 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uintN_t rotr(intlen_t r) const noexcept {
       r %= n_bits;
-      if (!r) return *this;
+      if (!r)
+        return *this;
       if (r < 0) {
         r = -r;
         return (*this << uintlen_t(r)) | (*this >> (n_bits - uintlen_t(r)));
@@ -420,7 +427,7 @@ MJZ_EXPORT namespace mjz {
       mem_byteswap(ret.data(), ret.size());
       return std::bit_cast<uintN_t>(ret);
     }
-    MJZ_CX_AL_FN uintN_t to_modulo_ret_devide(const uintN_t& rhs) noexcept {
+    MJZ_CX_AL_FN uintN_t to_modulo_ret_devide(const uintN_t &rhs) noexcept {
       asserts(asserts.assume_rn, rhs != uintN_t{},
               " it is undefined behaviour to call with rhs of 0");
       uintN_t intermidiate{};
@@ -436,21 +443,21 @@ MJZ_EXPORT namespace mjz {
       return intermidiate;
     }
 
-    MJZ_CX_AL_FN uintN_t& operator%=(const uintN_t& rhs) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator%=(const uintN_t &rhs) noexcept {
       to_modulo_ret_devide(rhs);
       return *this;
     }
-    MJZ_CX_AL_FN uintN_t& operator/=(const uintN_t& rhs) noexcept {
+    MJZ_CX_AL_FN uintN_t &operator/=(const uintN_t &rhs) noexcept {
       return *this = to_modulo_ret_devide(rhs);
     }
-    MJZ_CX_AL_FN uintN_t& operator_assign_devide_up(
-        const uintN_t& rhs) noexcept {
+    MJZ_CX_AL_FN uintN_t &
+    operator_assign_devide_up(const uintN_t &rhs) noexcept {
       uintN_t temp = to_modulo_ret_devide(rhs);
       temp.add(uintN_t(), *this != uintN_t());
       return *this = temp;
     }
     MJZ_CX_AL_FN friend uintN_t operator_devide_up(uintN_t x,
-                                                   const uintN_t& y) noexcept {
+                                                   const uintN_t &y) noexcept {
       x.operator_assign_devide_up(y);
       return x;
     }
@@ -462,18 +469,18 @@ MJZ_EXPORT namespace mjz {
     }
 
     MJZ_CX_AL_FN friend uintN_t operator&(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x &= y;
       return x;
     }
     MJZ_CX_AL_FN friend uintN_t operator^(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x ^= y;
       return x;
     }
 
     MJZ_CX_AL_FN friend uintN_t operator|(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x |= y;
       return x;
     }
@@ -501,36 +508,36 @@ MJZ_EXPORT namespace mjz {
     }
 
     MJZ_CX_AL_FN friend uintN_t operator+(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x += y;
       return x;
     }
 
     MJZ_CX_AL_FN friend uintN_t operator-(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x -= y;
       return x;
     }
     MJZ_CX_AL_FN friend uintN_t operator*(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x *= y;
       return x;
     }
     MJZ_CX_AL_FN friend uintN_t operator/(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x /= y;
       return x;
     }
 
     MJZ_CX_AL_FN friend uintN_t operator%(uintN_t x,
-                                          const uintN_t& y) noexcept {
+                                          const uintN_t &y) noexcept {
       x %= y;
       return x;
     }
 
-    MJZ_CX_AL_FN uintN_t& operator--() noexcept { return *this -= 1; }
+    MJZ_CX_AL_FN uintN_t &operator--() noexcept { return *this -= 1; }
 
-    MJZ_CX_AL_FN uintN_t& operator++() noexcept { return *this += 1; }
+    MJZ_CX_AL_FN uintN_t &operator++() noexcept { return *this += 1; }
 
     MJZ_CX_AL_FN uintN_t operator++(int) noexcept {
       uintN_t temp{*this};
@@ -547,8 +554,8 @@ MJZ_EXPORT namespace mjz {
       return *this != uintN_t{0};
     }
     template <uintlen_t n2_bits>
-    MJZ_CX_AL_FN explicit operator uintN_t<version_v, n2_bits>()
-        const noexcept {
+    MJZ_CX_AL_FN explicit
+    operator uintN_t<version_v, n2_bits>() const noexcept {
       uintN_t<version_v, n2_bits> ret{};
       for (uintlen_t i{}; i < (std::min(n2_bits, n_bits) >> 6); i++) {
         ret.nth_word(i) = nth_word(i);
@@ -641,7 +648,7 @@ MJZ_EXPORT namespace mjz {
     }
   }
 
-  MJZ_CX_AL_FN auto to_modulo_ret_devide(auto& lhs, const auto& rhs) noexcept {
+  MJZ_CX_AL_FN auto to_modulo_ret_devide(auto &lhs, const auto &rhs) noexcept {
     if constexpr (requires() {
                     lhs.to_modulo_ret_devide(
                         static_cast<std::remove_cvref_t<decltype(lhs)>>(rhs));
@@ -663,7 +670,7 @@ MJZ_EXPORT namespace mjz {
   template <version_t version_v, uint64_t... exclude_>
   struct exclusive_math_helper_t_ {
     template <uint64_t rhs_v>
-    MJZ_CX_FN static bool divide_modulo_impl(pair_t<uint64_t, uint64_t>& ret,
+    MJZ_CX_FN static bool divide_modulo_impl(pair_t<uint64_t, uint64_t> &ret,
                                              const uint64_t lhs,
                                              const uint64_t rhs) noexcept {
       if (rhs != rhs_v) {
@@ -677,14 +684,15 @@ MJZ_EXPORT namespace mjz {
       return true;
     }
 
-    MJZ_CX_FN static pair_t<uint64_t, uint64_t> divide_modulo(
-        const uint64_t lhs, const uint64_t rhs) noexcept {
+    MJZ_CX_FN static pair_t<uint64_t, uint64_t>
+    divide_modulo(const uint64_t lhs, const uint64_t rhs) noexcept {
       pair_t<uint64_t, uint64_t> ret{};
-      if ((divide_modulo_impl<exclude_>(ret, lhs, rhs) || ...)) return ret;
+      if ((divide_modulo_impl<exclude_>(ret, lhs, rhs) || ...))
+        return ret;
       return {lhs / rhs, lhs % rhs};
     }
-    MJZ_CX_ND_FN static pair_t<int64_t, int64_t> signed_divide_modulo(
-        int64_t lhs, int64_t rhs) noexcept {
+    MJZ_CX_ND_FN static pair_t<int64_t, int64_t>
+    signed_divide_modulo(int64_t lhs, int64_t rhs) noexcept {
       bool is_neg = int(lhs < 0) != int(rhs < 0);
       lhs = std::max(lhs, -lhs);
       rhs = std::max(rhs, -rhs);
@@ -703,17 +711,17 @@ MJZ_EXPORT namespace mjz {
   struct big_float_t : parse_math_helper_t_<version_v> {
     using parse_math_helper_t_<version_v>::divide_modulo;
     using parse_math_helper_t_<version_v>::signed_divide_modulo;
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     template <std::floating_point T>
     MJZ_CX_FN static std::optional<bit_range_t> get_sign_range() noexcept {
       std::optional<bit_range_t> b = bit_range_t::get_bit_range<T>(
           T(1), [&](uint64_t) noexcept { return true; },
           [](T f) noexcept { return f < 0; },
           [](T f) noexcept { return f < 0; });
-      if (!b) return b;
+      if (!b)
+        return b;
       b->len = 1;
       return b;
     }
@@ -728,7 +736,8 @@ MJZ_EXPORT namespace mjz {
           [&](T f) noexcept {
             if (f >= std::numeric_limits<T>().denorm_min() &&
                 f < std::numeric_limits<T>().min()) {
-              if (saw_beg) return false;
+              if (saw_beg)
+                return false;
               saw_beg = true;
               return saw_beg;
             }
@@ -739,7 +748,8 @@ MJZ_EXPORT namespace mjz {
                 f < std::numeric_limits<T>().min()) {
               return false;
             }
-            if (!saw_beg || saw_cof || f <= T()) return false;
+            if (!saw_beg || saw_cof || f <= T())
+              return false;
             saw_cof = true;
             return saw_cof;
           });
@@ -770,8 +780,8 @@ MJZ_EXPORT namespace mjz {
           });
     }
     template <std::floating_point T>
-    MJZ_CX_FN static std::optional<pair_t<int64_t, bool>> get_exponent(
-        MJZ_MAYBE_UNUSED T val) noexcept {
+    MJZ_CX_FN static std::optional<pair_t<int64_t, bool>>
+    get_exponent(MJZ_MAYBE_UNUSED T val) noexcept {
       constexpr std::optional<bit_range_t> exp_range =
           get_exponent_bit_range<T>();
       if constexpr (!exp_range) {
@@ -793,8 +803,8 @@ MJZ_EXPORT namespace mjz {
       }
     }
     template <std::floating_point T>
-    MJZ_CX_FN static std::optional<bool> set_exponent_get_normaity(
-        MJZ_MAYBE_UNUSED T& val, int64_t exp) noexcept {
+    MJZ_CX_FN static std::optional<bool>
+    set_exponent_get_normaity(MJZ_MAYBE_UNUSED T &val, int64_t exp) noexcept {
       constexpr std::optional<bit_range_t> exp_range =
           get_exponent_bit_range<T>();
       if constexpr (!exp_range) {
@@ -824,8 +834,8 @@ MJZ_EXPORT namespace mjz {
       }
     }
     template <std::floating_point T>
-    MJZ_CX_FN static std::optional<big_float_t> get_big_float_from(
-        T val) noexcept {
+    MJZ_CX_FN static std::optional<big_float_t>
+    get_big_float_from(T val) noexcept {
       if constexpr (std::same_as<long double, T>) {
         return get_big_float_from_impl_<double>(double(val));
       } else {
@@ -833,8 +843,8 @@ MJZ_EXPORT namespace mjz {
       }
     }
     template <std::floating_point T>
-    MJZ_CX_FN static std::optional<big_float_t> get_big_float_from_impl_(
-        T val) noexcept {
+    MJZ_CX_FN static std::optional<big_float_t>
+    get_big_float_from_impl_(T val) noexcept {
       constexpr uint64_t num_exp_log{get_exponent_bit_range<T>()->len};
       constexpr auto coeffient_range{get_coeffient_bit_range<T>()};
       constexpr auto sign_bit{get_sign_range<T>()};
@@ -865,7 +875,8 @@ MJZ_EXPORT namespace mjz {
       }
       bool is_neg{!!(a[(size_t)(sign_bit->i / 8)] &
                      uint8_t(uint8_t(1) << (sign_bit->i % 8)))};
-      if (is_neg) ret.m_coeffient = -ret.m_coeffient;
+      if (is_neg)
+        ret.m_coeffient = -ret.m_coeffient;
       return ret;
     }
 
@@ -899,12 +910,14 @@ MJZ_EXPORT namespace mjz {
           return std::nullopt;
         }
         sub_range_delta_exp = uint64_t(min_exponent - exp);
-        if (63 < sub_range_delta_exp) return std::nullopt;
+        if (63 < sub_range_delta_exp)
+          return std::nullopt;
         exp += intlen_t(sub_range_delta_exp);
         m_coeffient >>= sub_range_delta_exp;
       }
       T ret_val{};
-      if (!set_exponent_get_normaity(ret_val, exp)) return std::nullopt;
+      if (!set_exponent_get_normaity(ret_val, exp))
+        return std::nullopt;
       std::array<char, sizeof(T)> a = get_XE_bitcast<T, false, false>(ret_val);
       uint64_t bitnum = get_end_bit_index(uint64_t(m_coeffient));
       if (!sub_range_delta_exp) {
@@ -917,7 +930,7 @@ MJZ_EXPORT namespace mjz {
         uint64_t i{coeffient_range->i + ip};
         uint8_t bit = uint8_t(uint8_t(1) << (i % 8));
         bool bit_on = !!(uint64_t(m_coeffient) & (uint64_t(1) << (ip)));
-        char& c = a[uintptr_t(i / 8)];
+        char &c = a[uintptr_t(i / 8)];
         c &= ~bit;
         c |= char(bit_on ? bit : uint8_t());
       }
@@ -989,9 +1002,10 @@ MJZ_EXPORT namespace mjz {
       rhs.m_coeffient = is_neg ? -rhs.m_coeffient : rhs.m_coeffient;
       return rhs;
     }
-    MJZ_CX_FN static std::optional<big_float_t> devide(
-        big_float_t lhs, big_float_t rhs) noexcept {
-      if (!rhs.m_coeffient) return nullopt;
+    MJZ_CX_FN static std::optional<big_float_t>
+    devide(big_float_t lhs, big_float_t rhs) noexcept {
+      if (!rhs.m_coeffient)
+        return nullopt;
 
       bool is_neg{(rhs.m_coeffient < 0) != (lhs.m_coeffient < 0)};
       rhs.m_coeffient =
@@ -1011,25 +1025,27 @@ MJZ_EXPORT namespace mjz {
       return lhs;
     }
 
-   public:
+  public:
     int64_t m_coeffient;
     int64_t m_exponent;
 
-   public:
+  public:
     template <std::floating_point T>
     MJZ_CX_FN std::optional<T> to_float(bool allow_nan = true) const noexcept {
       constexpr auto maxed =
           *get_big_float_from<T>(std::numeric_limits<T>().max());
-      if (!allow_nan && maxed < *this) return std::nullopt;
+      if (!allow_nan && maxed < *this)
+        return std::nullopt;
       return big_float_t(*this).to_float_<T>();
     }
     template <std::floating_point T>
-    MJZ_CX_FN static std::optional<big_float_t> float_from(
-        T val, bool allow_nan = true) noexcept {
+    MJZ_CX_FN static std::optional<big_float_t>
+    float_from(T val, bool allow_nan = true) noexcept {
       constexpr auto maxed =
           *get_big_float_from<T>(std::numeric_limits<T>().max());
       auto ret = get_big_float_from<T>(val);
-      if (!allow_nan && maxed < ret) return std::nullopt;
+      if (!allow_nan && maxed < ret)
+        return std::nullopt;
       return ret;
     }
     template <std::integral T>
@@ -1043,9 +1059,9 @@ MJZ_EXPORT namespace mjz {
       ret.m_coeffient = int64_t(val);
       return ret;
     }
-    MJZ_CX_FN friend std::optional<big_float_t> operator+(
-        std::optional<big_float_t> rhs,
-        std::optional<big_float_t> lhs) noexcept {
+    MJZ_CX_FN friend std::optional<big_float_t>
+    operator+(std::optional<big_float_t> rhs,
+              std::optional<big_float_t> lhs) noexcept {
       return (!!rhs && !!lhs) ? add(*rhs, *lhs) : std::nullopt;
     }
     MJZ_CX_FN big_float_t operator-() const noexcept {
@@ -1053,22 +1069,22 @@ MJZ_EXPORT namespace mjz {
       ret.m_coeffient = -m_coeffient;
       return ret;
     }
-    MJZ_CX_FN friend std::optional<big_float_t> operator*(
-        std::optional<big_float_t> rhs,
-        std::optional<big_float_t> lhs) noexcept {
+    MJZ_CX_FN friend std::optional<big_float_t>
+    operator*(std::optional<big_float_t> rhs,
+              std::optional<big_float_t> lhs) noexcept {
       return (!!rhs && !!lhs) ? std::optional<big_float_t>(muliply(*rhs, *lhs))
                               : std::nullopt;
     }
 
-    MJZ_CX_FN friend std::optional<big_float_t> operator-(
-        std::optional<big_float_t> rhs,
-        std::optional<big_float_t> lhs) noexcept {
+    MJZ_CX_FN friend std::optional<big_float_t>
+    operator-(std::optional<big_float_t> rhs,
+              std::optional<big_float_t> lhs) noexcept {
       return (!!rhs && !!lhs) ? add(*rhs, -*lhs) : std::nullopt;
     }
 
-    MJZ_CX_FN friend std::optional<big_float_t> operator/(
-        std::optional<big_float_t> rhs,
-        std::optional<big_float_t> lhs) noexcept {
+    MJZ_CX_FN friend std::optional<big_float_t>
+    operator/(std::optional<big_float_t> rhs,
+              std::optional<big_float_t> lhs) noexcept {
       return (!!rhs && !!lhs) ? devide(*rhs, *lhs) : std::nullopt;
     }
     MJZ_CX_FN friend big_float_t operator*(big_float_t rhs,
@@ -1090,25 +1106,25 @@ MJZ_EXPORT namespace mjz {
       return add(rhs, lhs);
     }
 
-    MJZ_CX_FN friend std::partial_ordering operator<=>(
-        std::optional<big_float_t> rhs,
-        std::optional<big_float_t> lhs) noexcept {
+    MJZ_CX_FN friend std::partial_ordering
+    operator<=>(std::optional<big_float_t> rhs,
+                std::optional<big_float_t> lhs) noexcept {
       return (!!rhs && !!lhs) ? (*rhs <=> *lhs)
                               : std::partial_ordering::unordered;
     }
 
-    MJZ_CX_FN std::strong_ordering operator<=>(
-        const big_float_t& lhs) const noexcept {
+    MJZ_CX_FN std::strong_ordering
+    operator<=>(const big_float_t &lhs) const noexcept {
       auto r = add(*this, -lhs);
       return r.m_coeffient <=> int64_t(0);
     }
-    MJZ_CX_FN friend std::optional<bool> operator==(
-        std::optional<big_float_t> rhs,
-        std::optional<big_float_t> lhs) noexcept {
+    MJZ_CX_FN friend std::optional<bool>
+    operator==(std::optional<big_float_t> rhs,
+               std::optional<big_float_t> lhs) noexcept {
       return (!!rhs && !!lhs) ? (*rhs == *lhs) : nullopt;
     }
 
-    MJZ_CX_FN bool operator==(const big_float_t& lhs) const noexcept {
+    MJZ_CX_FN bool operator==(const big_float_t &lhs) const noexcept {
       auto r = add(*this, -lhs);
       return r.m_coeffient == int64_t(0);
     }
@@ -1128,7 +1144,7 @@ MJZ_EXPORT namespace mjz {
         is_negative = true;
         ret.m_coeffient = -ret.m_coeffient;
       }
-      int64_t& exponent = ret.m_exponent;
+      int64_t &exponent = ret.m_exponent;
       constexpr uint64_t sign_bit = ~(uint64_t(-1) >> 1);
       uint64_t integral_coeffient{uint64_t(ret.m_coeffient)};
       while (!(integral_coeffient & sign_bit) && integral_coeffient &&
@@ -1149,10 +1165,11 @@ MJZ_EXPORT namespace mjz {
       return pair_t<int64_t, big_float_t>(ret.m_coeffient, *this - ret);
     }
 
-    MJZ_CX_FN pair_t<int64_t, big_float_t> to_log_and_coeffient(
-        uint64_t exp_base) const noexcept {
+    MJZ_CX_FN pair_t<int64_t, big_float_t>
+    to_log_and_coeffient(uint64_t exp_base) const noexcept {
       auto me{*this};
-      if (!me.m_coeffient) return {};
+      if (!me.m_coeffient)
+        return {};
       bool is_neg{me.m_coeffient < 0};
       me.m_coeffient = is_neg ? -me.m_coeffient : me.m_coeffient;
       int64_t ceil_log{};
@@ -1194,8 +1211,8 @@ MJZ_EXPORT namespace mjz {
       return {ceil_log, fractionic_val};
     }
 
-    MJZ_CX_FN pair_t<big_float_t, big_float_t> to_big_and_fraction()
-        const noexcept {
+    MJZ_CX_FN pair_t<big_float_t, big_float_t>
+    to_big_and_fraction() const noexcept {
       std::optional<pair_t<int64_t, big_float_t>> small =
           to_integral_and_fraction();
       if (small)
@@ -1207,15 +1224,14 @@ MJZ_EXPORT namespace mjz {
   };
 
   namespace float_litteral_ns {
-  MJZ_CX_FN std::optional<big_float_t<>> operator""_bf(
-      long double val) noexcept {
+  MJZ_CX_FN std::optional<big_float_t<>>
+  operator""_bf(long double val) noexcept {
     return big_float_t<>::float_from((double)val);
   }
 
-  };  // namespace float_litteral_ns
+  }; // namespace float_litteral_ns
 
-  template <bool B = 0>
-  struct power2_helper_t {
+  template <bool B = 0> struct power2_helper_t {
     using maxfloat_t = double;
 
     MJZ_MCONSTANT(maxfloat_t) two { 2 };
@@ -1241,9 +1257,9 @@ MJZ_EXPORT namespace mjz {
       return x - 0.942695040889;
     };
 
-    MJZ_CX_FN static maxfloat_t get_log2(
-        maxfloat_t input,
-        uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {
+    MJZ_CX_FN static maxfloat_t
+    get_log2(maxfloat_t input,
+             uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {
       uint64_t integer_log{};
       constexpr uint64_t sz{6};
       if (input <= zero) {
@@ -1272,9 +1288,9 @@ MJZ_EXPORT namespace mjz {
     MJZ_MCONSTANT(maxfloat_t) e { 2.7182818284590452353602874713527 };
     MJZ_MCONSTANT(maxfloat_t) log_e_2 { 0.69314718055994530941723212145818 };
     MJZ_MCONSTANT(maxfloat_t) log_2_e { one / log_e_2 };
-    MJZ_CX_FN static maxfloat_t get_pow2(
-        maxfloat_t input,
-        uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {
+    MJZ_CX_FN static maxfloat_t
+    get_pow2(maxfloat_t input,
+             uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {
       if (input < maxfloat_t{0}) {
         return one / get_pow2(-input, recursion_index);
       }
@@ -1376,8 +1392,7 @@ MJZ_EXPORT namespace mjz {
     }
     return ret;
   }
-  template <class f_t>
-  MJZ_CX_FN auto mjz_make_number(std::floating_point auto);
+  template <class f_t> MJZ_CX_FN auto mjz_make_number(std::floating_point auto);
   template <std::floating_point f_t>
   MJZ_CX_FN auto mjz_make_number(std::floating_point auto x) noexcept {
     return f_t(x);
@@ -1450,6 +1465,6 @@ MJZ_EXPORT namespace mjz {
                    uintlen_t(bit_count - zcnt_), second_shift, temp};
   }
 
-}  // namespace mjz
+} // namespace mjz
 
-#endif  // MJZ_MATHS_LIB_HPP_FILE_
+#endif // MJZ_MATHS_LIB_HPP_FILE_

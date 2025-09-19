@@ -27,8 +27,7 @@ SOFTWARE.
 #ifndef MJZ_BYTE_STRING_string_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_string_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz::bstr_ns {
-  template <auto = 0>
-  struct useless_tag_t_ {};
+  template <auto = 0> struct useless_tag_t_ {};
 
   template <class T, class self_str_t_>
   concept str_c_ = requires() {
@@ -46,8 +45,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   concept str_forward_c_ =
       str_c_<T, self_str_t_> && forward_like_c<T, self_str_t_>;
 
-  template <version_t version_v_>
-  struct basic_str_props_t {
+  template <version_t version_v_> struct basic_str_props_t {
     uintlen_t sso_min_cap{};
     bool has_alloc{};
     bool has_null{};
@@ -67,31 +65,31 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_MCONSTANT(version_t)
     Version_v_{version_v};
 
-   private:
+  private:
     using abi = str_abi_t_<version_v, props_v.has_alloc, props_v.has_null,
                            props_v.is_ownerized, props_v.is_threaded,
                            props_v.sso_min_cap, props_v.align>;
     using m_t = typename abi::data_t;
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
     constexpr static bool double_route_v_ = false;
 
     MJZ_CX_FN bool no_heap_route() const noexcept {
-      if constexpr (double_route_v_) return m.no_destroy();
+      if constexpr (double_route_v_)
+        return m.no_destroy();
       return false;
     }
 
-   private:
+  private:
     m_t m{};
 
-   public:
-    MJZ_CX_FN const m_t &unsafe_handle_pv_(
-        unsafe_ns::i_know_what_im_doing_t) const noexcept {
+  public:
+    MJZ_CX_FN const m_t &
+    unsafe_handle_pv_(unsafe_ns::i_know_what_im_doing_t) const noexcept {
       return m;
     }
-    MJZ_CX_FN m_t &unsafe_handle_pv_(
-        unsafe_ns::i_know_what_im_doing_t) noexcept {
+    MJZ_CX_FN m_t &
+    unsafe_handle_pv_(unsafe_ns::i_know_what_im_doing_t) noexcept {
       return m;
     }
     using unsafe_handle_pv_t_ = m_t;
@@ -107,7 +105,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
              sizeof(m));
     }
 
-   public:
+  public:
     MJZ_MCONSTANT(uintlen_t) sso_cap = m_t::sso_cap;
     using self_t = basic_str_t;
     using traits_type = byte_traits_t<version_v>;
@@ -131,7 +129,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_MCONSTANT(uintlen_t)
     nops{traits_type::npos};
 
-   private:
+  private:
     using static_string_view = static_string_view_t<version_v>;
 
     using dynamic_string_view = dynamic_string_view_t<version_v>;
@@ -149,7 +147,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using hash_t = hash_bytes_t<version_v>;
     using dont_mess_up_t = unsafe_ns::i_know_what_im_doing_t;
 
-   private:
+  private:
     static constexpr const dont_mess_up_t &dont_mess_up = unsafe_ns::unsafe_v;
     using when_t = typename m_t::when_t;
 
@@ -196,16 +194,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       m.u_set_encoding(encodings_e::err_ascii);
     }
-    template <when_t when_v>
-    MJZ_CX_NL_FN void reset_to_error_fail_() noexcept {
+    template <when_t when_v> MJZ_CX_NL_FN void reset_to_error_fail_() noexcept {
       return reset_to_error_fail_<when_v>("[Err]");
     }
     template <when_t when_v>
-    MJZ_CX_AL_FN void reset_to_error_on_fail_(
-        success_t op, static_string_view view) noexcept {
-      if (op) MJZ_IS_LIKELY {
-          return;
-        }
+    MJZ_CX_AL_FN void
+    reset_to_error_on_fail_(success_t op, static_string_view view) noexcept {
+      if (op)
+        MJZ_IS_LIKELY { return; }
       if constexpr (!MJZ_IN_DEBUG_MODE) {
         reset_to_error_fail_<when_v>();
       } else {
@@ -219,7 +215,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         m.destruct_to_invalid();
       }
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-      if (!hm.u_malloc(uintlen_t(props_v.has_null) + len)) MJZ_IS_UNLIKELY {
+      if (!hm.u_malloc(uintlen_t(props_v.has_null) + len))
+        MJZ_IS_UNLIKELY {
           m.invalid_to_empty();
           hm.unsafe_clear();
           return false;
@@ -244,7 +241,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
 
-      if (no_allocate) return false;
+      if (no_allocate)
+        return false;
 
       return memcpy_to_me_nonsso_alloc<when_v>(ptr, len);
     }
@@ -308,8 +306,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
 
-    MJZ_CX_AL_FN bool make_right_then_give_has_null(
-        uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
+    MJZ_CX_AL_FN bool
+    make_right_then_give_has_null(uintlen_t &byte_offset,
+                                  uintlen_t &byte_count) const noexcept {
       auto len = m.get_length();
       byte_count = std::min(byte_count, len);
       byte_offset = std::min(byte_offset, len);
@@ -319,7 +318,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return ret;
     }
 
-   private:
+  private:
     template <when_t when_v>
     MJZ_CX_AL_FN success_t as_substring_impl_(uintlen_t byte_offset,
                                               uintlen_t byte_count) noexcept {
@@ -338,7 +337,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
 
-   public:
+  public:
     template <when_t when_v>
     MJZ_CX_AL_FN success_t as_substring_(uintlen_t byte_offset,
                                          uintlen_t byte_count) noexcept {
@@ -347,7 +346,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if constexpr (!props_v.has_null || when_v.is_sso()) {
         return true;
       }
-      if (m.is_sso()) return true;
+      if (m.is_sso())
+        return true;
       return add_null_impl_<when_v, true, false, false>();
     }
     template <when_t when_v, str_c_<self_t> T>
@@ -489,7 +489,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       unmached_threaded &= obj.m.has_mut();
       cant |= unmached_threaded;
       if constexpr (need_to_check_alloc_equality) {
-        if (!cant) cant |= m.get_alloc() != obj.m.get_alloc();
+        if (!cant)
+          cant |= m.get_alloc() != obj.m.get_alloc();
       }
       if (cant) {
         return memcopy_assign_<when_v>(obj, no_allocate, offset, count);
@@ -552,7 +553,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         m.destruct_to_invalid();
       }
       if constexpr (props_v.has_alloc) {
-        if (info.alloc_ptr) *m.get_alloc_ptr() = *info.alloc_ptr;
+        if (info.alloc_ptr)
+          *m.get_alloc_ptr() = *info.alloc_ptr;
       }
       m.u_set_encoding(info.encoding);
       m.set_threaded(info.is_threaded);
@@ -579,8 +581,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       hm.unsafe_clear();
       return true;
     }
-    template <when_t when_v>
-    MJZ_CX_AL_FN void assign_ch_(char c) noexcept {
+    template <when_t when_v> MJZ_CX_AL_FN void assign_ch_(char c) noexcept {
       if (!m.template has_room_for<when_v>(1, true)) {
         m.destruct_all();
       }
@@ -608,7 +609,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           destroy_v |= *m.get_alloc_ptr() != src.m.get_alloc();
         }
       }
-      if (!destroy_v) return;
+      if (!destroy_v)
+        return;
       if constexpr (when_v) {
         m.destruct_to_invalid();
       }
@@ -618,7 +620,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       m.set_threaded(src.m.is_threaded());
     }
 
-   private:
+  private:
     template <bool no_null_>
     MJZ_CX_ND_FN basic_str_t(const dont_mess_up_t &,
                              owned_stack_buffer &stack_buffer,
@@ -643,7 +645,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           "&,uintlen_t , uintlen_t,bool) : cannot add null , init fail ");
     }
 
-   private:
+  private:
     MJZ_CX_FN basic_str_t(str_forward_c_<self_t> auto &&src,
                           useless_tag_t_<>) noexcept
         : basic_str_t() {
@@ -683,8 +685,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       return *this;
     }
-    MJZ_CX_FN basic_str_t &operator_assign_(
-        str_forward_c_<self_t const &> auto &&src, useless_tag_t_<>) noexcept {
+    MJZ_CX_FN basic_str_t &
+    operator_assign_(str_forward_c_<self_t const &> auto &&src,
+                     useless_tag_t_<>) noexcept {
       if (void_struct_cast_t::up_cast(this) ==
           &void_struct_cast_t::up_cast(src))
         return *this;
@@ -701,8 +704,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       return *this;
     }
-    MJZ_CX_FN basic_str_t &operator_assign_(
-        str_forward_c_<const self_t> auto &&src, useless_tag_t_<>) noexcept {
+    MJZ_CX_FN basic_str_t &
+    operator_assign_(str_forward_c_<const self_t> auto &&src,
+                     useless_tag_t_<>) noexcept {
       if (void_struct_cast_t::up_cast(this) ==
           &void_struct_cast_t::up_cast(src))
         return *this;
@@ -735,7 +739,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
     }
 
-   public:
+  public:
     MJZ_CX_FN ~basic_str_t() noexcept {
       if (m.no_destroy()) {
         return;
@@ -783,13 +787,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return operator_assign_(std::forward<T>(val), useless_tag_t_<>{});
     }
 
-   public:
+  public:
     MJZ_CX_ND_FN basic_str_t(cheap_str_info *info) noexcept : basic_str_t() {
       reset_to_error_on_fail_<when_t::as_sso>(
           reset_<when_t::as_sso>(*info), "[Error]basic_str_t(cheap_str_info)");
     }
 
-   public:
+  public:
     MJZ_CX_ND_FN explicit basic_str_t(nullptr_t) noexcept : basic_str_t() {}
 
     MJZ_CX_ND_FN basic_str_t(cheap_str_info info) noexcept
@@ -828,11 +832,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return;
     }
 
-   public:
-    MJZ_CX_ND_FN basic_str_t(const dont_mess_up_t &ok,
-                             owned_stack_buffer &&stack_buffer,
-                             uintlen_t byte_offset = 0,
-                             uintlen_t byte_count = 0) noexcept
+  public:
+    MJZ_CX_ND_FN
+    basic_str_t(const dont_mess_up_t &ok, owned_stack_buffer &&stack_buffer,
+                uintlen_t byte_offset = 0, uintlen_t byte_count = 0) noexcept
         : basic_str_t(ok, stack_buffer, byte_offset, byte_count,
                       std::false_type{}) {}
     /*
@@ -931,13 +934,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       assign_ch_<when_t::as_sso>(c);
     }
 
-   public:
+  public:
     MJZ_CX_FN basic_str_t &operator=(char c) noexcept {
       assign_ch_<when_t::relax>(c);
       return *this;
     }
 
-   public:
+  public:
     MJZ_CX_ND_FN const alloc_ref &get_alloc() const noexcept {
       return m.get_alloc();
     }
@@ -971,7 +974,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if constexpr (props_v.has_alloc) {
         *m.get_alloc_ptr() = *hm.alloc_ptr();
       }
-      if (!cap) return true;
+      if (!cap)
+        return true;
       char *buf = hm.get_heap_begin();
       uintlen_t offset_of_beg = m.s_buffer_offset(cap, 0);
       char *beg = buf + offset_of_beg;
@@ -985,7 +989,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     set_alloc(const alloc_ref &a_, uintlen_t reserve_may = 0,
               may_bool_t threaded_ = may_bool_t::idk) noexcept {
       const bool good_alloc_{a_ == m.get_alloc()};
-      if (may_bool_t::yes < threaded_) threaded_ = may_bool_t(get_threaded());
+      if (may_bool_t::yes < threaded_)
+        threaded_ = may_bool_t(get_threaded());
       const bool good_threaded_{bool(threaded_) == get_threaded()};
 
       if (good_threaded_ && good_alloc_) {
@@ -1082,7 +1087,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return m.is_stable_or_owner();
     }
 
-   private:
+  private:
     MJZ_CX_FN success_t make_stable_impl_() noexcept {
       asserts(asserts.assume_rn, m.is_heap());
       uintlen_t len = length();
@@ -1091,7 +1096,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return reserve_<when_t::no_heap>(len, false);
     }
 
-   public:
+  public:
     /* a string would manage its own lifetime */
     MJZ_CX_FN success_t as_stable() noexcept {
       if (is_stable()) {
@@ -1125,7 +1130,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     /*as long as we are ownerized this is valid*/
     MJZ_CX_ND_FN char *aown_data() & noexcept {
-      if (m.is_ownerized()) return m.u_get_mut_begin();
+      if (m.is_ownerized())
+        return m.u_get_mut_begin();
       return nullptr;
     }
     /*
@@ -1153,8 +1159,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       static_assert(2 < sso_cap && sso_cap < nops - 2);
       return nops - 1;
     }
-    MJZ_CX_ND_FN optional_ref_t<const char> at(
-        const uintlen_t i) const noexcept {
+    MJZ_CX_ND_FN optional_ref_t<const char>
+    at(const uintlen_t i) const noexcept {
       bool bad = (i < length());
       auto ptr = data();
       ptr = branchless_teranary<const char *>(!bad, ptr, nullptr);
@@ -1167,12 +1173,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return ptr + branchless_teranary<uintlen_t>(!bad, i, 0);
     }
 
-    MJZ_CX_ND_FN optional_ref_t<const char> operator[](
-        const uintlen_t i) const noexcept {
+    MJZ_CX_ND_FN optional_ref_t<const char>
+    operator[](const uintlen_t i) const noexcept {
       return at(i);
     }
-    MJZ_CX_ND_FN optional_ref_t<mut_type> operator[](
-        const uintlen_t i) noexcept {
+    MJZ_CX_ND_FN optional_ref_t<mut_type>
+    operator[](const uintlen_t i) noexcept {
       return at(i);
     }
 
@@ -1296,20 +1302,22 @@ MJZ_EXPORT namespace mjz::bstr_ns {
      * buf must at least be of  min(byte_count,length)+ uintlen_t(add_null) in
      *size. if add_null then we add a null terminatior.
      */
-    MJZ_CX_FN std::optional<uintlen_t> copy_bytes(
-        uintlen_t byte_offset, uintlen_t byte_count, char *buf,
-        bool add_null = false) const noexcept {
+    MJZ_CX_FN std::optional<uintlen_t>
+    copy_bytes(uintlen_t byte_offset, uintlen_t byte_count, char *buf,
+               bool add_null = false) const noexcept {
       generic_string_view view =
           make_subview(dont_mess_up, byte_count, byte_offset);
       memcpy(buf, view.data(), view.length());
-      if (add_null) buf[view.length()] = '\0';
+      if (add_null)
+        buf[view.length()] = '\0';
       return view.length();
     }
     /*
      * returns the number of bytes the string can modify in its buffer.
      */
     MJZ_CX_ND_FN uintlen_t capacity(bool must_owner = true) const noexcept {
-      if (must_owner || m.is_owner()) return m.get_capacity();
+      if (must_owner || m.is_owner())
+        return m.get_capacity();
       return 0;
     }
     /*
@@ -1319,7 +1327,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
      * else
      *allocates a "convinient round" number bigger than cap bytes of capacity.
      */
-   private:
+  private:
     template <when_t when_v>
     MJZ_CX_AL_FN success_t reserve_(uintlen_t mincap,
                                     bool round_up = false) noexcept {
@@ -1339,7 +1347,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
 
-   public:
+  public:
     MJZ_CX_FN success_t reserve(uintlen_t mincap,
                                 bool round_up = false) noexcept {
       return no_heap_route() ? reserve_<when_t::no_heap>(mincap, round_up)
@@ -1358,7 +1366,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return u_consider_stack(stack_buffer);
     }
 
-   private:
+  private:
     MJZ_CX_FN success_t
     u_consider_stack(owned_stack_buffer &stack_buffer) noexcept {
       MJZ_RELEASE { stack_buffer = owned_stack_buffer{}; };
@@ -1378,7 +1386,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
 
-   public:
+  public:
     MJZ_CX_FN success_t may_reconsider_stack(
         const dont_mess_up_t &, owned_stack_buffer &where) noexcept {
       bool cannot_fit =
@@ -1394,8 +1402,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return u_consider_stack(where);
     }
     MJZ_CX_FN success_t shrink_to_fit(bool force_ownership = false) noexcept {
-      if (!force_ownership && !m.is_owner()) return true;
-      if (!m.is_heap()) return true;  // we werent on heap to begin with
+      if (!force_ownership && !m.is_owner())
+        return true;
+      if (!m.is_heap())
+        return true; // we werent on heap to begin with
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
       if (!hm.u_malloc(uintlen_t(props_v.has_null) + m.get_length(), false))
         MJZ_IS_UNLIKELY {
@@ -1410,7 +1420,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     MJZ_CX_FN success_t clear(bool force_ownership = false) noexcept {
-      if (!as_substring(0, 0)) return false;
+      if (!as_substring(0, 0))
+        return false;
       if (force_ownership) {
         return as_ownerized();
       }
@@ -1450,7 +1461,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return ret;
     }
 
-   private:
+  private:
     template <when_t when_v>
     MJZ_CX_FN success_t replace_data_with_none_impl_(
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
@@ -1535,7 +1546,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (new_len <= sso_cap) {
           m_t temp{};
           asserts(asserts.assume_rn, !m.is_sso());
-          temp.cntrl_u8() = m.cntrl_u8();
+          temp.u_set_cntrl_u8(m.get_cntrl_u8());
           temp.non_sso() = std::exchange(m.non_sso(), {});
           if constexpr (when_v) {
             if constexpr (props_v.has_alloc) {
@@ -1596,7 +1607,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                    choose_back, align_direction);
     }
 
-   public:
+  public:
     /*
      * replacas the data in range [offset,offset+byte_count) with other.
      *failes if the string object doesnt satisfy the criteria of rep_flags
@@ -1611,7 +1622,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!replace_data_with_none(offset, byte_count, length_of_val)) {
         return false;
       }
-      if (!val) return true;
+      if (!val)
+        return true;
       memset(&m.u_get_mut_begin()[offset], length_of_val, *val);
       return true;
     }
@@ -1651,7 +1663,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                  [&]() /*noexcept(...) todo!*/ -> success_t {
         std::ignore = make_right_then_give_has_null(offset, byte_count);
         auto range_len{uintlen_t(std::ranges::size(range))};
-        if (max_size() < range_len) return false;
+        if (max_size() < range_len)
+          return false;
         if (!replace_data_with_none(offset, byte_count, range_len))
           return false;
         char *range_ptr = m.u_get_mut_begin() + offset;
@@ -1669,7 +1682,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         for (uintlen_t i{}; i < range_len; i++, ++begin_iter) {
           auto &&itr = *begin_iter;
           auto ch = optional_ref_t<const char>(itr);
-          if (!ch) return false;
+          if (!ch)
+            return false;
           range_ptr[i] = *ch;
         }
         return true;
@@ -1692,13 +1706,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         memcpy(back_holder_temp.m.u_get_mut_begin(),
                m.get_begin() + (m.get_length() - back_of_range_len),
                back_of_range_len);
-        if (!remove_suffix(length() - offset) || !as_ownerized()) return false;
+        if (!remove_suffix(length() - offset) || !as_ownerized())
+          return false;
         auto front_holder_temp{std::move(*this)};
         for (; begin_iter != end_iter; ++begin_iter) {
           auto &&itr = *begin_iter;
           auto ch = optional_ref_t<const char>(itr);
-          if (!ch) return false;
-          if (!front_holder_temp.push_back(*ch)) return false;
+          if (!ch)
+            return false;
+          if (!front_holder_temp.push_back(*ch))
+            return false;
         }
         if (!front_holder_temp.replace_data_with_none(nops, 0,
                                                       back_of_range_len))
@@ -1760,12 +1777,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     MJZ_CX_ND_FN optional_ref_t<mut_type> pop_back() noexcept {
       optional_ref_t<mut_type> ch{back()};
-      if (remove_suffix(1)) return ch;
+      if (remove_suffix(1))
+        return ch;
       return {};
     }
     MJZ_CX_ND_FN optional_ref_t<mut_type> pop_front() noexcept {
       optional_ref_t<mut_type> ch{front()};
-      if (remove_prefix(1)) return ch;
+      if (remove_prefix(1))
+        return ch;
       return {};
     }
     /*
@@ -1781,8 +1800,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return replace_data_with_char(new_len, uintlen_t(ndel), uintlen_t(pdel),
                                     val);
     }
-    MJZ_CX_ND_FN std::optional<intlen_t> compare(
-        const self_t &rhs) const noexcept {
+    MJZ_CX_ND_FN std::optional<intlen_t>
+    compare(const self_t &rhs) const noexcept {
       return m.get_view().compare(rhs.m.get_view());
     }
 
@@ -1790,24 +1809,24 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return m.get_view().starts_with(rhs.m.get_view());
     }
 
-    MJZ_CX_ND_FN bool starts_with(
-        char rhs, encodings_e encoding = encodings_e{}) const noexcept {
+    MJZ_CX_ND_FN bool
+    starts_with(char rhs, encodings_e encoding = encodings_e{}) const noexcept {
       return m.get_view().starts_with(rhs, encoding);
     }
 
     MJZ_CX_ND_FN bool ends_with(const self_t &rhs) const noexcept {
       return m.get_view().ends_with(rhs.m.get_view());
     }
-    MJZ_CX_ND_FN bool ends_with(
-        char rhs, encodings_e encoding = encodings_e{}) const noexcept {
+    MJZ_CX_ND_FN bool
+    ends_with(char rhs, encodings_e encoding = encodings_e{}) const noexcept {
       return m.get_view().ends_with(rhs, encoding);
     }
 
     MJZ_CX_ND_FN bool contains(const self_t &rhs) const noexcept {
       return m.get_view().contains(rhs.m.get_view());
     }
-    MJZ_CX_ND_FN bool contains(
-        char rhs, encodings_e encoding = encodings_e{}) const noexcept {
+    MJZ_CX_ND_FN bool
+    contains(char rhs, encodings_e encoding = encodings_e{}) const noexcept {
       return m.get_view().contains(rhs, encoding);
     }
     MJZ_CX_ND_FN uintlen_t find(const self_t &rhs,
@@ -1869,8 +1888,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T> to_integral(
-        uint8_t raidex = 0) const noexcept {
+    MJZ_CX_ND_FN std::optional<T>
+    to_integral(uint8_t raidex = 0) const noexcept {
       return m.get_view().template to_integral<T>(raidex);
     }
     template <std::floating_point T>
@@ -1892,7 +1911,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         auto ret = traits_type{}.template from_integral_fill<T>(
             m.u_get_mut_begin(), m.get_capacity() - uintlen_t(props_v.has_null),
             val, upper_case, raidex);
-        if (!ret) return false;
+        if (!ret)
+          return false;
         new_len = *ret;
         return true;
       };
@@ -1908,8 +1928,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return as_substring_<when_t::own_relax>(0, new_len);
     }
 
-   private:
-   public:
+  private:
+  public:
     template <std::integral T>
       requires(!std::same_as<T, bool>)
     MJZ_CX_FN static self_t s_make_str(T val, const uint8_t raidex,
@@ -1951,8 +1971,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::floating_point T>
-    MJZ_CX_FN static self_t s_make_str(
-        T val, uint8_t accuracacy = sizeof(T)) noexcept {
+    MJZ_CX_FN static self_t
+    s_make_str(T val, uint8_t accuracacy = sizeof(T)) noexcept {
       self_t ret{};
       static_assert(15 <= sso_cap);
       constexpr uint8_t max_accuracy{
@@ -1977,7 +1997,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         auto ret = traits_type{}.template from_float_format_fill<T>(
             m.u_get_mut_begin(), m.get_capacity() - uintlen_t(props_v.has_null),
             val, accuracacy, upper_case, floating_format);
-        if (!ret) return false;
+        if (!ret)
+          return false;
         new_len = *ret;
         return true;
       };
@@ -2049,7 +2070,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     MJZ_CX_ND_FN success_t replace_data(uintlen_t offset, uintlen_t byte_count,
                                         const self_t &other) noexcept {
-      if (other.get_encoding() != get_encoding()) return false;
+      if (other.get_encoding() != get_encoding())
+        return false;
       if (&other == this) {
         return false;
       }
@@ -2166,7 +2188,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       const typename std::istream::sentry is_ok(cin_v, true);
       auto &cin_base{
           static_cast<std::basic_ios<char, std::char_traits<char>> &>(cin_v)};
-      if (!is_ok) {  // state okay, extract characters
+      if (!is_ok) { // state okay, extract characters
         return cin_v;
       }
       bool state_changed{};
@@ -2190,29 +2212,30 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         const typename traits::int_type metadelim = traits::to_int_type(delim);
         typename traits::int_type meta = cin_base.rdbuf()->sgetc();
         for (;; meta = cin_base.rdbuf()->snextc()) {
-          if (traits::eq_int_type(traits::eof(), meta)) {  // end of file, quit
+          if (traits::eq_int_type(traits::eof(), meta)) { // end of file, quit
             state |= std::istream::eofbit;
             break;
           }
           if (traits::eq_int_type(
                   meta,
-                  metadelim)) {  // got a delimiter, discard it and quit
+                  metadelim)) { // got a delimiter, discard it and quit
             state_changed = true;
             cin_base.rdbuf()->sbumpc();
             break;
           }
-          if (obj.max_size() <= obj.size()) {  // string too large, quit
+          if (obj.max_size() <= obj.size()) { // string too large, quit
             state |= std::istream::failbit;
             break;
           }
           // reserve ,got a character, add it to string
           success &= obj.push_back(traits::to_char_type(meta));
 
-          if (!success) break;
+          if (!success)
+            break;
           state_changed = true;
         }
         no_throw = true;
-      }  //~MJZ_RELEASE;
+      } //~MJZ_RELEASE;
       cin_base.exceptions(perivous_exp_state);
       return cin_v;
     }
@@ -2230,7 +2253,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       const typename std::istream::sentry is_ok(cin_v);
       if (!is_ok) {
         return cin_v;
-      }  // state okay, extract characters
+      } // state okay, extract characters
 
       bool no_throw{false};
       bool has_changed = false;
@@ -2260,41 +2283,46 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
         typename traits::int_type meta = cin_base.rdbuf()->sgetc();
         for (; 0 < len; --len, meta = cin_base.rdbuf()->snextc()) {
-          if (traits::eq_int_type(traits::eof(), meta)) {  // end of file, quit
+          if (traits::eq_int_type(traits::eof(), meta)) { // end of file, quit
             state |= std::istream::eofbit;
             break;
           }
           if (traits_type{}.is_space(traits::to_char_type(meta))) {
-            break;  // whitespace, quit
+            break; // whitespace, quit
           }
 
           // reserve ,got a character, add it to string
           success &= obj.push_back(traits::to_char_type(meta));
-          if (!success) break;
+          if (!success)
+            break;
           has_changed = true;
         }
         no_throw = true;
         ;
-      };  //~MJZ_RELEASE;
+      }; //~MJZ_RELEASE;
       cin_base.exceptions(perivous_exp_state);
       return cin_v;
     }
 
-#endif  // MJZ_WITH_iostream
+#endif // MJZ_WITH_iostream
 
     MJZ_CX_FN friend bool operator==(const self_t &rhs,
                                      const self_t &lhs) noexcept {
-      if (rhs.length() != lhs.length()) return false;
+      if (rhs.length() != lhs.length())
+        return false;
       auto v = rhs.compare(lhs);
       return v && *v == 0;
     }
 
-    MJZ_CX_FN friend std::partial_ordering operator<=>(
-        const self_t &rhs, const self_t &lhs) noexcept {
+    MJZ_CX_FN friend std::partial_ordering
+    operator<=>(const self_t &rhs, const self_t &lhs) noexcept {
       if (auto r = rhs.compare(lhs)) {
-        if (*r == 0) return std::partial_ordering::equivalent;
-        if (*r < 0) return std::partial_ordering::less;
-        if (0 < *r) return std::partial_ordering::greater;
+        if (*r == 0)
+          return std::partial_ordering::equivalent;
+        if (*r < 0)
+          return std::partial_ordering::less;
+        if (0 < *r)
+          return std::partial_ordering::greater;
       }
       return std::partial_ordering::unordered;
     }
@@ -2364,15 +2392,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     constexpr basic_str_props_t<v> p{};
     return operator_cxref_str<L, v, p>();
   }
-  template <str_litteral_t L>
-  MJZ_CX_FN auto operator""_str() noexcept {
+  template <str_litteral_t L> MJZ_CX_FN auto operator""_str() noexcept {
     constexpr version_t v{};
     constexpr basic_str_props_t<v> p{};
     return operator_cxval_str<L, v, p>();
   }
 
-  };  // namespace litteral_ns
-};  // namespace mjz::bstr_ns
+  }; // namespace litteral_ns
+}; // namespace mjz::bstr_ns
 MJZ_EXPORT template <mjz::version_t version_v,
                      mjz::bstr_ns::basic_str_props_t<version_v> props_v>
 struct std::hash<mjz::bstr_ns::basic_str_t<version_v, props_v>> {
@@ -2381,4 +2408,4 @@ struct std::hash<mjz::bstr_ns::basic_str_t<version_v, props_v>> {
   }
 };
 
-#endif  // MJZ_BYTE_STRING_string_LIB_HPP_FILE_;
+#endif // MJZ_BYTE_STRING_string_LIB_HPP_FILE_;

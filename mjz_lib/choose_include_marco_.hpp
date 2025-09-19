@@ -42,7 +42,7 @@ SOFTWARE.
 #undef MJZ_CAN_USE_LIB_STD_FORMAT_
 #define MJZ_CAN_USE_LIB_STD_FORMAT_ false
 #endif
-#endif  // !MJZ_CAN_USE_LIB_STD_FORMAT_
+#endif // !MJZ_CAN_USE_LIB_STD_FORMAT_
 #ifdef MJZ_USE_CXX_MODULES_
 #ifndef __cpp_modules
 #undef MJZ_USE_CXX_MODULES_

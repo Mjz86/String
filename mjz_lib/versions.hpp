@@ -28,7 +28,7 @@ MJZ_EXPORT namespace mjz {
   struct version_t {
     MJZ_CX_FN bool operator==(const version_t &) const noexcept = default;
 
-   public:
+  public:
     struct value_t {
       uint64_t m_is_BE_ : 1 {!SYSTEM_is_little_endian_};
       // the order is the other way around
@@ -78,7 +78,8 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_FN std::partial_ordering operator<=>(version_t b) const noexcept {
       auto v = uint32_t(make().m_ver_) <=> uint32_t(b.make().m_ver_);
-      if (v != std::strong_ordering::equal) return v;
+      if (v != std::strong_ordering::equal)
+        return v;
       return (*this == b) ? std::strong_ordering::equal
                           : std::partial_ordering::unordered;
     }
@@ -102,8 +103,7 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_ND_FN operator uint32_t() const noexcept { return make().m_ver_; }
   };
 
-  template <version_t version_v>
-  struct concatabe_hash_t {
+  template <version_t version_v> struct concatabe_hash_t {
     uintlen_t hash{};
     uintlen_t length{};
     MJZ_CX_ND_FN concatabe_hash_t(uintlen_t hash_, uintlen_t len) noexcept
@@ -119,8 +119,9 @@ MJZ_EXPORT namespace mjz {
       }
       length = len;
     }
-    MJZ_CX_ND_FN concatabe_hash_t friend operator+(
-        const concatabe_hash_t &rhs, const concatabe_hash_t &lhs) noexcept {
+    MJZ_CX_ND_FN concatabe_hash_t friend
+    operator+(const concatabe_hash_t &rhs,
+              const concatabe_hash_t &lhs) noexcept {
       concatabe_hash_t ret{};
       ret.length = rhs.length + lhs.length;
       bit_rotate_t lhs_beg_shift{rhs.length};
@@ -130,32 +131,35 @@ MJZ_EXPORT namespace mjz {
     /*
      *note , a hash of rhs must have lhs at its end to negate it.
      */
-    MJZ_CX_ND_FN concatabe_hash_t friend operator-(
-        const concatabe_hash_t &rhs, const concatabe_hash_t &lhs) noexcept {
+    MJZ_CX_ND_FN concatabe_hash_t friend
+    operator-(const concatabe_hash_t &rhs,
+              const concatabe_hash_t &lhs) noexcept {
       concatabe_hash_t ret{};
-      if (rhs.length < lhs.length) return ret;
+      if (rhs.length < lhs.length)
+        return ret;
       ret.length = rhs.length - lhs.length;
       bit_rotate_t lhs_beg_shift{ret.length};
       ret.hash = rhs.hash ^ (lhs.hash << lhs_beg_shift);
       return ret;
     }
-    MJZ_CX_ND_FN concatabe_hash_t &operator+=(
-        const concatabe_hash_t &lhs) noexcept {
+    MJZ_CX_ND_FN concatabe_hash_t &
+    operator+=(const concatabe_hash_t &lhs) noexcept {
       return *this = *this + lhs;
     }
-    MJZ_CX_ND_FN concatabe_hash_t &operator-=(
-        const concatabe_hash_t &lhs) noexcept {
+    MJZ_CX_ND_FN concatabe_hash_t &
+    operator-=(const concatabe_hash_t &lhs) noexcept {
       return *this = *this - lhs;
     }
     MJZ_CX_FN bool friend operator==(const concatabe_hash_t &rhs,
                                      const concatabe_hash_t &lhs) noexcept {
       return rhs.hash == lhs.hash;
     }
-    MJZ_CX_FN std::strong_ordering friend operator<=>(
-        const concatabe_hash_t &rhs, const concatabe_hash_t &lhs) noexcept {
+    MJZ_CX_FN std::strong_ordering friend
+    operator<=>(const concatabe_hash_t &rhs,
+                const concatabe_hash_t &lhs) noexcept {
       return rhs.hash <=> lhs.hash;
     }
   };
 
-}  // namespace mjz
-#endif  // MJZ_VERSIONS_LIB_HPP_FILE_
+} // namespace mjz
+#endif // MJZ_VERSIONS_LIB_HPP_FILE_

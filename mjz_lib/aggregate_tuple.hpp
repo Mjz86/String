@@ -33,8 +33,7 @@ MJZ_EXPORT namespace mjz {
 #if MJZ_aggregate_tuple_workaround
   namespace aggregate_ns_ {
   struct filler_t {
-    template <typename type>
-    MJZ_CX_FN operator type &&();
+    template <typename type> MJZ_CX_FN operator type &&();
   };
   /*we sadly cant do a generalized one in c++20
    * https://en.cppreference.com/w/cpp/language/structured_binding
@@ -1705,8 +1704,7 @@ MJZ_EXPORT namespace mjz {
     aggregate_fn(get_invalid_T_obj<aggregate_t>(),
                  std::make_index_sequence<count>{});
   };
-  template <typename aggregate_t, size_t size_v = 32>
-  struct aggregate_size_t {
+  template <typename aggregate_t, size_t size_v = 32> struct aggregate_size_t {
     MJZ_CX_FN size_t static size() noexcept
       requires aggregate_c<aggregate_t, size_v>
     {
@@ -1719,8 +1717,7 @@ MJZ_EXPORT namespace mjz {
     }
   };
 
-  template <typename aggregate_t>
-  struct aggregate_size_t<aggregate_t, 0> {
+  template <typename aggregate_t> struct aggregate_size_t<aggregate_t, 0> {
     MJZ_CX_FN size_t static size() noexcept { return 0; }
   };
 
@@ -1736,7 +1733,7 @@ MJZ_EXPORT namespace mjz {
     requires tests<type, i...>
   void tests_fn(std::index_sequence<i...>){};
 
-  }  // namespace aggregate_ns_
+  } // namespace aggregate_ns_
 
   template <typename T>
   concept is_small_aggregate_c = requires(T value) {
@@ -1747,26 +1744,21 @@ MJZ_EXPORT namespace mjz {
         T>(std::make_index_sequence<
            aggregate_ns_::aggregate_size_t<std::remove_cv_t<T>>::size() - 1>{});
   };
-#else   // MJZ_aggregate_tuple_workaround
+#else  // MJZ_aggregate_tuple_workaround
   template <typename T>
   concept is_small_aggregate_c = false;
-#endif  // MJZ_aggregate_tuple_workaround
-  template <size_t I, typename T>
-  struct tuple_element {};
+#endif // MJZ_aggregate_tuple_workaround
+  template <size_t I, typename T> struct tuple_element {};
   template <size_t I, std_tuple_like_c T>
   struct tuple_element<I, T> : std::tuple_element<I, T> {};
-  template <typename T>
-  struct tuple_size {};
-  template <std_tuple_like_c T>
-  struct tuple_size<T> {
+  template <typename T> struct tuple_size {};
+  template <std_tuple_like_c T> struct tuple_size<T> {
     MJZ_MCONSTANT(size_t)
     value = std::tuple_size<std::remove_cvref_t<T>>::value;
   };
   template <size_t I, class T>
   using tuple_element_t = typename tuple_element<I, T>::type;
-  template <class T>
-  MJZ_FCONSTANT(size_t)
-  tuple_size_v = tuple_size<T>::value;
+  template <class T> MJZ_FCONSTANT(size_t) tuple_size_v = tuple_size<T>::value;
 
   template <std::size_t Index, std_tuple_like_c T>
   MJZ_CX_FN decltype(auto) get(T && obj) {
@@ -1774,8 +1766,7 @@ MJZ_EXPORT namespace mjz {
   }
 
 #if MJZ_aggregate_tuple_workaround
-  template <size_t I, is_small_aggregate_c T>
-  struct tuple_element<I, T> {
+  template <size_t I, is_small_aggregate_c T> struct tuple_element<I, T> {
     using type = decltype(aggregate_ns_::get<I, T>(get_invalid_T_obj<T>()));
   };
   template <is_small_aggregate_c T>
@@ -1786,7 +1777,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_FN decltype(auto) get(T && obj) noexcept {
     return aggregate_ns_::get<Index, T>(std::forward<T>(obj));
   }
-#endif  // MJZ_aggregate_tuple_workaround
+#endif // MJZ_aggregate_tuple_workaround
 
-}  // namespace mjz
-#endif  // MJZ_aggregate_tuple_LIB_HPP_FILE_
+} // namespace mjz
+#endif // MJZ_aggregate_tuple_LIB_HPP_FILE_

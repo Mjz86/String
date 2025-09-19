@@ -29,9 +29,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   template <version_t version_v, basic_str_props_t<version_v> props_v,
             uintlen_t stack_cap>
   struct implace_string_data_t : public basic_str_t<version_v, props_v> {
-   private:
-    template <class>
-    friend class mjz_private_accessed_t;
+  private:
+    template <class> friend class mjz_private_accessed_t;
   };
   template <version_t version_v, basic_str_props_t<version_v> props_v,
             uintlen_t stack_cap>
@@ -40,9 +39,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
   struct implace_string_data_t<version_v, props_v, stack_cap>
       : public basic_str_t<version_v, props_v> {
-   protected:
-    template <class>
-    friend class mjz_private_accessed_t;
+  protected:
+    template <class> friend class mjz_private_accessed_t;
     MJZ_MCONSTANT(uintlen_t)
     sso_cap_v_{((stack_cap / sizeof(uintlen_t)) +
                 uintlen_t(!!(stack_cap % sizeof(uintlen_t)))) *
@@ -61,14 +59,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       : public implace_string_data_t<version_v, props_v, stack_cap> {
     using implace_str_t_unique_tag_ = void;
 
-   private:
+  private:
     template <version_t version_v_0_, uintlen_t,
               basic_str_props_t<version_v_0_>>
     friend struct implace_str_t;
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   public:
+  public:
     using traits_type = byte_traits_t<version_v>;
     using value_type = char;
     using pointer =
@@ -86,7 +83,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     using back_insert_iterator_t = base_out_it_t<version_v>;
 
-   private:
+  private:
     using static_string_view = static_string_view_t<version_v>;
     using dynamic_string_view = dynamic_string_view_t<version_v>;
     using generic_string_view = basic_string_view_t<version_v>;
@@ -127,7 +124,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return !where.is_error();
     }
 
-   public:
+  public:
     MJZ_CX_FN implace_str_t() noexcept {
       asserts(asserts.assume_rn, init_stack(m_str()));
       asserts(asserts.assume_rn,
@@ -216,11 +213,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return *this;
     }
     MJZ_CX_FN implace_str_t &operator_assign(str_t &&source_) noexcept {
-      m_str().reset_to_error_on_fail(
-          reinit_stack(source_) && m_str().move_init(std::move(source_)),
-          "[Error]implace_str_t::implace_str_t "
-          "&operator_assign(str_t&&):  failed "
-          "string assign");
+      m_str().reset_to_error_on_fail(reinit_stack(source_) &&
+                                         m_str().move_init(std::move(source_)),
+                                     "[Error]implace_str_t::implace_str_t "
+                                     "&operator_assign(str_t&&):  failed "
+                                     "string assign");
       return *this;
     }
     template <class U>
@@ -234,7 +231,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return operator_assign(std::forward<const implace_str_t &>(source_));
     }
 
-   public:
+  public:
     MJZ_CX_FN success_t move_to_dest(str_t &dest) && noexcept {
       if (m_str().is_stacked()) {
         return dest.assign(m_str());
@@ -272,8 +269,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     /* similar to as_substring*/
-    MJZ_CX_FN implace_str_t &to_implace_substring(
-        uintlen_t byte_offset, uintlen_t byte_count) noexcept {
+    MJZ_CX_FN implace_str_t &
+    to_implace_substring(uintlen_t byte_offset, uintlen_t byte_count) noexcept {
       m_str().reset_to_error_on_fail(
           as_substring(byte_offset, byte_count),
           "[Error]implace_str_t::to_substring: cannot init string");
@@ -302,8 +299,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     return implace_str_t<version_v, stack_cap, props_v>(
         operator_str<L, version_v, props_v>());
   };
-  };  // namespace litteral_ns
-};  // namespace mjz::bstr_ns
+  }; // namespace litteral_ns
+}; // namespace mjz::bstr_ns
 MJZ_EXPORT template <mjz::version_t version_v,
                      mjz::bstr_ns::basic_str_props_t<version_v> props_v,
                      mjz::uintlen_t stack_cap>
@@ -313,4 +310,4 @@ struct std::hash<mjz::bstr_ns::implace_str_t<version_v, stack_cap, props_v>> {
   }
 };
 
-#endif  // MJZ_BYTE_STRING_implace_string_LIB_HPP_FILE_
+#endif // MJZ_BYTE_STRING_implace_string_LIB_HPP_FILE_

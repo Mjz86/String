@@ -24,14 +24,12 @@ SOFTWARE.
 #ifndef MJZ_THREADS_mutex_ref_LIB_HPP_FILE_
 #define MJZ_THREADS_mutex_ref_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz::threads_ns {
-  template <std::integral T>
-  class mutex_ref_t : private atomic_ref_t<T> {
-    template <class>
-    friend class mjz_private_accessed_t;
+  template <std::integral T> class mutex_ref_t : private atomic_ref_t<T> {
+    template <class> friend class mjz_private_accessed_t;
     MJZ_MCONSTANT(T) one { 1 };
     MJZ_MCONSTANT(T) zero { 0 };
 
-   private:
+  private:
     MJZ_NCX_FN bool test_and_set_m() noexcept {
       return this->exchange(one, std::memory_order_acquire) != zero;
     }
@@ -40,9 +38,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
     }
     MJZ_NCX_FN void unlock_m() noexcept {
       this->store(false, std::memory_order_release);
-      if (this->load(std::memory_order_acquire) == zero) MJZ_IS_LIKELY {
-          this->try_notify_one();
-        }
+      if (this->load(std::memory_order_acquire) == zero)
+        MJZ_IS_LIKELY { this->try_notify_one(); }
     }
 
     MJZ_CX_ND_RES_OBJ_FN
@@ -90,7 +87,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return true;
     }
 
-   public:
+  public:
     MJZ_CX_FN mutex_ref_t(atomic_ref_t<T> &&obj) noexcept
         : atomic_ref_t<T>{std::move(obj)} {};
     MJZ_CX_FN mutex_ref_t(const mutex_ref_t &) noexcept = default;
@@ -121,9 +118,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return this->try_lock(defult_timeout);
     }
     MJZ_CX_FN void lock() noexcept(!MJZ_IN_DEBUG_MODE) {
-      if (this->try_lock(true, defult_timeout)) MJZ_IS_LIKELY {
-          return;
-        }
+      if (this->try_lock(true, defult_timeout))
+        MJZ_IS_LIKELY { return; }
       asserts.panic(" what happened !? why did the un-fail-able fail?! ");
     }
     /*
@@ -135,8 +131,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     }
   };
 
-  template <std::unsigned_integral T>
-  struct multiread_singlewrite_mutex_ref_t {
+  template <std::unsigned_integral T> struct multiread_singlewrite_mutex_ref_t {
     MJZ_NO_MV_NO_CPY(multiread_singlewrite_mutex_ref_t);
     MJZ_MCONSTANT(T) const_rc_mask = T(-1) >> 1;
     MJZ_MCONSTANT(T) mut_bit_mask = ~const_rc_mask;
@@ -202,13 +197,12 @@ MJZ_EXPORT namespace mjz::threads_ns {
       ref.unlock(is_mut);
     }
 
-   private:
+  private:
     multiread_singlewrite_mutex_ref_t<T> ref;
     bool is_mut;
   };
 
-  template <std::unsigned_integral T>
-  struct multiread_singlewrite_lock_ref_t {
+  template <std::unsigned_integral T> struct multiread_singlewrite_lock_ref_t {
     MJZ_NO_MV_NO_CPY(multiread_singlewrite_lock_ref_t);
     MJZ_CX_FN multiread_singlewrite_lock_ref_t(T &ref_, bool is_mut_) noexcept
         : is_mut{is_mut_}, ref{ref_} {}
@@ -229,11 +223,11 @@ MJZ_EXPORT namespace mjz::threads_ns {
       }
     }
 
-   private:
+  private:
     char *cx_ptr{};
     bool is_mut{};
     T cx_val{};
     multiread_singlewrite_mutex_ref_t<T> ref;
   };
-}  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_mutex_ref_LIB_HPP_FILE_
+} // namespace mjz::threads_ns
+#endif // MJZ_THREADS_mutex_ref_LIB_HPP_FILE_

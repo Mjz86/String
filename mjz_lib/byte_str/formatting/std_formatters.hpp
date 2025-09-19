@@ -64,12 +64,13 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
             "failed");
         return false;
       }
-      if (ctx.advance_amount(pos)) return ctx.begin();
+      if (ctx.advance_amount(pos))
+        return ctx.begin();
       return false;
     };
-    MJZ_CX_FN base_out_it_t<version_v> format(
-        const std::remove_reference_t<T_> &arg,
-        format_context_t<version_v> &ctx) const noexcept {
+    MJZ_CX_FN base_out_it_t<version_v>
+    format(const std::remove_reference_t<T_> &arg,
+           format_context_t<version_v> &ctx) const noexcept {
       bool good{true};
       auto blk_0_ = ctx.fn_alloca(format_stack_size_v<T_>, alignof(uintlen_t));
       if (!blk_0_.size()) {
@@ -104,12 +105,14 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
                      "during output")
                   .append(v);
         }
-        if (!good) return;
+        if (!good)
+          return;
         bview_t v =
             bview_t::make(buffer.data(), buffer.size(), encodings_e::ascii);
         good &= ctx.out().append(v);
       };
-      if (good) return true;
+      if (good)
+        return true;
       ctx.as_error(
           "[Error]default_formatter_t<is_std_formatter_c>: an  exeption was "
           "thrown during the output");
@@ -117,8 +120,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
 
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_std_formatters_HPP_FILE_
 
 #endif

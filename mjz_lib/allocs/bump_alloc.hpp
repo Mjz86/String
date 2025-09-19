@@ -24,8 +24,7 @@ SOFTWARE.
 #ifndef MJZ_ALLOCS_bump_alloc_FILE_HPP_
 #define MJZ_ALLOCS_bump_alloc_FILE_HPP_
 MJZ_EXPORT namespace mjz ::allocs_ns {
-  template <version_t version_v, bool has_lock = true>
-  struct stack_alloc_t {
+  template <version_t version_v, bool has_lock = true> struct stack_alloc_t {
     using alloc_t = stack_alloc_t;
     using alloc_base = alloc_base_t<version_v>;
     using block_info = block_info_t<version_v>;
@@ -42,10 +41,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       MJZ_NO_MV_NO_CPY(obj_t);
       fast_alloc_chache_t<version_v> &m;
 
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       MJZ_CX_FN auto lock_gaurd(bool is_threaded) const noexcept {
         return lock_details_ns::lock_gaurd_maker<version_v>(
             is_threaded, mutex_byte(), has_lock);
@@ -59,7 +57,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
                                           const obj_t &b) noexcept = delete;
 
-     public:
+    public:
       MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
                                  strategy_t) const & noexcept {
         return memory_is_inside(m.monotonic_begin,
@@ -83,10 +81,11 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return {ret_.data(), std::min(minsize, ret_.size())};
       }
 
-     public:
+    public:
       MJZ_CX_FN obj_t(alloc_t a, alloc_base &self) noexcept
           : m{[&self, &a]() noexcept -> auto & {
-              if (!(a.buffer && a.size)) return self.alloc_chache;
+              if (!(a.buffer && a.size))
+                return self.alloc_chache;
               alloc_vtable_t<version_v> table = self.vtable;
               table.default_info.allocation_mode_val = uint16_t(
                   alias_t<
@@ -120,5 +119,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
             }()} {}
     };
   };
-};  // namespace mjz::allocs_ns
-#endif  // MJZ_ALLOCS_bump_alloc_FILE_HPP_
+}; // namespace mjz::allocs_ns
+#endif // MJZ_ALLOCS_bump_alloc_FILE_HPP_

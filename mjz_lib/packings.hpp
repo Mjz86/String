@@ -33,12 +33,11 @@ MJZ_EXPORT namespace mjz {
   3.this only removes alignments , dose not change the object size, even if has
   padding 4.by storing this in a class , you dont add to your class alignment
   */
-  template <typename T>
-  struct unaligned_holder_t {
-   public:
+  template <typename T> struct unaligned_holder_t {
+  public:
     T unaligned_data;
 
-   public:
+  public:
     MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
       return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
     }
@@ -72,18 +71,16 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_FN const T *AAP() const & noexcept { return assume_aligned_ptr(); }
   };
 
-  template <typename T, size_t minsize_>
-  union unaligned_optional_holder_t {
-    template <class>
-    friend class mjz_private_accessed_t;
+  template <typename T, size_t minsize_> union unaligned_optional_holder_t {
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     char minsize_helper_dummy_[minsize_];
 
-   public:
+  public:
     T unaligned_data;
 
-   public:
+  public:
     MJZ_CX_FN T *assume_aligned_dead_ptr() & noexcept {
       return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
     }
@@ -136,8 +133,8 @@ MJZ_EXPORT namespace mjz {
   MJZ_BAD_COMPILER(sizeof(int8_t) == 1);
   MJZ_BAD_COMPILER(sizeof(uint16_t) == 2);
   MJZ_BAD_COMPILER(sizeof(int16_t) == 2);
-  MJZ_BAD_COMPILER(sizeof(uint32_t) == 4);  //-V112
-  MJZ_BAD_COMPILER(sizeof(int32_t) == 4);   //-V112
+  MJZ_BAD_COMPILER(sizeof(uint32_t) == 4); //-V112
+  MJZ_BAD_COMPILER(sizeof(int32_t) == 4);  //-V112
   MJZ_BAD_COMPILER(sizeof(uint64_t) == 8);
   MJZ_BAD_COMPILER(sizeof(int64_t) == 8);
   MJZ_BAD_COMPILER(sizeof(uintptr_t) % 2 == 0);
@@ -155,7 +152,7 @@ MJZ_EXPORT namespace mjz {
     char c;
     unaligned_holder_t<uint32_t> i;
   };
-  MJZ_BAD_COMPILER(sizeof(padding_test_packed_t_) ==  //-V119
+  MJZ_BAD_COMPILER(sizeof(padding_test_packed_t_) == //-V119
                    sizeof(char) + sizeof(uint32_t));
   MJZ_BAD_COMPILER(alignof(padding_test_packed_t_) == 1);
   struct padding_test_unpacked_t_ {
@@ -180,7 +177,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_DISABLE_ALL_WANINGS_END_;
   MJZ_BAD_COMPILER(sizeof(bit_field_test_t_) == 1);
 
-  };  // namespace raw_string_object_laoyouts_maybe_
+  }; // namespace raw_string_object_laoyouts_maybe_
 
   template <std::integral T>
     requires(sizeof(T) <= 16)
@@ -197,7 +194,7 @@ MJZ_EXPORT namespace mjz {
     requires(sizeof(T) <= 16)
   MJZ_CX_AL_FN uint8_t get_begin_bit_index(T mask) noexcept {
     int16_t index{(sizeof(T) * 8) - 1};
-    while (static_cast<bool>(static_cast<T &>(mask <<= 1))) {  //-V2561
+    while (static_cast<bool>(static_cast<T &>(mask <<= 1))) { //-V2561
       index--;
     }
     return static_cast<uint8_t>(index);
@@ -247,7 +244,7 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_FN bit_rotate_t(uintlen_t r) noexcept : amount{r} {}
     MJZ_CX_FN bit_rotate_t() noexcept {}
 
-   private:
+  private:
     template <std::integral T>
     MJZ_CX_FN static T to_left(T x, intlen_t how_much_) noexcept {
       bool neg{};
@@ -265,5 +262,5 @@ MJZ_EXPORT namespace mjz {
     }
   };
 
-}  // namespace mjz
-#endif  // MJZ_PACKING_LIB_HPP_FILE_
+} // namespace mjz
+#endif // MJZ_PACKING_LIB_HPP_FILE_

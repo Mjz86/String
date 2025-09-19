@@ -28,9 +28,8 @@ SOFTWARE.
 #ifndef MJZ_BYTE_STRING_iterator_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_iterator_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz::bstr_ns {
-  template <class Range_t>
-  struct continuos_iterator_of_t {
-   public:
+  template <class Range_t> struct continuos_iterator_of_t {
+  public:
     using iterator_concept = std::contiguous_iterator_tag;
     using iterator_category = std::contiguous_iterator_tag;
     using difference_type = intlen_t;
@@ -46,7 +45,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       MJZ_UNUSED auto checker = check();
     }
 
-   public:
+  public:
     MJZ_CX_FN reference operator*() const noexcept {
       MJZ_UNUSED auto checker = check(true);
       return trc->data()[index];
@@ -83,8 +82,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return Tmp;
     }
 
-    MJZ_CX_FN continuos_iterator_of_t &operator+=(
-        const difference_type diff) noexcept {
+    MJZ_CX_FN continuos_iterator_of_t &
+    operator+=(const difference_type diff) noexcept {
       MJZ_UNUSED auto checker = check();
       index += uintlen_t(diff);
 
@@ -97,15 +96,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       Tmp += Off;
       return Tmp;
     }
-    MJZ_CX_FN friend continuos_iterator_of_t operator+(
-        const difference_type Off, continuos_iterator_of_t Right) noexcept {
+    MJZ_CX_FN friend continuos_iterator_of_t
+    operator+(const difference_type Off,
+              continuos_iterator_of_t Right) noexcept {
       MJZ_UNUSED auto checker = Right.check();
       Right += Off;
       return Right;
     }
 
-    MJZ_CX_FN continuos_iterator_of_t &operator-=(
-        const difference_type Off) noexcept {
+    MJZ_CX_FN continuos_iterator_of_t &
+    operator-=(const difference_type Off) noexcept {
       MJZ_UNUSED auto checker = check();
       index -= Off;
 
@@ -130,8 +130,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       MJZ_UNUSED auto checker = check();
       return *(*this + Off);
     }
-    MJZ_CX_ND_FN bool operator==(
-        const continuos_iterator_of_t &Right) const noexcept {
+    MJZ_CX_ND_FN bool
+    operator==(const continuos_iterator_of_t &Right) const noexcept {
       MJZ_UNUSED auto checker = check();
       MJZ_UNUSED auto checker2 = Right.check();
       MJZ_WARNINGS_IGNORE_BEGIN_IMPL_;
@@ -141,8 +141,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return trc == Right.trc;
       MJZ_WARNINGS_IGNORE_END_IMPL_;
     }
-    MJZ_CX_ND_FN std::strong_ordering operator<=>(
-        const continuos_iterator_of_t &Right) const noexcept {
+    MJZ_CX_ND_FN std::strong_ordering
+    operator<=>(const continuos_iterator_of_t &Right) const noexcept {
       MJZ_UNUSED auto checker = check();
       MJZ_UNUSED auto checker2 = Right.check();
       asserts(asserts.expect_rn, Right.trc == trc);
@@ -157,7 +157,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return this->trc->get_encoding();
     }
 
-   protected:
+  protected:
     MJZ_CX_ND_FN auto check(bool extra = false) const noexcept {
       static_assert(requires(Range_t &p) {
         { p.data() } noexcept;
@@ -185,12 +185,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     Range_t *trc{};
     uintlen_t index{};
   };
-  template <class Str_t>
-  using iterator_t = continuos_iterator_of_t<Str_t>;
+  template <class Str_t> using iterator_t = continuos_iterator_of_t<Str_t>;
 
   namespace basic_str_abi_ns_ {
-  template <version_t version_v>
-  struct mut_ref_t {
+  template <version_t version_v> struct mut_ref_t {
     uintlen_t len;
     char *ptr;
     encodings_e encodings;
@@ -239,7 +237,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   template <version_t version_v>
   using mut_iterator_t = typename mut_ref_t<version_v>::iterator;
 
-  };  // namespace basic_str_abi_ns_
+  }; // namespace basic_str_abi_ns_
   template <typename T, version_t version_v>
   concept base_out_it_viawble_c =
       requires(T obj, void_struct_t *vp,
@@ -278,13 +276,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     char *begin_ptr{};
     encodings_e encoding{};
 
-   private:
+  private:
     void_struct_t *obj{};
     fn_t function_ptr{};
-    template <version_t>
-    friend class base_out_it_t;
+    template <version_t> friend class base_out_it_t;
 
-   protected:
+  protected:
     MJZ_CX_FN ~base_out_buffer_t() noexcept = default;
     MJZ_NO_MV_NO_CPY_DC(base_out_buffer_t);
   };
@@ -294,9 +291,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_NO_MV_NO_CPY_DC(stack_base_out_buffer_t);
   };
 
-  template <version_t version_v>
-  class base_out_it_t : public void_struct_t {
-   public:
+  template <version_t version_v> class base_out_it_t : public void_struct_t {
+  public:
     using bview = base_string_view_t<version_v>;
     using blazy = base_lazy_view_t<version_v>;
     using fn_t = base_out_it_fnp_t_<version_v>;
@@ -393,7 +389,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <typename T0_>
     MJZ_CX_FN auto append_obj_impl_(const T0_ &) noexcept;
     MJZ_CX_FN success_t append_u_(bview opt_view_or_reserve) noexcept {
-      if (!opt_view_or_reserve.len) return true;
+      if (!opt_view_or_reserve.len)
+        return true;
       return !!fn(opt_view_or_reserve);
     }
     MJZ_CX_FN success_t flush_buffer() noexcept {
@@ -410,8 +407,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     MJZ_CX_FN success_t
     entangle_to_manual_buffer(optional_ref_t<buffer_t> buf_) noexcept {
-      if (buf_.get() == buf_ptr) return true;
-      if (!flush_buffer()) return false;
+      if (buf_.get() == buf_ptr)
+        return true;
+      if (!flush_buffer())
+        return false;
       buf_ptr = buf_.get();
       buf_ptr->obj = obj;
       buf_ptr->function_ptr = function_ptr;
@@ -425,11 +424,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
              buf_ptr == other.buf_ptr;
     }
 
-   protected:
+  protected:
     MJZ_CX_AL_FN std::optional<bool> needs_flush() noexcept {
-      if (!obj) return {};
-      if (!owns_buffer()) return false;
-      if (!buf_ptr->length) return false;
+      if (!obj)
+        return {};
+      if (!owns_buffer())
+        return false;
+      if (!buf_ptr->length)
+        return false;
       return true;
     }
     MJZ_CX_AL_FN it_t &reset() noexcept {
@@ -448,7 +450,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     MJZ_CX_FN success_t
     data_to_buffer_nfn(blazy &opt_view_or_reserve) noexcept {
-      if (opt_view_or_reserve.is_resurve()) return true;
+      if (opt_view_or_reserve.is_resurve())
+        return true;
       if (opt_view_or_reserve.get_value(buf_ptr->begin_ptr + buf_ptr->length)) {
         buf_ptr->length += opt_view_or_reserve.len;
         return true;
@@ -456,7 +459,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return false;
     }
     MJZ_CX_FN success_t flush_and_fn(blazy &opt_view_or_reserve) noexcept {
-      if (!buf_ptr->length) return no_buffer_to_fn(opt_view_or_reserve);
+      if (!buf_ptr->length)
+        return no_buffer_to_fn(opt_view_or_reserve);
       if (opt_view_or_reserve.is_resurve())
         return resurve_to_fn(opt_view_or_reserve);
       auto fn_with_ctx =
@@ -517,7 +521,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return false;
     }
     MJZ_CX_FN success_t resurve_to_fn(blazy &opt_view_or_reserve) {
-      if (buf_ptr) opt_view_or_reserve.len += buf_ptr->length;
+      if (buf_ptr)
+        opt_view_or_reserve.len += buf_ptr->length;
       return function_ptr(*obj, opt_view_or_reserve);
     }
     MJZ_CX_FN success_t no_buffer_to_fn(blazy &opt_view_or_reserve) {
@@ -525,9 +530,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     MJZ_CX_FN it_t &fn(blazy opt_view_or_reserve) noexcept {
-      if (fn_impl_(opt_view_or_reserve)) MJZ_IS_LIKELY {
-          return *this;
-        }
+      if (fn_impl_(opt_view_or_reserve))
+        MJZ_IS_LIKELY { return *this; }
       return reset();
     }
     MJZ_CX_FN success_t fn_impl_(blazy opt_view_or_reserve) noexcept {
@@ -540,22 +544,21 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (buf_ptr->capacity - buf_ptr->length < opt_view_or_reserve.len) {
         return flush_and_fn(opt_view_or_reserve);
       }
-      if (opt_view_or_reserve.is_resurve()) return true;
+      if (opt_view_or_reserve.is_resurve())
+        return true;
       return data_to_buffer_nfn(opt_view_or_reserve);
     }
     MJZ_CX_FN it_t &fn(bview opt_view_or_reserve) noexcept {
       return fn(opt_view_or_reserve.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v));
     }
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
     void_struct_t *obj{};
     fn_t function_ptr{};
     buffer_t *buf_ptr{};
   };
 
-  template <version_t version_v>
-  struct count_out_buf_t : void_struct_t {
+  template <version_t version_v> struct count_out_buf_t : void_struct_t {
     uintlen_t count{};
     encodings_e encoding{};
     bool invalid{};
@@ -578,15 +581,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   struct out_buf_t : base_out_buffer_t<version_v> {
     MJZ_NO_MV_NO_CPY(out_buf_t);
 
-   private:
+  private:
     using Base = base_out_buffer_t<version_v>;
     using bview = base_string_view_t<version_v>;
 
-   public:
+  public:
     using blazy = base_lazy_view_t<version_v>;
     MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
         unsafe_ns::i_know_what_im_doing_t, blazy view) noexcept {
-      if (!this->begin_ptr) return false;
+      if (!this->begin_ptr)
+        return false;
 
       if (this->capacity - this->length() < view.len ||
           view.get_encoding() != this->encoding || view.is_invalid()) {
@@ -613,7 +617,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return this->encoding;
     }
 
-   public:
+  public:
     MJZ_CX_FN out_buf_t(char *buf_, uintlen_t size_,
                         encodings_e encoding_) noexcept {
       this->begin_ptr = buf_;
@@ -628,11 +632,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
   };
 
-  template <version_t version_v>
-  struct sub_out_iter_t : void_struct_t {
+  template <version_t version_v> struct sub_out_iter_t : void_struct_t {
     using bview = base_string_view_t<version_v>;
 
-   private:
+  private:
     base_out_it_t<version_v> base{};
     uintlen_t left_offset{};
     uintlen_t left_len{};
@@ -640,13 +643,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     using blazy = base_lazy_view_t<version_v>;
 
-   private:
+  private:
     MJZ_CX_FN success_t format_back_insert_append_pv_fn(
         unsafe_ns::i_know_what_im_doing_t idk, blazy view) noexcept {
-      if (!base || view.is_invalid()) return false;
+      if (!base || view.is_invalid())
+        return false;
 
       if (view.is_resurve()) {
-        if (view.len < left_offset) return true;
+        if (view.len < left_offset)
+          return true;
         view.len -= left_offset;
         return base.format_back_insert_append_pv_fn_(
             idk, bview::make(nullptr, std::min(view.len, left_len), encoding));
@@ -657,14 +662,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       view.offset += delta;
       view.len = std::min(view.len, left_len);
       left_len -= view.len;
-      if (!view.len) return true;
+      if (!view.len)
+        return true;
       return base.format_back_insert_append_pv_fn_(idk, view);
     }
 
-   public:
+  public:
     MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
         unsafe_ns::i_know_what_im_doing_t idk, blazy view) noexcept {
-      if (format_back_insert_append_pv_fn(idk, view)) return true;
+      if (format_back_insert_append_pv_fn(idk, view))
+        return true;
       base.format_back_insert_append_pv_fn_(
           unsafe_ns::unsafe_v, bview::make(nullptr, 0, encoding, true));
       base = base_out_it_t<version_v>{};
@@ -675,17 +682,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN sub_out_iter_t(base_out_it_t<version_v> base_,
                              encodings_e encoding_, uintlen_t left_offset_ = 0,
                              uintlen_t left_len_ = uintlen_t(-1)) noexcept
-        : base{base_},
-          left_offset{left_offset_},
-          left_len{left_len_},
+        : base{base_}, left_offset{left_offset_}, left_len{left_len_},
           encoding{encoding_} {}
     MJZ_CX_FN sub_out_iter_t(nullptr_t = nullptr) noexcept {};
 
     MJZ_CX_FN explicit operator bool() const noexcept { return !!base; }
   };
 
-  template <version_t version_v>
-  struct out_errored_it_t : void_struct_t {
+  template <version_t version_v> struct out_errored_it_t : void_struct_t {
     using blazy = base_lazy_view_t<version_v>;
     base_out_it_t<version_v> it{};
     MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
@@ -715,23 +719,28 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         invalid = true;
         return false;
       }
-      if ((uintlen_t(-1) >> 1) < opt_view_or_reserve.len) return false;
+      if ((uintlen_t(-1) >> 1) < opt_view_or_reserve.len)
+        return false;
       if (!reserve(this->length + opt_view_or_reserve.len)) {
         return false;
       }
-      if (opt_view_or_reserve.is_resurve()) return true;
+      if (opt_view_or_reserve.is_resurve())
+        return true;
       char *append_begin = this->length + this->begin_ptr;
       success_t succsess{true};
       MJZ_RELEASE {
-        if (!succsess) return;
+        if (!succsess)
+          return;
         this->length += opt_view_or_reserve.len;
       };
       succsess = !!opt_view_or_reserve.get_value(append_begin);
       return succsess;
     }
     MJZ_CX_FN success_t reserve(uintlen_t new_cap) noexcept {
-      if (new_cap <= this->capacity) return true;
-      if ((uintlen_t(-1) >> 1) < this->capacity) return false;
+      if (new_cap <= this->capacity)
+        return true;
+      if ((uintlen_t(-1) >> 1) < this->capacity)
+        return false;
       new_cap = uintlen_t(1) << log2_ceil_of_val_create(new_cap);
       allocs_ns::block_info_t<version_v> blk =
           alloc.allocate_bytes(new_cap, info);
@@ -757,7 +766,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         this->begin_ptr = nullptr;
         was_allocated = false;
       };
-      if (!was_allocated) return;
+      if (!was_allocated)
+        return;
       allocs_ns::block_info_t<version_v> blk{};
       blk.length = this->capacity;
       blk.ptr = this->begin_ptr;
@@ -783,14 +793,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
         unsafe_ns::i_know_what_im_doing_t,
         base_lazy_view_t<version_v> view) noexcept {
-      if (!back_insert_fnp) return false;
+      if (!back_insert_fnp)
+        return false;
       bool failed{false};
       auto output_fn = [&](const char *ptr, uintlen_t len) noexcept {
         failed |=
             !(MJZ_NOEXCEPT { failed |= !back_insert_fnp(*this, ptr, len); });
         return !failed;
       };
-      if (view.is_resurve()) return output_fn(nullptr, view.len);
+      if (view.is_resurve())
+        return output_fn(nullptr, view.len);
       if (encodings_e::utf8 <= view.get_encoding() || view.is_invalid()) {
         back_insert_fnp = nullptr;
         return false;
@@ -814,7 +826,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                 return true;
               }
               if (first_time) {
-                if (!flush_fn()) return false;
+                if (!flush_fn())
+                  return false;
               } else {
                 return output_fn(read_slice.ptr, read_slice.len);
               }
@@ -826,7 +839,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return flush_fn();
     }
 
-   private:
+  private:
     using back_insert_fnp_t = success_t (*)(generic_base_output_it_t &obj,
                                             const char *ptr, uintlen_t len);
     template <class T>
@@ -848,17 +861,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return generic_base_output_it_t<version_v>::template back_insert_fn_v<T>;
     }
 
-   private:
+  private:
     back_insert_fnp_t back_insert_fnp{};
 
-   protected:
-    template <class T>
-    MJZ_CX_FN void init() noexcept {
+  protected:
+    template <class T> MJZ_CX_FN void init() noexcept {
       back_insert_fnp =
           generic_base_output_it_t<version_v>::template back_insert_fn_v<T>;
     }
-    template <class T>
-    MJZ_CX_FN static void init(T *This) noexcept {
+    template <class T> MJZ_CX_FN static void init(T *This) noexcept {
       This->template init<T>();
     }
     MJZ_DEFAULTED_CLASS(generic_base_output_it_t);
@@ -874,7 +885,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       value = &obj;
     }
     MJZ_CX_FN success_t back_insert(const char *ptr, uintlen_t len) {
-      if (!value) return false;
+      if (!value)
+        return false;
       if constexpr (requires() {
                       value->insert(value->end(), ptr, ptr + len);
                     }) {
@@ -885,7 +897,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     };
     MJZ_CX_FN success_t reserve(uintlen_t len) {
-      if (!value) return false;
+      if (!value)
+        return false;
       if constexpr (requires() {
                       value->reserve(len + std::ranges::size(*value));
                     }) {
@@ -927,7 +940,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       generic_base_output_it_t<version_v>::init(this);
     }
     MJZ_NCX_FN success_t back_insert(const char *ptr, uintlen_t len) {
-      if (!Stream) return false;
+      if (!Stream)
+        return false;
       Stream->write(ptr, std::streamsize(len));
       Stream->width(0);
       return !Stream->bad();
@@ -945,7 +959,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                   encodings_e encoding_ = encodings_e::ascii)
         : std::ostream{This()}, out{it}, encoding{encoding_} {}
 
-   private:
+  private:
     MJZ_NCX_FN int_type overflow(int_type ch) override {
       if (traits_type::eq_int_type(ch, traits_type::eof()) ||
           !out.push_back(traits_type::to_char_type(ch), encoding))
@@ -960,11 +974,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return 0;
     }
 
-   private:
+  private:
     base_out_it_t<version_v> out{};
     encodings_e encoding{};
   };
 #endif
 
-}  // namespace mjz::bstr_ns
-#endif  // MJZ_BYTE_STRING_iterator_LIB_HPP_FILE_
+} // namespace mjz::bstr_ns
+#endif // MJZ_BYTE_STRING_iterator_LIB_HPP_FILE_

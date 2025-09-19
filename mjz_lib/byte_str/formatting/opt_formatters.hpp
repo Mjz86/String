@@ -27,8 +27,7 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_opt_formatters_HPP_FILE_
 
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
-  template <version_t version_v, typename T>
-  struct is_opt_arg_t {};
+  template <version_t version_v, typename T> struct is_opt_arg_t {};
 
   template <version_t version_v, typename T>
   struct is_opt_arg_t<version_v, optional_ref_t<T>> {
@@ -40,8 +39,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     using type = T;
   };
   MJZ_DISABLE_ALL_WANINGS_START_;
-  template <version_t version_v, typename T>
-  struct decay_optimize_opt_to_t {
+  template <version_t version_v, typename T> struct decay_optimize_opt_to_t {
     std::optional<T> obj;
     template <typename U>
     MJZ_CX_FN decay_optimize_opt_to_t(const std::optional<U> &arg) noexcept
@@ -100,7 +98,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
     MJZ_CX_FN success_t
     format(auto &&arg, format_context_t<version_v> &ctx) const noexcept {
-      if (!arg) return true;
+      if (!arg)
+        return true;
       return formatter.format(*arg, ctx);
     };
 
@@ -108,13 +107,14 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
                                         hash_context_t<version_v> &ctx) noexcept
       requires(noexcept(Formatter::arg_name(*arg, ctx)))
     {
-      if (!arg) return true;
+      if (!arg)
+        return true;
       return Formatter::arg_name(*arg, ctx);
     }
   };
   MJZ_DISABLE_ALL_WANINGS_END_;
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_opt_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_opt_formatters_HPP_FILE_
 
 /**/

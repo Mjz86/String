@@ -56,24 +56,24 @@ SOFTWARE.
 #ifndef MJZ_STR_HASH_BYTES_LIB_HPP_FILE_
 #define MJZ_STR_HASH_BYTES_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz {
-  template <version_t>
-  struct hash_bytes_t {
-   private:
-    MJZ_IL_CX_FN static uintlen_t load_bytes(
-        const char *p, uint8_t len = sizeof(uintlen_t)) noexcept {
+  template <version_t> struct hash_bytes_t {
+  private:
+    MJZ_IL_CX_FN static uintlen_t
+    load_bytes(const char *p, uint8_t len = sizeof(uintlen_t)) noexcept {
       asserts(asserts.assume_rn, len <= sizeof(uintlen_t));
       std::array<char, sizeof(uintlen_t)> buf{};
-      for (uintlen_t i{}; i < len; i++) buf[(size_t)i] = p[(size_t)i];
+      for (uintlen_t i{}; i < len; i++)
+        buf[(size_t)i] = p[(size_t)i];
       return std::bit_cast<uintlen_t>(buf);
     }
 
-   public:
+  public:
     uintlen_t val{};
 
-   public:
-    MJZ_CX_FN static uintlen_t hash_bytes(
-        const char *ptr, uintlen_t len,
-        uintlen_t seed = uintlen_t(0xc70f6907UL)) noexcept {
+  public:
+    MJZ_CX_FN static uintlen_t
+    hash_bytes(const char *ptr, uintlen_t len,
+               uintlen_t seed = uintlen_t(0xc70f6907UL)) noexcept {
       if constexpr (sizeof(uintlen_t) == 8) {
         auto shift_mix = [](uint64_t v) noexcept -> uint64_t {
           return v ^ (v >> 47);
@@ -120,18 +120,18 @@ MJZ_EXPORT namespace mjz {
         uint32_t k{};
         // Handle the last few bytes of the input array.
         switch (len) {
-          case 3:
-            k = static_cast<uint8_t>(buf[2]);
-            hash ^= k << 16;
-            MJZ_FALLTHROUGH;
-          case 2:
-            k = static_cast<uint8_t>(buf[1]);
-            hash ^= k << 8;
-            MJZ_FALLTHROUGH;
-          case 1:
-            k = static_cast<uint8_t>(buf[0]);
-            hash ^= k;
-            hash *= m;
+        case 3:
+          k = static_cast<uint8_t>(buf[2]);
+          hash ^= k << 16;
+          MJZ_FALLTHROUGH;
+        case 2:
+          k = static_cast<uint8_t>(buf[1]);
+          hash ^= k << 8;
+          MJZ_FALLTHROUGH;
+        case 1:
+          k = static_cast<uint8_t>(buf[0]);
+          hash ^= k;
+          hash *= m;
         };
 
         // Do a few final mixes of the hash.
@@ -158,9 +158,9 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_FN explicit operator uintlen_t() const noexcept { return val; }
 
-   public:
-    MJZ_CX_FN std::strong_ordering operator<=>(
-        hash_bytes_t rhs) const noexcept {
+  public:
+    MJZ_CX_FN std::strong_ordering
+    operator<=>(hash_bytes_t rhs) const noexcept {
       return val <=> rhs.val;
     }
     MJZ_CX_FN bool operator==(hash_bytes_t rhs) const noexcept {
@@ -168,5 +168,5 @@ MJZ_EXPORT namespace mjz {
     }
   };
 
-}  // namespace mjz
-#endif  // MJZ_STR_HASH_BYTES_LIB_HPP_FILE_
+} // namespace mjz
+#endif // MJZ_STR_HASH_BYTES_LIB_HPP_FILE_

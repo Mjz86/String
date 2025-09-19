@@ -67,7 +67,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
 
     using F_t = std::remove_pointer_t<decltype(F_t_fn(IS_t{}))>;
 
-   public:
+  public:
     F_t formatters{};
     view open_braket{sview("(")};
     view close_braket{sview(")")};
@@ -110,11 +110,10 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
 
     MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
       if (ctx.encoding() != encodings_e::ascii) {
-        ctx.as_error(
-            "[Error]default_formatter_t::parse(tuple,auto):"
-            "only ascii is "
-            "suppoerted!(note that this "
-            "may change in later versions)");
+        ctx.as_error("[Error]default_formatter_t::parse(tuple,auto):"
+                     "only ascii is "
+                     "suppoerted!(note that this "
+                     "may change in later versions)");
         return false;
       }
       if (!partial_spec.parse_align(ctx)) {
@@ -137,24 +136,25 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       if (ch && *ch == 'n') {
         open_braket = sview("");
         close_braket = sview("");
-        if (!ctx.unchecked_advance_amount_(1)) return false;
+        if (!ctx.unchecked_advance_amount_(1))
+          return false;
         ch = ctx.front();
       }
       if (is_m || (ch && *ch == 'm')) {
         if (2 + slice_index !=
             std::min(mjz::tuple_size_v<std::remove_cvref_t<T>>,
                      slice_length + slice_index)) {
-          ctx.as_error(
-              "[Error]default_formatter_t::parse(tuple,"
-              "auto):"
-              "invalid range spec of m with size other than 2");
+          ctx.as_error("[Error]default_formatter_t::parse(tuple,"
+                       "auto):"
+                       "invalid range spec of m with size other than 2");
           return false;
         }
         open_braket = sview("");
         close_braket = sview("");
         separator = sview(": ");
         if (!is_m) {
-          if (!ctx.unchecked_advance_amount_(1)) return false;
+          if (!ctx.unchecked_advance_amount_(1))
+            return false;
           ch = ctx.front();
         }
       }
@@ -162,43 +162,44 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         open_braket = sview("");
         close_braket = sview("");
         separator = sview("");
-        if (!ctx.unchecked_advance_amount_(1)) return false;
+        if (!ctx.unchecked_advance_amount_(1))
+          return false;
         ch = ctx.front();
       }
 
       if (!on_types([&]<std::size_t I>() {
             ch = ctx.front();
             if (ch && *ch != '}' && ch != '{') {
-              ctx.as_error(
-                  "[Error]default_formatter_t::parse(tuple,"
-                  "auto):"
-                  "invalid range spec");
+              ctx.as_error("[Error]default_formatter_t::parse(tuple,"
+                           "auto):"
+                           "invalid range spec");
               return false;
             }
             bool had_scope{};
             if (ch == '{') {
-              if (!ctx.unchecked_advance_amount_(1)) return false;
+              if (!ctx.unchecked_advance_amount_(1))
+                return false;
               ch = ctx.front();
               had_scope = true;
             }
-            if (!(std::get<I>(formatters).parse(ctx))) return false;
+            if (!(std::get<I>(formatters).parse(ctx)))
+              return false;
             if (ch && *ch != '}') {
-              ctx.as_error(
-                  "[Error]default_formatter_t::parse(tuple,"
-                  "auto):"
-                  "invalid range spec");
+              ctx.as_error("[Error]default_formatter_t::parse(tuple,"
+                           "auto):"
+                           "invalid range spec");
               return false;
             }
             if (had_scope) {
-              if (!ctx.unchecked_advance_amount_(1)) return false;
+              if (!ctx.unchecked_advance_amount_(1))
+                return false;
             }
             return true;
           }))
         return false;
       if (ch && *ch != '}') {
-        ctx.as_error(
-            "[Error]default_formatter_t::parse(tuple,auto):"
-            "invalid range spec");
+        ctx.as_error("[Error]default_formatter_t::parse(tuple,auto):"
+                     "invalid range spec");
         return false;
       }
       return true;
@@ -252,7 +253,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     using F_t = typename format_context_t<version_v>::template formatter_type<
         decayed_t>;
 
-   public:
+  public:
     F_t formatter{};
     view open_braket{sview("[")};
     view close_braket{sview("]")};
@@ -280,7 +281,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       if (ch && *ch == '[') {
         std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>> slice =
             ctx.get_slice();
-        if (!slice) return false;
+        if (!slice)
+          return false;
         slice_index = slice->first;
         slice_length = slice->second;
         ch = ctx.front();
@@ -288,7 +290,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       if (ch && *ch == 'n') {
         open_braket = sview("");
         close_braket = sview("");
-        if (!ctx.unchecked_advance_amount_(1)) return false;
+        if (!ctx.unchecked_advance_amount_(1))
+          return false;
         ch = ctx.front();
       }
       if (ch && *ch == 'm') {
@@ -309,18 +312,21 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
 
         open_braket = sview("{");
         close_braket = sview("}");
-        if (!ctx.unchecked_advance_amount_(1)) return false;
+        if (!ctx.unchecked_advance_amount_(1))
+          return false;
         ch = ctx.front();
       }
       if (ch && *ch == 's') {
         open_braket = sview("");
         close_braket = sview("");
         separator = sview("");
-        if (!ctx.unchecked_advance_amount_(1)) return false;
+        if (!ctx.unchecked_advance_amount_(1))
+          return false;
         ch = ctx.front();
       }
       if (ch && *ch == ':') {
-        if (!ctx.unchecked_advance_amount_(1)) return false;
+        if (!ctx.unchecked_advance_amount_(1))
+          return false;
         ch = ctx.front();
       } else if (ch && *ch != '}') {
         ctx.as_error(
@@ -422,5 +428,5 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
 
-};  // namespace mjz::bstr_ns::format_ns
-#endif  // MJZ_BYTE_FORMATTING_range_formatters_HPP_FILE_
+}; // namespace mjz::bstr_ns::format_ns
+#endif // MJZ_BYTE_FORMATTING_range_formatters_HPP_FILE_

@@ -25,8 +25,7 @@ SOFTWARE.
 #define MJZ_TUPLE_LIB_HPP_FILE_
 #include "all_macors.hpp"
 MJZ_EXPORT namespace mjz {
-  template <class, class>
-  struct tuple_strorage_t {};
+  template <class, class> struct tuple_strorage_t {};
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <class T, size_t my_I>
   struct MJZ_maybe_trivially_relocatable tuple_elem_storage_t {
@@ -152,8 +151,8 @@ MJZ_EXPORT namespace mjz {
     MJZ_DEFAULTED_CLASS(tuple_t);
     template <typename... Us>
       requires(std::convertible_to<Us, Ts> && ...)
-    MJZ_CX_AL_FN tuple_t(Us &&...args) noexcept(noexcept(base_t_{
-        std::forward<Us>(args)...}))
+    MJZ_CX_AL_FN
+    tuple_t(Us &&...args) noexcept(noexcept(base_t_{std::forward<Us>(args)...}))
         : base_t_{std::forward<Us>(args)...} {}
     using base_t_::get;
     using base_t_::type_get;
@@ -271,7 +270,7 @@ MJZ_EXPORT namespace mjz {
     typename std::remove_cvref_t<T>::is_mjz_tuple_c_uuid_098765987654345678;
   };
 
-}  // namespace mjz
+} // namespace mjz
 MJZ_EXPORT namespace std {
   template <class... Types>
   struct tuple_size<::mjz::pair_t<Types...>>
@@ -293,6 +292,6 @@ MJZ_EXPORT namespace std {
   MJZ_CX_ND_FN decltype(auto) get(T && p) noexcept {
     return std::forward<T>(p).template get<index_>();
   }
-};  // namespace std
+}; // namespace std
 
-#endif  // MJZ_TUPLE_LIB_HPP_FILE_
+#endif // MJZ_TUPLE_LIB_HPP_FILE_

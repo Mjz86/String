@@ -38,5 +38,5 @@ MJZ_EXPORT namespace mjz::threads_ns {
              }) && ...);
   };
   MJZ_FCONSTANT(uint64_t) defult_timeout = uint64_t(uint8_t(-1));
-}  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_BASE_LIB_HPP_FILE_
+} // namespace mjz::threads_ns
+#endif // MJZ_THREADS_BASE_LIB_HPP_FILE_

@@ -28,10 +28,9 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz::threads_ns {
   template <partial_same_as<totally_empty_type_t> T_E_ = totally_empty_type_t>
   class big_mutex_t {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     MJZ_NO_MV_NO_CPY(big_mutex_t);
     union data_t {
       MJZ_NO_MV_NO_CPY(data_t);
@@ -44,12 +43,12 @@ MJZ_EXPORT namespace mjz::threads_ns {
         MJZ_DISABLE_ALL_WANINGS_END_;
         MJZ_IF_CONSTEVAL { std::construct_at(&cx_mutex); }
         else {
-          std::construct_at(reinterpret_cast<std::mutex*>(r_mutex_));
+          std::construct_at(reinterpret_cast<std::mutex *>(r_mutex_));
         }
       }
       MJZ_DISABLE_ALL_WANINGS_START_;
-      MJZ_CX_FN std::mutex& get_r() noexcept {
-        return *(reinterpret_cast<std::mutex*>(r_mutex_));
+      MJZ_CX_FN std::mutex &get_r() noexcept {
+        return *(reinterpret_cast<std::mutex *>(r_mutex_));
       }
       MJZ_CX_FN ~data_t() noexcept {
         MJZ_DISABLE_ALL_WANINGS_END_;
@@ -64,7 +63,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     };
     data_t m{};
 
-   public:
+  public:
     MJZ_CX_FN ~big_mutex_t() noexcept = default;
     MJZ_CX_FN big_mutex_t() noexcept = default;
     MJZ_CX_ND_RES_OBJ_FN
@@ -96,5 +95,5 @@ MJZ_EXPORT namespace mjz::threads_ns {
       }
     }
   };
-}  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_big_mutex_LIB_HPP_FILE_
+} // namespace mjz::threads_ns
+#endif // MJZ_THREADS_big_mutex_LIB_HPP_FILE_

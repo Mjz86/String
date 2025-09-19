@@ -37,14 +37,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using parse_math_helper_t_<version_v>::divide_modulo;
     using parse_math_helper_t_<version_v>::signed_divide_modulo;
     using enum floating_format_e;
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     MJZ_MCONSTANT(auto)
     npos{std::min((uintlen_t(-1) >> 8) + 1, std_view_max_size)};
 
     MJZ_CX_ND_FN static intlen_t pv_compare(const char *rhs, const char *lhs,
                                             uintlen_t len) noexcept {
-      if (lhs == rhs) return 0;
+      if (lhs == rhs)
+        return 0;
       MJZ_IFN_CONSTEVAL { return std::memcmp(rhs, lhs, len); }
       for (; 0 < len; --len, ++rhs, ++lhs) {
         if (*rhs != *lhs) {
@@ -54,7 +54,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return 0;
     }
     MJZ_CX_ND_FN static uintlen_t pv_strlen(const char *begin) noexcept {
-      if (!begin) return 0;
+      if (!begin)
+        return 0;
       MJZ_IFN_CONSTEVAL { return std::strlen(begin); }
       uintlen_t len = 0;
       while (*begin != '\0') {
@@ -181,14 +182,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return u_diff(canidate, hay_stack);
       }
 
-      return *canidate == Ch ? 0 : npos;  // no match
+      return *canidate == Ch ? 0 : npos; // no match
     }
 
-    MJZ_CX_ND_FN static uintlen_t find_first_of(const char *hay_stack,
-                                                uintlen_t hay_len,
-                                                uintlen_t offset,
-                                                const char *needle,
-                                                uintlen_t needle_len) noexcept {
+    MJZ_CX_ND_FN static uintlen_t
+    find_first_of(const char *hay_stack, uintlen_t hay_len, uintlen_t offset,
+                  const char *needle, uintlen_t needle_len) noexcept {
       if (needle_len == 0 || offset >= hay_len) {
         return npos;
       }
@@ -203,11 +202,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return npos;
     }
 
-    MJZ_CX_ND_FN static uintlen_t find_last_of(const char *hay_stack,
-                                               uintlen_t hay_len,
-                                               uintlen_t offset,
-                                               const char *needle,
-                                               uintlen_t needle_len) noexcept {
+    MJZ_CX_ND_FN static uintlen_t
+    find_last_of(const char *hay_stack, uintlen_t hay_len, uintlen_t offset,
+                 const char *needle, uintlen_t needle_len) noexcept {
       if (needle_len == 0 || hay_len == 0) {
         return npos;
       }
@@ -221,9 +218,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return pv_find(needle, needle_len, *canidate) ? 0 : npos;
     }
 
-    MJZ_CX_ND_FN static uintlen_t find_first_not_of(
-        const char *hay_stack, uintlen_t hay_len, uintlen_t offset,
-        const char *needle, uintlen_t needle_len) noexcept {
+    MJZ_CX_ND_FN static uintlen_t
+    find_first_not_of(const char *hay_stack, uintlen_t hay_len,
+                      uintlen_t offset, const char *needle,
+                      uintlen_t needle_len) noexcept {
       if (offset >= hay_len) {
         return npos;
       }
@@ -255,9 +253,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return npos;
     }
 
-    MJZ_CX_ND_FN static uintlen_t find_last_not_of(
-        const char *hay_stack, uintlen_t hay_len, uintlen_t offset,
-        const char *needle, uintlen_t needle_len) noexcept {
+    MJZ_CX_ND_FN static uintlen_t
+    find_last_not_of(const char *hay_stack, uintlen_t hay_len, uintlen_t offset,
+                     const char *needle, uintlen_t needle_len) noexcept {
       if (hay_len == 0) {
         return npos;
       }
@@ -269,7 +267,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return u_diff(canidate, hay_stack);
       }
 
-      return pv_find(needle, needle_len, *canidate) ? npos : 0;  // no match
+      return pv_find(needle, needle_len, *canidate) ? npos : 0; // no match
     }
 
     MJZ_CX_ND_FN static uintlen_t rfind_not_ch(const char *hay_stack,
@@ -358,7 +356,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                          : std::optional<uint8_t>(std::nullopt);
     }
 
-   private:
+  private:
     MJZ_MCONSTANT(auto)
     alphabett_table_lower = "0123456789abcdefghijklmnopqrstuvwxyz";
     MJZ_MCONSTANT(auto)
@@ -375,9 +373,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return len;
     }
 
-   public:
-    MJZ_CX_ND_FN static std::optional<char> num_to_ascii(
-        uint8_t i, bool is_upper) noexcept {
+  public:
+    MJZ_CX_ND_FN static std::optional<char>
+    num_to_ascii(uint8_t i, bool is_upper) noexcept {
       if (i < 37) {
         return (is_upper ? alphabett_table_upper : alphabett_table_lower)[i];
       }
@@ -414,9 +412,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static std::optional<T> to_integral_pv(
-        const char *ptr, uintlen_t len, uint8_t raidex) noexcept {
-      if (36 < raidex || !ptr || !len || !raidex) return std::nullopt;
+    MJZ_CX_ND_FN static std::optional<T>
+    to_integral_pv(const char *ptr, uintlen_t len, uint8_t raidex) noexcept {
+      if (36 < raidex || !ptr || !len || !raidex)
+        return std::nullopt;
       using UT = std::make_unsigned_t<T>;
       constexpr UT sign_bit = std::same_as<T, UT> ? UT(0) : UT(~(UT(-1) >> 1));
 
@@ -426,19 +425,23 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         ptr++;
         len--;
         is_neg = *ptr == '-';
-        if (!len) return std::nullopt;
+        if (!len)
+          return std::nullopt;
       }
       while (len && *ptr == '0') {
         ptr++;
         len--;
       }
-      if (!len) return T();
-      if (is_neg && !std::is_signed_v<T>) return std::nullopt;
+      if (!len)
+        return T();
+      if (is_neg && !std::is_signed_v<T>)
+        return std::nullopt;
       UT var{};
       if (raidex == 10) {
         std::array<UT, max_len_of_integral_table_<UT>[10]> temp{};
         const auto temp0 = temp;
-        if (temp.size() < len) return std::nullopt;
+        if (temp.size() < len)
+          return std::nullopt;
         for (uintlen_t i{}; i < len; i++) {
           temp[len - i - 1] = UT(uint8_t(uint8_t(ptr[i]) - uint8_t('0')));
         }
@@ -457,13 +460,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           temp[i] >>= i;
         }
 
-        if (temp != temp2) return std::nullopt;
+        if (temp != temp2)
+          return std::nullopt;
         // unsigned-overflow is totally valid
         for (uintlen_t i{}; i < len; i++) {
           const auto c = int8_t(temp1[i]);
           temp[i] = !(0 <= c && c < 10);
         }
-        if (temp != temp0) return std::nullopt;
+        if (temp != temp0)
+          return std::nullopt;
 
       } else if ((raidex & (raidex - 1)) == 0) {
         const auto shift_ = std::countr_zero(raidex);
@@ -473,7 +478,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
         for (uintlen_t i{}; i < len; i++) {
           auto digit = ascii_to_num(ptr[i]);
-          if (!digit || (mask & *digit)) return std::nullopt;
+          if (!digit || (mask & *digit))
+            return std::nullopt;
           var <<= shift_;
           var |= UT(*digit);
         }
@@ -481,10 +487,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       } else {
         const UT pre_max_v = max_pre_max_v_table_<UT>[raidex];
         // too expensive the loop handles it anyway
-        if (max_len_of_integral_table_<UT>[raidex] < len) return std::nullopt;
+        if (max_len_of_integral_table_<UT>[raidex] < len)
+          return std::nullopt;
         for (uintlen_t i{}; i < len; i++) {
           auto digit = ascii_to_num(ptr[i]);
-          if (!digit || raidex <= *digit) return std::nullopt;
+          if (!digit || raidex <= *digit)
+            return std::nullopt;
           if (pre_max_v < var) {
             return std::nullopt;
           }
@@ -542,7 +550,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         ptr++;
         len--;
         is_neg = *ptr == '-';
-        if (!len) return std::nullopt;
+        if (!len)
+          return std::nullopt;
       }
       bool had_some_numbers_first{};
       while (len && *ptr == '0') {
@@ -550,7 +559,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         len--;
         had_some_numbers_first = true;
       }
-      if (!len) return T(0);
+      if (!len)
+        return T(0);
       struct range_t {
         uintlen_t i{npos};
         uintlen_t len{};
@@ -568,7 +578,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             &sientific_exponent == previous_section ? exponent_raidex : raidex_;
         if (auto ch = ascii_to_num(ptr[i]); ch && *ch < raidex) {
           if (defualt_power_fn(ptr[i], raidex) || is_point_fn(ptr[i], raidex))
-            return std::nullopt;  // ambiguous!
+            return std::nullopt; // ambiguous!
           previous_section->len++;
           continue;
         }
@@ -608,7 +618,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                               uintlen_t length) noexcept -> uint16_t {
         {
           uintlen_t i{};
-          for (; i < length && begin[i] == '0'; i++);
+          for (; i < length && begin[i] == '0'; i++)
+            ;
           ;
           begin += i;
           length -= i;
@@ -646,7 +657,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uintlen_t real_accuracy{16};
         uintlen_t i{};
         length = std::min(details_ns::lookup_dbl_pow5_table_len_, length);
-        for (; i < length && begin[i] == '0'; i++);
+        for (; i < length && begin[i] == '0'; i++)
+          ;
         ;
         if (raidex == 16) {
           for (; i < length; i++) {
@@ -658,7 +670,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             mjz_float_t val_ = mjz_float_t::float_from_i(*digit);
             val_.m_exponent -= (i + 1) << 4;
             var = var + val_;
-            if (!(real_accuracy--)) break;
+            if (!(real_accuracy--))
+              break;
           }
           return var;
         }
@@ -675,7 +688,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                   *(details_ns::lookup_dbl_pow5_table_ptr_<0> - (i + 1)));
           val_.m_exponent -= int64_t(i + 1);
           var = var + val_;
-          if (!(real_accuracy--)) break;
+          if (!(real_accuracy--))
+            break;
         }
 
         return var;
@@ -685,7 +699,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         mjz_float_t var{};
         uintlen_t real_accuracy{16};
         uintlen_t i{};
-        for (; i < length && begin[i] == '0'; i++);
+        for (; i < length && begin[i] == '0'; i++)
+          ;
         ;
         begin += i;
         length -= i;
@@ -705,7 +720,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             mjz_float_t val_ = mjz_float_t::float_from_i(*digit);
             val_.m_exponent += (length - i - 1) << 4;
             var = var + val_;
-            if (!(real_accuracy--)) break;
+            if (!(real_accuracy--))
+              break;
           }
           return var;
         }
@@ -722,7 +738,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
           val_.m_exponent += int64_t(length - i - 1);
           var = var + val_;
-          if (!(real_accuracy--)) break;
+          if (!(real_accuracy--))
+            break;
         }
 
         return var;
@@ -778,13 +795,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <std::floating_point T,
               callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
                   decltype(defualt_is_point_fn)>
-    MJZ_CX_ND_FN static std::optional<T> to_floating_pv(
-        const char *ptr, uintlen_t len,
-        is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
+    MJZ_CX_ND_FN static std::optional<T>
+    to_floating_pv(const char *ptr, uintlen_t len,
+                   is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
       uint8_t raidex = 10;
       if (ascii_to_num(std::min(std::min('N', 'A'), std::min('I', 'F'))) <
           raidex) {
-        return std::nullopt;  // ambigous , NAN or INF could be a valid number!
+        return std::nullopt; // ambigous , NAN or INF could be a valid number!
       }
       if (std::optional<T> v = to_real_floating<T>(ptr, len, is_point_fn)) {
         return v;
@@ -799,7 +816,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         len--;
         had_sign = true;
         is_neg = *ptr == '-';
-        if (!len) return std::nullopt;
+        if (!len)
+          return std::nullopt;
       }
       auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
         uintlen_t i{};
@@ -814,7 +832,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return is_neg ? -v : v;
       }
       if (is_eq("nan")) {
-        if (!had_sign) return std::numeric_limits<T>().signaling_NaN();
+        if (!had_sign)
+          return std::numeric_limits<T>().signaling_NaN();
         MJZ_FCONSTANT(auto) v = std::numeric_limits<T>().quiet_NaN();
         return is_neg ? -v : v;
       }
@@ -822,11 +841,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static uintlen_t from_integral_len(
-        T val, const uint8_t raidex) noexcept {
+    MJZ_CX_ND_FN static uintlen_t
+    from_integral_len(T val, const uint8_t raidex) noexcept {
       using UT = std::make_unsigned_t<T>;
       UT v = UT(val);
-      if (!val) val++;
+      if (!val)
+        val++;
       uintlen_t len{uintlen_t(val < 0 ? 1 : 0)};
       while (v) {
         v /= UT(raidex);
@@ -836,18 +856,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static uintlen_t from_integral_max_len(
-        const uint8_t raidex) noexcept {
+    MJZ_CX_ND_FN static uintlen_t
+    from_integral_max_len(const uint8_t raidex) noexcept {
       using UT = std::make_unsigned_t<T>;
       return from_integral_len<T>(
           T(std::same_as<T, UT> ? UT(-1) : (UT(-1) >> 1) + 1), raidex);
     }
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static std::optional<uintlen_t> from_integral_fill_backwards(
-        char *buf, uintlen_t len, T val_rg_, bool upper_case,
-        const uint8_t raidex) noexcept {
-      if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
+    MJZ_CX_ND_FN static std::optional<uintlen_t>
+    from_integral_fill_backwards(char *buf, uintlen_t len, T val_rg_,
+                                 bool upper_case,
+                                 const uint8_t raidex) noexcept {
+      if (!buf || !len || 36 < raidex || !raidex)
+        return std::nullopt;
       using UT = std::make_unsigned_t<T>;
       constexpr UT sign_bit = std::same_as<T, UT> ? 0 : ~(UT(-1) >> 1);
       bool is_neg{};
@@ -857,7 +879,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         val = UT((~val) + UT(1));
         len--;
         buf++;
-        if (!len) return std::nullopt;
+        if (!len)
+          return std::nullopt;
       }
       if (!val) {
         *buf = '0';
@@ -875,7 +898,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         buf[i] = *v;
         n++;
       }
-      if (val) return std::nullopt;
+      if (val)
+        return std::nullopt;
       if (is_neg) {
         buf[len - n - 1] = '-';
         n++;
@@ -885,9 +909,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     // currunty the code sometimes is non optimal and maybe incorrect.
     static constexpr bool use_parralel_integer_conv_v = false;
     template <std::unsigned_integral T>
-    MJZ_CX_AL_FN static uintlen_t dec_from_uint_impl_lookup_sequential(
-        char *out_buf, uintlen_t out_len, T number_0_,
-        char *modolo10) noexcept {
+    MJZ_CX_AL_FN static uintlen_t
+    dec_from_uint_impl_lookup_sequential(char *out_buf, uintlen_t out_len,
+                                         T number_0_, char *modolo10) noexcept {
       uint64_t number_{number_0_};
       int8_t i_1000modolo{};
       int8_t max_i_1000modolo{};
@@ -910,7 +934,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           modolo10[offset + 1] = div_res[1];
           modolo10[offset + 2] = div_res[2];
           num_ch += small_ ? div_res[3] : 3;
-          if ((int(i_1000modolo < 0) | int(small_)) == 1) break;
+          if ((int(i_1000modolo < 0) | int(small_)) == 1)
+            break;
         }
       };
       if constexpr (partial_same_as<uint64_t, T>) {
@@ -921,7 +946,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (max_2_i32_div < number_) {
           const uint64_t big_div = number_ / max_2_i32_div;
           asserts(asserts.assume_rn, big_div < 1000);
-          div_fn(uint32_t(big_div));  // we know that
+          div_fn(uint32_t(big_div)); // we know that
           number_ = number_ % max_2_i32_div;
         }
         if (max_i32_div < number_) {
@@ -954,9 +979,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::unsigned_integral T>
-    MJZ_CX_AL_FN static uintlen_t dec_from_uint_impl_(
-        char *out_buf, uintlen_t out_len, T number_0_,
-        MJZ_MAYBE_UNUSED char *modolo10) noexcept {
+    MJZ_CX_AL_FN static uintlen_t
+    dec_from_uint_impl_(char *out_buf, uintlen_t out_len, T number_0_,
+                        MJZ_MAYBE_UNUSED char *modolo10) noexcept {
       if constexpr (use_parralel_integer_conv_v) {
         return dec_from_uint_impl_semi_parallel(out_buf, out_len, number_0_);
       } else {
@@ -964,9 +989,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                                     modolo10);
       }
     }
-    MJZ_NCX_FN static uintlen_t ncx_dec_from_uint_(
-        char *out_buf, uintlen_t out_len,
-        std::unsigned_integral auto number_) noexcept {
+    MJZ_NCX_FN static uintlen_t
+    ncx_dec_from_uint_(char *out_buf, uintlen_t out_len,
+                       std::unsigned_integral auto number_) noexcept {
       return mjz::uint_to_ascci_ns0::uint_to_dec(out_buf, out_len, number_);
     }
     template <size_t min_cap = 0, size_t min_align = 1, std::integral T>
@@ -1016,9 +1041,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     template <std::integral T, size_t min_cap = 0, size_t min_align = 1>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static std::optional<uintlen_t> from_integral_fill(
-        char *buf, uintlen_t len, T val_rg_, bool upper_case,
-        const uint8_t raidex) noexcept {
+    MJZ_CX_ND_FN static std::optional<uintlen_t>
+    from_integral_fill(char *buf, uintlen_t len, T val_rg_, bool upper_case,
+                       const uint8_t raidex) noexcept {
       using UT = std::make_unsigned_t<T>;
 #if MJZ_USE_cpp_lib_to_chars_int
 #if MJZ_CAN_USE_LIB_STD_charconv_
@@ -1037,7 +1062,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
 #endif
 #endif
-      if (!len || !buf) return {};
+      if (!len || !buf)
+        return {};
       if (raidex == 10) {
         uintlen_t ret = dec_from_int<min_cap, min_align>(buf, len, val_rg_);
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
@@ -1048,7 +1074,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
       }
       return [=]() mutable noexcept -> std::optional<uintlen_t> {
-        if (!buf || !len || 36 < raidex || !raidex) return std::nullopt;
+        if (!buf || !len || 36 < raidex || !raidex)
+          return std::nullopt;
         constexpr UT sign_bit =
             std::same_as<T, UT> ? UT(0) : UT(~(UT(-1) >> 1));
         bool is_neg{};
@@ -1058,7 +1085,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           val = UT((~val) + UT(1));
           len--;
           buf++;
-          if (!len) return std::nullopt;
+          if (!len)
+            return std::nullopt;
         }
         if (!val) {
           *buf = '0';
@@ -1076,7 +1104,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           buf[i] = *v;
           n++;
         }
-        if (val) return std::nullopt;
+        if (val)
+          return std::nullopt;
         memomve_overlap(buf, &buf[len - n], n);
         if (is_neg) {
           *(--buf) = '-';
@@ -1094,8 +1123,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         pair_t<std::array<char, sizeof(T) * 8>, std::optional<uintlen_t>>;
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static big_buff_t<T> from_integral(
-        T val_rg_, bool upper_case, const uint8_t raidex) noexcept {
+    MJZ_CX_ND_FN static big_buff_t<T>
+    from_integral(T val_rg_, bool upper_case, const uint8_t raidex) noexcept {
       big_buff_t<T> ret{};
       ret.second = from_integral_fill(&ret.first[0], ret.first.size(), val_rg_,
                                       upper_case, raidex);
@@ -1103,11 +1132,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::floating_point T>
-    MJZ_CX_ND_FN static big_buff2_t<T> from_float(
-        T val, MJZ_MAYBE_UNUSED const uint8_t f_accuracacy,
-        MJZ_MAYBE_UNUSED bool upper_case,
-        floating_format_e floating_format = floating_format_e::general,
-        bool add_prefix = true) noexcept {
+    MJZ_CX_ND_FN static big_buff2_t<T>
+    from_float(T val, MJZ_MAYBE_UNUSED const uint8_t f_accuracacy,
+               MJZ_MAYBE_UNUSED bool upper_case,
+               floating_format_e floating_format = floating_format_e::general,
+               bool add_prefix = true) noexcept {
       big_buff2_t<T> ret{};
       ret.second = from_float_format_fill(&ret.first[0], ret.first.size(), val,
                                           f_accuracacy, upper_case,
@@ -1134,7 +1163,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!opt_) {
         opt_ = mjz_float_t::template float_from<T>(f_val, true);
 
-        if (!opt_ || len < 4) return std::nullopt;
+        if (!opt_ || len < 4)
+          return std::nullopt;
         auto inf = mjz_float_t::template float_from<T>(
             std::numeric_limits<T>().infinity(), true);
         if ((*opt_).m_coeffient < 0) {
@@ -1156,7 +1186,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return f_len - len;
       }
       if (f_val < 0) {
-        if (len < 1) return std::nullopt;
+        if (len < 1)
+          return std::nullopt;
         f_val = -f_val;
         *opt_ = -*opt_;
         *buf = '-';
@@ -1164,7 +1195,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         buf++;
       }
       if (f_val == T()) {
-        if (len < 1) return std::nullopt;
+        if (len < 1)
+          return std::nullopt;
         *buf = '0';
         len--;
         return f_len - len;
@@ -1202,10 +1234,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           fractionic_val_0_.to_integral_and_fraction();
       auto &&[Int_, Float_] = *int_and_float;
       auto len_diff = from_integral_fill(buf, len, Int_, upper_case, raidex);
-      if (!len_diff) return std::nullopt;
+      if (!len_diff)
+        return std::nullopt;
       len -= *len_diff;
       buf += *len_diff;
-      if (!len) return std::nullopt;
+      if (!len)
+        return std::nullopt;
       auto limit_num = [&]() noexcept {
         auto &&[ceil_log, fractionic_val] = sb1_;
         int64_t max_log2 =
@@ -1231,24 +1265,29 @@ MJZ_EXPORT namespace mjz::bstr_ns {
            fractionic_val.m_coeffient && accuracacy;
            accuracacy--, limit_num(), fractionic_val = fractionic_val * r) {
         int_and_float = fractionic_val.to_integral_and_fraction();
-        if (!int_and_float) return nullopt;
+        if (!int_and_float)
+          return nullopt;
         auto &&[front_decimal, left_decimal] = *int_and_float;
         fractionic_val = left_decimal;
         auto v = num_to_ascii(uint8_t(front_decimal), upper_case);
         if (!v) {
           return std::nullopt;
         }
-        if (!len) return std::nullopt;
+        if (!len)
+          return std::nullopt;
         *buf = *v;
         len -= 1;
         buf += 1;
       }
-      if (!ceil_log) return f_len - len;
-      if (!len) return std::nullopt;
+      if (!ceil_log)
+        return f_len - len;
+      if (!len)
+        return std::nullopt;
       *buf++ = power_ch;
       len -= 1;
       len_diff = from_integral_fill(buf, len, ceil_log, upper_case, exp_base);
-      if (!len_diff) return std::nullopt;
+      if (!len_diff)
+        return std::nullopt;
       len -= *len_diff;
       buf += *len_diff;
       return f_len - len;
@@ -1259,11 +1298,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::floating_point T>
-    MJZ_CX_FN static std::optional<uintlen_t> from_float_fill_fixed(
-        char *const f_buf, const uintlen_t f_len, T f_val,
-        MJZ_MAYBE_UNUSED const uintlen_t f_accuracacy,
-        MJZ_MAYBE_UNUSED bool upper_case, const uint8_t raidex,
-        uint8_t exp_base, char point_ch = '.') noexcept {
+    MJZ_CX_FN static std::optional<uintlen_t>
+    from_float_fill_fixed(char *const f_buf, const uintlen_t f_len, T f_val,
+                          MJZ_MAYBE_UNUSED const uintlen_t f_accuracacy,
+                          MJZ_MAYBE_UNUSED bool upper_case,
+                          const uint8_t raidex, uint8_t exp_base,
+                          char point_ch = '.') noexcept {
       if (36 < raidex || !f_buf || !f_len || exp_base < 2 || raidex < 2 ||
           point_ch == '+' || point_ch == '-')
         return std::nullopt;
@@ -1276,7 +1316,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!opt_) {
         opt_ = mjz_float_t::template float_from<T>(f_val, true);
 
-        if (!opt_ || len < 4) return std::nullopt;
+        if (!opt_ || len < 4)
+          return std::nullopt;
         auto inf = mjz_float_t::template float_from<T>(
             std::numeric_limits<T>().infinity(), true);
         if ((*opt_).m_coeffient < 0) {
@@ -1298,7 +1339,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return f_len - len;
       }
       if (f_val < 0) {
-        if (len < 1) return std::nullopt;
+        if (len < 1)
+          return std::nullopt;
         f_val = -f_val;
         *opt_ = -*opt_;
         *buf = '-';
@@ -1306,7 +1348,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         buf++;
       }
       if (f_val == T()) {
-        if (len < 1) return std::nullopt;
+        if (len < 1)
+          return std::nullopt;
         *buf = '0';
         len--;
         return f_len - len;
@@ -1352,7 +1395,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         for (int_and_float_ = fractionic_val.to_integral_and_fraction();
              ceil_log; ceil_log--, fractionic_val = fractionic_val * expo,
             int_and_float_ = fractionic_val.to_integral_and_fraction()) {
-          if (!int_and_float_) return nullopt;
+          if (!int_and_float_)
+            return nullopt;
           auto [front_decimal, left_decimal] =
               pair_t<int64_t, mjz_float_t>(*int_and_float_);
           fractionic_val = left_decimal;
@@ -1360,7 +1404,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           if (!v) {
             return std::nullopt;
           }
-          if (!len) return std::nullopt;
+          if (!len)
+            return std::nullopt;
           *buf = *v;
           len -= 1;
           buf += 1;
@@ -1374,10 +1419,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         Int_ = Int_val;
       }
       auto len_diff = from_integral_fill(buf, len, Int_, upper_case, raidex);
-      if (!len_diff) return std::nullopt;
+      if (!len_diff)
+        return std::nullopt;
       len -= *len_diff;
       buf += *len_diff;
-      if (!len) return std::nullopt;
+      if (!len)
+        return std::nullopt;
       auto limit_num = [&]() noexcept {
         int64_t max_log2 =
             log2_ceil_of_val_create(uint64_t(value.m_coeffient)) +
@@ -1394,7 +1441,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       };
       value = Float_;
       limit_num();
-      if (!accuracacy && value.m_coeffient) return f_len - len;
+      if (!accuracacy && value.m_coeffient)
+        return f_len - len;
       *buf = point_ch;
       len -= 1;
       buf += 1;
@@ -1402,7 +1450,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       for (value = value * r; value.m_coeffient && accuracacy;
            accuracacy--, limit_num(), value = value * r) {
         int_and_float = value.to_integral_and_fraction();
-        if (!int_and_float) return nullopt;
+        if (!int_and_float)
+          return nullopt;
         auto &&[front_decimal, left_decimal] = *int_and_float;
         value = left_decimal;
         auto v = num_to_ascii(uint8_t(front_decimal), upper_case);
@@ -1421,15 +1470,18 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::floating_point T>
-    MJZ_CX_FN static uintlen_t from_float_fill_hex(
-        char *const f_buf, const uintlen_t f_len, T f_val, bool upper_case,
-        char point_ch = '.', bool add_0x = true) noexcept {
-      if (!f_buf || !f_len || point_ch == '+' || point_ch == '-') return 0;
+    MJZ_CX_FN static uintlen_t
+    from_float_fill_hex(char *const f_buf, const uintlen_t f_len, T f_val,
+                        bool upper_case, char point_ch = '.',
+                        bool add_0x = true) noexcept {
+      if (!f_buf || !f_len || point_ch == '+' || point_ch == '-')
+        return 0;
       char *buf{f_buf};
       uintlen_t len{f_len};
       using mjz_float_t = big_float_t<version_v>;
       auto opt_ = mjz_float_t::template float_from<T>(f_val, false);
-      if (len < 4) return 0;
+      if (len < 4)
+        return 0;
       mjz_float_t value{*opt_};
       if (add_0x) {
         *buf++ = '0';
@@ -1440,17 +1492,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       buf += 1;
       auto len_diff =
           from_integral_fill(buf, len, value.m_coeffient, upper_case, 16);
-      if (!len_diff) return 0;
+      if (!len_diff)
+        return 0;
       buf[-1] = std::exchange(buf[0], point_ch);
       len -= *len_diff;
       buf += *len_diff;
       value.m_exponent += int64_t(*len_diff - 1) << 2;
-      if (len < 2) return 0;
+      if (len < 2)
+        return 0;
       *buf = upper_case ? 'P' : 'p';
       len -= 1;
       buf += 1;
       len_diff = from_integral_fill(buf, len, value.m_exponent, upper_case, 10);
-      if (!len_diff) return 0;
+      if (!len_diff)
+        return 0;
       len -= *len_diff;
       buf += *len_diff;
       return f_len - len;
@@ -1472,32 +1527,32 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
         };
         switch (floating_format) {
-          case floating_format_e::fixed:
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                                std::chars_format::fixed, int(f_accuracacy));
-            break;
-          case floating_format_e::hex:
-            add_prefix = add_prefix_;
-            if (add_prefix) {
-              if (f_len < 2) return {};
-              f_buf += 2;
-              f_len -= 2;
-            }
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                                std::chars_format::hex, int(f_accuracacy));
-            break;
-          case floating_format_e::general:
-            res = std::to_chars(f_buf, f_buf + f_len, f_val,
-                                std::chars_format::general, int(f_accuracacy));
-            break;
-          case floating_format_e::scientific:
-            res =
-                std::to_chars(f_buf, f_buf + f_len, f_val,
+        case floating_format_e::fixed:
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::fixed, int(f_accuracacy));
+          break;
+        case floating_format_e::hex:
+          add_prefix = add_prefix_;
+          if (add_prefix) {
+            if (f_len < 2)
+              return {};
+            f_buf += 2;
+            f_len -= 2;
+          }
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::hex, int(f_accuracacy));
+          break;
+        case floating_format_e::general:
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
+                              std::chars_format::general, int(f_accuracacy));
+          break;
+        case floating_format_e::scientific:
+          res = std::to_chars(f_buf, f_buf + f_len, f_val,
                               std::chars_format::scientific, int(f_accuracacy));
-            break;
-          default:
-            return 0;
-            break;
+          break;
+        default:
+          return 0;
+          break;
         }
         if (res.ec != std::errc{}) {
           return {};
@@ -1513,7 +1568,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           f_len += 2;
           if (upper_case) {
             uintlen_t v = find_ch(f_buf, f_len, 0, 'p');
-            if (v < f_len) f_buf[v] = 'P';
+            if (v < f_len)
+              f_buf[v] = 'P';
           };
         }
         return uintlen_t(res.ptr - buf_c_);
@@ -1527,9 +1583,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <std::floating_point T,
               callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
                   decltype(defualt_is_point_fn)>
-    MJZ_CX_ND_FN static std::optional<T> to_real_floating(
-        const char *ptr, uintlen_t len,
-        is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
+    MJZ_CX_ND_FN static std::optional<T>
+    to_real_floating(const char *ptr, uintlen_t len,
+                     is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
       uint8_t raidex_{10};
 
       bool is_neg{};
@@ -1558,16 +1614,17 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
       std::optional<T> ret =
           to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
-      if (ret) *ret = is_neg ? -*ret : *ret;
+      if (ret)
+        *ret = is_neg ? -*ret : *ret;
       return ret;
     }
 
     template <std::floating_point T,
               callable_c<bool(char, uint8_t) noexcept> is_point_fn_t =
                   std::remove_cvref_t<decltype(defualt_is_point_fn)>>
-    MJZ_CX_ND_FN static std::optional<T> to_floating(
-        const char *ptr, uintlen_t len,
-        is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
+    MJZ_CX_ND_FN static std::optional<T>
+    to_floating(const char *ptr, uintlen_t len,
+                is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
       uint8_t raidex_{10};
       bool is_neg{};
       while (len && *ptr == ' ') {
@@ -1595,18 +1652,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
       std::optional<T> ret =
           to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
-      if (ret) *ret = is_neg ? -*ret : *ret;
+      if (ret)
+        *ret = is_neg ? -*ret : *ret;
       return ret;
     }
 
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN static std::optional<T> to_integral(
-        const char *ptr, uintlen_t len, uint8_t raidex_ = 0) noexcept {
+    MJZ_CX_ND_FN static std::optional<T>
+    to_integral(const char *ptr, uintlen_t len, uint8_t raidex_ = 0) noexcept {
       bool is_neg{};
       auto do_ret = [&](std::optional<T> ret) noexcept -> std::optional<T> {
         if constexpr (std::signed_integral<T>) {
-          if (ret) *ret = is_neg ? -*ret : *ret;
+          if (ret)
+            *ret = is_neg ? -*ret : *ret;
         } else {
           if (is_neg) {
             return nullopt;
@@ -1632,7 +1691,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (len) {
         ptr++;
         len--;
-        if (!len) return do_ret(T(0));
+        if (!len)
+          return do_ret(T(0));
       }
       raidex_ = 8;
       if (len && (*ptr == 'X' || *ptr == 'x')) {
@@ -1800,8 +1860,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uint64_t v = uint64_t(val.m_coeffient);
         const int shift_amount =
             std::countl_zero(v) -
-            1;  // making the bit past the signed 1 , so the value is always
-                // bigger or eq to 2^62 and less than 2^63
+            1; // making the bit past the signed 1 , so the value is always
+               // bigger or eq to 2^62 and less than 2^63
         val.m_coeffient = int64_t(v <<= shift_amount);
         val.m_exponent -= shift_amount;
         asserts(asserts.assume_rn, val.m_exponent < 0);
@@ -1835,8 +1895,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       big_float_t<version_v> f_val = val;
       if (f_val.m_coeffient == 0) {
         return 0;
-      }  // based on desmos , log10_floor_prox is either floor(log10(x)) or
-         // floor(log10(x))+1 or floor(log10(x))-1
+      } // based on desmos , log10_floor_prox is either floor(log10(x)) or
+        // floor(log10(x))+1 or floor(log10(x))-1
 
       /*
       g\left(x\right)=x-1,
@@ -2005,7 +2065,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       cpy_bitcast(ptr, ret_0_);
       ptr += 4 - num_high_0ch;
-      if (f_len < uintlen_t(ptr - buffer_)) return {};
+      if (f_len < uintlen_t(ptr - buffer_))
+        return {};
       memcpy(f_buf, buffer_, uintlen_t(ptr - buffer_));
       return uintlen_t(ptr - buffer_);
     }
@@ -2016,7 +2077,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uint8_t f_accuracacy, bool upper_case) noexcept {
       MJZ_DISABLE_ALL_WANINGS_START_;
       struct buffer_0_t_ {
-        MJZ_NCX_FN buffer_0_t_() noexcept {}  // ctor does not initialize 'i'
+        MJZ_NCX_FN buffer_0_t_() noexcept {} // ctor does not initialize 'i'
         alignas(16) char buffer_0_[64 /*do not reduce*/];
       } a;
       MJZ_DISABLE_ALL_WANINGS_END_;
@@ -2074,7 +2135,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         *ptr++ = '0';
         number_of_chars_rem -= 1;
       }
-      if (!number_of_chars_rem) return uintlen_t(ptr - f_buf);
+      if (!number_of_chars_rem)
+        return uintlen_t(ptr - f_buf);
       *ptr++ = '.';
       auto remove_stupid_zeros = [&ptr]() noexcept {
         ptr--;
@@ -2309,9 +2371,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return count_len;
     }
 
-    MJZ_CX_FN static uintlen_t dec_from_uint_impl_parallel_impl_(
-        char *out_buf, uintlen_t out_len, uint64_t number_0_,
-        char *modolo10) noexcept {
+    MJZ_CX_FN static uintlen_t
+    dec_from_uint_impl_parallel_impl_(char *out_buf, uintlen_t out_len,
+                                      uint64_t number_0_,
+                                      char *modolo10) noexcept {
       constexpr const uint64_t least_parrellel = 100000000;
       uintlen_t ret{};
       do {
@@ -2325,7 +2388,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         ret += dec_from_uint_backwards_parallel_less_than_pow10_8_impl_(
             modolo10 + 24 - ret, less_least_parrellel);
       } while (number_0_);
-      if (out_len < ret) return 0;
+      if (out_len < ret)
+        return 0;
       memcpy(out_buf, modolo10 + 24 - ret, ret);
       return ret;
     }
@@ -2368,7 +2432,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         const uint64_t u64ch = u64ch_;
         uint64_t u64ch_ascii = u64ch | zero_8parallel_ascii;
         str_int_buf[size_t(iteration_count_backwards)] = u64ch_ascii;
-        if (number_0_) continue;
+        if (number_0_)
+          continue;
         const uint64_t num_high_0ch =
             uint64_t((version_v.is_BE() ? std::countl_zero(uint64_t(u64ch))
                                         : std::countr_zero(uint64_t(u64ch))) >>
@@ -2385,11 +2450,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::unsigned_integral T>
-    MJZ_CX_AL_FN static uintlen_t dec_from_uint_impl_semi_parallel(
-        char *outbuf, uintlen_t outlen, T number_0_) noexcept {
+    MJZ_CX_AL_FN static uintlen_t
+    dec_from_uint_impl_semi_parallel(char *outbuf, uintlen_t outlen,
+                                     T number_0_) noexcept {
       const auto [str_int_buf, num_ch, offset] =
           dec_from_uint_impl_semi_parallel_impl_(number_0_);
-      if (outlen < num_ch) return 0;
+      if (outlen < num_ch)
+        return 0;
       MJZ_IF_CONSTEVAL {
         auto temp = make_bitcast(str_int_buf);
         memcpy(outbuf, temp.data() + offset, num_ch);
@@ -2539,5 +2606,5 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
   };
 
-}  // namespace mjz::bstr_ns
-#endif  // MJZ_BYTE_STRING_traits_LIB_HPP_FILE_
+} // namespace mjz::bstr_ns
+#endif // MJZ_BYTE_STRING_traits_LIB_HPP_FILE_

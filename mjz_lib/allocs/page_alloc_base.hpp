@@ -30,27 +30,25 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
   MJZ_FCONSTANT(uintlen_t)
   val_page = 8 * sizeof(uintlen_t);
   MJZ_FCONSTANT(uintlen_t) log2_page = log2_of_val_create(val_page);
-  template <version_t>
-  struct block_range_t {
+  template <version_t> struct block_range_t {
     uintlen_t page_index : sizeof(uintlen_t) * 8 - 2 * log2_page{};
     uintlen_t blk_index : log2_page{};
     uintlen_t blk_count : log2_page{};
   };
-  template <version_t version_v>
-  struct pages_meta_t {
+  template <version_t version_v> struct pages_meta_t {
     using block_range = block_range_t<version_v>;
     std::span<uintlen_t> pages{};
     MJZ_CX_FN void release() const noexcept {
       MJZ_IF_CONSTEVAL {
-        for (auto& x : pages) {
+        for (auto &x : pages) {
           x = 0;
         }
         return;
       }
-      memset(reinterpret_cast<char*>(pages.data()), pages.size_bytes(), 0);
+      memset(reinterpret_cast<char *>(pages.data()), pages.size_bytes(), 0);
     }
     MJZ_CX_FN void deallocate(block_range range) const noexcept {
-      uintlen_t& page = pages[range.page_index];
+      uintlen_t &page = pages[range.page_index];
       uintlen_t page_mask = 1;
       page_mask <<= range.blk_count;
       page_mask--;
@@ -65,7 +63,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       page_mask <<= blk_count;
       page_mask--;
       const uintlen_t page_room = val_page - blk_count;
-      for (uintlen_t& page : pages) {
+      for (uintlen_t &page : pages) {
         for (uintlen_t i{}; i < val_page; i++) {
           bool bad{page_room <= i};
           uintlen_t page_mask_shift =
@@ -83,8 +81,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return {};
     }
   };
-  template <version_t version_v>
-  struct data_meta_t {
+  template <version_t version_v> struct data_meta_t {
     using block_range = block_range_t<version_v>;
     std::span<char> pages{};
     uintlen_t blk_align_log2{};
@@ -96,13 +93,15 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       pages = data.subspan(0, uintlen_t(blk_count << blk_align_log2));
     }
     MJZ_CX_FN std::span<char> to_real(block_range range) const noexcept {
-      if (!range.blk_count) return {};
+      if (!range.blk_count)
+        return {};
       return pages.subspan((range.page_index << (blk_align_log2 + log2_page)) +
                                size_t(range.blk_index << blk_align_log2),
                            size_t(range.blk_count << blk_align_log2));
     }
     MJZ_CX_FN block_range to_meta(std::span<char> real_meta) const noexcept {
-      if (!real_meta.size()) return {};
+      if (!real_meta.size())
+        return {};
       uintlen_t log2_align = blk_align_log2 + log2_page;
       uintlen_t byte_offset = uintlen_t(real_meta.data() - pages.data());
       uintlen_t size = real_meta.size();
@@ -124,8 +123,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     }
   };
 
-  template <version_t version_v>
-  struct simple_page_alloc_t {
+  template <version_t version_v> struct simple_page_alloc_t {
     data_meta_t<version_v> data_ptr{};
     pages_meta_t<version_v> data_meta{};
     MJZ_NCX_FN std::span<char> allocate(uintlen_t count,
@@ -138,7 +136,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return data_ptr.to_real(data_meta.allocate(blk_num));
     }
     MJZ_NCX_FN void deallocate(std::span<char> blk, uintlen_t) const noexcept {
-      if (!blk.size()) return;
+      if (!blk.size())
+        return;
       data_meta.deallocate(data_ptr.to_meta(blk));
     }
     MJZ_CX_FN bool is_owner(std::span<char> blk,
@@ -149,7 +148,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return data_ptr.is_owner(blk);
     }
   };
-  };  // namespace page_alloc_ns
+  }; // namespace page_alloc_ns
   namespace stack_alloc_ns {
 
   template <version_t version_v,
@@ -166,8 +165,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
      */
-    MJZ_CX_FN std::span<char> fn_alloca(
-        const uintlen_t min_size, const uintlen_t align_ = align) noexcept {
+    MJZ_CX_FN std::span<char>
+    fn_alloca(const uintlen_t min_size,
+              const uintlen_t align_ = align) noexcept {
       constexpr uintlen_t align_mask = align - 1;
       const uintlen_t size = (min_size + align_mask) & ~align_mask;
 
@@ -188,31 +188,31 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
      */
-    MJZ_CX_FN void fn_dealloca(std::span<char>&& blk) noexcept {
+    MJZ_CX_FN void fn_dealloca(std::span<char> &&blk) noexcept {
       sptr = mjz::assume_aligned<align>(
           branchless_teranary(!blk.size(), sptr, blk.data()));
     }
 
-   private:
+  private:
     struct private_tag_ {};
 
-   public:
+  public:
     struct stack_buffer_t {
       MJZ_NO_MV_NO_CPY_DC(stack_buffer_t);
-      MJZ_CX_FN stack_buffer_t(self_t& This, uintlen_t size,
+      MJZ_CX_FN stack_buffer_t(self_t &This, uintlen_t size,
                                private_tag_) noexcept {
         blk = This.fn_alloca(size);
         This_ = This;
       }
-      MJZ_CX_FN stack_buffer_t(auto&&...) noexcept = delete;
+      MJZ_CX_FN stack_buffer_t(auto &&...) noexcept = delete;
       MJZ_CX_FN ~stack_buffer_t() noexcept {
         This_->fn_dealloca(std::move(blk));
       }
 
-      MJZ_CX_FN const std::span<char>& operator*() & noexcept { return blk; }
-      MJZ_CX_FN const std::span<char>* operator->() & noexcept { return &blk; }
+      MJZ_CX_FN const std::span<char> &operator*() & noexcept { return blk; }
+      MJZ_CX_FN const std::span<char> *operator->() & noexcept { return &blk; }
 
-     private:
+    private:
       std::span<char> blk{};
       optional_ref_t<self_t> This_{};
     };
@@ -223,14 +223,15 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
 
     MJZ_CX_FN stack_allocator_meta_t(std::span<char> bytes = std::span<char>{},
                                      uintlen_t align_ = 0) noexcept {
-      if (align_ < align) return;
+      if (align_ < align)
+        return;
       sptr = mjz::assume_aligned<align>(bytes.data());
       send = sptr + bytes.size();
     }
 
-   public:
-    char* send{};
-    char* sptr{};
+  public:
+    char *send{};
+    char *sptr{};
   };
 
   template <version_t version_v, uintlen_t buffer_size_v,
@@ -242,7 +243,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       this->send = this->sptr + buffer_size_v;
     }
 
-   private:
+  private:
     MJZ_NO_MV_NO_CPY(areana_t);
     union alignas(std::max<uintlen_t>(alignof(std::span<char>), align_v))
         raw_t {
@@ -251,20 +252,19 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     } raw{};
   };
 
-  }  // namespace stack_alloc_ns
+  } // namespace stack_alloc_ns
 
-  template <version_t version_v>
-  struct fast_alloc_chache_t {
+  template <version_t version_v> struct fast_alloc_chache_t {
     uintlen_t stack_left : sizeof(uintlen_t) * 8 - 8 {};
     uintlen_t stack_log2_align : 7 {};
     uintlen_t can_use_stack : 1 {};
-    char* stack_ptr{};
+    char *stack_ptr{};
     uintlen_t monotonic_left : sizeof(uintlen_t) * 8 - 8 {};
     uintlen_t monotonic_log2_align : 7 {};
     uintlen_t can_use_monotonic : 1 {};
-    char* monotonic_ptr{};
-    char* monotonic_begin{};
-    char* stack_begin{};
+    char *monotonic_ptr{};
+    char *monotonic_begin{};
+    char *stack_begin{};
     /*CATION !!!!!!!!!!!!!
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
@@ -302,7 +302,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
      */
-    MJZ_CX_FN success_t fn_try_dealloca(std::span<char>&& blk,
+    MJZ_CX_FN success_t fn_try_dealloca(std::span<char> &&blk,
                                         MJZ_MAYBE_UNUSED const uintlen_t align_,
                                         const bool bad_ = false) noexcept {
       bool good = memory_is_inside(
@@ -315,30 +315,31 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
           return good || !blk.data();
         }
       }
-      char* new_stack_ptr = branchless_teranary(!good, stack_ptr, blk.data());
+      char *new_stack_ptr = branchless_teranary(!good, stack_ptr, blk.data());
       stack_left += uintlen_t(stack_ptr - new_stack_ptr);
       stack_ptr = new_stack_ptr;
       good |= !blk.data();
       return good;
     }
 
-    MJZ_CX_FN void fn_dealloca(std::span<char>&& blk,
-                               MJZ_MAYBE_UNUSED const uintlen_t
-                                   align_) noexcept {
-      if (!blk.data()) return;
+    MJZ_CX_FN void
+    fn_dealloca(std::span<char> &&blk,
+                MJZ_MAYBE_UNUSED const uintlen_t align_) noexcept {
+      if (!blk.data())
+        return;
       asserts(asserts.assume_rn,
               memory_is_inside(stack_begin,
                                uintlen_t(stack_ptr + stack_left - stack_begin),
                                blk.data(), blk.size()) &&
                   can_use_stack);
-      char* new_stack_ptr = blk.data();
+      char *new_stack_ptr = blk.data();
       stack_left += uintlen_t(stack_ptr - new_stack_ptr);
       stack_ptr = new_stack_ptr;
     }
 
-    MJZ_CX_FN std::span<char> monotonic_allocate(
-        const uintlen_t min_size, uintlen_t align_,
-        const bool bad_ = false) noexcept {
+    MJZ_CX_FN std::span<char>
+    monotonic_allocate(const uintlen_t min_size, uintlen_t align_,
+                       const bool bad_ = false) noexcept {
       asserts(asserts.assume_rn,
               align_ == (uintlen_t(1) << log2_of_val_create(align_)));
       const uintlen_t modular_math_op = (align_ - 1);
@@ -352,7 +353,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         distance_align =
             uintlen_t(monotonic_begin - monotonic_ptr) & modular_math_op;
       }
-      char* const aligned_ptr = monotonic_ptr + distance_align;
+      char *const aligned_ptr = monotonic_ptr + distance_align;
       const uintlen_t delta_ = distance_align + min_size;
       const bool bad =
           bool(int(monotonic_left < delta_) |
@@ -368,7 +369,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       monotonic_left -= bad ? 0 : delta_;
       return {bad ? nullptr : aligned_ptr, bad ? 0 : min_size};
     }
-    MJZ_CX_FN bool is_monotonic(const std::span<char>& blk,
+    MJZ_CX_FN bool is_monotonic(const std::span<char> &blk,
                                 MJZ_MAYBE_UNUSED const uintlen_t align_,
                                 const bool bad_ = false) const noexcept {
       bool ret = memory_is_inside(monotonic_begin,
@@ -378,7 +379,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       ret &= can_use_monotonic;
       return ret;
     }
-    MJZ_CX_FN bool is_stack(const std::span<char>& blk,
+    MJZ_CX_FN bool is_stack(const std::span<char> &blk,
                             MJZ_MAYBE_UNUSED const uintlen_t align_,
                             const bool bad_ = false) const noexcept {
       bool ret =
@@ -390,5 +391,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     }
   };
 
-};  // namespace mjz::allocs_ns
-#endif  // MJZ_ALLOCS_bump_alloc_FILE_HPP_
+}; // namespace mjz::allocs_ns
+#endif // MJZ_ALLOCS_bump_alloc_FILE_HPP_

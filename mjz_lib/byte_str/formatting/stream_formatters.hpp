@@ -81,7 +81,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         good &= !!ctx.advance_to(
             formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
       };
-      if (good) return true;
+      if (good)
+        return true;
 
       ctx.as_error(
           "[Error]default_formatter_t<is_stream_formatter_c>: an error "
@@ -91,8 +92,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
 
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_stream_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_stream_formatters_HPP_FILE_
 
 #endif

@@ -52,17 +52,17 @@ if (align_it == last) {
 auto alignment_ = alignment;
 for (;;) {
   switch (*align_it) {
-    case '<':
-      alignment_ = align_e ::left;
-      break;
-    case '>':
-      alignment_ = align_e::right;
-      break;
-    case '^':
-      alignment_ = align_e::center;
-      break;
-    default:
-      break;
+  case '<':
+    alignment_ = align_e ::left;
+    break;
+  case '>':
+    alignment_ = align_e::right;
+    break;
+  case '^':
+    alignment_ = align_e::center;
+    break;
+  default:
+    break;
   }
   if (alignment_ == align_e::none) {
     if (align_it == first) {
@@ -77,9 +77,8 @@ for (;;) {
     break;
   }
   if (*first == '{') {
-    cntx.as_error(
-        "[Error]basic_format_specs_t::parse_align():  invalid fill "
-        "character '{' ");
+    cntx.as_error("[Error]basic_format_specs_t::parse_align():  invalid fill "
+                  "character '{' ");
     return false;
   }
   fill_char = *first;
@@ -94,17 +93,17 @@ template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_type(
     parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
-    cntx.as_error(
-        "[Error]basic_format_specs_t::parse_type():only ascii is "
-        "suppoerted!(note that this "
-        "may change in later versions)");
+    cntx.as_error("[Error]basic_format_specs_t::parse_type():only ascii is "
+                  "suppoerted!(note that this "
+                  "may change in later versions)");
     return false;
   }
   std::optional<char> ch = cntx.front();
   if (!ch || *ch == '}') {
     return true;
   }
-  if (!cntx.unchecked_advance_amount_(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1))
+    return false;
   char c = *ch;
   if (c >= 'A' && c <= 'Z') {
     uppser_case = true;
@@ -113,64 +112,65 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_type(
     uppser_case = false;
   }
   switch (c) {
-    case 's':
-      type = type_e::string;
-      break;
-    case '?':
-      type = type_e::escaped_string;
-      break;
-    case 'B':
-      MJZ_FALLTHROUGH;
-    case 'b':
-      type = type_e::binary;
-      break;
-    case 'o':
-      type = type_e::Octal;
-      break;
-    case 'd':
-      type = type_e::Dec;
-      break;
-    case 'X':
-      MJZ_FALLTHROUGH;
-    case 'x':
-      type = type_e::Hex;
-      break;
-    case 'c':
-      type = type_e::Char;
-      break;
-    case 'a':
-      MJZ_FALLTHROUGH;
-    case 'A':
-      type = type_e::Hex_float;
-      break;
-    case 'E':
-      MJZ_FALLTHROUGH;
-    case 'e':
-      type = type_e::sientific;
-      break;
-    case 'f':
-      MJZ_FALLTHROUGH;
-    case 'F':
-      type = type_e::fixed;
-      break;
-    case 'g':
-      MJZ_FALLTHROUGH;
-    case 'G':
-      type = type_e::general;
-      break;
-    case 'p':
-      MJZ_FALLTHROUGH;
-    case 'P':
-      type = type_e::hex_pointer;
-      break;
-    case 'D':
-      type = type_e::Default;
-      break;
-    default:
-      type = type_e::invalid_;
-      break;
+  case 's':
+    type = type_e::string;
+    break;
+  case '?':
+    type = type_e::escaped_string;
+    break;
+  case 'B':
+    MJZ_FALLTHROUGH;
+  case 'b':
+    type = type_e::binary;
+    break;
+  case 'o':
+    type = type_e::Octal;
+    break;
+  case 'd':
+    type = type_e::Dec;
+    break;
+  case 'X':
+    MJZ_FALLTHROUGH;
+  case 'x':
+    type = type_e::Hex;
+    break;
+  case 'c':
+    type = type_e::Char;
+    break;
+  case 'a':
+    MJZ_FALLTHROUGH;
+  case 'A':
+    type = type_e::Hex_float;
+    break;
+  case 'E':
+    MJZ_FALLTHROUGH;
+  case 'e':
+    type = type_e::sientific;
+    break;
+  case 'f':
+    MJZ_FALLTHROUGH;
+  case 'F':
+    type = type_e::fixed;
+    break;
+  case 'g':
+    MJZ_FALLTHROUGH;
+  case 'G':
+    type = type_e::general;
+    break;
+  case 'p':
+    MJZ_FALLTHROUGH;
+  case 'P':
+    type = type_e::hex_pointer;
+    break;
+  case 'D':
+    type = type_e::Default;
+    break;
+  default:
+    type = type_e::invalid_;
+    break;
   }
-  if (type != type_e::invalid_) return true;
+  if (type != type_e::invalid_)
+    return true;
   cntx.as_error(
       "[Error]basic_format_specs_t::parse_type():invalid type charachter");
   return false;
@@ -189,19 +189,17 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::in_range(
       return true;
     }
   }
-  cntx.as_error(
-      "[Error]basic_format_specs_t::in_ch_range(): the value dose "
-      "not fit in a char");
+  cntx.as_error("[Error]basic_format_specs_t::in_ch_range(): the value dose "
+                "not fit in a char");
   return false;
 }
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_width(
     parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
-    cntx.as_error(
-        "[Error]basic_format_specs_t::parse_width():only ascii is "
-        "suppoerted!(note that this "
-        "may change in later versions)");
+    cntx.as_error("[Error]basic_format_specs_t::parse_width():only ascii is "
+                  "suppoerted!(note that this "
+                  "may change in later versions)");
     return false;
   }
   auto ch = cntx.front();
@@ -210,33 +208,34 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_width(
   }
   if ('0' <= *ch && *ch <= '9') {
     auto num = cntx.parse_starting_ulen();
-    if (!num) return false;
+    if (!num)
+      return false;
     width = *num;
     return true;
   }
   if (*ch != '{') {
     return true;
   }
-  if (!cntx.unchecked_advance_amount_(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1))
+    return false;
   ch = cntx.front();
   if (ch) {
     auto width_id = cntx.parse_arg_id();
-    if (!width_id) return false;
+    if (!width_id)
+      return false;
     width = *width_id;
     dyn_width = true;
     if (!cntx.type_v(width)
              .template is_one_of_xcr<uint8_t, uint16_t, uint32_t, uint64_t>()) {
-      cntx.as_error(
-          "[Error]basic_format_specs_t::parse_width():invalid width "
-          "type(must be unsigned integral )");
+      cntx.as_error("[Error]basic_format_specs_t::parse_width():invalid width "
+                    "type(must be unsigned integral )");
       return false;
     }
   }
   ch = cntx.front();
   if (!ch || *ch != '}') {
-    cntx.as_error(
-        "[Error]basic_format_specs_t::parse_width(): expected end of "
-        "width/feild");
+    cntx.as_error("[Error]basic_format_specs_t::parse_width(): expected end of "
+                  "width/feild");
     return false;
   }
   return cntx.unchecked_advance_amount_(1);
@@ -252,13 +251,17 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
     return false;
   }
   auto ch = cntx.front();
-  if (!ch || *ch == '}') return true;
-  if (*ch != '.') return true;
-  if (!cntx.unchecked_advance_amount_(1)) return false;
+  if (!ch || *ch == '}')
+    return true;
+  if (*ch != '.')
+    return true;
+  if (!cntx.unchecked_advance_amount_(1))
+    return false;
   ch = cntx.front();
   auto consume_braket = [&](bool bad = false) noexcept {
     ch = cntx.front();
-    if (!bad && *ch == '}') return cntx.unchecked_advance_amount_(1);
+    if (!bad && *ch == '}')
+      return cntx.unchecked_advance_amount_(1);
     cntx.as_error(
         "[Error]basic_format_specs_t::parse_precision(): expected end of "
         "precision/feild with '}'");
@@ -266,28 +269,30 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_precision(
   };
   if ('0' <= *ch && *ch <= '9') {
     auto num = cntx.parse_starting_ulen();
-    if (!num) return false;
+    if (!num)
+      return false;
     precision = *num;
     return true;
   }
   if (*ch != '{') {
     return consume_braket(true);
   }
-  if (!cntx.unchecked_advance_amount_(1)) return false;
+  if (!cntx.unchecked_advance_amount_(1))
+    return false;
   if (!cntx.front()) {
     return consume_braket(true);
   }
   auto precision_id = cntx.parse_arg_id();
-  if (!precision_id) return false;
+  if (!precision_id)
+    return false;
   precision = *precision_id;
   dyn_precision = true;
   if (cntx.type_v(precision)
           .template is_one_of_xcr<uint8_t, uint16_t, uint32_t, uint64_t>()) {
     return consume_braket();
   }
-  cntx.as_error(
-      "[Error]basic_format_specs_t::parse_precision():invalid "
-      "precision type(must be unsigned integral )");
+  cntx.as_error("[Error]basic_format_specs_t::parse_precision():invalid "
+                "precision type(must be unsigned integral )");
   return false;
 }
 
@@ -295,48 +300,56 @@ template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_specs(
     parse_context_t<version_v> &cntx) noexcept {
   if (cntx.encoding() != encodings_e::ascii) {
-    cntx.as_error(
-        "[Error]basic_format_specs_t::parse_specs():only ascii is "
-        "suppoerted!(note that this "
-        "may change in later versions)");
+    cntx.as_error("[Error]basic_format_specs_t::parse_specs():only ascii is "
+                  "suppoerted!(note that this "
+                  "may change in later versions)");
     return false;
   }
   if (!parse_align(cntx)) {
     return false;
   }
   auto ch = cntx.front();
-  if (!ch) return true;
+  if (!ch)
+    return true;
   switch (*ch) {
-    case '+':
-      sign = sign_e::plus;
-      if (!cntx.unchecked_advance_amount_(1)) return false;
-      break;
-    case '-':
-      sign = sign_e::minus;
-      if (!cntx.unchecked_advance_amount_(1)) return false;
-      break;
-    case ' ':
-      sign = sign_e::space;
-      if (!cntx.unchecked_advance_amount_(1)) return false;
-      break;
-    default:
-      break;
+  case '+':
+    sign = sign_e::plus;
+    if (!cntx.unchecked_advance_amount_(1))
+      return false;
+    break;
+  case '-':
+    sign = sign_e::minus;
+    if (!cntx.unchecked_advance_amount_(1))
+      return false;
+    break;
+  case ' ':
+    sign = sign_e::space;
+    if (!cntx.unchecked_advance_amount_(1))
+      return false;
+    break;
+  default:
+    break;
   }
   ch = cntx.front();
-  if (!ch) return true;
+  if (!ch)
+    return true;
 
   if (*ch == '#') {
     alt = true;
-    if (!cntx.unchecked_advance_amount_(1)) return false;
+    if (!cntx.unchecked_advance_amount_(1))
+      return false;
     ch = cntx.front();
-    if (!ch) return true;
+    if (!ch)
+      return true;
   }
 
   if (*ch == '0') {
     leading_zero = true;
-    if (!cntx.unchecked_advance_amount_(1)) return false;
+    if (!cntx.unchecked_advance_amount_(1))
+      return false;
     ch = cntx.front();
-    if (!ch) return true;
+    if (!ch)
+      return true;
   }
   return parse_width(cntx) && parse_precision(cntx) && parse_type(cntx);
 }
@@ -362,72 +375,75 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::check_specs(
     }
   }
   switch (type) {
-    case type_e::Default: {
-      if constexpr (partial_same_as<bool, T>) {
-        type = type_e::true_false;
-      } else if constexpr (partial_same_as<char, T>) {
-        type = type_e::Char;
-      } else if constexpr (std::floating_point<T>) {
-        type = type_e::general;
-      } else if constexpr (std::integral<T>) {
-        type = type_e::Dec;
-      } else if constexpr (std::derived_from<T, base_lazy_view_t<version_v>>) {
-        type = type_e::string;
-      } else if constexpr (std::is_pointer_v<T>) {
-        type = type_e::hex_pointer;
-      } else {
-        cntx.as_error(
-            "[Error]basic_format_specs_t::sorry :(  idk what is this (maybe no "
-            "string yet)");
-        return false;
-      }
-    } break;
+  case type_e::Default: {
+    if constexpr (partial_same_as<bool, T>) {
+      type = type_e::true_false;
+    } else if constexpr (partial_same_as<char, T>) {
+      type = type_e::Char;
+    } else if constexpr (std::floating_point<T>) {
+      type = type_e::general;
+    } else if constexpr (std::integral<T>) {
+      type = type_e::Dec;
+    } else if constexpr (std::derived_from<T, base_lazy_view_t<version_v>>) {
+      type = type_e::string;
+    } else if constexpr (std::is_pointer_v<T>) {
+      type = type_e::hex_pointer;
+    } else {
+      cntx.as_error(
+          "[Error]basic_format_specs_t::sorry :(  idk what is this (maybe no "
+          "string yet)");
+      return false;
+    }
+  } break;
 
-    case type_e::binary:
-      MJZ_FALLTHROUGH;
-    case type_e::Octal:
-      MJZ_FALLTHROUGH;
-    case type_e::Dec:
-      MJZ_FALLTHROUGH;
-    case type_e::Hex:
-      MJZ_FALLTHROUGH;
-    case type_e::auto_char:
-      MJZ_FALLTHROUGH;
-    case type_e::auto_int: {
-      if constexpr (!std::integral<T>) return err_fn();
-    } break;
-    case type_e::sientific:
-      MJZ_FALLTHROUGH;
-    case type_e::fixed:
-      MJZ_FALLTHROUGH;
-    case type_e::Hex_float:
-      MJZ_FALLTHROUGH;
-    case type_e::general:
-      MJZ_FALLTHROUGH;
-    case type_e::auto_float: {
-      if constexpr (!std::floating_point<T>) return err_fn();
-    } break;
-    case type_e::hex_pointer:
-      MJZ_FALLTHROUGH;
-    case type_e::auto_ptr: {
-      if constexpr (!std::is_pointer_v<T> || partial_same_as<nullptr_t, T>)
-        return err_fn();
-    } break;
-    case type_e::escaped_string:
-      MJZ_FALLTHROUGH;
-    case type_e::auto_str: {
-      if constexpr (!std::derived_from<T, base_lazy_view_t<version_v>> &&
-                    !partial_same_as<bool, T> && !partial_same_as<char, T>)
-        return err_fn();
-    } break;
-    case type_e::auto_bool: {
-      if constexpr (!partial_same_as<bool, T>) return err_fn();
-    } break;
-    case type_e::raidex_mask_:
-      MJZ_FALLTHROUGH;
-    case type_e::invalid_: {
+  case type_e::binary:
+    MJZ_FALLTHROUGH;
+  case type_e::Octal:
+    MJZ_FALLTHROUGH;
+  case type_e::Dec:
+    MJZ_FALLTHROUGH;
+  case type_e::Hex:
+    MJZ_FALLTHROUGH;
+  case type_e::auto_char:
+    MJZ_FALLTHROUGH;
+  case type_e::auto_int: {
+    if constexpr (!std::integral<T>)
       return err_fn();
-    } break;
+  } break;
+  case type_e::sientific:
+    MJZ_FALLTHROUGH;
+  case type_e::fixed:
+    MJZ_FALLTHROUGH;
+  case type_e::Hex_float:
+    MJZ_FALLTHROUGH;
+  case type_e::general:
+    MJZ_FALLTHROUGH;
+  case type_e::auto_float: {
+    if constexpr (!std::floating_point<T>)
+      return err_fn();
+  } break;
+  case type_e::hex_pointer:
+    MJZ_FALLTHROUGH;
+  case type_e::auto_ptr: {
+    if constexpr (!std::is_pointer_v<T> || partial_same_as<nullptr_t, T>)
+      return err_fn();
+  } break;
+  case type_e::escaped_string:
+    MJZ_FALLTHROUGH;
+  case type_e::auto_str: {
+    if constexpr (!std::derived_from<T, base_lazy_view_t<version_v>> &&
+                  !partial_same_as<bool, T> && !partial_same_as<char, T>)
+      return err_fn();
+  } break;
+  case type_e::auto_bool: {
+    if constexpr (!partial_same_as<bool, T>)
+      return err_fn();
+  } break;
+  case type_e::raidex_mask_:
+    MJZ_FALLTHROUGH;
+  case type_e::invalid_: {
+    return err_fn();
+  } break;
   }
   //-no type check :(-//
   if (alt && !std::integral<T> && !std::floating_point<T>) {
@@ -475,7 +491,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
   format_fn_obj stack{};
   stack.buf_arr = blk_0_.data();
   stack.buf_size = blk_0_.size();
-  if (!format_specs_start(ctx, stack)) return false;
+  if (!format_specs_start(ctx, stack))
+    return false;
   if constexpr (partial_same_as<T, bview>) {
     stack.as_string = arg;
     if (ctx.encoding() != stack.as_string.get_encoding()) {
@@ -706,10 +723,9 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs_start(
   stack.buf = stack.buf_arr + 3;
   stack.my_type = uint8_t(uint8_t(type) & uint8_t(type_e::type_mask_));
   if (ctx.encoding() != encodings_e::ascii) {
-    ctx.as_error(
-        "[Error]basic_format_specs_t::format_specs():only ascii is "
-        "suppoerted!(note that this "
-        "may change in later versions)");
+    ctx.as_error("[Error]basic_format_specs_t::format_specs():only ascii is "
+                 "suppoerted!(note that this "
+                 "may change in later versions)");
     return false;
   }
 
@@ -769,7 +785,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
   auto place_stuff = [&]() noexcept { return place_fn(place_obj); };
   auto real_output = ctx.out();
   MJZ_RELEASE {
-    if (ctx.out()) ctx.advance_to(real_output);
+    if (ctx.out())
+      ctx.advance_to(real_output);
   };
   base_out_it_t<version_v> it{real_output};
   uintlen_t my_width{};
@@ -795,17 +812,19 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
     my_width = width;
     auto output = ctx.out();
     MJZ_RELEASE {
-      if (ctx.out()) ctx.advance_to(output);
+      if (ctx.out())
+        ctx.advance_to(output);
     };
 
-    if (!ctx.advance_to(output_buffer)) return false;
-    if (!place_stuff()) return false;
+    if (!ctx.advance_to(output_buffer))
+      return false;
+    if (!place_stuff())
+      return false;
     output_buffer_was_used = true;
   };
   if (output_buffer.invalid) {
-    ctx.as_error(
-        "[Error]default_formatter_t::format(tuple,auto):"
-        "error at counting the output");
+    ctx.as_error("[Error]default_formatter_t::format(tuple,auto):"
+                 "error at counting the output");
     return false;
   }
   base_out_it_t<version_v> actual_it = ctx.out();
@@ -815,7 +834,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
   it = output;
   uintlen_t delta = my_width - length;
   std::ignore = actual_it.reserve(my_width, ctx.encoding());
-  if (!ctx.advance_to(it)) return false;
+  if (!ctx.advance_to(it))
+    return false;
   if (alignment == align_e::right || alignment == align_e::center) {
     uintlen_t rigth_delta{delta >> uint8_t(alignment == align_e::center)};
     delta -= rigth_delta;
@@ -824,7 +844,8 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
   if (output_buffer_was_used) {
     std::ignore = it.append(output_buffer.bview());
   } else {
-    if (!place_stuff()) return false;
+    if (!place_stuff())
+      return false;
   }
   if (alignment == align_e::left || alignment == align_e::center) {
     std::ignore = it.multi_push_back(fill_char, delta, ctx.encoding());
@@ -832,5 +853,5 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
   return !!actual_it;
 }
 }
-;       // namespace mjz::bstr_ns::format_ns
-#endif  // MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_
+;      // namespace mjz::bstr_ns::format_ns
+#endif // MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_

@@ -36,7 +36,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
           const byte_T_t&) const noexcept = default;
     };*/
 
-   public:
+  public:
     MJZ_CX_FN explicit cx_atomic_ref_t(T &obj) noexcept : ref(obj) {}
 
     MJZ_CX_FN cx_atomic_ref_t(const cx_atomic_ref_t &) noexcept = default;
@@ -47,9 +47,9 @@ MJZ_EXPORT namespace mjz::threads_ns {
 
     MJZ_CX_ND_FN bool is_lock_free() const noexcept { return true; }
 
-    MJZ_CX_FN void store(
-        const T obj,
-        const std::memory_order = std::memory_order::relaxed) const noexcept
+    MJZ_CX_FN void
+    store(const T obj,
+          const std::memory_order = std::memory_order::relaxed) const noexcept
       requires(mutable_v)
     {
       ref = obj;
@@ -58,9 +58,9 @@ MJZ_EXPORT namespace mjz::threads_ns {
     load(const std::memory_order = std::memory_order::relaxed) const noexcept {
       return ref;
     }
-    MJZ_CX_FN void wait(
-        const T Expected,
-        const std::memory_order = std::memory_order::relaxed) const noexcept {
+    MJZ_CX_FN void
+    wait(const T Expected,
+         const std::memory_order = std::memory_order::relaxed) const noexcept {
       asserts(
           /*std::bit_cast<byte_T_t>(Expected) != std::bit_cast<byte_T_t>(ref)*/
           Expected != ref, "i'm waiting forever at compile time ! :( ", true);
@@ -323,7 +323,6 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return static_cast<T>(as_normal_().fetch_xor(Operand) ^ Operand);
     }
   };
-  template <typename T>
-  cx_atomic_ref_t(T) -> cx_atomic_ref_t<T>;
-};  // namespace mjz::threads_ns
-#endif  //  MJZ_THREADS_cx_atomic_ref_LIB_HPP_FILE_
+  template <typename T> cx_atomic_ref_t(T) -> cx_atomic_ref_t<T>;
+}; // namespace mjz::threads_ns
+#endif //  MJZ_THREADS_cx_atomic_ref_LIB_HPP_FILE_

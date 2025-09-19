@@ -34,10 +34,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
 
     using block_info = allocs_ns::block_info_t<version_v>;
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     struct m_t {
       single_object_pointer_t<const alloc_base_ref> alloc_ref{
           &allocs_ns::empty_alloc<version_v>};
@@ -64,8 +63,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
               non_threaded_rf_block),
           0);
     }
-    MJZ_CX_AL_FN allocs_ns::alloc_info_t<version_v> alloc_info_v(
-        const alloc_base_ref &ref) const noexcept {
+    MJZ_CX_AL_FN allocs_ns::alloc_info_t<version_v>
+    alloc_info_v(const alloc_base_ref &ref) const noexcept {
       allocs_ns::alloc_info_t<version_v> info = ref.get_vtbl().default_info;
       if (get_is_threaded()) {
         info.make_threaded();
@@ -95,8 +94,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       MJZ_CX_AL_FN ~temp_layout_t() noexcept = default;
       MJZ_CX_AL_FN temp_layout_t(m_t &m) noexcept
           : var{m.heap_rc_ptr, non_threaded_rf_block, non_threaded_rf_block},
-            refcr{*var},
-            is_threaded{m.is_threaded},
+            refcr{*var}, is_threaded{m.is_threaded},
             is_owenrized{m.is_owenrized} {}
       MJZ_CX_AL_FN auto perform_ref(MJZ_MAYBE_UNUSED auto &&Lmabda_th,
                                     auto &&Lmabda_nth) noexcept {
@@ -136,9 +134,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       if (is_owner()) {
         return true;
       }
-      if (remove_shareholder_then_check_has_no_owner()) MJZ_IS_UNLIKELY {
-          return true;
-        }
+      if (remove_shareholder_then_check_has_no_owner())
+        MJZ_IS_UNLIKELY { return true; }
       return false;
     }
     MJZ_MCONSTANT(uintlen_t)
@@ -147,7 +144,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     threaded_rf_block =
         std::max(hardware_destructive_interference_size, non_threaded_rf_block);
 
-   public:
+  public:
     MJZ_NO_CPY(str_heap_manager_t);
 
     MJZ_CX_AL_FN auto alloc_ptr() const noexcept {
@@ -158,7 +155,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       }
     }
 
-   private:
+  private:
     MJZ_CX_AL_FN success_t malloc_p(MJZ_WILL_USE uintlen_t min_size) noexcept {
       block_info blk{};
       const alloc_base_ref &ref = *alloc_ptr();
@@ -205,15 +202,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       return min_size;
     }
 
-   public:
+  public:
     MJZ_CX_AL_FN success_t malloc(MJZ_WILL_USE uintlen_t min_size,
                                   bool round_up = true) noexcept {
       bool bad_ret = !min_size;
       bad_ret |= !alloc_ptr();
       bad_ret |= !!*this;
-      if (bad_ret) MJZ_IS_UNLIKELY {
-          return m.reduce_rc_on_manager_destruction && free();
-        }
+      if (bad_ret)
+        MJZ_IS_UNLIKELY { return m.reduce_rc_on_manager_destruction && free(); }
       return u_malloc(min_size, round_up);
     }
     MJZ_CX_AL_FN success_t u_malloc(MJZ_WILL_USE uintlen_t min_size,
@@ -221,7 +217,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       return malloc_p(minsize_calc(min_size, round_up));
     }
 
-   private:
+  private:
     MJZ_CX_AL_FN success_t free_p() noexcept {
       asserts(asserts.assume_rn, !!*this);
       if constexpr (!is_ownerized_v_) {
@@ -238,7 +234,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
                                   alloc_info_v(ref));
     }
 
-   public:
+  public:
     MJZ_CX_AL_FN void u_must_free() noexcept {
       asserts(asserts.assume_rn, free_p());
       unsafe_clear();
@@ -270,14 +266,17 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
              buffer_overhead();
     }
     MJZ_CX_AL_FN char *steal_heap_begin(bool change_rc) noexcept {
-      if (!to_non_owner(change_rc)) return nullptr;
+      if (!to_non_owner(change_rc))
+        return nullptr;
       auto ret = get_heap_begin();
       unsafe_clear();
       return ret;
     }
     MJZ_CX_AL_FN success_t to_non_owner(bool change_rc = true) noexcept {
-      if (!*this) return false;
-      if (m.reduce_rc_on_manager_destruction == false) return true;
+      if (!*this)
+        return false;
+      if (m.reduce_rc_on_manager_destruction == false)
+        return true;
       if (change_rc) {
         if (!free()) {
           return false;
@@ -287,9 +286,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       return true;
     }
     MJZ_CX_AL_FN success_t to_owner(bool change_rc = true) noexcept {
-      if (!*this) return false;
-      if (m.reduce_rc_on_manager_destruction == true) return true;
-      if (!change_rc || !add_shareholder()) return false;
+      if (!*this)
+        return false;
+      if (m.reduce_rc_on_manager_destruction == true)
+        return true;
+      if (!change_rc || !add_shareholder())
+        return false;
       m.reduce_rc_on_manager_destruction = true;
       return true;
     }
@@ -313,7 +315,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     MJZ_CX_AL_FN bool might_share() const noexcept { return !!m.heap_rc_ptr; }
 
     MJZ_CX_AL_FN success_t add_shareholder() noexcept {
-      if (!can_add_shareholder()) return !!*this;
+      if (!can_add_shareholder())
+        return !!*this;
       asserts(asserts.assume_rn, !m.is_owenrized);
       temp_layout_t{m}.perform_ref(
           [](auto &ref) noexcept {
@@ -330,11 +333,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       m.cow_threaded_threshold_temp_ = false;
     }
 
-   private:
+  private:
     MJZ_CX_AL_FN bool is_owner_heap() const noexcept {
       char_storage_as_temp_t<uintlen_t> var{
           m.heap_data_ptr, non_threaded_rf_block, non_threaded_rf_block};
-      if (!var) return false;
+      if (!var)
+        return false;
 
       if (!get_is_threaded()) {
         return *var < 2;
@@ -343,14 +347,16 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       return (ref_count).load(std::memory_order_acquire) < 2;
     }
 
-   public:
+  public:
     MJZ_CX_AL_FN bool is_owner() const noexcept {
-      if (!can_add_shareholder()) return !!*this;
-      if (m.is_owenrized) return true;
+      if (!can_add_shareholder())
+        return !!*this;
+      if (m.is_owenrized)
+        return true;
       return is_owner_heap();
     }
 
-   private:
+  private:
     MJZ_CX_AL_FN bool
     remove_shareholder_then_check_has_no_owner_heap() noexcept {
       return temp_layout_t{m}.perform_ref(
@@ -360,11 +366,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
                  [](auto &ref) noexcept -> uintlen_t { return --ref; }) < 1;
     }
 
-   public:
+  public:
     MJZ_CX_AL_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
-      if (!*this) return false;
-      if (m.is_owenrized) return true;
-      if (!can_add_shareholder()) return true;
+      if (!*this)
+        return false;
+      if (m.is_owenrized)
+        return true;
+      if (!can_add_shareholder())
+        return true;
       /*
        * if this is zero, then we know we where the last person.
        */
@@ -381,13 +390,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
         : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
       malloc(min_size);
     }
-    MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc,
-                                    bool can_share_, bool is_threaded_,
-                                    bool is_owenrized_,
-                                    bool add_rc_on_manager_construction,
-                                    bool reduce_rc_on_manager_destruction,
-                                    char *heap_begin,
-                                    uintlen_t capacity) noexcept
+    MJZ_CX_AL_FN
+    str_heap_manager_t(const alloc_base_ref &alloc, bool can_share_,
+                       bool is_threaded_, bool is_owenrized_,
+                       bool add_rc_on_manager_construction,
+                       bool reduce_rc_on_manager_destruction, char *heap_begin,
+                       uintlen_t capacity) noexcept
         : str_heap_manager_t{alloc, is_threaded_, is_owenrized_} {
       asserts(asserts.assume_rn, !!heap_begin && !!capacity);
       m.heap_data_ptr = mjz::assume_aligned<non_threaded_rf_block>(heap_begin);
@@ -408,8 +416,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     MJZ_CX_AL_FN str_heap_manager_t(str_heap_manager_t &&obj) noexcept
         : m{std::exchange(obj.m,
                           m_t{obj.m.alloc_ptr(), obj.get_is_threaded()})} {}
-    MJZ_CX_AL_FN str_heap_manager_t &operator=(
-        str_heap_manager_t &&obj) noexcept {
+    MJZ_CX_AL_FN str_heap_manager_t &
+    operator=(str_heap_manager_t &&obj) noexcept {
       must_free();
       m = std::exchange(obj.m, m_t{obj.m.alloc_ptr(), obj.get_is_threaded()});
     }
@@ -421,6 +429,6 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     }
   };
 
-}  // namespace mjz::bstr_ns
+} // namespace mjz::bstr_ns
 
-#endif  // MJZ_BYTE_STRING_heap_LIB_HPP_FILE_
+#endif // MJZ_BYTE_STRING_heap_LIB_HPP_FILE_

@@ -42,21 +42,18 @@ MJZ_EXPORT namespace mjz {
     }
   };
 
-  template <auto lambda>
-  struct restricted_argument_t {
+  template <auto lambda> struct restricted_argument_t {
     template <typename... Ts>
     MJZ_CE_FN restricted_argument_t(Ts &&...args) noexcept {
       asserts(static_cast<bool>(lambda(std::forward<Ts>(args)...)));
     }
   };
 
-  template <typename T>
-  struct constant_value_t {
+  template <typename T> struct constant_value_t {
     T val;
     MJZ_CE_FN constant_value_t(T val_) noexcept : val(std::forward<T>(val_)) {}
   };
-  template <typename fn_t>
-  struct restricted_fn_argument_t {
+  template <typename fn_t> struct restricted_fn_argument_t {
     template <typename... Ts>
     MJZ_CE_FN restricted_fn_argument_t(Ts &&...args) noexcept {
       asserts(static_cast<bool>(fn_t{}(std::forward<Ts>(args)...)));
@@ -64,13 +61,12 @@ MJZ_EXPORT namespace mjz {
   };
   namespace unsafe_ns {
   struct i_know_what_im_doing_t {
-   private:
+  private:
     MJZ_CX_FN i_know_what_im_doing_t() noexcept = default;
     friend struct varify_t;
   };
   struct varify_t {
-    template <uintlen_t N>
-    MJZ_CX_FN varify_t(const char (&str)[N]) noexcept {
+    template <uintlen_t N> MJZ_CX_FN varify_t(const char (&str)[N]) noexcept {
       constexpr auto &&v = "i do know that what im doing is unsafe.";
       constexpr concatabe_hash_t<version_t{}> unsafe_password_hash{v,
                                                                    sizeof(v)};
@@ -83,7 +79,7 @@ MJZ_EXPORT namespace mjz {
       return they_know ? &they_do : nullptr;
     }
 
-   private:
+  private:
     MJZ_MCONSTANT(i_know_what_im_doing_t) they_do {};
   };
   template <varify_t varification>
@@ -95,7 +91,7 @@ MJZ_EXPORT namespace mjz {
 
   MJZ_FCONSTANT(auto) unsafe_v = "i do know that what im doing is unsafe."_dw;
 
-  };  // namespace unsafe_ns
+  }; // namespace unsafe_ns
 
   template <callable_anyret_c<void() noexcept> static_data_fn_t>
     requires requires() {
@@ -110,7 +106,7 @@ MJZ_EXPORT namespace mjz {
       { static_range_fn_t()() } noexcept -> std::ranges::input_range;
     }
   struct static_range_t {
-   private:
+  private:
     using result_t = decltype(static_range_fn_t()());
     MJZ_CX_FN static auto size() noexcept {
       return std::ranges::size(static_range_fn_t()());
@@ -121,7 +117,7 @@ MJZ_EXPORT namespace mjz {
       return ret;
     }
 
-   public:
+  public:
     MJZ_MCONSTANT(auto) val { get() };
     MJZ_CX_FN auto &operator()() const noexcept { return val; }
   };
@@ -147,5 +143,5 @@ MJZ_EXPORT namespace mjz {
   MJZ_FCONSTANT(static_range_maker_t) make_static_range{};
   MJZ_FCONSTANT(static_data_maker_t) make_static_data{};
 
-}  // namespace mjz
-#endif  //  MJZ_RES_ARGS_LIB_HPP_FILE_
+} // namespace mjz
+#endif //  MJZ_RES_ARGS_LIB_HPP_FILE_

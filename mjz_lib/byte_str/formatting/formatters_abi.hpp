@@ -50,8 +50,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   basic_format_specs_conversion_buffer_size_v{
       format_basic_buffer_size_v<version_v>};
 
-  template <version_t version_v>
-  struct basic_format_specs_format_fn_obj_t {
+  template <version_t version_v> struct basic_format_specs_format_fn_obj_t {
     base_lazy_view_t<version_v> as_string{};
     std::optional<uintlen_t> length{};
     uintlen_t offset{};
@@ -64,8 +63,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     uint8_t my_type{};
     byte_traits_t<version_v> bt{};
   };
-  template <version_t version_v>
-  struct basic_format_specs_t {
+  template <version_t version_v> struct basic_format_specs_t {
     using format_fn_obj = basic_format_specs_format_fn_obj_t<version_v>;
     template <typename T>
     MJZ_MCONSTANT(uintlen_t)
@@ -120,7 +118,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN success_t
     parse_precision(parse_context_t<version_v> &cntx) noexcept;
 
-   private:
+  private:
     template <typename T>
     MJZ_MCONSTANT(bool)
     is_numeric = partial_is_one_of_c<
@@ -137,7 +135,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         T, base_lazy_view_t<version_v>, float, double, long double>;
     using sview_t = static_string_view_t<version_v>;
 
-   public:
+  public:
     MJZ_CX_FN success_t parse_specs(parse_context_t<version_v> &cntx) noexcept;
     template <typename T>
     MJZ_CX_FN success_t check_specs(parse_context_t<version_v> &cntx) noexcept;
@@ -148,7 +146,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN success_t format_fill(
         auto &&fill_up, format_context_t<version_v> &ctx) const noexcept;
 
-   private:
+  private:
     MJZ_CX_FN success_t format_fill_pv(
         success_t (*)(void_struct_t &) noexcept, void_struct_t &, char *buffer,
         uintlen_t buffer_size, format_context_t<version_v> &ctx) const noexcept;
@@ -188,8 +186,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
             T>>;
     basic_format_specs_t<version_v> data{};
     MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
-      if (!data.parse_specs(ctx)) return false;
-      if (!data.template check_specs<std::remove_cvref_t<T>>(ctx)) return false;
+      if (!data.parse_specs(ctx))
+        return false;
+      if (!data.template check_specs<std::remove_cvref_t<T>>(ctx))
+        return false;
       return true;
     };
     MJZ_CX_FN success_t
@@ -218,7 +218,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     using decay_optimize_to_t = base_string_view_arg_t<version_v>;
     basic_format_specs_t<version_v> data{};
     MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
-      if (!data.parse_specs(ctx)) return false;
+      if (!data.parse_specs(ctx))
+        return false;
       if (!data.template check_specs<base_lazy_view_t<version_v>>(ctx))
         return false;
       return true;
@@ -231,5 +232,5 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return true;
     };
   };
-};  // namespace mjz::bstr_ns::format_ns
-#endif  // MJZ_BYTE_FORMATTING_formatters_abi_HPP_FILE_
+}; // namespace mjz::bstr_ns::format_ns
+#endif // MJZ_BYTE_FORMATTING_formatters_abi_HPP_FILE_

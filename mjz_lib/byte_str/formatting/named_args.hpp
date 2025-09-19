@@ -28,8 +28,7 @@ SOFTWARE.
 
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   MJZ_DISABLE_ALL_WANINGS_START_;
-  template <version_t version_v, typename T>
-  struct named_arg_t {
+  template <version_t version_v, typename T> struct named_arg_t {
     using view_t = basic_string_view_t<version_v>;
     using hash_t = hash_bytes_t<version_v>;
     std::remove_reference_t<T> obj;
@@ -42,7 +41,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     MJZ_CX_FN success_t
     operator()(hash_context_t<version_v> &ctx) const noexcept {
       auto opt = ctx.name();
-      if (!opt) return false;
+      if (!opt)
+        return false;
       argument_name_t<version_v> arg_name{*opt};
 
       if (arg_name.hash == hash && arg_name.name_str == name) {
@@ -54,23 +54,20 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   };
 
   MJZ_DISABLE_ALL_WANINGS_END_;
-  template <version_t version_v, typename T>
-  struct is_named_arg_t {};
+  template <version_t version_v, typename T> struct is_named_arg_t {};
 
   template <version_t version_v, typename T>
   struct is_named_arg_t<version_v, named_arg_t<version_v, T>> {
     using type = T;
   };
-  template <version_t version_v>
-  struct make_named_arg_t {
+  template <version_t version_v> struct make_named_arg_t {
     using view_t = basic_string_view_t<version_v>;
     using hash_t = hash_bytes_t<version_v>;
     view_t name;
     hash_t hash;
     MJZ_CX_FN make_named_arg_t(view_t val) noexcept
         : name(val), hash(val.data(), val.length()) {}
-    template <typename T>
-    MJZ_CX_FN auto operator=(T &&arg) noexcept {
+    template <typename T> MJZ_CX_FN auto operator=(T &&arg) noexcept {
       return named_arg_t<version_v, typed_arg_ref_final_type_t<version_v, T>>{
           to_final_type_fn<version_v, T>(std::forward<T>(arg)), name, hash};
     }
@@ -84,7 +81,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   MJZ_CX_FN auto operator""_arg() noexcept {
     return operator_arg<version_t{}, L>();
   }
-  }  // namespace fmt_litteral_ns
+  } // namespace fmt_litteral_ns
 
   template <version_t version_v, class T_>
     requires requires() {
@@ -108,15 +105,15 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       return formatter.format(arg(), ctx);
     };
 
-    MJZ_CX_FN static success_t arg_name(
-        const std::remove_reference_t<T_> &arg,
-        hash_context_t<version_v> &ctx) noexcept {
+    MJZ_CX_FN static success_t
+    arg_name(const std::remove_reference_t<T_> &arg,
+             hash_context_t<version_v> &ctx) noexcept {
       return arg(ctx);
     }
   };
 
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_named_args_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_named_args_HPP_FILE_
 
 /**/

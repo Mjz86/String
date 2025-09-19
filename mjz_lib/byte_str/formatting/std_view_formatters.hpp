@@ -93,6 +93,6 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
 
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_std_view_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_std_view_formatters_HPP_FILE_

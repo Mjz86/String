@@ -32,10 +32,9 @@ MJZ_EXPORT namespace mjz::threads_ns {
       std::conditional_t<uses_atomic_bool, std::atomic_bool, std::atomic_flag>;
   template <partial_same_as<totally_empty_type_t> = totally_empty_type_t>
   class alignas(alignof(flag_t)) bit_mutex_t {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     alignas(alignof(flag_t)) char buffer[sizeof(flag_t)]{};
 
     MJZ_NO_MV_NO_CPY(bit_mutex_t);
@@ -45,8 +44,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline flag_t *get() noexcept {
       return (just_get());
     }
-    MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t *just_get()
-        const noexcept {
+    MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t *
+    just_get() const noexcept {
       return reinterpret_cast<const flag_t *>(this);
     }
     MJZ_NODISCRAD MJZ_MAYBE_UNUSED inline const flag_t *get() const noexcept {
@@ -64,13 +63,15 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return m.wait(true, std::memory_order_acquire);
 #else
       if constexpr (uses_atomic_bool) {
-        while (m.load(std::memory_order_acquire));
+        while (m.load(std::memory_order_acquire))
+          ;
         {
           std::this_thread::sleep_for(
               std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
         }
       } else {
-        while (m.test(std::memory_order_acquire));
+        while (m.test(std::memory_order_acquire))
+          ;
         {
           std::this_thread::sleep_for(
               std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
@@ -82,7 +83,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_NCX_FN void unlock_m(auto &m) noexcept {
       if constexpr (uses_atomic_bool) {
         m.store(false, std::memory_order_release);
-        if (!m.load(std::memory_order_acquire) != 0) MJZ_IS_LIKELY {
+        if (!m.load(std::memory_order_acquire) != 0)
+          MJZ_IS_LIKELY {
 #if !MJZ_SLEEP_WITH_WAIT_
             m.notify_one();
 #endif
@@ -90,7 +92,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
 
       } else {
         m.clear(std::memory_order_release);
-        if (!m.test(std::memory_order_acquire)) MJZ_IS_LIKELY {
+        if (!m.test(std::memory_order_acquire))
+          MJZ_IS_LIKELY {
 #if !MJZ_SLEEP_WITH_WAIT_
             m.notify_one();
 #endif
@@ -143,7 +146,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return true;
     }
 
-   public:
+  public:
     MJZ_CX_FN bit_mutex_t() noexcept {
       MJZ_IF_CONSTEVAL { return; }
       std::construct_at(just_get());
@@ -173,9 +176,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return try_lock(defult_timeout);
     }
     MJZ_CX_FN void lock() noexcept(!MJZ_IN_DEBUG_MODE) {
-      if (try_lock(true, defult_timeout)) MJZ_IS_LIKELY {
-          return;
-        }
+      if (try_lock(true, defult_timeout))
+        MJZ_IS_LIKELY { return; }
       asserts.panic(" what happened !? why did the un-fail-able fail?! ");
     }
     /*
@@ -194,5 +196,5 @@ MJZ_EXPORT namespace mjz::threads_ns {
     }
   };
 
-};  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_bit_mutex_LIB_HPP_FILE_
+}; // namespace mjz::threads_ns
+#endif // MJZ_THREADS_bit_mutex_LIB_HPP_FILE_

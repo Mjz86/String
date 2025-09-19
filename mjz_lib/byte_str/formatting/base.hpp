@@ -30,14 +30,12 @@ SOFTWARE.
 #ifndef MJZ_BYTE_FORMATTING_base_LIB_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_base_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz {
-  template <auto>
-  struct err_str_vst {};
-  template <auto...>
-  struct err_vst {
+  template <auto> struct err_str_vst {};
+  template <auto...> struct err_vst {
     constexpr static void print(auto...) = delete;
   };
 
-}  // namespace mjz
+} // namespace mjz
 MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <version_t version_v>
   MJZ_CX_FN std::optional<uintlen_t>
@@ -117,10 +115,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   parse_context_t<version_v>::parse_arg_index() noexcept {
     if (encoding() != encodings_e::ascii) {
       MJZ_IS_UNLIKELY {
-        as_error(
-            "[Error]parse_arg_index:only ascii is suppoerted!(note "
-            "that this "
-            "may change in later versions)");
+        as_error("[Error]parse_arg_index:only ascii is suppoerted!(note "
+                 "that this "
+                 "may change in later versions)");
         return nullopt;
       }
     }
@@ -138,10 +135,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     uintlen_t id{};
     if (*charechter != '0') {
       auto id_ = parse_starting_ulen();
-      if (!id_) return nullopt;
+      if (!id_)
+        return nullopt;
       id = *id_;
     } else {
-      if (!unchecked_advance_amount_(1)) return nullopt;
+      if (!unchecked_advance_amount_(1))
+        return nullopt;
     }
     charechter = front();
     if (charechter && *charechter != '}' && *charechter != ':' &&
@@ -151,7 +150,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return nullopt;
       }
     }
-    if (!check_arg_id(id)) return nullopt;
+    if (!check_arg_id(id))
+      return nullopt;
     return id;
   }
 
@@ -163,8 +163,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     typename base_context_t<version_v>::name_t name_v{name, name_str};
     main_ctx().name_ptr = &name_v;
     for (uintlen_t i{}; i < main_ctx().number_of_args; i++) {
-      if (!main_ctx().parse_and_format_call_at(i, true)) return nullopt;
-      if (&name_v != main_ctx().name_ptr) return i;
+      if (!main_ctx().parse_and_format_call_at(i, true))
+        return nullopt;
+      if (&name_v != main_ctx().name_ptr)
+        return i;
     }
     if (parse_only()) {
       as_error(
@@ -184,10 +186,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   parse_context_t<version_v>::parse_arg_id() noexcept {
     if (encoding() != encodings_e::ascii) {
       MJZ_IS_UNLIKELY {
-        as_error(
-            "[Error]parse_arg_id:only ascii is suppoerted!(note "
-            "that this "
-            "may change in later versions)");
+        as_error("[Error]parse_arg_id:only ascii is suppoerted!(note "
+                 "that this "
+                 "may change in later versions)");
         return nullopt;
       }
     }
@@ -195,22 +196,26 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     if (!charechter || *charechter == '}' || *charechter == ':' ||
         *charechter == ';') {
       auto ret = next_arg_id();
-      if (!ret) return nullopt;
+      if (!ret)
+        return nullopt;
       return *ret;
     }
     if ('0' <= *charechter && *charechter <= '9') {
       auto ret = parse_arg_index();
-      if (!ret) return nullopt;
+      if (!ret)
+        return nullopt;
       return *ret;
     }
     view_t name_str = view();
     auto name = parse_starting_name();
-    if (!name) return nullopt;
+    if (!name)
+      return nullopt;
     auto name_len = uintlen_t(data_left() - name_str.data());
     std::ignore = name_str.as_subview(0, name_len);
 
     auto ret = find_name_index(*name, name_str);
-    if (!ret || !check_arg_id(*ret)) return nullopt;
+    if (!ret || !check_arg_id(*ret))
+      return nullopt;
     return *ret;
   }
   template <version_t version_v>
@@ -248,7 +253,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return id && call_argument_formatter(*id);
     }
     auto id = parse_ctx().parse_arg_id();
-    if (!id) return false;
+    if (!id)
+      return false;
     charechter = parse_ctx().front();
 
     auto &actual_out = main_ctx().output_it;
@@ -257,7 +263,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     out_it_t actual_out_buf = actual_out;
     bool has_filter{};
     MJZ_RELEASE {
-      if (has_filter) actual_out = actual_out_buf;
+      if (has_filter)
+        actual_out = actual_out_buf;
     };
     if (charechter && *charechter == ':') {
       return parse_ctx().unchecked_advance_amount_(1) &&
@@ -283,18 +290,22 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       const char *ptr = remains.data();
       const char *end = remains.data() + remains.length();
       for (;;) {
-        if (ptr == end || *ptr == '{' || *ptr == '}') break;
+        if (ptr == end || *ptr == '{' || *ptr == '}')
+          break;
         ptr++;
       }
       uintlen_t braket_location = uintlen_t(ptr - remains.data());
       std::ignore = output.append(
           remains.make_subview(0, braket_location).unsafe_handle());
       std::ignore = parse_ctx().unchecked_advance_amount_(braket_location);
-      if (ptr == end) break;
+      if (ptr == end)
+        break;
       charechter = *ptr;
-      if (!parse_ctx().unchecked_advance_amount_(1)) return false;
+      if (!parse_ctx().unchecked_advance_amount_(1))
+        return false;
       if (*charechter == '{') {
-        if (!parse_format_replacement_field()) return false;
+        if (!parse_format_replacement_field())
+          return false;
         // the output must match the original to avoid conflicts
         format_ctx().advance_to(output);
         continue;
@@ -310,7 +321,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
           return false;
         }
       }
-      if (!parse_ctx().unchecked_advance_amount_(1)) return false;
+      if (!parse_ctx().unchecked_advance_amount_(1))
+        return false;
       output.push_back('}', parse_ctx().encoding());
     }
 
@@ -358,7 +370,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       }
       base_ctx().buf_view.encoding = base_ctx().format_string.get_encoding();
       base_ctx().buf_view.length = 0;
-      if (!fctx_.advance_to(fctx_.out())) return false;
+      if (!fctx_.advance_to(fctx_.out()))
+        return false;
       output = fctx_.out();
       if (!parse_ctx().parse_only() &&
           !output.reserve(base_ctx().format_string.length(),
@@ -377,7 +390,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return parse_formating_string_cache();
       return parse_formating_string_nocache();
     }();
-    if (ret) format_ctx().advance_to(output);
+    if (ret)
+      format_ctx().advance_to(output);
     return ret;
   }
 
@@ -387,11 +401,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       uintlen_t defult) noexcept {
     if (parse_ctx().encoding() != encodings_e::ascii) {
       MJZ_IS_UNLIKELY {
-        format_ctx().as_error(
-            "[Error]get_parse_filter_numeric:only ascii is "
-            "suppoerted!(note "
-            "that this "
-            "may change in later versions)");
+        format_ctx().as_error("[Error]get_parse_filter_numeric:only ascii is "
+                              "suppoerted!(note "
+                              "that this "
+                              "may change in later versions)");
         return nullopt;
       }
     }
@@ -406,10 +419,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     std::optional<uintlen_t> ret{};
     if ('0' <= *charechter && *charechter <= '9')
       return parse_ctx().parse_starting_ulen();
-    if (*charechter != '{') return defult;
-    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+    if (*charechter != '{')
+      return defult;
+    if (!parse_ctx().unchecked_advance_amount_(1))
+      return nullopt;
     auto ret_id = parse_ctx().parse_arg_id();
-    if (!ret_id) return nullopt;
+    if (!ret_id)
+      return nullopt;
     charechter = parse_ctx().front();
     if (!charechter || *charechter != '}') {
       MJZ_IS_UNLIKELY {
@@ -419,7 +435,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return nullopt;
       }
     }
-    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+    if (!parse_ctx().unchecked_advance_amount_(1))
+      return nullopt;
     if (!parse_ctx()
              .type_v(*ret_id)
              .template is_one_of_xcr<uint8_t, uint16_t, uint32_t,
@@ -445,7 +462,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return nullopt;
       }
     }
-    if (!ret) ret = defult;
+    if (!ret)
+      ret = defult;
     return ret;
   }
   template <version_t version_v>
@@ -453,10 +471,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       uintlen_t defult) noexcept {
     if (!main_ctx().parse_and_format_data_ptr) {
       MJZ_IS_UNLIKELY {
-        as_error(
-            "parse_context_t::get_numeric:unexpected intanceiation of "
-            "parse_context_t "
-            "outside parse_and_format_data_t");
+        as_error("parse_context_t::get_numeric:unexpected intanceiation of "
+                 "parse_context_t "
+                 "outside parse_and_format_data_t");
         return nullopt;
       }
     }
@@ -476,11 +493,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       bool check_after_slice) noexcept {
     if (parse_ctx().encoding() != encodings_e::ascii) {
       MJZ_IS_UNLIKELY {
-        format_ctx().as_error(
-            "[Error]get_slice_parse_filter:only ascii is "
-            "suppoerted!(note "
-            "that this "
-            "may change in later versions)");
+        format_ctx().as_error("[Error]get_slice_parse_filter:only ascii is "
+                              "suppoerted!(note "
+                              "that this "
+                              "may change in later versions)");
         return nullopt;
       }
     }
@@ -496,7 +512,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     if (*charechter != '[')
       return pair_t<uintlen_t, uintlen_t>{0, uintlen_t(-1)};
-    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+    if (!parse_ctx().unchecked_advance_amount_(1))
+      return nullopt;
     charechter = parse_ctx().front();
     if (!charechter) {
       MJZ_IS_UNLIKELY {
@@ -505,12 +522,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       }
     }
     if (*charechter == ']') {
-      if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+      if (!parse_ctx().unchecked_advance_amount_(1))
+        return nullopt;
       //"[]"no output at all
       return pair_t<uintlen_t, uintlen_t>{uintlen_t(-1), uintlen_t(0)};
     }
     beg_loc = get_parse_filter_numeric(uintlen_t(0));
-    if (!beg_loc) return nullopt;
+    if (!beg_loc)
+      return nullopt;
     charechter = parse_ctx().front();
     if (!charechter) {
       MJZ_IS_UNLIKELY {
@@ -519,7 +538,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       }
     }
     if (*charechter == ']') {
-      if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+      if (!parse_ctx().unchecked_advance_amount_(1))
+        return nullopt;
       //"[i]" index
       return pair_t<uintlen_t, uintlen_t>{*beg_loc, uintlen_t(1)};
     }
@@ -532,9 +552,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return nullopt;
       }
     }
-    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+    if (!parse_ctx().unchecked_advance_amount_(1))
+      return nullopt;
     end_loc = get_parse_filter_numeric(uintlen_t(-1));
-    if (!end_loc) return nullopt;
+    if (!end_loc)
+      return nullopt;
     charechter = parse_ctx().front();
     if (!charechter || *charechter != ']') {
       MJZ_IS_UNLIKELY {
@@ -543,7 +565,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return nullopt;
       }
     }
-    if (!parse_ctx().unchecked_advance_amount_(1)) return nullopt;
+    if (!parse_ctx().unchecked_advance_amount_(1))
+      return nullopt;
     charechter = parse_ctx().front();
     if (check_after_slice &&
         (!charechter ||
@@ -584,9 +607,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return false;
     if (auto c = parse_ctx().front(); !c || *c == '}') {
       MJZ_IS_LIKELY {
-        if (!(!c || parse_ctx().unchecked_advance_amount_(1))) return false;
-        if (!base_ctx().parse_only()) return true;
-        if (!base_ctx().cx_parse_storage_of_args) return true;
+        if (!(!c || parse_ctx().unchecked_advance_amount_(1)))
+          return false;
+        if (!base_ctx().parse_only())
+          return true;
+        if (!base_ctx().cx_parse_storage_of_args)
+          return true;
         cx_formatter_storage_base_ref_t<version_v> &fs_ref =
             const_cast<cx_formatter_storage_base_ref_t<version_v> &>(
                 base_ctx().cx_parse_storage_of_args[(uintlen_t(-2) -
@@ -620,8 +646,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     view_t name{};
     uintlen_t index_in_arragment{uintlen_t(-1)};
     T object{};
-    template <class L>
-    MJZ_CX_FN auto make(L &&) noexcept;
+    template <class L> MJZ_CX_FN auto make(L &&) noexcept;
   };
   template <version_t version_v, valid_formatter_format_c<version_v> T,
             class Lambda_t = decltype([]<class... Ts>(Ts &&...) noexcept
@@ -659,7 +684,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     std::remove_cvref_t<decltype(*std::declval<T>().base)> value{};
     MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
       view_t v = ctx.view();
-      if (!value.object.parse(ctx)) return false;
+      if (!value.object.parse(ctx))
+        return false;
       v.remove_suffix(ctx.view().size());
       value.input = v;
       return true;
@@ -672,21 +698,23 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       }
       return obj.l(obj.base, ctx);
     }
-    MJZ_CX_FN static success_t arg_name(
-        const std::remove_reference_t<T> &arg,
-        hash_context_t<version_v> &ctx) noexcept {
+    MJZ_CX_FN static success_t
+    arg_name(const std::remove_reference_t<T> &arg,
+             hash_context_t<version_v> &ctx) noexcept {
       auto opt = ctx.name();
-      if (!opt) return false;
+      if (!opt)
+        return false;
       argument_name_t<version_v> arg_name{*opt};
-      if (arg.base && arg_name.name_str == arg.base->name) return ctx.matched();
+      if (arg.base && arg_name.name_str == arg.base->name)
+        return ctx.matched();
       return true;
     }
   };
 
   template <version_t version_v>
   struct formatting_object_t : parse_and_format_data_t<version_v> {
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept {
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept {
       return *this;
     }
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept {
@@ -715,8 +743,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
 
     MJZ_NO_MV_NO_CPY(formatting_object_t);
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     using out_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using stack_alloc_t =
@@ -775,7 +802,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                to_final_type_fn<version_v, Ts>(std::forward<Ts>(args)))...);
     }
 
-   private:
+  private:
     template <class... Ts>
     MJZ_CX_FN success_t vformat_to_pv(out_it_t iter, view_t format_str,
                                       Ts &&...args) noexcept {
@@ -819,10 +846,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       success_t s = main_ctx().parse_formating_string();
       return s;
     }
-    template <version_t, typename...>
-    friend struct cx_parser_t;
+    template <version_t, typename...> friend struct cx_parser_t;
 
-   public:
+  public:
     template <class... Ts>
     MJZ_CX_FN success_t format_formatters(
         uintlen_t &count_of_used_args, view_t &format_in_last_out,
@@ -830,31 +856,33 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       count_out_buf_t<version_v> out_{};
       uintlen_t per_cnt{};
       count_of_used_args = 0;
-      if (!vformat_to(out_, format_in_last_out,
-                      (args.make([&](auto obj, format_context_t<version_v>
-                                                   &ctx) noexcept -> success_t {
-                        if (!ctx.out().flush_buffer() || !ctx.advance_to(out_))
-                          return false;
-                        if (uintlen_t(-1) != obj->index_in_arragment) {
-                          ctx.as_error(
-                              "[Error]formatting_object_t::format_formatters: "
-                              "duplicated the format entery");
-                          return false;
-                        }
-                        uintlen_t cnt = out_.count;
-                        out_.count += obj->input.size() + 2;
-                        obj->input = format_in_last_out.make_subview(
-                            per_cnt, cnt - per_cnt);
-                        per_cnt = out_.count;
-                        obj->index_in_arragment = count_of_used_args++;
-                        return true;
-                      }))...)) {
+      if (!vformat_to(
+              out_, format_in_last_out,
+              (args.make([&](auto obj, format_context_t<version_v>
+                                           &ctx) noexcept -> success_t {
+                if (!ctx.out().flush_buffer() || !ctx.advance_to(out_))
+                  return false;
+                if (uintlen_t(-1) != obj->index_in_arragment) {
+                  ctx.as_error("[Error]formatting_object_t::format_formatters: "
+                               "duplicated the format entery");
+                  return false;
+                }
+                uintlen_t cnt = out_.count;
+                out_.count += obj->input.size() + 2;
+                obj->input =
+                    format_in_last_out.make_subview(per_cnt, cnt - per_cnt);
+                per_cnt = out_.count;
+                obj->index_in_arragment = count_of_used_args++;
+                return true;
+              }))...)) {
         if (auto c = format_in_last_out.at(base_ctx().err_index - 1);
             c && *c != '}')
           return false;
       }
-      if (out_.invalid) return false;
-      if (!format_ctx().out().flush_buffer()) return false;
+      if (out_.invalid)
+        return false;
+      if (!format_ctx().out().flush_buffer())
+        return false;
       format_in_last_out.as_subview(per_cnt, out_.count - per_cnt);
       return true;
     }
@@ -865,8 +893,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 
   template <version_t version_v, typename... Ts>
   struct cx_parser_t : public formatting_object_t<version_v> {
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept {
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept {
       return *this;
     }
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept {
@@ -893,8 +921,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return *this;
     }
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     using out_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
@@ -1152,7 +1179,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   MJZ_CX_FN auto operator""_fmto3() noexcept {
     return operator_fmt<version_t{}, L, 3>();
   }
-  }  // namespace fmt_litteral_ns
+  } // namespace fmt_litteral_ns
 
-}  // namespace mjz::bstr_ns::format_ns
-#endif  // MJZ_BYTE_FORMATTING_base_LIB_HPP_FILE_
+} // namespace mjz::bstr_ns::format_ns
+#endif // MJZ_BYTE_FORMATTING_base_LIB_HPP_FILE_

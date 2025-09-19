@@ -38,15 +38,15 @@ MJZ_EXPORT namespace mjz {
       std::cout << "~lifetimes_indicator_t()->"
                 << static_cast<const void *>(this);
     }
-    MJZ_CX_FN lifetimes_indicator_t(
-        const lifetimes_indicator_t &that) noexcept {
+    MJZ_CX_FN
+    lifetimes_indicator_t(const lifetimes_indicator_t &that) noexcept {
       MJZ_IF_CONSTEVAL { return; }
       std::cout << "lifetimes_indicator_t[copy]("
                 << static_cast<const void *>(&that) << ")->"
                 << static_cast<const void *>(this);
     }
-    MJZ_CX_FN lifetimes_indicator_t &operator=(
-        const lifetimes_indicator_t &that) noexcept {
+    MJZ_CX_FN lifetimes_indicator_t &
+    operator=(const lifetimes_indicator_t &that) noexcept {
       MJZ_IF_CONSTEVAL { return; }
       std::cout << "lifetimes_indicator_t[copy]="
                 << static_cast<const void *>(&that) << "->"
@@ -59,8 +59,8 @@ MJZ_EXPORT namespace mjz {
                 << static_cast<const void *>(&that) << ")->"
                 << static_cast<const void *>(this);
     }
-    MJZ_CX_FN lifetimes_indicator_t &operator=(
-        lifetimes_indicator_t &&that) noexcept {
+    MJZ_CX_FN lifetimes_indicator_t &
+    operator=(lifetimes_indicator_t &&that) noexcept {
       MJZ_IF_CONSTEVAL { return; }
       std::cout << "lifetimes_indicator_t[move]="
                 << static_cast<const void *>(&that) << "->"
@@ -70,5 +70,5 @@ MJZ_EXPORT namespace mjz {
 
 #endif
   };
-};  // namespace mjz
-#endif  // MJZ_TEST_lifetimes_HPP_FILE_
+}; // namespace mjz
+#endif // MJZ_TEST_lifetimes_HPP_FILE_

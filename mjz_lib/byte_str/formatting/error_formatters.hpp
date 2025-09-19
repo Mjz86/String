@@ -55,7 +55,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         ret = ctx.advance_to(
             formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
       };
-      if (ret) return true;
+      if (ret)
+        return true;
       return false;
     };
   };
@@ -85,12 +86,13 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         ret = ctx.advance_to(
             formatter.format(to_final_type_fn<version_v, CVT_pv>(v), ctx));
       };
-      if (ret) return true;
+      if (ret)
+        return true;
       return false;
     };
   };
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_error_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_error_formatters_HPP_FILE_
 
 #endif

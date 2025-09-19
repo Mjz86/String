@@ -30,8 +30,7 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_
 
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
-  template <version_t version_v>
-  struct common_data_t {
+  template <version_t version_v> struct common_data_t {
     using sview_t = static_string_view_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using big_str_t =
@@ -49,7 +48,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       requires std::same_as<
           success_t, decltype(base_out_it_t<version_v>{}.append_obj_impl_(v))>
     {
-      if (ctx.out().append_obj_impl_(v)) return *this;
+      if (ctx.out().append_obj_impl_(v))
+        return *this;
       err_view = sview_t{
           "[Error]common_data_t&operator<<(view_t view):could not output the "
           "view"};
@@ -81,9 +81,11 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
       view_t view = ctx.view();
       uintlen_t pos = view.find_first_of(sview_t{"}"});
-      if (pos == view.nops) return true;
+      if (pos == view.nops)
+        return true;
       input = view(0, pos);
-      if (ctx.advance_amount(pos)) return true;
+      if (ctx.advance_amount(pos))
+        return true;
       return false;
     }
     MJZ_CX_FN success_t
@@ -91,12 +93,13 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
            format_context_t<version_v> &ctx) const noexcept {
       common_data_t<version_v> cd{ctx, input};
       cd << arg;
-      if (!cd.err_view.data()) return true;
+      if (!cd.err_view.data())
+        return true;
       ctx.as_error(cd.err_view);
       return false;
     }
   };
 
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_common_formatters_HPP_FILE_

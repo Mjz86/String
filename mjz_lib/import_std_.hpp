@@ -80,6 +80,7 @@ SOFTWARE.
 
 #elif __has_include(<bits/stdc++.h>)
 #include <bits/stdc++.h>
+
 #include <coroutine>
 
 #else
@@ -342,7 +343,7 @@ SOFTWARE.
 
 #endif
 
-#endif  // HOSTED
+#endif // HOSTED
 #endif
 
 #if MJZ_STD_HAS_SIMD_LIB_
@@ -358,4 +359,4 @@ SOFTWARE.
 #endif
 
 #endif
-#endif  // MJZ_LIB_import_std_FILE_
+#endif // MJZ_LIB_import_std_FILE_

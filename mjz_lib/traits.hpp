@@ -58,8 +58,7 @@ MJZ_EXPORT namespace mjz {
     requires noexcept_assignment_c<T, T &&>;
   };
   /* we use this approach(const T*) because it dose not allow r-values */
-  template <typename T>
-  using lvalue_const_no_null_ptr_t = const T *const;
+  template <typename T> using lvalue_const_no_null_ptr_t = const T *const;
   template <typename T, typename U, typename... Us>
   concept is_totaly_trivial_sub_subs = requires(T t) {
     requires std::is_trivial_v<T>;
@@ -148,7 +147,7 @@ MJZ_EXPORT namespace mjz {
   struct mjz_integral_constant_t {
     MJZ_MCONSTANT(auto) value = integral_constant_maker_lambda();
     using value_type = decltype(value);
-    using type = mjz_integral_constant_t;  // using injected-class-name
+    using type = mjz_integral_constant_t; // using injected-class-name
     MJZ_CX_FN operator value_type &() const noexcept { return value; }
     MJZ_CX_FN value_type &operator()() const noexcept { return value; }
   };
@@ -158,19 +157,16 @@ MJZ_EXPORT namespace mjz {
     using type_at = std::tuple_element_t<
         i,
         tuple_t<mjz_integral_constant_t<integral_constant_maker_lambdas>...>>;
-    template <uintlen_t i>
-    using value_type = decltype(type_at<i>{}());
+    template <uintlen_t i> using value_type = decltype(type_at<i>{}());
     using type = mjz_integral_constants_t;
-    template <uintlen_t i>
-    MJZ_CX_FN static auto &get() noexcept {
+    template <uintlen_t i> MJZ_CX_FN static auto &get() noexcept {
       return type_at<i>{}();
     }
     MJZ_MCONSTANT(size_t)
     MJZ_STATIC_tuple_len_{sizeof...(integral_constant_maker_lambdas)};
   };
 
-  template <typename T>
-  MJZ_CX_FN T get_invalid_T_obj() noexcept {
+  template <typename T> MJZ_CX_FN T get_invalid_T_obj() noexcept {
     MJZ_UNREACHABLE();
   }
 
@@ -184,8 +180,7 @@ MJZ_EXPORT namespace mjz {
       std::conditional_t<std::same_as<void, inheritable_or_void>,
                          totally_empty_type_t, inheritable_or_void>;
 
-  template <typename T>
-  struct lvalue_const_ref_t {
+  template <typename T> struct lvalue_const_ref_t {
     const T &obj;
     MJZ_CX_FN lvalue_const_ref_t(no_null_t<const T *const> That) noexcept
         : obj(*That) {}
@@ -274,8 +269,7 @@ MJZ_EXPORT namespace mjz {
   concept partial_same_as =
       std::same_as<std::remove_cvref_t<U>, std::remove_cvref_t<T>>;
 
-  template <class the_class, typename func_t>
-  struct funcptr_maker_helper;
+  template <class the_class, typename func_t> struct funcptr_maker_helper;
 
   template <class the_class, typename ret_t, typename... args_t>
   struct funcptr_maker_helper<the_class, ret_t(args_t...)> {
@@ -315,8 +309,7 @@ MJZ_EXPORT namespace mjz {
   using funcptr_of_t =
       typename funcptr_maker_helper<std::remove_cvref_t<type_t>, func_t>::type;
 
-  template <class the_class, typename func_t>
-  struct like_funcptr_maker_helper;
+  template <class the_class, typename func_t> struct like_funcptr_maker_helper;
 
   template <class the_class, typename ret_t, typename... args_t>
   struct like_funcptr_maker_helper<the_class, ret_t(args_t...)> {
@@ -402,11 +395,11 @@ MJZ_EXPORT namespace mjz {
     uintlen_t i;
     uintlen_t len;
     template <is_totaly_trivial T>
-    MJZ_CX_FN static std::optional<bit_range_t> get_bit_range(
-        const T strating_val,
-        callable_c<bool(uintlen_t i) noexcept> auto &&bit_to,
-        callable_c<bool(const T &) noexcept> auto &&is_begin,
-        callable_c<bool(const T &) noexcept> auto &&is_end) noexcept {
+    MJZ_CX_FN static std::optional<bit_range_t>
+    get_bit_range(const T strating_val,
+                  callable_c<bool(uintlen_t i) noexcept> auto &&bit_to,
+                  callable_c<bool(const T &) noexcept> auto &&is_begin,
+                  callable_c<bool(const T &) noexcept> auto &&is_end) noexcept {
       uintlen_t numbits{sizeof(T) * 8};
       bit_range_t range{uintlen_t(-1), uintlen_t(-1)};
       std::array<char, sizeof(T)> a_s_var{
@@ -418,13 +411,13 @@ MJZ_EXPORT namespace mjz {
           const T var = from_XE_bitcast<T, false, false>(a_var);
           if (is_begin(var)) {
             if (~range.i) {
-              return std::nullopt;  // multiple is_begin;
+              return std::nullopt; // multiple is_begin;
             }
             range.i = 8 * i + j;
           }
           if (is_end(var)) {
             if (!~range.i || ~range.len) {
-              return std::nullopt;  //   no is_begin || multiple is_end;
+              return std::nullopt; //   no is_begin || multiple is_end;
             }
             range.len = 8 * i + j - range.i;
           }
@@ -434,18 +427,17 @@ MJZ_EXPORT namespace mjz {
         range.len = numbits - range.i;
       }
       if (!~range.i) {
-        return std::nullopt;  //   no is_begin ;
+        return std::nullopt; //   no is_begin ;
       }
       return range;
     }
   };
-  template <auto val>
-  struct ce_val_t {
+  template <auto val> struct ce_val_t {
     using type = decltype(val);
     MJZ_CX_FN auto operator()() const noexcept { return val; }
   };
 
   template <typename T>
   using total_decay_t = std::remove_cvref_t<std::decay_t<T>>;
-};  // namespace mjz
-#endif  // MJZ_TRAIS_LIB_HPP_FILE_
+}; // namespace mjz
+#endif // MJZ_TRAIS_LIB_HPP_FILE_

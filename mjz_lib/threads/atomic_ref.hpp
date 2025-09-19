@@ -67,12 +67,10 @@ MJZ_EXPORT namespace mjz::threads_ns {
       }
     };
     ref_pair_t m{};
-    template <class L_t>
-    MJZ_CX_FN auto perform(L_t &&Lmabda) const noexcept {
+    template <class L_t> MJZ_CX_FN auto perform(L_t &&Lmabda) const noexcept {
       return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
     }
-    template <class L_t>
-    MJZ_CX_FN auto perform(L_t &&Lmabda) noexcept {
+    template <class L_t> MJZ_CX_FN auto perform(L_t &&Lmabda) noexcept {
       return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
     }
     template <class L_t>
@@ -84,7 +82,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return ref_pair_t::perform(m, std::forward<L_t>(Lmabda));
     }
 
-   public:
+  public:
     MJZ_CX_FN explicit atomic_ref_t(T &obj) noexcept : m(obj) {}
 
     MJZ_CX_FN atomic_ref_t(const atomic_ref_t &) noexcept = default;
@@ -98,9 +96,9 @@ MJZ_EXPORT namespace mjz::threads_ns {
           [&](auto &&ref) noexcept -> bool { return ref.is_lock_free(); });
     }
 
-    MJZ_CX_FN void store(
-        const T obj,
-        const std::memory_order mo = std::memory_order_seq_cst) const noexcept
+    MJZ_CX_FN void
+    store(const T obj,
+          const std::memory_order mo = std::memory_order_seq_cst) const noexcept
       requires(mutable_v)
     {
       return perform(
@@ -126,18 +124,18 @@ MJZ_EXPORT namespace mjz::threads_ns {
       }
 #else
       wait(Expected, mo);
-#endif  // MJZ_SLEEP_WITH_WAIT_
+#endif // MJZ_SLEEP_WITH_WAIT_
     }
     MJZ_CX_FN void try_notify_one() const noexcept {
 #if !MJZ_SLEEP_WITH_WAIT_
       notify_one();
-#endif  // MJZ_SLEEP_WITH_WAIT_
+#endif // MJZ_SLEEP_WITH_WAIT_
     }
 
     MJZ_CX_FN void try_notify_all() const noexcept {
 #if !MJZ_SLEEP_WITH_WAIT_
       notify_all();
-#endif  // MJZ_SLEEP_WITH_WAIT_
+#endif // MJZ_SLEEP_WITH_WAIT_
     }
 
     MJZ_CX_FN T operator=(const T obj) const noexcept
@@ -418,7 +416,6 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return perform([&](auto &&ref) noexcept -> T { return ref ^= Operand; });
     }
   };
-  template <typename T>
-  atomic_ref_t(T) -> atomic_ref_t<T>;
-};  // namespace mjz::threads_ns
-#endif  //  MJZ_THREADS_atomic_ref_LIB_HPP_FILE_
+  template <typename T> atomic_ref_t(T) -> atomic_ref_t<T>;
+}; // namespace mjz::threads_ns
+#endif //  MJZ_THREADS_atomic_ref_LIB_HPP_FILE_

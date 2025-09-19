@@ -36,11 +36,11 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns{namespace print_ns{
 }
 
 template <version_t version_v>
-MJZ_CX_AL_FN void vformat_err_handle_pv_(
-    basic_str_t<version_v> &ret, const status_view_t<version_v> &opt) noexcept {
-  if (!opt) MJZ_IS_UNLIKELY {
-      vformat_err_handle_impl_pv_(ret, opt);
-    }
+MJZ_CX_AL_FN void
+vformat_err_handle_pv_(basic_str_t<version_v> &ret,
+                       const status_view_t<version_v> &opt) noexcept {
+  if (!opt)
+    MJZ_IS_UNLIKELY { vformat_err_handle_impl_pv_(ret, opt); }
 }
 
 template <version_t version_v, typename... Ts>
@@ -83,7 +83,7 @@ MJZ_CX_AL_FN auto formatln(auto fmt, Ts &&...args) noexcept {
   vformat_err_handle_pv_(ret, opt);
   return ret;
 }
-}  // namespace print_ns
+} // namespace print_ns
 }
-;       // namespace mjz::bstr_ns::format_ns
-#endif  // MJZ_BYTE_FORMATTING_print_HPP_FILE_
+;      // namespace mjz::bstr_ns::format_ns
+#endif // MJZ_BYTE_FORMATTING_print_HPP_FILE_

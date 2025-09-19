@@ -26,12 +26,10 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_easy_formatters_HPP_FILE_
 
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
-  template <version_t version_v>
-  struct easy_output_data_t;
-  template <version_t version_v>
-  struct easy_output_it {
-   public:
-   public:
+  template <version_t version_v> struct easy_output_data_t;
+  template <version_t version_v> struct easy_output_it {
+  public:
+  public:
     using iterator_category = std::output_iterator_tag;
     using value_type = void;
     using pointer = void;
@@ -47,8 +45,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     MJZ_CX_ND_FN encodings_e get_encoding() const noexcept;
     MJZ_CX_ND_FN base_out_it_t<version_v> out() const noexcept;
   };
-  template <version_t version_v>
-  struct easy_output_data_t {
+  template <version_t version_v> struct easy_output_data_t {
     MJZ_CX_FN easy_output_data_t(format_context_t<version_v> &ctx) noexcept
         : iter(ctx.out()), encoding{ctx.encoding()} {}
     MJZ_CX_FN easy_output_it<version_v> it() noexcept {
@@ -65,7 +62,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       return base_out_it_t<version_v>{iter};
     }
 
-   protected:
+  protected:
     MJZ_NO_MV_NO_CPY(easy_output_data_t);
     base_out_it_t<version_v> iter{};
     encodings_e encoding{};
@@ -93,16 +90,15 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     *ptr = ch;
     return *this;
   }
-  template <typename T>
-  struct easy_formatter_t {
+  template <typename T> struct easy_formatter_t {
     MJZ_MCONSTANT(version_t) version_v {};
     MJZ_NO_MV_NO_CPY(easy_formatter_t);
     MJZ_CX_FN easy_formatter_t() noexcept = delete;
     MJZ_CX_FN ~easy_formatter_t() noexcept = delete;
-    MJZ_CX_FN status_view_t<version_v> parse(
-        basic_string_view_t<version_v> format_input) noexcept = delete;
-    MJZ_CX_FN status_view_t<version_v> format(
-        const T &s, easy_output_it<version_v> it) const noexcept = delete;
+    MJZ_CX_FN status_view_t<version_v>
+    parse(basic_string_view_t<version_v> format_input) noexcept = delete;
+    MJZ_CX_FN status_view_t<version_v>
+    format(const T &s, easy_output_it<version_v> it) const noexcept = delete;
   };
 
   template <version_t version_v, typename T, class F_t>
@@ -143,7 +139,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       if (pos == view.nops) {
         return true;
       }
-      if (!ctx.advance_amount(pos)) return false;
+      if (!ctx.advance_amount(pos))
+        return false;
       status_view_t<version_v> status = easy_formatter.parse(view(0, pos));
       if (status) {
         return true;
@@ -164,6 +161,6 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
 
-}  // namespace mjz::bstr_ns::format_ns
+} // namespace mjz::bstr_ns::format_ns
 
-#endif  // MJZ_BYTE_FORMATTING_easy_formatters_HPP_FILE_
+#endif // MJZ_BYTE_FORMATTING_easy_formatters_HPP_FILE_

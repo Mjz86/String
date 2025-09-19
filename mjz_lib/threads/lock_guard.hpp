@@ -31,7 +31,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     my_mutex_t *ptr{};
     MJZ_NO_CPY(lock_guard_t);
 
-   public:
+  public:
     MJZ_CX_FN lock_guard_t(lock_guard_t &&obj) noexcept
         : ptr(std::exchange(obj.ptr, nullptr)) {}
     MJZ_CX_FN lock_guard_t &operator=(lock_guard_t &&obj) noexcept {
@@ -61,7 +61,6 @@ MJZ_EXPORT namespace mjz::threads_ns {
     }
     MJZ_CX_ND_FN explicit operator bool() const noexcept { return !!ptr; }
   };
-  template <typename T>
-  lock_guard_t(T) -> lock_guard_t<T>;
-};  // namespace mjz::threads_ns
-#endif  // MJZ_THREADS_lock_guard_LIB_HPP_FILE_
+  template <typename T> lock_guard_t(T) -> lock_guard_t<T>;
+}; // namespace mjz::threads_ns
+#endif // MJZ_THREADS_lock_guard_LIB_HPP_FILE_

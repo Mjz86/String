@@ -24,18 +24,15 @@ SOFTWARE.
 #ifndef MJZ_RELEASER_LIB_HPP_FILE_
 #define MJZ_RELEASER_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz {
-  template <class unique_accessor_id_t>
-  class mjz_private_accessed_t {};
+  template <class unique_accessor_id_t> class mjz_private_accessed_t {};
   struct totally_empty_type_t {};
   using nullptr_t = std::nullptr_t;
   MJZ_FCONSTANT(totally_empty_type_t) totally_empty_type{};
   static_assert(std::is_empty_v<totally_empty_type_t>);
   using void_struct_t = totally_empty_type_t;
-  template <>
-  class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
-   public:
-    template <class T>
-    MJZ_CX_AL_FN static T mptr_static_cast(auto p) noexcept {
+  template <> class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
+  public:
+    template <class T> MJZ_CX_AL_FN static T mptr_static_cast(auto p) noexcept {
       if constexpr (requires() { static_cast<T>(p); }) {
         return static_cast<T>(p);
       } else if constexpr (std::same_as<std::remove_cvref_t<decltype(p)>,
@@ -46,7 +43,8 @@ MJZ_EXPORT namespace mjz {
         return std::remove_pointer_t<
             std::remove_cvref_t<T>>::mptr_static_cast_pv_fn_(p);
       } else {
-        if (!p) return nullptr;
+        if (!p)
+          return nullptr;
         return p->template mptr_static_cast_pv_fn_<T>();
       }
     }
@@ -64,8 +62,8 @@ MJZ_EXPORT namespace mjz {
       return mptr_static_cast<T *>(ptr);
     }
     template <class T>
-    MJZ_CX_AL_FN static decltype(auto) down_cast(
-        const void_struct_t *ptr) noexcept {
+    MJZ_CX_AL_FN static decltype(auto)
+    down_cast(const void_struct_t *ptr) noexcept {
       return mptr_static_cast<const T *>(ptr);
     }
     template <class T>
@@ -81,8 +79,8 @@ MJZ_EXPORT namespace mjz {
       return *down_cast<T>(std::addressof(ptr));
     }
     template <class T>
-    MJZ_CX_AL_FN static decltype(auto) down_cast(
-        const void_struct_t &ptr) noexcept {
+    MJZ_CX_AL_FN static decltype(auto)
+    down_cast(const void_struct_t &ptr) noexcept {
       return *down_cast<T>(std::addressof(ptr));
     }
   };
@@ -103,10 +101,8 @@ MJZ_EXPORT namespace mjz {
 #endif
   using intlen_t = std::make_signed_t<uintlen_t>;
   using shortlen_t = std::make_signed_t<ushortlen_t>;
-  template <typename T>
-  using single_object_pointer_t = T *;
-  template <typename T>
-  using alias_t = T;
+  template <typename T> using single_object_pointer_t = T *;
+  template <typename T> using alias_t = T;
 
   template <size_t I, typename T, typename... Ts>
   struct type_at_index_helper_t {
@@ -135,8 +131,7 @@ MJZ_EXPORT namespace mjz {
   using uint_sizeof_t =
       type_at_index_t<size_of_myt, uint8_t, uint8_t, uint16_t, uint32_t,
                       uint32_t, uint64_t, uint64_t, uint64_t, uint64_t>;
-  template <size_t S>
-  using uint_size_of_t = uint_sizeof_t<S>;
+  template <size_t S> using uint_size_of_t = uint_sizeof_t<S>;
   /*this actually performas better in general cases than
    * forced_branchless_teranary  */
   template <class T>
@@ -178,8 +173,7 @@ MJZ_EXPORT namespace mjz {
     return alias_t<T[2]>{else_val, then_val}[if_expression];
   }
 
-  template <class>
-  class my_totatlly_empty_template1_class_t {};
+  template <class> class my_totatlly_empty_template1_class_t {};
   MJZ_CX_AL_ND_FN uint8_t log2_of_val_create(std::integral auto val) noexcept {
     return uint8_t(std::bit_width(val) - (val != 0));
   }
@@ -233,7 +227,7 @@ MJZ_EXPORT namespace mjz {
       l(std::forward<reasorces_t>(args)...);
     }
   class releaser_t {
-   public:
+  public:
     using tuple_t_0_ = tuple_t<reasorces_t...>;
     releaser_t(releaser_t &&) = delete;
     releaser_t(const releaser_t &) = delete;
@@ -255,10 +249,9 @@ MJZ_EXPORT namespace mjz {
       call();
     }
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     releaser_LAMBDA_t m_releaser_lambda_;
     template <size_t INDEX>
     using type_at = std::tuple_element_t<INDEX, tuple_t_0_>;
@@ -273,7 +266,7 @@ MJZ_EXPORT namespace mjz {
       m_releaser_lambda_(std::forward<reasorces_t>(args)...);
     }
 
-   public:
+  public:
     tuple_t_0_ data;
     MJZ_NO_DYNAMIC_ALLOCATOR(releaser_t);
   };
@@ -283,7 +276,7 @@ MJZ_EXPORT namespace mjz {
       l();
     }
   class releaser_t<releaser_LAMBDA_t> {
-   public:
+  public:
     MJZ_NO_MV_NO_CPY(releaser_t);
     releaser_t() = delete;
     MJZ_CX_AL_FN
@@ -292,37 +285,30 @@ MJZ_EXPORT namespace mjz {
     }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
     MJZ_CX_AL_FN ~releaser_t() { m_releaser_lambda_(); }
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     releaser_LAMBDA_t m_releaser_lambda_;
     MJZ_NO_DYNAMIC_ALLOCATOR(releaser_t);
   };
 
-  template <typename T>
-  using nullable_t = T;
-  template <typename T>
-  using no_null_t = T;
+  template <typename T> using nullable_t = T;
+  template <typename T> using no_null_t = T;
   MJZ_MSVC_ONLY_PRAGMA_(optimize("", off));
   MJZ_CX_NL_FN void just_do(auto &&...) noexcept {}
   MJZ_MSVC_ONLY_PRAGMA_(optimize("", on));
-  template <typename T>
-  MJZ_CX_NL_FN T just_ret(T && arg) noexcept {
+  template <typename T> MJZ_CX_NL_FN T just_ret(T && arg) noexcept {
     return std::forward<T>(arg);
   }
-  template <typename T>
-  using non_null_rvalue_ptr_t = T *const;
+  template <typename T> using non_null_rvalue_ptr_t = T *const;
 
   // no perfect forward
-  template <typename T>
-  using Rvalueref_t = T &&;
+  template <typename T> using Rvalueref_t = T &&;
   template <class T>
     requires(!std::is_const_v<T> && !std::is_abstract_v<T> &&
              !std::is_reference_v<T> && std::is_class_v<T>)
   class conditional_releaser_t : private T {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     conditional_releaser_t(const conditional_releaser_t &) = delete;
     conditional_releaser_t(conditional_releaser_t &) = delete;
     conditional_releaser_t &operator=(conditional_releaser_t &) = delete;
@@ -331,7 +317,7 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_FN T &operator*() noexcept { return *this; }
 
-   public:
+  public:
     MJZ_MCONSTANT(bool)
     noexcept_v = requires(T lamda) {
       { std::move(lamda)() } noexcept;
@@ -370,5 +356,5 @@ MJZ_EXPORT namespace mjz {
     MJZ_NO_DYNAMIC_ALLOCATOR(conditional_releaser_t);
   };
 
-};  // namespace mjz
-#endif  // MJZ_RELEASER_LIB_HPP_FILE_
+}; // namespace mjz
+#endif // MJZ_RELEASER_LIB_HPP_FILE_

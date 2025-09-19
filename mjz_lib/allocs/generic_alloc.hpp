@@ -29,10 +29,9 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz ::allocs_ns {
   template <version_t version_v, class generic_alloc_init_t>
   struct generic_alloc_t : alloc_base_t<version_v> {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     using generic_alloc = generic_alloc_t<version_v, generic_alloc_init_t>;
     using alloc_base = alloc_base_t<version_v>;
     using block_info = block_info_t<version_v>;
@@ -45,10 +44,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     using obj_t = typename AI_t::obj_t;
     MJZ_NO_MV_NO_CPY(generic_alloc_t);
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     union data_u_t {
       obj_t obj;
       MJZ_NO_MV_NO_CPY(data_u_t);
@@ -79,7 +77,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
     }
 
-   public:
+  public:
     template <partial_same_as<generic_alloc_init_t> T>
     MJZ_CX_FN generic_alloc_t(alloc_ref &&upstream_alloc, T &&ai,
                               bool fast_table = false) noexcept
@@ -95,10 +93,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       std::destroy_at(&data.obj);
     }
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     MJZ_MCONSTANT(bool)
     Const_inequals = !requires(const obj_t &obj) {
       { obj != obj } noexcept -> std::same_as<bool>;
@@ -117,12 +114,10 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return &As(other.get_ptr()).get() != &As(This).get();
     }
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
-    template <version_t>
-    friend struct generic_alloc_maker_t;
+  private:
+    template <version_t> friend struct generic_alloc_maker_t;
     MJZ_CX_FN static auto &&As(alloc_base *ptr) noexcept {
       asserts(asserts.condition_rn, !!ptr);
       return static_cast<generic_alloc &>(*ptr);
@@ -169,11 +164,12 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return false;
     }
 
-   public:
+  public:
     MJZ_CX_FN static may_bool_t is_owner(const alloc_base *This,
                                          const block_info &blk,
                                          alloc_info ai) noexcept {
-      if (As(This).obj_is_owner(blk, ai)) return may_bool_t::yes;
+      if (As(This).obj_is_owner(blk, ai))
+        return may_bool_t::yes;
       if (ai.uses_upstream_forwarding && As(This).upstream) {
         return As(This).upstream.is_owner(blk, ai);
       }
@@ -186,7 +182,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     MJZ_CX_FN
     alloc_relations_e static is_equal(const alloc_base *This,
                                       const alloc_ref &other) noexcept {
-      if (This == other.get_ptr()) return alloc_relations_e::equal;
+      if (This == other.get_ptr())
+        return alloc_relations_e::equal;
       if (!other || This->vtable != other.get_vtbl() || inequals(other, This)) {
         return alloc_relations_e::none;
       }
@@ -205,9 +202,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
       return;
     }
-    MJZ_CX_FN static block_info allocate_call(alloc_base *This,
-                                              uintlen_t minsize,
-                                              alloc_info ai) noexcept {
+    MJZ_CX_FN static block_info
+    allocate_call(alloc_base *This, uintlen_t minsize, alloc_info ai) noexcept {
       return allocate(This, minsize, ai);
     }
     MJZ_CX_FN
@@ -218,21 +214,20 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
       return nullptr;
     }
-    MJZ_CX_FN static success_t refresh_call(
-        MJZ_MAYBE_UNUSED uintlen_t monotonic_minsize,
-        MJZ_MAYBE_UNUSED uintlen_t monotonic_min_align,
-        MJZ_MAYBE_UNUSED uintlen_t stack_minsize,
-        MJZ_MAYBE_UNUSED uintlen_t stack_min_align,
-        MJZ_MAYBE_UNUSED bool release_all) noexcept {
+    MJZ_CX_FN static success_t
+    refresh_call(MJZ_MAYBE_UNUSED uintlen_t monotonic_minsize,
+                 MJZ_MAYBE_UNUSED uintlen_t monotonic_min_align,
+                 MJZ_MAYBE_UNUSED uintlen_t stack_minsize,
+                 MJZ_MAYBE_UNUSED uintlen_t stack_min_align,
+                 MJZ_MAYBE_UNUSED bool release_all) noexcept {
       return false; /*not implemented , cause im lazy*/
     }
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     using blk_t_ = block_info_t<version_v, generic_alloc_t>;
 
-   public:
+  public:
     MJZ_CX_FN static void ref_call(alloc_base *This,
                                    bool add_vs_destroy) noexcept {
       threads_ns::atomic_ref_t<uintlen_t> rc{As(This).reference_count};
@@ -255,30 +250,30 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return;
     }
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     template <partial_same_as<generic_alloc_init_t> T>
     MJZ_CX_FN static alloc_ref static_create_obj(alloc_ref &&where,
                                                  T &&ai) noexcept {
-      blk_t_ blk = where.allocate_helper_(
-          1,
-          alloc_info::this_s_alloc_info(
-              std::align_val_t(alignof(generic_alloc_init_t))),
-          alias_t<generic_alloc *>{});
+      blk_t_ blk =
+          where.allocate_helper_(1,
+                                 alloc_info::this_s_alloc_info(std::align_val_t(
+                                     alignof(generic_alloc_init_t))),
+                                 alias_t<generic_alloc *>{});
       std::construct_at(blk.ptr, std::move(where), std::forward<T>(ai));
       blk.ptr->reference_count = 0b11;
 
       return alloc_ref{static_cast<alloc_base *>(blk.ptr), false};
     }
     template <partial_same_as<generic_alloc_init_t> T>
-    MJZ_CX_FN static generic_alloc static_create_stack_obj(
-        alloc_ref &&where, T &&ai, bool fast_table) noexcept {
+    MJZ_CX_FN static generic_alloc
+    static_create_stack_obj(alloc_ref &&where, T &&ai,
+                            bool fast_table) noexcept {
       return generic_alloc{std::move(where), std::forward<T>(ai), fast_table};
     }
 
-   public:
+  public:
     MJZ_DEPRECATED_R("be careful! we dont want non ref counted refrences!")
     MJZ_CX_FN generic_alloc *operator&() noexcept { return this; }
     MJZ_DEPRECATED_R("be careful! we dont want non ref counted refrences!")
@@ -286,21 +281,19 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     MJZ_CX_FN alloc_ref operator()() & noexcept { return +*this; }
     MJZ_CX_FN alloc_ref operator+() & noexcept { return alloc_ref{this, true}; }
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     MJZ_CX_FN auto &&get() noexcept { return *(&data.obj); }
     MJZ_CX_FN auto &&get() const noexcept { return *(&data.obj); }
   };
 
-  template <version_t version_v>
-  struct generic_alloc_maker_t {
+  template <version_t version_v> struct generic_alloc_maker_t {
     MJZ_CE_FN
     generic_alloc_maker_t(totally_empty_type_t) noexcept {}
     template <class T>
-    MJZ_CX_FN alloc_base_ref_t<version_v> operator()(
-        alloc_base_ref_t<version_v> where, T &&ai) const noexcept {
+    MJZ_CX_FN alloc_base_ref_t<version_v>
+    operator()(alloc_base_ref_t<version_v> where, T &&ai) const noexcept {
       return generic_alloc_t<version_v, std::remove_cvref_t<T>>::
           static_create_obj(std::move(where), std::forward<T>(ai));
     }
@@ -335,7 +328,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       bool has_mutex{};
       bool is_not_threaded{};
       MJZ_CX_FN ~A() noexcept {
-        if (!has_mutex) return;
+        if (!has_mutex)
+          return;
         u.mutex.unlock();
         std::destroy_at(&u.mutex);
       }
@@ -359,14 +353,15 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     if (!byte_mutex_ptr) {
       return A{false, totally_empty_type};
     }
-    if (!is_threaded) return A{true, totally_empty_type};
+    if (!is_threaded)
+      return A{true, totally_empty_type};
     return A{threads_ns::atomic_ref_t<char>(*byte_mutex_ptr)};
   }
-  };  // namespace lock_details_ns
+  }; // namespace lock_details_ns
 
   template <version_t version_v>
   MJZ_FCONSTANT(generic_alloc_maker_t<version_v>)
   generic_alloc_maker{totally_empty_type};
-};  // namespace mjz::allocs_ns
+}; // namespace mjz::allocs_ns
 
-#endif  // MJZ_ALLOCS_generic_alloc_FILE_HPP_
+#endif // MJZ_ALLOCS_generic_alloc_FILE_HPP_

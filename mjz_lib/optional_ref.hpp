@@ -26,8 +26,7 @@ SOFTWARE.
 #define MJZ_OPTIONALS_LIB_HPP_FILE_
 
 MJZ_EXPORT namespace mjz {
-  template <typename T>
-  struct MJZ_trivially_relocatable optional_ref_t {
+  template <typename T> struct MJZ_trivially_relocatable optional_ref_t {
     single_object_pointer_t<T> ptr{};
     MJZ_CX_ND_FN T &operator*() const noexcept {
       asserts(asserts.assume_rn, !!ptr);
@@ -82,16 +81,16 @@ MJZ_EXPORT namespace mjz {
       reset();
       return *this;
     }
-    MJZ_CX_FN bool operator==(const optional_ref_t &opt) const noexcept =
-        default;
-    MJZ_CX_FN optional_ref_t &operator=(const optional_ref_t &opt) noexcept =
-        default;
+    MJZ_CX_FN bool
+    operator==(const optional_ref_t &opt) const noexcept = default;
+    MJZ_CX_FN optional_ref_t &
+    operator=(const optional_ref_t &opt) noexcept = default;
     MJZ_CX_FN optional_ref_t &operator=(optional_ref_t &&opt) noexcept {
       ptr = std::exchange(opt.ptr, {});
       return *this;
     }
-    MJZ_CX_FN optional_ref_t &operator=(
-        single_object_pointer_t<T> ptr_) noexcept {
+    MJZ_CX_FN optional_ref_t &
+    operator=(single_object_pointer_t<T> ptr_) noexcept {
       ptr = ptr_;
       return *this;
     }
@@ -108,27 +107,30 @@ MJZ_EXPORT namespace mjz {
       return !*this ? LF() : LT(*ptr);
     }
     MJZ_CX_FN
-    auto perform_else(
-        callable_anyret_c<void(T &) noexcept> auto &&LT,
-        callable_anyret_c<void() noexcept> auto &&LF) const noexcept
+    auto
+    perform_else(callable_anyret_c<void(T &) noexcept> auto &&LT,
+                 callable_anyret_c<void() noexcept> auto &&LF) const noexcept
         -> decltype(bool{} ? LT(just_some_invalid_obj<T &>()) : LF()) {
       return !*this ? LF() : LT(*ptr);
     }
     MJZ_CX_FN
     void perform(callable_c<void(T &) noexcept> auto &&LT) noexcept {
-      if (!*this) return;
+      if (!*this)
+        return;
       LT(*ptr);
     }
     MJZ_CX_FN
-    void perform(
-        callable_c<void(const T &) noexcept> auto &&LT) const noexcept {
-      if (!*this) return;
+    void
+    perform(callable_c<void(const T &) noexcept> auto &&LT) const noexcept {
+      if (!*this)
+        return;
       LT(*ptr);
     }
 
     MJZ_CX_FN
     void else_do(callable_c<void() noexcept> auto &&LF) const noexcept {
-      if (!!*this) return;
+      if (!!*this)
+        return;
       LF();
     }
   };
@@ -136,10 +138,9 @@ MJZ_EXPORT namespace mjz {
   struct char_storage_as_temp_t : public optional_ref_t<T> {
     MJZ_NO_MV_NO_CPY(char_storage_as_temp_t);
 
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     using optional_ref_t<T>::ptr;
     std::remove_const_t<T> buffer_obj{};
     std::conditional_t<std::is_const_v<T>, const char, char> *ptr_to_real_obj{};
@@ -165,7 +166,7 @@ MJZ_EXPORT namespace mjz {
       ptr = &buffer_obj;
     }
 
-   public:
+  public:
     struct size_val_t_ {
       MJZ_CE_FN size_val_t_(auto var) {
         asserts([](std::integral auto size) {
@@ -209,8 +210,7 @@ MJZ_EXPORT namespace mjz {
       ptr = nullptr;
     }
   };
-  template <typename T>
-  struct runtime_only_union_mimic_t {
+  template <typename T> struct runtime_only_union_mimic_t {
     alignas(alignof(T)) char buffer[sizeof(T)];
 
     MJZ_CX_ND_FN T *get_ptr() noexcept {
@@ -249,14 +249,14 @@ MJZ_EXPORT namespace mjz {
       MJZ_IF_CONSTEVAL { return; }
       std::construct_at(get_ptr(), other.get_ref());
     };
-    MJZ_CX_FN better_runtime_only_union_mimic_t &operator=(
-        better_runtime_only_union_mimic_t &&other) noexcept {
+    MJZ_CX_FN better_runtime_only_union_mimic_t &
+    operator=(better_runtime_only_union_mimic_t &&other) noexcept {
       MJZ_IF_CONSTEVAL { return *this; }
       get_ref() = std::move(other.get_ref());
       return *this;
     };
-    MJZ_CX_FN better_runtime_only_union_mimic_t &operator=(
-        const better_runtime_only_union_mimic_t &other) noexcept {
+    MJZ_CX_FN better_runtime_only_union_mimic_t &
+    operator=(const better_runtime_only_union_mimic_t &other) noexcept {
       MJZ_IF_CONSTEVAL { return *this; }
       get_ref() = other.get_ref();
       return *this;
@@ -283,13 +283,12 @@ MJZ_EXPORT namespace mjz {
   multilambda_t(lambdas_t && ...) -> multilambda_t<lambdas_t &&...>;
 
   class success_ret_arg_t {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     success_t *ptr;
 
-   public:
+  public:
     MJZ_CX_FN success_ret_arg_t(success_t *who = nullptr) noexcept : ptr(who) {}
     MJZ_CX_FN success_ret_arg_t(success_t &who) noexcept : ptr(&who) {}
     MJZ_CX_FN bool operator!() const noexcept { return !ptr; }
@@ -308,15 +307,13 @@ MJZ_EXPORT namespace mjz {
     }
   };
 
-  template <is_totaly_trivial T>
-  struct trivial_optional_t {
+  template <is_totaly_trivial T> struct trivial_optional_t {
     T val;
     bool has_val;
   };
 
   namespace no_type_ns {
-  template <typename>
-  struct typeless_function_t {
+  template <typename> struct typeless_function_t {
     MJZ_CX_FN void run(auto &&...) noexcept;
   };
   template <typename ret_t, typename... args_t>
@@ -328,8 +325,7 @@ MJZ_EXPORT namespace mjz {
     }
   };
   MJZ_DISABLE_ALL_WANINGS_START_;
-  template <typename, typename T>
-  struct function_holder_t {
+  template <typename, typename T> struct function_holder_t {
     MJZ_CX_FN void operator+() noexcept;
   };
   template <typename T, typename ret_t, typename... args_t>
@@ -354,10 +350,9 @@ MJZ_EXPORT namespace mjz {
   }
 
   MJZ_DISABLE_ALL_WANINGS_END_;
-  };  // namespace no_type_ns
+  }; // namespace no_type_ns
 
-  template <class T>
-  struct optioal_of_type_helper_t {
+  template <class T> struct optioal_of_type_helper_t {
     using type = std::optional<T>;
   };
   template <class T>
@@ -369,5 +364,5 @@ MJZ_EXPORT namespace mjz {
   template <class T>
   using optional_of_t = typename optioal_of_type_helper_t<T>::type;
 
-}  // namespace mjz
-#endif  // MJZ_OPTIONALS_LIB_HPP_FILE_
+} // namespace mjz
+#endif // MJZ_OPTIONALS_LIB_HPP_FILE_

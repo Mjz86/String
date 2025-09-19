@@ -74,27 +74,26 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       MJZ_CX_FN auto &&unsafe_get_handle() noexcept { return m; }
       MJZ_CX_FN auto &&unsafe_get_handle() const noexcept { return m; }
 
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       MJZ_CX_FN bool operator==(const obj_t &other) const noexcept = delete;
 
-     public:
+    public:
       MJZ_CX_FN bool is_owner(MJZ_MAYBE_UNUSED const block_info &blk,
                               MJZ_MAYBE_UNUSED alloc_info ai) const noexcept {
         auto l = lock_gaurd(ai.is_thread_safe);
-        if (!l) return {};
-        return memory_is_inside(
-            this->m.data_buffer,
-            this->m.blk_size * this->m.blk_states.num_blocks, blk.ptr,
-            blk.length);
+        if (!l)
+          return {};
+        return memory_is_inside(this->m.data_buffer,
+                                this->m.blk_size *
+                                    this->m.blk_states.num_blocks,
+                                blk.ptr, blk.length);
       }
 
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       using block_range_t = blk_state::block_range_t;
       MJZ_CX_FN auto lock_gaurd(bool is_threaded) const noexcept {
         auto p = m.blk_states.bits_of_block_aliveness_metadata_ptr;
@@ -105,10 +104,12 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
                                             size_t alloc_alignment,
                                             bool is_best_fit) noexcept {
         size_t align_val = log2_of_val_to_val(m.log2_align);
-        if (!(m.blk_size && alloc_alignment && size && align_val)) return {};
+        if (!(m.blk_size && alloc_alignment && size && align_val))
+          return {};
         bool dosnt_need_realign{alloc_alignment < align_val};
         MJZ_IF_CONSTEVAL {
-          if (!dosnt_need_realign) return {};
+          if (!dosnt_need_realign)
+            return {};
         }
         block_range_t range = m.blk_states.alloc_block_range(
             size / m.blk_size + uintlen_t(!!(size % m.blk_size)), is_best_fit,
@@ -136,11 +137,12 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return true;
       }
 
-     public:
+    public:
       MJZ_CX_FN block_info allocate(MJZ_MAYBE_UNUSED uintlen_t minsize,
                                     MJZ_MAYBE_UNUSED alloc_info ai) noexcept {
         auto l = lock_gaurd(ai.cant_bother_with_good_size().is_thread_safe);
-        if (!l) return {};
+        if (!l)
+          return {};
         block_info ret{};
         bool needs_realignment{m.log2_align < ai.log2_of_align_val};
         if (!ai.uses_munual_alignment && needs_realignment) {
@@ -166,8 +168,10 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       success_t deallocate(MJZ_MAYBE_UNUSED block_info &&blk,
                            MJZ_MAYBE_UNUSED alloc_info ai) noexcept {
         auto l = lock_gaurd(ai.cant_bother_with_good_size().is_thread_safe);
-        if (!l) return {};
-        if (!blk.ptr) return false;
+        if (!l)
+          return {};
+        if (!blk.ptr)
+          return false;
         bool needs_realignment{m.log2_align < ai.log2_of_align_val};
         if (!ai.uses_munual_alignment && needs_realignment) {
           return false;
@@ -178,5 +182,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
     };
   };
-};  // namespace mjz::allocs_ns
-#endif  // MJZ_ALLOCS_blocks_alloc_FILE_HPP_
+}; // namespace mjz::allocs_ns
+#endif // MJZ_ALLOCS_blocks_alloc_FILE_HPP_

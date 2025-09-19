@@ -74,9 +74,9 @@ MJZ_EXPORT namespace mjz {
   */
     if (b_len && a_len) {
       const char *a_ptr{a_ptr_};
-      for (uintlen_t i{}; i < a_len; a_ptr++, i++) {  //-V2528
+      for (uintlen_t i{}; i < a_len; a_ptr++, i++) { //-V2528
         const char *b_ptr{b_ptr_};
-        for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
+        for (uintlen_t j{}; j < b_len; b_ptr++, j++) { //-V2528
           if (b_ptr == a_ptr) {
             return true;
           }
@@ -85,7 +85,7 @@ MJZ_EXPORT namespace mjz {
     } else if (!a_len) {
       const char *const a_ptr{a_ptr_};
       const char *b_ptr{b_ptr_};
-      for (uintlen_t j{}; j < b_len; b_ptr++, j++) {  //-V2528
+      for (uintlen_t j{}; j < b_len; b_ptr++, j++) { //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
@@ -93,7 +93,7 @@ MJZ_EXPORT namespace mjz {
     } else if (!b_len) {
       const char *a_ptr{a_ptr_};
       const char *const b_ptr{b_ptr_};
-      for (uintlen_t j{}; j < a_len; a_ptr++, j++) {  //-V2528
+      for (uintlen_t j{}; j < a_len; a_ptr++, j++) { //-V2528
         if (b_ptr == a_ptr) {
           return true;
         }
@@ -220,11 +220,12 @@ MJZ_EXPORT namespace mjz {
   template <std::integral T>
   MJZ_CX_AL_FN T *memcpy_forward(T * dest, const T *src,
                                  uintlen_t len) noexcept {
-    MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
-                         // the behavior is undefined. (NO! , len=0 defines
-                         // this)
+    MJZ_IFN_CONSTEVAL { // If dest or src is a null pointer or invalid pointer,
+                        // the behavior is undefined. (NO! , len=0 defines
+                        // this)
 #if !MJZ_SANE_MEMMOVE_IMPLS
-      if (!len) return dest;
+      if (!len)
+        return dest;
 #endif
       return reinterpret_cast<T *>(::std::memmove(
           reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
@@ -240,11 +241,12 @@ MJZ_EXPORT namespace mjz {
   template <std::integral T>
   MJZ_CX_AL_FN T *memcpy_backward(T * dest, const T *src,
                                   uintlen_t len) noexcept {
-    MJZ_IFN_CONSTEVAL {  // If dest or src is a null pointer or invalid pointer,
-                         // the behavior is undefined. (NO! , len=0 defines
-                         // this)
+    MJZ_IFN_CONSTEVAL { // If dest or src is a null pointer or invalid pointer,
+                        // the behavior is undefined. (NO! , len=0 defines
+                        // this)
 #if !MJZ_SANE_MEMMOVE_IMPLS
-      if (!len) return dest;
+      if (!len)
+        return dest;
 #endif
       return reinterpret_cast<T *>(::std::memmove(
           reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
@@ -265,7 +267,8 @@ MJZ_EXPORT namespace mjz {
       // If dest or src is a null pointer or invalid pointer, the behavior is
       // undefined (NO! , len=0 defines this)
 #if !MJZ_SANE_MEMMOVE_IMPLS
-      if (!len) return dest;
+      if (!len)
+        return dest;
 #endif
       return reinterpret_cast<T *>(::std::memmove(
           reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
@@ -287,7 +290,8 @@ MJZ_EXPORT namespace mjz {
       // If dest or src is a null pointer or invalid pointer, the behavior is
       // undefined (NO! , len=0 defines this)
 #if !MJZ_SANE_MEMMOVE_IMPLS
-      if (!len) return dest;
+      if (!len)
+        return dest;
 #endif
       return reinterpret_cast<T *>(::std::memcpy(
           reinterpret_cast<void *>(dest), reinterpret_cast<const void *>(src),
@@ -376,7 +380,7 @@ MJZ_EXPORT namespace mjz {
         }
         return dest;
       }
-      memcpy(dest, src, len);  //-V2547
+      memcpy(dest, src, len); //-V2547
       return dest;
     }
   }
@@ -410,7 +414,8 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_AL_FN char *memset(char *ptr, uintlen_t len, char val) noexcept {
     MJZ_IFN_CONSTEVAL {
 #if !MJZ_SANE_MEMMOVE_IMPLS
-      if (!len) return ptr;
+      if (!len)
+        return ptr;
 #endif
       return reinterpret_cast<char *>(
           ::std::memset(reinterpret_cast<void *>(ptr), val, size_t(len)));
@@ -443,7 +448,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_FCONSTANT(size_t)
   hardware_destructive_interference_size = 64;
 #endif
-#endif  // MJZ_KNOWN_L1_CACHE_LINE_SIZE
+#endif // MJZ_KNOWN_L1_CACHE_LINE_SIZE
   struct mjz_sharable_cache_line_t {
     alignas(hardware_destructive_interference_size) char buffer
         [hardware_destructive_interference_size];
@@ -471,7 +476,8 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_AL_FN uintlen_t mjz_binary_search(
       const T &value, const uintlen_t array_size, F_t &&access_at,
       const bool exclusive_search = false) noexcept {
-    if (!array_size) return array_size;
+    if (!array_size)
+      return array_size;
     auto comp_at = [&](uintlen_t i) noexcept -> std::weak_ordering {
       return access_at(i) <=> value;
     };
@@ -497,7 +503,8 @@ MJZ_EXPORT namespace mjz {
         count = result_ ? c1 : c2;
       }
       while (count) {
-        if (comp_at(first) > 0) return first;
+        if (comp_at(first) > 0)
+          return first;
         first++;
         count--;
       };
@@ -515,7 +522,8 @@ MJZ_EXPORT namespace mjz {
       count = result_ ? c1 : c2;
     };
     while (count) {
-      if (comp_at(first) >= 0) return first;
+      if (comp_at(first) >= 0)
+        return first;
       first++;
       count--;
     };
@@ -531,7 +539,7 @@ MJZ_EXPORT namespace mjz {
 
   template <bitcastable_c T>
   MJZ_CX_AL_FN auto make_bitcast(const T &src) noexcept {
-    return std::bit_cast<std::array<char, sizeof(T)> >(src);
+    return std::bit_cast<std::array<char, sizeof(T)>>(src);
   }
   template <bitcastable_c T>
   MJZ_CX_AL_FN void cpy_bitcast(char *dest, const T &src) noexcept {
@@ -559,7 +567,7 @@ MJZ_EXPORT namespace mjz {
   template <class Like_what_t_, class U>
   MJZ_CX_AL_FN auto &&forward_like(U && x) noexcept {
     constexpr bool is_adding_const =
-        std::is_const_v<std::remove_reference_t<Like_what_t_> >;
+        std::is_const_v<std::remove_reference_t<Like_what_t_>>;
     if constexpr (std::is_lvalue_reference_v<Like_what_t_ &&>) {
       if constexpr (is_adding_const) {
         return std::as_const(x);
@@ -581,15 +589,13 @@ MJZ_EXPORT namespace mjz {
 
   template <class T, class Like_what_t_>
   concept forward_like_c =
-      std::same_as<T &&,
-                   forward_like_t<Like_what_t_, std::remove_cvref_t<T> > >;
+      std::same_as<T &&, forward_like_t<Like_what_t_, std::remove_cvref_t<T>>>;
 
   template <class From_, class Like_to_what_t_>
   concept forward_convert_like_c = std::convertible_to<
-      From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_> > >;
+      From_ &&, forward_like_t<Like_to_what_t_, std::remove_cvref_t<From_>>>;
 
-  template <bitcastable_c T>
-  MJZ_CX_AL_FN T byteswap(T value) noexcept {
+  template <bitcastable_c T> MJZ_CX_AL_FN T byteswap(T value) noexcept {
 #ifdef __cpp_lib_byteswap
     if constexpr (std::integral<T>) {
       return std::byteswap(value);
@@ -629,5 +635,5 @@ MJZ_EXPORT namespace mjz {
   template <typename T, auto concept_fn>
   concept fn_concept_c = concept_fn.template operator()<T>();
 
-}  // namespace mjz
-#endif  // MJZ_MEMORIES_LIB_HPP_FILE_
+} // namespace mjz
+#endif // MJZ_MEMORIES_LIB_HPP_FILE_

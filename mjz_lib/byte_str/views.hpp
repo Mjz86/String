@@ -50,17 +50,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using size_type = uintlen_t;
     using difference_type = intlen_t;
 
-   private:
+  private:
     using dont_mess_up_t = unsafe_ns::i_know_what_im_doing_t;
 
-    template <class>
-    friend class mjz_private_accessed_t;
-    template <version_t, bool>
-    friend struct generic_string_view_t;
+    template <class> friend class mjz_private_accessed_t;
+    template <version_t, bool> friend struct generic_string_view_t;
 
-   public:
-    MJZ_CX_FN base_string_view_t<version_v> to_base_view_pv_fn_(
-        unsafe_ns::i_know_what_im_doing_t) const noexcept {
+  public:
+    MJZ_CX_FN base_string_view_t<version_v>
+    to_base_view_pv_fn_(unsafe_ns::i_know_what_im_doing_t) const noexcept {
       return unsafe_handle();
     }
     using base_string_view_t<version_v>::to_base_lazy_pv_fn_;
@@ -86,14 +84,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return static_cast<const base_t *>(this);
     }
 
-   public:
+  public:
     MJZ_CX_FN basic_string_view_t() noexcept = default;
-    MJZ_CX_FN basic_string_view_t &operator=(
-        const basic_string_view_t &) noexcept = default;
-    MJZ_CX_FN basic_string_view_t &operator=(basic_string_view_t &&) noexcept =
-        default;
-    MJZ_CX_FN basic_string_view_t(const basic_string_view_t &) noexcept =
-        default;
+    MJZ_CX_FN basic_string_view_t &
+    operator=(const basic_string_view_t &) noexcept = default;
+    MJZ_CX_FN basic_string_view_t &
+    operator=(basic_string_view_t &&) noexcept = default;
+    MJZ_CX_FN
+    basic_string_view_t(const basic_string_view_t &) noexcept = default;
     MJZ_CX_FN basic_string_view_t(basic_string_view_t &&) noexcept = default;
     MJZ_CX_FN ~basic_string_view_t() noexcept = default;
     MJZ_CX_FN basic_string_view_t(const base_t &b) noexcept : base_t(b) {}
@@ -116,19 +114,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
           };
 
-   private:
+  private:
     /*
      *maxes out the out of bounds indexes
      */
-    MJZ_CX_FN bool make_right_then_give_has_null(
-        uintlen_t &byte_offset, uintlen_t &byte_count) const noexcept {
+    MJZ_CX_FN bool
+    make_right_then_give_has_null(uintlen_t &byte_offset,
+                                  uintlen_t &byte_count) const noexcept {
       byte_count = std::min(byte_count, length());
       byte_offset = std::min(byte_offset, length());
       byte_count = std::min(byte_offset + byte_count, length()) - byte_offset;
       return byte_offset + byte_count == length();
     }
 
-   public:
+  public:
     MJZ_MCONSTANT(uintlen_t)
     npos{traits_type::npos};
     MJZ_MCONSTANT(uintlen_t)
@@ -140,8 +139,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     /*
      *returns the element at i
      */
-    MJZ_CX_ND_FN std::optional<char> operator[](
-        const uintlen_t i) const noexcept {
+    MJZ_CX_ND_FN std::optional<char>
+    operator[](const uintlen_t i) const noexcept {
       return at(i);
     }
 
@@ -234,78 +233,91 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       *this = std::move(temp);
     }
 
-    MJZ_CX_ND_FN std::optional<intlen_t> compare(
-        const self_t &rhs) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return std::nullopt;
+    MJZ_CX_ND_FN std::optional<intlen_t>
+    compare(const self_t &rhs) const noexcept {
+      if (rhs.get_encoding() != get_encoding())
+        return std::nullopt;
       return traits_type{}.compare(data(), length(), rhs.data(), rhs.length());
     }
 
     MJZ_CX_ND_FN bool starts_with(const self_t &rhs) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return false;
+      if (rhs.get_encoding() != get_encoding())
+        return false;
       return traits_type{}.starts_with(data(), length(), rhs.data(),
                                        rhs.length());
     }
 
-    MJZ_CX_ND_FN bool starts_with(
-        char rhs, encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return false;
+    MJZ_CX_ND_FN bool
+    starts_with(char rhs, encodings_e encoding = encodings_e{}) const noexcept {
+      if (encoding != get_encoding())
+        return false;
       return traits_type{}.starts_with(data(), length(), rhs);
     }
 
     MJZ_CX_ND_FN bool ends_with(const self_t &rhs) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return false;
+      if (rhs.get_encoding() != get_encoding())
+        return false;
       return traits_type{}.ends_with(data(), length(), rhs.data(),
                                      rhs.length());
     }
-    MJZ_CX_ND_FN bool ends_with(
-        char rhs, encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return false;
+    MJZ_CX_ND_FN bool
+    ends_with(char rhs, encodings_e encoding = encodings_e{}) const noexcept {
+      if (encoding != get_encoding())
+        return false;
       return traits_type{}.ends_with(data(), length(), rhs);
     }
 
     MJZ_CX_ND_FN bool contains(const self_t &rhs) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return false;
+      if (rhs.get_encoding() != get_encoding())
+        return false;
       return traits_type{}.contains(data(), length(), rhs.data(), rhs.length());
     }
-    MJZ_CX_ND_FN bool contains(
-        char rhs, encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return false;
+    MJZ_CX_ND_FN bool
+    contains(char rhs, encodings_e encoding = encodings_e{}) const noexcept {
+      if (encoding != get_encoding())
+        return false;
       return traits_type{}.contains(data(), length(), rhs);
     }
     MJZ_CX_ND_FN uintlen_t find(const self_t &rhs,
                                 const uintlen_t offset = 0) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return npos;
+      if (rhs.get_encoding() != get_encoding())
+        return npos;
       return traits_type{}.find(data(), length(), offset, rhs.data(),
                                 rhs.length());
     }
     MJZ_CX_ND_FN uintlen_t rfind(const self_t &rhs,
                                  const uintlen_t offset = nops) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return npos;
+      if (rhs.get_encoding() != get_encoding())
+        return npos;
       return traits_type{}.rfind(data(), length(), offset, rhs.data(),
                                  rhs.length());
     }
     MJZ_CX_ND_FN uintlen_t find_first_of(
         const self_t &rhs, const uintlen_t offset = 0) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return npos;
+      if (rhs.get_encoding() != get_encoding())
+        return npos;
       return traits_type{}.find_first_of(data(), length(), offset, rhs.data(),
                                          rhs.length());
     }
 
     MJZ_CX_ND_FN uintlen_t find_last_of(
         const self_t &rhs, const uintlen_t offset = nops) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return npos;
+      if (rhs.get_encoding() != get_encoding())
+        return npos;
       return traits_type{}.find_last_of(data(), length(), offset, rhs.data(),
                                         rhs.length());
     }
     MJZ_CX_ND_FN uintlen_t find_first_not_of(
         const self_t &rhs, const uintlen_t offset = 0) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return npos;
+      if (rhs.get_encoding() != get_encoding())
+        return npos;
       return traits_type{}.find_first_not_of(data(), length(), offset,
                                              rhs.data(), rhs.length());
     }
     MJZ_CX_ND_FN uintlen_t find_last_not_of(
         const self_t &rhs, const uintlen_t offset = nops) const noexcept {
-      if (rhs.get_encoding() != get_encoding()) return npos;
+      if (rhs.get_encoding() != get_encoding())
+        return npos;
       return traits_type{}.find_last_not_of(data(), length(), offset,
                                             rhs.data(), rhs.length());
     }
@@ -313,44 +325,50 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN uintlen_t
     find(char rhs, const uintlen_t offset = 0,
          encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return npos;
+      if (encoding != get_encoding())
+        return npos;
       return traits_type{}.find(data(), length(), offset, &rhs, 1);
     }
     MJZ_CX_ND_FN uintlen_t
     rfind(char rhs, const uintlen_t offset = nops,
           encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return npos;
+      if (encoding != get_encoding())
+        return npos;
       return traits_type{}.rfind(data(), length(), offset, &rhs, 1);
     }
     MJZ_CX_ND_FN uintlen_t
     find_first_of(char rhs, const uintlen_t offset = 0,
                   encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return npos;
+      if (encoding != get_encoding())
+        return npos;
       return traits_type{}.find_first_of(data(), length(), offset, &rhs, 1);
     }
 
     MJZ_CX_ND_FN uintlen_t
     find_last_of(char rhs, const uintlen_t offset = nops,
                  encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return npos;
+      if (encoding != get_encoding())
+        return npos;
       return traits_type{}.find_last_of(data(), length(), offset, &rhs, 1);
     }
     MJZ_CX_ND_FN uintlen_t
     find_first_not_of(char rhs, const uintlen_t offset = 0,
                       encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return npos;
+      if (encoding != get_encoding())
+        return npos;
       return traits_type{}.find_first_not_of(data(), length(), offset, &rhs, 1);
     }
     MJZ_CX_ND_FN uintlen_t
     find_last_not_of(char rhs, const uintlen_t offset = nops,
                      encodings_e encoding = encodings_e{}) const noexcept {
-      if (encoding != get_encoding()) return npos;
+      if (encoding != get_encoding())
+        return npos;
       return traits_type{}.find_last_not_of(data(), length(), offset, &rhs, 1);
     }
     template <std::integral T>
       requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T> to_integral(
-        uint8_t raidex = 0) const noexcept {
+    MJZ_CX_ND_FN std::optional<T>
+    to_integral(uint8_t raidex = 0) const noexcept {
       if (get_encoding() != encodings_e::ascii) {
         return std::nullopt;
       }
@@ -375,16 +393,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     MJZ_CX_ND_FN friend bool operator==(const self_t &rhs,
                                         const self_t &lhs) noexcept {
-      if (rhs.length() != lhs.length()) return false;
+      if (rhs.length() != lhs.length())
+        return false;
       auto v = rhs.compare(lhs);
       return v && *v == 0;
     }
-    MJZ_CX_ND_FN friend std::partial_ordering operator<=>(
-        const self_t &rhs, const self_t &lhs) noexcept {
+    MJZ_CX_ND_FN friend std::partial_ordering
+    operator<=>(const self_t &rhs, const self_t &lhs) noexcept {
       if (auto r = rhs.compare(lhs)) {
-        if (*r == 0) return std::partial_ordering::equivalent;
-        if (*r < 0) return std::partial_ordering::less;
-        if (0 < *r) return std::partial_ordering::greater;
+        if (*r == 0)
+          return std::partial_ordering::equivalent;
+        if (*r < 0)
+          return std::partial_ordering::less;
+        if (0 < *r)
+          return std::partial_ordering::greater;
       }
       return std::partial_ordering::unordered;
     }
@@ -445,21 +467,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       return cout_v;
     }
-#endif  // MJZ_WITH_iostream
+#endif // MJZ_WITH_iostream
   };
 
   template <version_t version_v, bool is_static_>
   struct generic_string_view_t : public basic_string_view_t<version_v> {
     static_assert(is_totaly_trivial<basic_string_view_t<version_v>>);
-    template <class>
-    friend class mjz_private_accessed_t;
-    MJZ_CX_FN base_string_view_t<version_v> to_base_view_pv_fn_(
-        unsafe_ns::i_know_what_im_doing_t) const noexcept {
+    template <class> friend class mjz_private_accessed_t;
+    MJZ_CX_FN base_string_view_t<version_v>
+    to_base_view_pv_fn_(unsafe_ns::i_know_what_im_doing_t) const noexcept {
       return this->unsafe_handle();
     }
     using basic_string_view_t<version_v>::to_base_lazy_pv_fn_;
 
-   private:
+  private:
     template <size_t N>
     MJZ_CX_FN generic_string_view_t(const char (&str)[N],
                                     encodings_e encodings_,
@@ -473,23 +494,23 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       ref.len = ref.has_null_v ? N - 1 : N;
     }
 
-   public:
+  public:
     template <size_t N>
-    MJZ_CX_FN generic_string_view_t(
-        totally_empty_type_t, const char (&str)[N],
-        encodings_e encodings_ = encodings_e::ascii) noexcept
+    MJZ_CX_FN
+    generic_string_view_t(totally_empty_type_t, const char (&str)[N],
+                          encodings_e encodings_ = encodings_e::ascii) noexcept
       requires(is_static_)
         : generic_string_view_t{str, encodings_, totally_empty_type} {}
     template <size_t N>
-    MJZ_CE_FN generic_string_view_t(
-        const char (&str)[N],
-        encodings_e encodings_ = encodings_e::ascii) noexcept
+    MJZ_CE_FN
+    generic_string_view_t(const char (&str)[N],
+                          encodings_e encodings_ = encodings_e::ascii) noexcept
       requires(is_static_)
         : generic_string_view_t{str, encodings_, totally_empty_type} {}
     template <size_t N>
-    MJZ_CX_FN generic_string_view_t(
-        const char (&str)[N],
-        encodings_e encodings_ = encodings_e::ascii) noexcept
+    MJZ_CX_FN
+    generic_string_view_t(const char (&str)[N],
+                          encodings_e encodings_ = encodings_e::ascii) noexcept
       requires(not is_static_)
         : generic_string_view_t{str, encodings_, totally_empty_type} {}
     MJZ_CX_FN generic_string_view_t(const char *str, uintlen_t count,
@@ -522,14 +543,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   template <version_t version_v>
   using dynamic_string_view_t = generic_string_view_t<version_v, false>;
 
-  template <version_t version_v>
-  struct owned_stack_buffer_t {
+  template <version_t version_v> struct owned_stack_buffer_t {
     char *buffer;
     uintlen_t buffer_size;
   };
   namespace litteral_ns {
-  template <std::size_t N>
-  struct str_litteral_t {
+  template <std::size_t N> struct str_litteral_t {
     MJZ_CX_FN str_litteral_t(const char8_t (&r)[N]) noexcept
         : str_litteral_t(void_struct_t{}, r, std::make_index_sequence<N>()) {}
     MJZ_CX_FN str_litteral_t(const char (&r)[N]) noexcept
@@ -592,15 +611,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN std::optional<char> back() const noexcept {
       return at(length() - 1);
     }
-    MJZ_CX_ND_FN std::optional<char> operator[](
-        const uintlen_t i) const noexcept {
+    MJZ_CX_ND_FN std::optional<char>
+    operator[](const uintlen_t i) const noexcept {
       return at(i);
     }
     MJZ_CX_ND_FN std::optional<char> at(const uintlen_t i) const noexcept {
       return i < length() ? std::optional<char>(data()[i]) : std::nullopt;
     }
 
-   private:
+  private:
     template <std::size_t... I>
     MJZ_CX_FN str_litteral_t(void_struct_t, const char8_t *r,
                              std::index_sequence<I...>) noexcept
@@ -615,8 +634,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
   };
 
-  template <char... cs>
-  MJZ_CX_FN auto &operator""_cs() noexcept {
+  template <char... cs> MJZ_CX_FN auto &operator""_cs() noexcept {
     return static_data_t<decltype([]() noexcept {
       return std::array<char, sizeof...(cs) + 1>{cs...};
     })>()();
@@ -627,16 +645,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   MJZ_CX_FN char operator""_c(char8_t c) noexcept {
     return std::bit_cast<char>(c);
   }
-  template <str_litteral_t L>
-  MJZ_CX_FN auto &operator""_c() noexcept {
+  template <str_litteral_t L> MJZ_CX_FN auto &operator""_c() noexcept {
     return L.s;
   }
 
   template <str_litteral_t L, version_t vr>
   MJZ_CX_FN auto operator_view() noexcept {
     static_string_view_t<vr> ret{nullopt};
-    dynamic_string_view_t<vr> view{
-        L.s, L.was_unicode ? encodings_e::utf8 : encodings_e::ascii};
+    dynamic_string_view_t<vr> view{L.s, L.was_unicode ? encodings_e::utf8
+                                                      : encodings_e::ascii};
     base_string_view_t<vr> &ret_{ret.unsafe_handle()};
     base_string_view_t<vr> &view_{view.unsafe_handle()};
     ret_ = view_;
@@ -646,11 +663,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   /*
    *specialized operator for newest version
    */
-  template <str_litteral_t L>
-  MJZ_CX_FN auto operator""_view() noexcept {
+  template <str_litteral_t L> MJZ_CX_FN auto operator""_view() noexcept {
     return operator_view<L, version_t{}>();
   }
-  };  // namespace litteral_ns
+  }; // namespace litteral_ns
 
   template <version_t version_v>
   struct status_view_t : public static_string_view_t<version_v> {
@@ -660,9 +676,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using sview_t::unsafe_handle;
     MJZ_MCONSTANT(sview_t) empty { nullopt };
     template <size_t N>
-    MJZ_CE_FN status_view_t(
-        const char (&str)[N],
-        encodings_e encodings_ = encodings_e::ascii) noexcept
+    MJZ_CE_FN
+    status_view_t(const char (&str)[N],
+                  encodings_e encodings_ = encodings_e::ascii) noexcept
         : sview_t{totally_empty_type, str, encodings_} {}
     MJZ_CX_FN status_view_t(sview_t view) noexcept : sview_t{view} {}
     MJZ_CX_FN status_view_t(nullopt_t = nullopt) noexcept : sview_t{empty} {}
@@ -677,7 +693,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN sview_t sview() const noexcept { return *this; }
   };
 
-};  // namespace mjz::bstr_ns
+}; // namespace mjz::bstr_ns
 MJZ_EXPORT
 template <mjz::version_t version_v>
 struct std::hash<mjz::bstr_ns::basic_string_view_t<version_v>> {
@@ -712,4 +728,4 @@ MJZ_FCONSTANT(bool)
 std::ranges::enable_view<
     mjz::bstr_ns::generic_string_view_t<version_v, is_static_>> = true;
 
-#endif  // MJZ_BYTE_STRING_views_LIB_HPP_FILE_
+#endif // MJZ_BYTE_STRING_views_LIB_HPP_FILE_

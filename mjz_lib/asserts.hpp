@@ -30,9 +30,9 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN mjz_assert_t(totally_empty_type_t) noexcept {}
     MJZ_CX_AL_FN void operator=(auto) const noexcept = delete;
 
-    MJZ_CX_AL_FN const mjz_assert_t &operator()(
-        success_t value, const char *str = "assert",
-        bool consteval_only = false) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    operator()(success_t value, const char *str = "assert",
+               bool consteval_only = false) const noexcept {
       MJZ_DISABLE_ALL_WANINGS_START_;
       if (consteval_only || !MJZ_IN_DEBUG_MODE) {
         MJZ_IFN_CONSTEVAL { return *this; }
@@ -49,8 +49,8 @@ MJZ_EXPORT namespace mjz {
       return *this;
     }
 
-    MJZ_NORETURN MJZ_NCX_AL_FN void unreachable(
-        MJZ_UNUSED const char *const str = "assert") const noexcept {
+    MJZ_NORETURN MJZ_NCX_AL_FN void
+    unreachable(MJZ_UNUSED const char *const str = "assert") const noexcept {
       MJZ_DISABLE_ALL_WANINGS_START_;
       MJZ_UNREACHABLE();
       MJZ_DISABLE_ALL_WANINGS_END_;
@@ -62,13 +62,13 @@ MJZ_EXPORT namespace mjz {
       std::terminate();
     }
 
-   private:
+  private:
     struct panic_handle_fn_ptr_t_ {
       static inline std::atomic<decltype(&panic_handle_deafult)> a{
           &panic_handle_deafult};
     };
 
-   public:
+  public:
     MJZ_NCX_AL_FN static auto &panic_handle_fn_ptr() noexcept {
       return panic_handle_fn_ptr_t_::a;
     }
@@ -78,8 +78,8 @@ MJZ_EXPORT namespace mjz {
       MJZ_UNREACHABLE();
       MJZ_DISABLE_ALL_WANINGS_END_;
     }
-    MJZ_NORETURN MJZ_NCX_AL_FN void panic(
-        MJZ_UNUSED const char *const str = "assert") const noexcept {
+    MJZ_NORETURN MJZ_NCX_AL_FN void
+    panic(MJZ_UNUSED const char *const str = "assert") const noexcept {
       panic_handler();
     }
 
@@ -88,8 +88,8 @@ MJZ_EXPORT namespace mjz {
       panic(str);
     }
 
-    MJZ_NORETURN MJZ_NCX_AL_FN void not_implemented_yet_v(
-        auto &&...) const noexcept {
+    MJZ_NORETURN MJZ_NCX_AL_FN void
+    not_implemented_yet_v(auto &&...) const noexcept {
       panic();
     }
 
@@ -100,8 +100,8 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN const mjz_assert_t &not_optimal(auto &&...) const noexcept {
       return *this;
     }
-    MJZ_CX_AL_FN const mjz_assert_t &as_consteval(
-        success_t value) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    as_consteval(success_t value) const noexcept {
       (*this)(value, "assert", true);
       return *this;
     }
@@ -115,8 +115,8 @@ MJZ_EXPORT namespace mjz {
       pretend_rn = MJZ_TRUST_LEVEL_OF_PRETEND_,
       debug = MJZ_assert_TRUST_LEVEL_,
     };
-    MJZ_CX_AL_FN const mjz_assert_t &operator[](
-        mjz_asserts_e mjz_asserts_v) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    operator[](mjz_asserts_e mjz_asserts_v) const noexcept {
       return (*this)(
           mjz_asserts_v, [&]() noexcept { return false; }, "assertion", false,
           false);
@@ -125,11 +125,12 @@ MJZ_EXPORT namespace mjz {
       return (*this)(B);
     }
 
-    MJZ_CX_AL_FN const mjz_assert_t &operator()(
-        mjz_asserts_e mjz_assertv_e,
-        callable_c<success_t(void) noexcept> auto &&value,
-        const char *str = "assert", bool consteval_only = false,
-        bool can_assume = true, bool always_call = false) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    operator()(mjz_asserts_e mjz_assertv_e,
+               callable_c<success_t(void) noexcept> auto &&value,
+               const char *str = "assert", bool consteval_only = false,
+               bool can_assume = true,
+               bool always_call = false) const noexcept {
       if (always_call) {
         return force_call(value, mjz_assertv_e, str, consteval_only,
                           can_assume);
@@ -149,16 +150,18 @@ MJZ_EXPORT namespace mjz {
       }
       return *this;
     }
-    MJZ_CX_AL_FN const mjz_assert_t &operator()(
-        mjz_asserts_e mjz_assertv_e, bool value, const char *str = "assert",
-        bool consteval_only = false, bool can_assume = true) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    operator()(mjz_asserts_e mjz_assertv_e, bool value,
+               const char *str = "assert", bool consteval_only = false,
+               bool can_assume = true) const noexcept {
       if (consteval_only) {
         MJZ_IFN_CONSTEVAL { return *this; }
       }
       if (mjz_assertv_e < debug && !MJZ_IN_DEBUG_MODE) {
         if (can_assume) {
           MJZ_JUST_ASSUME_(value);
-          if (!value) unreachable(str);
+          if (!value)
+            unreachable(str);
         }
         return *this;
       }
@@ -167,15 +170,16 @@ MJZ_EXPORT namespace mjz {
       }
       return *this;
     }
-    MJZ_CX_AL_FN const mjz_assert_t &debug_only(
-        const char *str = "assert",
-        bool consteval_only = false) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    debug_only(const char *str = "assert",
+               bool consteval_only = false) const noexcept {
       return (*this)(debug, false, str, consteval_only, false);
     }
-    MJZ_CX_AL_FN const mjz_assert_t &force_call(
-        callable_c<success_t(void) noexcept> auto &&value,
-        mjz_asserts_e mjz_assertv_e = debug, const char *str = "assert",
-        bool consteval_only = false, bool can_assume = true) const noexcept {
+    MJZ_CX_AL_FN const mjz_assert_t &
+    force_call(callable_c<success_t(void) noexcept> auto &&value,
+               mjz_asserts_e mjz_assertv_e = debug, const char *str = "assert",
+               bool consteval_only = false,
+               bool can_assume = true) const noexcept {
       return (*this)(mjz_assertv_e, value(), str, consteval_only, can_assume);
     }
 
@@ -188,6 +192,6 @@ MJZ_EXPORT namespace mjz {
   };
   static_assert(std::is_empty_v<mjz_assert_t>);
   MJZ_FCONSTANT(mjz_assert_t) asserts{totally_empty_type};
-}  // namespace mjz
+} // namespace mjz
 
-#endif  // MJZ_ASSERTS_LIB_HPP_FILE_
+#endif // MJZ_ASSERTS_LIB_HPP_FILE_

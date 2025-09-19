@@ -25,8 +25,7 @@ SOFTWARE.
 #ifndef MJZ_ANY_id_FILE_HPP_
 #define MJZ_ANY_id_FILE_HPP_
 MJZ_EXPORT namespace mjz::any_ns {
-  template <typename T>
-  struct type_id_t {
+  template <typename T> struct type_id_t {
 #if !(defined(__clang__) || defined(__GNUC__) || defined(_MSC_VER))
     MJZ_DEPRECATED_R(
         "this compiler will not provide any names for basic_any_t::name and "
@@ -44,19 +43,20 @@ MJZ_EXPORT namespace mjz::any_ns {
 #endif
     }
     MJZ_CX_FN static std::optional<std::string_view> name() noexcept {
-      if (!fullname_intern()) return {};
+      if (!fullname_intern())
+        return {};
       size_t prefix_len = type_id_t<void>::fullname_intern()->find("void");
       size_t multiple = type_id_t<void>::fullname_intern()->size() -
                         type_id_t<int>::fullname_intern()->size();
-      if (!multiple) multiple = 1;
+      if (!multiple)
+        multiple = 1;
       size_t dummy_len =
           type_id_t<void>::fullname_intern()->size() - 4 * multiple;
       size_t target_len = (fullname_intern()->size() - dummy_len) / multiple;
       std::string_view rv = fullname_intern()->substr(prefix_len, target_len);
       return rv;
     }
-    template <int>
-    struct name_storage_t {
+    template <int> struct name_storage_t {
       MJZ_MCONSTANT(auto)
       name_storage{[]() {
         constexpr auto name_ = name();
@@ -84,7 +84,8 @@ MJZ_EXPORT namespace mjz::any_ns {
   actual_name() noexcept {
     std::optional<std::string_view> opt =
         type_id_t<T>::template name_storage_t<0>::value;
-    if (!opt) return nullopt;
+    if (!opt)
+      return nullopt;
     return bstr_ns::static_string_view_t<version_v>{
         totally_empty_type, opt->data(), opt->size(),
         bstr_ns::encodings_e::ascii, false};
@@ -93,5 +94,5 @@ MJZ_EXPORT namespace mjz::any_ns {
   MJZ_FCONSTANT(uintlen_t)
   hash_of_t_nzero_v{std::max<uintlen_t>(
       1, uintlen_t(actual_name<version_v, total_decay_t<T>>().hash()))};
-};  // namespace mjz::any_ns
-#endif  // MJZ_ANY_id_FILE_HPP_
+}; // namespace mjz::any_ns
+#endif // MJZ_ANY_id_FILE_HPP_

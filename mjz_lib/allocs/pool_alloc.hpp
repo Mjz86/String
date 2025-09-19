@@ -71,10 +71,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     uintlen_t byte_count{};
     this_align_val_t this_aligns{};
     struct obj_t {
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       template <uintlen_t i>
       MJZ_CX_FN static auto assume_aligned(char *ptr) noexcept -> char * {
         if constexpr (i >= N || i == 0) {
@@ -102,18 +101,18 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
 
       MJZ_NO_MV_NO_CPY(obj_t);
 
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       MJZ_CX_FN auto lock_gaurd(bool is_threaded, bool mut_op) const noexcept {
         return lock_details_ns::lock_gaurd_maker<version_v>(
             is_threaded, mutex_byte(), has_lock, !mut_op);
       }
 
-     public:
+    public:
       MJZ_CX_ND_FN obj_t(alloc_t a) noexcept {
-        if (!(a.data_ptr && a.byte_count)) return;
+        if (!(a.data_ptr && a.byte_count))
+          return;
         constexpr uintlen_t align_v{pow_of_2(N - 1)};
         a.byte_count -= uintlen_t(has_lock);
         if (!a.this_aligns) {
@@ -121,7 +120,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
           auto start_intptr = reinterpret_cast<uintptr_t>(a.data_ptr);
           auto delta = start_intptr % align_v;
           delta = delta ? (align_v - delta) : delta;
-          if (a.byte_count <= delta) return;
+          if (a.byte_count <= delta)
+            return;
           a.byte_count -= delta;
           a.data_ptr += a.byte_count;
         }
@@ -135,7 +135,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
                                        uintlen_t(has_lock)};
         for (uintlen_t i_{}; i_ < N; i_++) {
           uintlen_t i{N - i_ - 1};
-          if (!block_counts[i]) continue;
+          if (!block_counts[i])
+            continue;
           auto &data_obj = this->bucket_data_s[i];
           data_obj.data_buffer = assume_aligned(usable_data_ptr, i);
           blk_state &bm = data_obj.my_block_manager;
@@ -153,10 +154,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         }
       }
 
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       MJZ_CX_FN char *mutex_byte() const noexcept
         requires(has_lock)
       {
@@ -174,7 +174,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         s.is_thread_safe = 0;
         auto Fn = [&](uintlen_t i) noexcept {
           auto l = lock_gaurd(is_thread_safe, mut_op);
-          if (!l) return false;
+          if (!l)
+            return false;
           return in_the_loop(i);
         };
 
@@ -196,14 +197,13 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return false;
       }
 
-      template <class>
-      friend class mjz_private_accessed_t;
+      template <class> friend class mjz_private_accessed_t;
 
-     private:
+    private:
       MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
                                           const obj_t &b) noexcept = delete;
 
-     public:
+    public:
       MJZ_CX_ND_FN bool is_owner(const block_info &blk,
                                  alloc_info s) const noexcept {
         return run_loop(
@@ -249,5 +249,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
     };
   };
-}  // namespace mjz::allocs_ns
-#endif  // MJZ_ALLOCS_pool_alloc_FILE_HPP_
+} // namespace mjz::allocs_ns
+#endif // MJZ_ALLOCS_pool_alloc_FILE_HPP_

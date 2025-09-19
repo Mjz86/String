@@ -25,8 +25,7 @@ SOFTWARE.
 #ifndef MJZ_ALLOCS_block_states_FILE_HPP_
 #define MJZ_ALLOCS_block_states_FILE_HPP_
 MJZ_EXPORT namespace mjz ::allocs_ns {
-  template <version_t version_v>
-  struct blk_state_t {
+  template <version_t version_v> struct blk_state_t {
     char *bits_of_block_aliveness_metadata_ptr{};
     uintlen_t num_blocks{};
     struct block_range_t {
@@ -75,7 +74,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
       MJZ_CX_AL_FN ~allocation_cache_t() noexcept { flush(); }
       MJZ_CX_AL_FN void flush() noexcept {
-        if (!release) return;
+        if (!release)
+          return;
         uintlen_t real_i = index_of_line * sizeof(cache);
         memcpy(&this->bits_of_block_aliveness_metadata_ptr[real_i],
                cache.buffer, std::min(num_bytes - real_i, sizeof(cache)));
@@ -92,19 +92,17 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       // no bounds checks!
       MJZ_CX_AL_FN char &operator[](uintlen_t i) noexcept {
         uintlen_t line_n = i / sizeof(cache);
-        if (line_n != index_of_line) MJZ_IS_UNLIKELY {
-            refresh(line_n);
-          }
+        if (line_n != index_of_line)
+          MJZ_IS_UNLIKELY { refresh(line_n); }
         return cache.buffer[i % sizeof(cache)];
-      }  // unsafe - no refresh
+      } // unsafe - no refresh
       MJZ_CX_AL_FN char &operator()(uintlen_t i) noexcept {
         return cache.buffer[i];
       }
     };
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   private:
+  private:
     MJZ_CX_AL_FN
     block_range_t get_best_avalible_block_range(
         bool is_best_fit, blocks_ncx_info info,
@@ -136,7 +134,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       uintlen_t index = search_begin_index;
       allocation_cache_t bits_begin = this;
       auto align_the_block_at_index = [&]() noexcept {
-        for (; index < num_blocks && !info.is_aligned(index); index++);
+        for (; index < num_blocks && !info.is_aligned(index); index++)
+          ;
         ;
         return index < num_blocks;
       };
@@ -177,7 +176,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
             !bool(bits_begin[index / 8] & char(1 << (index % 8)));
         index++;
         if (hasnt_block) {
-          for (; index < num_blocks && !info.is_aligned(index); index++);
+          for (; index < num_blocks && !info.is_aligned(index); index++)
+            ;
           ;
           num_blocks_til_now = 0;
           begin_index = index;
@@ -217,7 +217,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     MJZ_CX_AL_FN
     block_range_t set_block_range_bits(const block_range_t range,
                                        bool val) noexcept {
-      if (!range.len) return {};
+      if (!range.len)
+        return {};
       allocation_cache_t bits_begin = this;
       uintlen_t index{range.begin_index};
       uintlen_t end_index{range.begin_index + range.len};
@@ -239,7 +240,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return set_block_range_bits(range, false);
     }
 
-   public:
+  public:
     MJZ_CX_ND_FN
     block_range_t alloc_block_range(uintlen_t min_num_blocks,
                                     uintlen_t max_mum_blocks, bool is_best_fit,
@@ -287,12 +288,13 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       allocation_cache_t ptr = this;
       auto len(num_blocks / 8 + uintlen_t(bool(num_blocks % 8)));
       for (uintlen_t i{}; i < len; i++) {
-        if (!ptr[i]) return false;
+        if (!ptr[i])
+          return false;
       }
       return true;
     }
-    MJZ_CX_FN static uintlen_t container_metadata_size(
-        uintlen_t count) noexcept {
+    MJZ_CX_FN static uintlen_t
+    container_metadata_size(uintlen_t count) noexcept {
       return ((count / 8) + !!(count % 8));
     }
     MJZ_CX_FN static uintlen_t container_data_size(uintlen_t count,
@@ -352,7 +354,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
           remainder -= pow2_i;
         }
       }
-      if (remainder) MJZ_MOSTLY_UNLIKELY {
+      if (remainder)
+        MJZ_MOSTLY_UNLIKELY {
           do_with_bad_base_vals();
           return ret;
         }
@@ -360,12 +363,14 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return ret;
     }
 
-    MJZ_CX_FN static uintlen_t calculate_block_count_for_single_blk(
-        uintlen_t avaible_mem_byte_count, uintlen_t blksize) noexcept {
+    MJZ_CX_FN static uintlen_t
+    calculate_block_count_for_single_blk(uintlen_t avaible_mem_byte_count,
+                                         uintlen_t blksize) noexcept {
       return avaible_mem_byte_count * 8 / (1 + blksize * 8);
     };
-    MJZ_CX_FN static uintlen_t calculate_memsize_for_single_blk(
-        uintlen_t blk_count, uintlen_t blksize) noexcept {
+    MJZ_CX_FN static uintlen_t
+    calculate_memsize_for_single_blk(uintlen_t blk_count,
+                                     uintlen_t blksize) noexcept {
       return (blk_count / 8) + uintlen_t(!!(blk_count % 8)) +
              blk_count * blksize;
     };
@@ -386,8 +391,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       num_unused_bytes = num_unused_bytes ? sizeof_block - num_unused_bytes : 0;
       return added_score + (size / sizeof_block) + 8 * (num_unused_bytes);
     };
-    template <uintlen_t Number_of_containers>
-    struct scored_index_t {
+    template <uintlen_t Number_of_containers> struct scored_index_t {
       uintlen_t index{};
       uint64_t score{};
 
@@ -411,7 +415,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
       for (uintlen_t i{0}; i < Number_of_containers; i++) {
         for (uintlen_t j{0}; j < i; j++) {
-          if (array[i] < array[j]) std::swap(array[i], array[j]);
+          if (array[i] < array[j])
+            std::swap(array[i], array[j]);
         }
       }
       return array;
@@ -533,7 +538,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
           break;
         }
         cache_index++;
-        if (cache_index < cache_num) break;
+        if (cache_index < cache_num)
+          break;
         bits_begin.refresh(cache_index);
         good_alignment.refresh(cache_index);
         for (auto &c : cache_result.buffer) {
@@ -546,5 +552,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return {};
     }
   };
-};  // namespace mjz::allocs_ns
-#endif  // MJZ_ALLOCS_block_states_FILE_HPP_
+}; // namespace mjz::allocs_ns
+#endif // MJZ_ALLOCS_block_states_FILE_HPP_

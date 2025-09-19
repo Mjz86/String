@@ -31,21 +31,14 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_base_abi_LIB_HPP_FILE_
 
 MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
-  template <version_t version_v>
-  struct typeless_arg_ref_t;
-  template <version_t version_v>
-  struct basic_arg_ref_t;
-  template <version_t version_v>
-  struct typeid_arg_ref_t;
-  template <version_t version_v>
-  struct parse_context_t;
-  template <version_t version_v>
-  struct format_context_t;
+  template <version_t version_v> struct typeless_arg_ref_t;
+  template <version_t version_v> struct basic_arg_ref_t;
+  template <version_t version_v> struct typeid_arg_ref_t;
+  template <version_t version_v> struct parse_context_t;
+  template <version_t version_v> struct format_context_t;
 
-  template <version_t version_v>
-  struct cx_formatter_storage_base_t {};
-  template <version_t version_v>
-  struct cx_formatter_storage_base_ref_t {
+  template <version_t version_v> struct cx_formatter_storage_base_t {};
+  template <version_t version_v> struct cx_formatter_storage_base_ref_t {
     uintlen_t formatting_str_index_begin{};
     uintlen_t formatting_str_index_end{};
     uintlen_t index_of_element : sizeof(uintlen_t) * 8 - 8 {};
@@ -66,20 +59,20 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         : base_lazy_view_t<version_v>{
               dynamic_string_view_t<version_v>{buffer.data(), buffer.size()}
                   .to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)} {}
-    MJZ_CX_FN base_lazy_view_t<version_v> to_base_lazy_pv_fn_(
-        unsafe_ns::i_know_what_im_doing_t) const noexcept {
+    MJZ_CX_FN base_lazy_view_t<version_v>
+    to_base_lazy_pv_fn_(unsafe_ns::i_know_what_im_doing_t) const noexcept {
       return *this;
     }
   };
 
   template <version_t version_v>
-  using basic_formatted_types_t = void(
-      base_string_view_arg_t<version_v>, const void *, long long, long, int,
-      short, signed char, unsigned long long, unsigned long, unsigned int,
-      unsigned short, unsigned char, nullptr_t, float, double);
+  using basic_formatted_types_t =
+      void(base_string_view_arg_t<version_v>, const void *, long long, long,
+           int, short, signed char, unsigned long long, unsigned long,
+           unsigned int, unsigned short, unsigned char, nullptr_t, float,
+           double);
 
-  template <class>
-  struct help5628375_t {};
+  template <class> struct help5628375_t {};
   template <class... Ts>
   struct help5628375_t<void(Ts...)> : help5628375_t<Ts>... {};
 
@@ -105,8 +98,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     } noexcept -> std::same_as<success_t>;
   };
 
-  template <version_t version_v>
-  struct hash_context_t;
+  template <version_t version_v> struct hash_context_t;
   template <typename F_t, typename T, version_t version_v>
   concept named_arg_c = requires(const std::remove_reference_t<T> &s,
                                  hash_context_t<version_v> &ctx) {
@@ -117,8 +109,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     { F_t ::arg_name(ctx) } noexcept -> std::same_as<success_t>;
   };
 
-  template <version_t version_v, typename T>
-  struct formatter_t {
+  template <version_t version_v, typename T> struct formatter_t {
     MJZ_NO_MV_NO_CPY(formatter_t);
     MJZ_CX_FN formatter_t() noexcept = delete;
     MJZ_CX_FN ~formatter_t() noexcept = delete;
@@ -127,11 +118,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN success_t
     format(T &&s, format_context_t<version_v> &ctx) const noexcept = delete;
 
-    MJZ_CX_FN static success_t arg_name(
-        hash_context_t<version_v> &ctx) noexcept = delete;
-    MJZ_CX_FN static success_t arg_name(
-        const std::remove_reference_t<T> &s,
-        hash_context_t<version_v> &ctx) noexcept = delete;
+    MJZ_CX_FN static success_t
+    arg_name(hash_context_t<version_v> &ctx) noexcept = delete;
+    MJZ_CX_FN static success_t
+    arg_name(const std::remove_reference_t<T> &s,
+             hash_context_t<version_v> &ctx) noexcept = delete;
   };
 
   template <version_t version_v, typename T, uint32_t priority>
@@ -147,11 +138,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         delete;
     MJZ_CX_FN success_t
     format(T &&s, format_context_t<version_v> &ctx) const noexcept = delete;
-    MJZ_CX_FN static success_t arg_name(
-        const std::remove_reference_t<T> &s,
-        hash_context_t<version_v> &ctx) noexcept = delete;
-    MJZ_CX_FN static success_t arg_name(
-        hash_context_t<version_v> &ctx) noexcept = delete;
+    MJZ_CX_FN static success_t
+    arg_name(const std::remove_reference_t<T> &s,
+             hash_context_t<version_v> &ctx) noexcept = delete;
+    MJZ_CX_FN static success_t
+    arg_name(hash_context_t<version_v> &ctx) noexcept = delete;
   };
 
   template <version_t version_v, typename T, uint32_t priority = 0>
@@ -176,11 +167,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   struct default_formatter_slector_helper_t<version_v, T, priority> {
     using type = default_formatter_t<version_v, T, priority>;
   };
-  template <version_t version_v>
-  struct parse_and_format_data_t;
+  template <version_t version_v> struct parse_and_format_data_t;
 
-  template <version_t version_v>
-  union raw_storage_ref_u {
+  template <version_t version_v> union raw_storage_ref_u {
     char dummy_{};
     const void *runtime_only_raw_ptr;
     const void_struct_t *compile_time_only_raw_ptr;
@@ -194,8 +183,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                     parse_and_format_data_t<version_v> &fn_data,
                     cx_formatter_storage_ref_t<version_v> cx_store) noexcept;
 
-  template <version_t version_v>
-  struct argument_name_t {
+  template <version_t version_v> struct argument_name_t {
     hash_bytes_t<version_v> hash{};
     basic_string_view_t<version_v> name_str{};
   };
@@ -220,47 +208,44 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         !((format_stack_size_v<version_v> |
            format_basic_buffer_size_v<version_v>)&(stack_alloc_t::align - 1)));
 
-    template <class>
-    friend class mjz_private_accessed_t;
-    template <version_t>
-    friend struct parse_and_format_data_t;
+    template <class> friend class mjz_private_accessed_t;
+    template <version_t> friend struct parse_and_format_data_t;
 
     using out_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
     using name_t = argument_name_t<version_v>;
 
-   public:
+  public:
     // first 8 words
-    uintlen_t remaining_format_string_index{};                      // 1
-    uintlen_t next_arg_index{/*uintlen_t(-1) means manual mode*/};  // 1
-    uintlen_t number_of_args{};                                     // 1
-    out_it_t output_it{};                                           // 3w
-    view_t format_string{nullopt};                                  // 2w
+    uintlen_t remaining_format_string_index{};                     // 1
+    uintlen_t next_arg_index{/*uintlen_t(-1) means manual mode*/}; // 1
+    uintlen_t number_of_args{};                                    // 1
+    out_it_t output_it{};                                          // 3w
+    view_t format_string{nullopt};                                 // 2w
     //---//
     // second 8 words
     const cx_formatter_storage_base_ref_t<version_v>
-        *cx_parse_storage_of_args{};                 // 1w
-    uintlen_t number_of_cx_parse_storage_of_args{};  // 1w
-    stack_base_out_buffer_t<version_v> buf_view{};   // 6w
+        *cx_parse_storage_of_args{};                // 1w
+    uintlen_t number_of_cx_parse_storage_of_args{}; // 1w
+    stack_base_out_buffer_t<version_v> buf_view{};  // 6w
     //---//
     // third 8 words
-    alloc_ref_t alloc{};                                 // 1w
-    const raw_storage_ref_u<version_v> *data_of_args{};  // 1w
-    const parse_and_format_fn_t<version_v>
-        *parse_and_format_fn_of_args{};  // 1w
-    const name_t *name_ptr{};            // 1w
-    stack_alloc_t stack_alloc{};         // 2w
-    std::span<char> format_cache_ref{};  // 2w
+    alloc_ref_t alloc{};                                                   // 1w
+    const raw_storage_ref_u<version_v> *data_of_args{};                    // 1w
+    const parse_and_format_fn_t<version_v> *parse_and_format_fn_of_args{}; // 1w
+    const name_t *name_ptr{};                                              // 1w
+    stack_alloc_t stack_alloc{};                                           // 2w
+    std::span<char> format_cache_ref{};                                    // 2w
     //---//
     // forth 8 words
-    uintlen_t err_index{};                                      // 1w
-    static_string_view_t<version_v> err_content_bfr_{nullopt};  // 2w
-    view_t err_content{nullopt};                                // 2w
-    out_it_t err_output{};                                      // 3w
-                                                                //---//
+    uintlen_t err_index{};                                     // 1w
+    static_string_view_t<version_v> err_content_bfr_{nullopt}; // 2w
+    view_t err_content{nullopt};                               // 2w
+    out_it_t err_output{};                                     // 3w
+                                                               //---//
 
-   public:
+  public:
     /*CATION !!!!!!!!!!!!!
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
@@ -309,8 +294,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
 
     template <typename T>
-    MJZ_CX_FN bool is_type_heper_pv(
-        parse_and_format_fn_t<version_v> fn_) noexcept;
+    MJZ_CX_FN bool
+    is_type_heper_pv(parse_and_format_fn_t<version_v> fn_) noexcept;
     MJZ_CX_FN success_t parse_and_format_call_at(uintlen_t index,
                                                  bool find_names) noexcept {
       parse_and_format_call_one_at_non_virt_impl_t_ ret0{};
@@ -324,7 +309,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         uintlen_t i{};
         std::ignore =
             ((i++, is_type_heper_pv<const Ts &>(obj.parse_and_format)) || ...);
-        if (i == sizeof...(Ts)) i = 0;
+        if (i == sizeof...(Ts))
+          i = 0;
         return uint8_t(i);
       }(alias_t<basic_formatted_types_t<version_v> *>{});
 
@@ -358,7 +344,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       obj.m = args ? args[index] : raw_storage_ref_u<version_v>{};
       obj.parse_and_format = parse_and_format_fn_of_args[index];
       ret0.cx_parse = formatter_ptr;
-      if (!type) return parse_and_format_call_at_virt_impl_(ret0);
+      if (!type)
+        return parse_and_format_call_at_virt_impl_(ret0);
       return parse_and_format_call_at_non_virt_impl_<true>(
           ret0, alias_t<basic_formatted_types_t<version_v> *>{}, type);
     }
@@ -371,7 +358,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         uintlen_t &i, success_t &ret_val,
         parse_and_format_call_one_at_non_virt_impl_t_ ret,
         uint8_t type) noexcept {
-      if (++i != type) return false;
+      if (++i != type)
+        return false;
       ret_val =
           parse_and_format_call_one_at_non_virt_impl_<cached_v, const Ts &>(
               ret);
@@ -390,8 +378,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       }
       asserts.unreachable();
     }
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept;
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept;
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept;
 
     MJZ_CX_FN const parse_context_t<version_v> &parse_ctx() const noexcept;
@@ -406,34 +394,28 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN const base_context_t<version_v> &base_ctx() const noexcept;
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept;
 
-   private:
+  private:
     MJZ_NO_MV_NO_CPY(base_context_t);
     MJZ_CX_FN base_context_t() noexcept = default;
   };
 
-  template <version_t version_v>
-  struct parse_context_t {
+  template <version_t version_v> struct parse_context_t {
     using stack_alloc_t =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-    template <version_t, typename...>
-    friend struct cx_parser_t;
-    template <version_t>
-    friend struct formatting_object_t;
-    template <version_t>
-    friend struct parse_and_format_data_t;
+    template <version_t, typename...> friend struct cx_parser_t;
+    template <version_t> friend struct formatting_object_t;
+    template <version_t> friend struct parse_and_format_data_t;
 
-    template <version_t>
-    friend struct hash_context_t;
+    template <version_t> friend struct hash_context_t;
 
-   private:
+  private:
     using err_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
 
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept;
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept;
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept;
 
     MJZ_CX_FN const parse_context_t<version_v> &parse_ctx() const noexcept;
@@ -447,7 +429,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN const base_context_t<version_v> &base_ctx() const noexcept;
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept;
 
-   private:
+  private:
     MJZ_CX_FN explicit parse_context_t() noexcept {}
     MJZ_NO_MV_NO_CPY(parse_context_t);
 
@@ -455,7 +437,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     using iterator = const_iterator;
     using char_type = char;
 
-   private:
+  private:
     MJZ_CX_FN void erred_cx() const noexcept {
 #if MJZ_VERBOSE_FORMAT_ERROR
 #else
@@ -470,19 +452,21 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 #endif
     }
     MJZ_CX_NL_FN void as_error_impl_() noexcept {
-      if (main_ctx().err_content) return;
+      if (main_ctx().err_content)
+        return;
       static_string_view_t<version_v> error_description =
           main_ctx().err_content_bfr_;
       erred_cx();
       main_ctx().err_index =
           uintlen_t(data_left() - main_ctx().format_string.data());
-      if (!error_description) error_description = "[Error]";
+      if (!error_description)
+        error_description = "[Error]";
       main_ctx().err_content = error_description;
       main_ctx().remaining_format_string_index =
           main_ctx().format_string.length();
     }
 
-   public:
+  public:
     MJZ_CX_FN explicit operator bool() const noexcept {
       return !main_ctx().err_content;
     }
@@ -522,8 +506,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN encodings_e encoding() const noexcept {
       return main_ctx().format_string.get_encoding();
     }
-    MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &allocator()
-        const noexcept {
+    MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &
+    allocator() const noexcept {
       return main_ctx().alloc;
     }
     MJZ_CX_FN view_t view() const noexcept {
@@ -544,15 +528,16 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
              intlen_t(main_ctx().remaining_format_string_index);
     }
     MJZ_CX_FN std::optional<char> front() const noexcept {
-      if (length_left()) return *data_left();
+      if (length_left())
+        return *data_left();
       return nullopt;
     }
     MJZ_CX_FN std::optional<char> at(uintlen_t index) const noexcept {
       return main_ctx().format_string.at(
           index + main_ctx().remaining_format_string_index);
     }
-    MJZ_CX_FN std::optional<char> at(
-        std::optional<uintlen_t> index) const noexcept {
+    MJZ_CX_FN std::optional<char>
+    at(std::optional<uintlen_t> index) const noexcept {
       return index ? main_ctx().format_string.at(
                          *index + main_ctx().remaining_format_string_index)
                    : nullopt;
@@ -578,10 +563,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     MJZ_CX_FN success_t advance_amount(uintlen_t amount) noexcept {
       if (length_left() < amount) {
-        as_error(
-            "[Error]parse_context_t::advance_amount(uintlen_t): "
-            "couldn't "
-            "advance ,(maybe parse funtion failed)");
+        as_error("[Error]parse_context_t::advance_amount(uintlen_t): "
+                 "couldn't "
+                 "advance ,(maybe parse funtion failed)");
         return false;
       }
       main_ctx().remaining_format_string_index += amount;
@@ -591,10 +575,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       if (!it ||
           /*happend on usr ignoring empty returns that are errors ->*/ it <
               begin()) {
-        as_error(
-            "[Error]parse_context_t::advance_to(const_iterator): couldn't "
-            "advance "
-            "to it,(maybe parse funtion failed)");
+        as_error("[Error]parse_context_t::advance_to(const_iterator): couldn't "
+                 "advance "
+                 "to it,(maybe parse funtion failed)");
         return false;
       }
       unchecked_advance_amount_(uintlen_t(it - begin()));
@@ -625,10 +608,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return false;
       }
       if (main_ctx().number_of_args <= id) {
-        as_error(
-            "[Error]parse_context_t::check_arg_id(uintlen_t): expected an "
-            "argument but had "
-            "none (id out of range)");
+        as_error("[Error]parse_context_t::check_arg_id(uintlen_t): expected an "
+                 "argument but had "
+                 "none (id out of range)");
         return false;
       }
       main_ctx().next_arg_index = uintlen_t(-1);
@@ -647,14 +629,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
     get_slice() noexcept;
 
-   private:
+  private:
     MJZ_CX_FN std::optional<hash_bytes_t<version_v>>
     parse_starting_name() noexcept;
     MJZ_CX_FN std::optional<uintlen_t> parse_arg_index() noexcept;
-    MJZ_CX_FN std::optional<uintlen_t> find_name_index(
-        hash_bytes_t<version_v> name, view_t name_str) noexcept;
-    template <version_t>
-    friend struct format_context_t;
+    MJZ_CX_FN std::optional<uintlen_t>
+    find_name_index(hash_bytes_t<version_v> name, view_t name_str) noexcept;
+    template <version_t> friend struct format_context_t;
   };
   template <version_t version_v, typename T>
   using formatter_type_t = std::conditional_t<
@@ -671,29 +652,23 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       valid_format_c<formatter_type_t<version_v, const T &>, version_v,
                      const T &>;
 
-  template <version_t version_v>
-  struct format_context_t {
+  template <version_t version_v> struct format_context_t {
     using stack_alloc_t =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
-    template <class>
-    friend class mjz_private_accessed_t;
-    template <version_t>
-    friend struct parse_and_format_data_t;
+    template <class> friend class mjz_private_accessed_t;
+    template <version_t> friend struct parse_and_format_data_t;
 
-    template <version_t>
-    friend struct hash_context_t;
-    template <version_t>
-    friend struct formatting_object_t;
-    template <version_t, typename...>
-    friend struct cx_parser_t;
+    template <version_t> friend struct hash_context_t;
+    template <version_t> friend struct formatting_object_t;
+    template <version_t, typename...> friend struct cx_parser_t;
 
-   private:
+  private:
     using out_it_t = base_out_it_t<version_v>;
     using err_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
 
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept;
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept;
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept;
     MJZ_CX_FN const parse_context_t<version_v> &parse_ctx() const noexcept;
     MJZ_CX_FN parse_context_t<version_v> &parse_ctx() noexcept;
@@ -707,20 +682,19 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN const base_context_t<version_v> &base_ctx() const noexcept;
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept;
 
-   private:
+  private:
     /*
      *parse-only
      */
     MJZ_CX_FN explicit format_context_t() noexcept {}
     MJZ_NO_MV_NO_CPY(format_context_t);
 
-   public:
+  public:
     using iterator = out_it_t;
     using char_type = char;
-    template <typename T>
-    using formatter_type = formatter_type_t<version_v, T>;
+    template <typename T> using formatter_type = formatter_type_t<version_v, T>;
 
-   public:
+  public:
     MJZ_CX_FN basic_arg_ref_t<version_v> arg(uintlen_t id) noexcept;
     MJZ_CX_FN encodings_e encoding() const noexcept {
       return parse_ctx().encoding();
@@ -753,8 +727,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                                uintlen_t align) noexcept {
       return parse_ctx().fn_dealloca(std::move(blk), align);
     }
-    MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &allocator()
-        const noexcept {
+    MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &
+    allocator() const noexcept {
       return parse_ctx().allocator();
     }
     MJZ_CX_FN iterator out() noexcept { return main_ctx().output_it; }
@@ -792,41 +766,37 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         const char *ptr_start = ptr;
         do {
           MJZ_RELEASE { ptr++; };
-          if (*ptr == '{' || *ptr == '}') break;
+          if (*ptr == '{' || *ptr == '}')
+            break;
         } while (end_p != ptr);
         if (!write(v.make_subview(uintlen_t(ptr_start - ptr_begin),
                                   uintlen_t(ptr - ptr_start)))) {
           return false;
         }
-        if (end_p == ptr) break;
+        if (end_p == ptr)
+          break;
         ptr++;
       }
       return true;
     }
   };
 
-  template <version_t version_v>
-  struct hash_context_t {
+  template <version_t version_v> struct hash_context_t {
     using stack_alloc_t =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-    template <version_t, typename...>
-    friend struct cx_parser_t;
-    template <version_t>
-    friend struct formatting_object_t;
-    template <version_t>
-    friend struct format_context_t;
-    template <version_t>
-    friend struct parse_and_format_data_t;
+    template <version_t, typename...> friend struct cx_parser_t;
+    template <version_t> friend struct formatting_object_t;
+    template <version_t> friend struct format_context_t;
+    template <version_t> friend struct parse_and_format_data_t;
 
-   private:
+  private:
     using err_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
 
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept;
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept;
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept;
     MJZ_CX_FN const parse_context_t<version_v> &parse_ctx() const noexcept;
     MJZ_CX_FN parse_context_t<version_v> &parse_ctx() noexcept;
@@ -840,7 +810,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN const base_context_t<version_v> &base_ctx() const noexcept;
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept;
 
-   private:
+  private:
     MJZ_CX_FN explicit hash_context_t() noexcept {}
     MJZ_NO_MV_NO_CPY(hash_context_t);
 
@@ -848,7 +818,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     using iterator = const_iterator;
     using char_type = char;
 
-   public:
+  public:
     /*CATION !!!!!!!!!!!!!
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
@@ -878,8 +848,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN encodings_e encoding() const noexcept {
       return parse_ctx().encoding();
     }
-    MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &allocator()
-        const noexcept {
+    MJZ_CX_FN const allocs_ns::alloc_base_ref_t<version_v> &
+    allocator() const noexcept {
       return parse_ctx().allocator();
     }
     MJZ_CX_FN err_it_t
@@ -891,7 +861,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return main_ctx().name_ptr;
     }
     MJZ_CX_FN success_t matched() noexcept {
-      if (!parse_ctx()) return false;
+      if (!parse_ctx())
+        return false;
       main_ctx().name_ptr = nullptr;
       return true;
     }
@@ -920,19 +891,17 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         parse_context_t<version_v>,
         format_context_t<version_v>,
         hash_context_t<version_v> {
-    template <class>
-    friend class mjz_private_accessed_t;
-    template <version_t, typename...>
-    friend struct cx_parser_t;
+    template <class> friend class mjz_private_accessed_t;
+    template <version_t, typename...> friend struct cx_parser_t;
     MJZ_NO_MV_NO_CPY(parse_and_format_data_t);
     using out_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using sview_t = static_string_view_t<version_v>;
     using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
 
-   public:
-    MJZ_CX_FN const parse_and_format_data_t<version_v> &main_ctx()
-        const noexcept {
+  public:
+    MJZ_CX_FN const parse_and_format_data_t<version_v> &
+    main_ctx() const noexcept {
       return *this;
     }
     MJZ_CX_FN parse_and_format_data_t<version_v> &main_ctx() noexcept {
@@ -960,15 +929,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
 
-   public:
+  public:
     MJZ_CX_FN explicit parse_and_format_data_t(
         out_it_t output_it_ = nullptr) noexcept {
       this->output_it = std::move(output_it_);
     }
 
-   private:
-    template <version_t, typename>
-    friend struct the_typed_arg_ref_t;
+  private:
+    template <version_t, typename> friend struct the_typed_arg_ref_t;
 
     template <typename T_, typename T>
     MJZ_CX_FN success_t
@@ -981,9 +949,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                     " the formatter is not defined for this type!");
       if constexpr (has_formatter) {
         using formatter_obj_t_ = cx_formatter_storage_t<version_v, F_t>;
-        if (this->name_ptr) return hash_impl_<T_, T, F_t>(arg);
-        if (parse_only()) return parse_only_impl_<F_t, formatter_obj_t_>(cxref);
-        if (!arg) return true;
+        if (this->name_ptr)
+          return hash_impl_<T_, T, F_t>(arg);
+        if (parse_only())
+          return parse_only_impl_<F_t, formatter_obj_t_>(cxref);
+        if (!arg)
+          return true;
         if constexpr (can_have_cx_formatter_F_c_<version_v, F_t>) {
           if (cxref.get()) {
             return format_impl_<T_, T, F_t>(
@@ -1020,7 +991,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 
       base_ctx().err_index += uintlen_t(-1);
       std::optional<uintlen_t> distance_ = parse_impl_<F_t>(*ptr);
-      if (!distance_) return false;
+      if (!distance_)
+        return false;
 
       return true;
     }
@@ -1038,7 +1010,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     template <typename T_, typename T, class F_t>
     MJZ_CX_FN success_t parse_and_format_impl_(T_ &arg) noexcept {
       F_t formatter{};
-      if (!parse_impl_<F_t>(formatter)) return false;
+      if (!parse_impl_<F_t>(formatter))
+        return false;
       return format_impl_<T_, T, F_t>(arg, formatter);
     }
 
@@ -1050,7 +1023,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return uintlen_t(parse_ctx().begin() - past_it);
     }
 
-   public:
+  public:
     template <typename T_, typename T, class F_t>
     MJZ_CX_AL_FN success_t format_impl_(T_ &arg,
                                         const F_t &formatter) noexcept {
@@ -1058,7 +1031,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
           std::forward<T>(arg), (format_context_t<version_v> &)(format_ctx()));
     }
 
-   public:
+  public:
     MJZ_CX_FN success_t parse_format_replacement_field() noexcept;
     MJZ_CX_FN success_t parse_formating_string() noexcept;
     MJZ_CX_FN success_t parse_formating_string_nocache() noexcept;
@@ -1066,16 +1039,15 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN success_t append_text(view_t) noexcept;
     MJZ_CX_FN std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
     get_slice_parse_filter(bool check_after_slice = true) noexcept;
-    MJZ_CX_FN std::optional<uintlen_t> get_parse_filter_numeric(
-        uintlen_t defult) noexcept;
+    MJZ_CX_FN std::optional<uintlen_t>
+    get_parse_filter_numeric(uintlen_t defult) noexcept;
     MJZ_CX_FN success_t call_argument_formatter(uintlen_t id) noexcept;
     MJZ_CX_FN bool parse_only() const noexcept {
       return base_ctx().parse_only();
     }
   };
 
-  template <version_t version_v>
-  struct typeless_arg_ref_t : void_struct_t {
+  template <version_t version_v> struct typeless_arg_ref_t : void_struct_t {
     /*
      *note that in parse only calls ,the active member of the m member is null
      *initilized and call of visit.. is UB!
@@ -1085,38 +1057,29 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
   template <version_t version_v>
   struct basic_arg_ref_t : protected typeless_arg_ref_t<version_v> {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
 
-   protected:
+  protected:
     using base_t = typeless_arg_ref_t<version_v>;
     using base_t::m;
     using base_t::parse_and_format;
 
-   public:
+  public:
     MJZ_CX_FN basic_arg_ref_t() noexcept : base_t{} {}
     MJZ_CX_FN explicit basic_arg_ref_t(base_t ref) noexcept : base_t{ref} {}
     MJZ_CX_FN explicit operator bool() const noexcept {
       return !!parse_and_format;
     }
 
-   public:
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xc() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xv() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xr() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xcv() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xcr() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xvr() const noexcept;
-    template <class... Ts>
-    MJZ_CX_FN bool is_one_of_xcvr() const noexcept;
+  public:
+    template <class... Ts> MJZ_CX_FN bool is_one_of() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xc() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xv() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xr() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xcv() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xcr() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xvr() const noexcept;
+    template <class... Ts> MJZ_CX_FN bool is_one_of_xcvr() const noexcept;
 
     template <typename... Ts>
     MJZ_CX_FN success_t visit(auto &&noexcept_with_void_return_fn) noexcept;
@@ -1138,8 +1101,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
   template <version_t version_v>
   struct typeid_arg_ref_t : protected basic_arg_ref_t<version_v> {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     using base_t = basic_arg_ref_t<version_v>;
     using bbase_t = typeless_arg_ref_t<version_v>;
     MJZ_CX_FN typeid_arg_ref_t() noexcept : base_t{} {}
@@ -1160,8 +1122,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
    */
   template <version_t version_v, typename type_t>
   struct the_typed_arg_ref_t : void_struct_t {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     using Type_t = type_t;
     using typeless_ref = typeless_arg_ref_t<version_v>;
     using T = std::remove_reference_t<type_t>;
@@ -1195,7 +1156,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return +*this;
     }
     MJZ_CX_AL_FN static optional_ref_t<T> get(typeless_ref ref) noexcept {
-      if (ref.parse_and_format != &parse_and_format_outer_fn) return nullopt;
+      if (ref.parse_and_format != &parse_and_format_outer_fn)
+        return nullopt;
       MJZ_IF_CONSTEVAL {
         return static_cast<const the_typed_arg_ref_t *>(
                    ref.m.compile_time_only_raw_ptr)
@@ -1210,7 +1172,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN the_typed_arg_ref_t(T &arg) noexcept : ptr(&arg) {}
     MJZ_NO_MV_NO_CPY(the_typed_arg_ref_t);
 
-   private:
+  private:
     T *ptr{};
   };
 
@@ -1256,8 +1218,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         bit_cast_able_and_small_c<std::remove_cvref_t<type_t>, version_v> &&
         !std::is_volatile_v<type_t>)
   struct the_typed_arg_ref_t<version_v, type_t> : void_struct_t {
-    template <class>
-    friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     using Type_t = type_t;
     using typeless_ref = typeless_arg_ref_t<version_v>;
     using T = std::remove_cvref_t<type_t>;
@@ -1310,7 +1271,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     MJZ_CX_FN the_typed_arg_ref_t(T arg) noexcept : val(arg) {}
 
-   private:
+  private:
     T val;
   };
   struct basic_format_args_cx_tag {};
@@ -1460,9 +1421,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       fn_t & noexcept_with_void_return_fn,
       typeless_arg_ref_t<version_v> ref) noexcept {
     return (([&]() noexcept -> success_t {
-              if (!is_type_heper_pv<version_v, Ts>(ref)) return false;
+              if (!is_type_heper_pv<version_v, Ts>(ref))
+                return false;
               auto opt_ref = final_typed_arg_ref_t<version_v, Ts>::get(ref);
-              if (!opt_ref) return false;
+              if (!opt_ref)
+                return false;
               auto &obj = *opt_ref;
               noexcept_with_void_return_fn(obj);
               return true;
@@ -1604,10 +1567,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   MJZ_CX_FN typeid_arg_ref_t<version_v> parse_context_t<version_v>::type_v(
       uintlen_t id) noexcept {
     if (main_ctx().number_of_args <= id) {
-      as_error(
-          "[Error]parse_context_t::type_v(uintlen_t): expected an "
-          "argument but had "
-          "none");
+      as_error("[Error]parse_context_t::type_v(uintlen_t): expected an "
+               "argument but had "
+               "none");
       return {};
     }
     auto fn = main_ctx().parse_and_format_fn_of_args[id];
@@ -1622,10 +1584,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   MJZ_CX_FN basic_arg_ref_t<version_v> format_context_t<version_v>::arg(
       uintlen_t id) noexcept {
     if (main_ctx().number_of_args <= id) {
-      as_error(
-          "[Error]format_context_t::arg(uintlen_t): expected an "
-          "argument but had "
-          "none");
+      as_error("[Error]format_context_t::arg(uintlen_t): expected an "
+               "argument but had "
+               "none");
       return {};
     }
     auto fn = main_ctx().parse_and_format_fn_of_args[id];
@@ -1658,7 +1619,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     auto &&ref_v = Targ_t::get(ret.obj);
     auto &&ref = *ref_v;
     optional_ref_t<std::remove_reference_t<T>> arg{ref};
-    if (!arg) asserts.unreachable();
+    if (!arg)
+      asserts.unreachable();
     using F_t =
         typename format_context_t<version_v>::template formatter_type<T>;
     constexpr bool has_formatter = valid_format_c<F_t, version_v, T>;
@@ -1666,10 +1628,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                   " the formatter is not defined for this type!");
     static_assert(has_formatter);
     using formatter_obj_t_ = cx_formatter_storage_t<version_v, F_t>;
-    if (ret.This->name_ptr) asserts.unreachable();
-    if (ret.This->parse_only()) asserts.unreachable();
+    if (ret.This->name_ptr)
+      asserts.unreachable();
+    if (ret.This->parse_only())
+      asserts.unreachable();
     static_assert(can_have_cx_formatter_F_c_<version_v, F_t>);
-    if (!ret.cx_parse.get()) asserts.unreachable();
+    if (!ret.cx_parse.get())
+      asserts.unreachable();
     return ret.This->template format_impl_<T, T, F_t>(
         *arg, *static_cast<const formatter_obj_t_ *>(ret.cx_parse.get()));
   }
@@ -1882,5 +1847,5 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     return main_ctx();
   }
 
-};  // namespace mjz::bstr_ns::format_ns
-#endif  // MJZ_BYTE_FORMATTING_base_abi_LIB_HPP_FILE_
+}; // namespace mjz::bstr_ns::format_ns
+#endif // MJZ_BYTE_FORMATTING_base_abi_LIB_HPP_FILE_
