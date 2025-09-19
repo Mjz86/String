@@ -25,6 +25,7 @@ SOFTWARE.
 #define MJZ_LIB_import_std_FILE_
 
 #if !MJZ_MANUAL_CXX_INCLUDES_
+
 #if !MJZ_CXX_INCLUDES_BIT_STDCPP_
 
 #include <stdint.h>
@@ -77,20 +78,9 @@ SOFTWARE.
 #include <charconv>
 #endif
 
-#if MJZ_STD_HAS_SIMD_LIB_
-#if __has_include(<experimental/simd>)
-#include <experimental/simd>
-#else
-#error "simd TS is not supported (experimental/simd) not found !"
-#endif
-#endif
-
-#if 1 < _MSC_VER
-#include <__msvc_int128.hpp>
-#endif
-
 #elif __has_include(<bits/stdc++.h>)
 #include <bits/stdc++.h>
+#include <coroutine>
 
 #else
 
@@ -354,5 +344,18 @@ SOFTWARE.
 
 #endif  // HOSTED
 #endif
+
+#if MJZ_STD_HAS_SIMD_LIB_
+#if __has_include(<experimental/simd>)
+#include <experimental/simd>
+#else
+#error "simd TS is not supported (experimental/simd) not found !"
+#endif
+#endif
+
+#if 1 < _MSC_VER
+#include <__msvc_int128.hpp>
+#endif
+
 #endif
 #endif  // MJZ_LIB_import_std_FILE_

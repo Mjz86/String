@@ -53,14 +53,8 @@ SOFTWARE.
 #endif
 
 #ifndef MJZ_STD_HAS_SIMD_LIB_
-#define MJZ_STD_HAS_SIMD_LIB_ false
-#else
-
-#if defined(__cpp_lib_experimental_parallel_simd) || \
-    defined(_LIBCPP_ENABLE_EXPERIMENTAL)
-#define MJZ_STD_HAS_SIMD_LIB_ true
+#define MJZ_STD_HAS_SIMD_LIB_ __has_include(<experimental/simd>)
 #endif
-#endif  // ! MJZ_STD_HAS_SIMD_LIB_
 
 #ifdef MJZ_USE_CXX_STD_MODULES_
 #ifndef __cpp_lib_modules
