@@ -17,3 +17,4 @@ mjz_lib/threads/recursive_mutex.hpp
 mjz_lib/threads/jthread.hpp
 /mjz_lib/corot
 mjz_lib/threads/counting_semaphore.hpp
+/mjz_lib/err

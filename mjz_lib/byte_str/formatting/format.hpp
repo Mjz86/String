@@ -26,13 +26,13 @@ SOFTWARE.
 #include "../string.hpp"
 #ifndef MJZ_BYTE_FORMATTING_format_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_format_HPP_FILE_
-namespace mjz::bstr_ns::format_ns {
-namespace print_ns {
+MJZ_EXPORT namespace mjz::bstr_ns::format_ns{namespace print_ns{
 
-template <version_t version_v>
-MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(
-    basic_str_t<version_v> &ret, const status_view_t<version_v> &opt) noexcept {
-  ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
+    template <version_t version_v>
+    MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(
+        basic_str_t<version_v> & ret,
+        const status_view_t<version_v> &opt) noexcept {
+        ret = basic_str_t<version_v>(unsafe_ns::unsafe_v, opt());
 }
 
 template <version_t version_v>
@@ -84,5 +84,6 @@ MJZ_CX_AL_FN auto formatln(auto fmt, Ts &&...args) noexcept {
   return ret;
 }
 }  // namespace print_ns
-};  // namespace mjz::bstr_ns::format_ns
+}
+;       // namespace mjz::bstr_ns::format_ns
 #endif  // MJZ_BYTE_FORMATTING_print_HPP_FILE_

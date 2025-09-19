@@ -49,25 +49,25 @@ SOFTWARE.
 #endif
 #else
 #endif
-namespace mjz {
-inline namespace uint_to_ascci_ns0 {
-namespace details_ns {
+MJZ_EXPORT namespace mjz{
+    inline namespace uint_to_ascci_ns0{namespace details_ns{
 
-constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
-  std::array<uint64_t, 9> ret{};
-  uint64_t p10_{1};
-  for (size_t i{}; i < 9; i++) {
-    ret[i] = ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
-    p10_ *= 10;
-  }
-  return ret;
-}(); /*
- constexpr   inline std::array<uint64_t, 21> floor10_table = []() noexcept
- { std::array<uint64_t, 21> ret{}; ret[0] = 1; for (size_t i{1}; i < 20; i++) {
-     ret[i] = ret[i - 1] * 10;
-   }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we know that
- this is correct ret[20] = uint64_t(-1); return ret;
- }(); */
+        constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
+          std::array<uint64_t, 9> ret{};
+          uint64_t p10_{1};
+          for (size_t i{}; i < 9; i++) {
+            ret[i] =
+                ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
+            p10_ *= 10;
+          }
+          return ret;
+        }(); /*
+         constexpr   inline std::array<uint64_t, 21> floor10_table = []()
+         noexcept { std::array<uint64_t, 21> ret{}; ret[0] = 1; for (size_t
+         i{1}; i < 20; i++) { ret[i] = ret[i - 1] * 10;
+           }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we
+         know that this is correct ret[20] = uint64_t(-1); return ret;
+         }(); */
 constexpr inline const auto floor10_table =
     std::array<uint64_t, 21>{1ull,
                              10ull,
@@ -1577,7 +1577,8 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint8_t number_) noexcept {
   uint_to_dec_forward_less1e11(buffer, count - 10, low);
   return count;
 }
-};  // namespace details_ns
+}
+;  // namespace details_ns
 
 [[maybe_unused]] inline size_t uint_to_dec_less1e9(
     char* buffer, size_t cap, uint32_t number_0_) noexcept {
@@ -3072,7 +3073,8 @@ constexpr inline size_t int_to_dec_unchecked(char* buffer, T num_) noexcept {
 }
 
 }  // namespace uint_to_ascci_ns0
-};  // namespace mjz
+}
+;  // namespace mjz
 
 #ifndef MJZ_string_lib_macros_
 #undef MJZ_JUST_FORCED_INLINE_

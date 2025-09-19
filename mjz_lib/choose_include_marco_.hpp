@@ -80,6 +80,10 @@ SOFTWARE.
 #define MJZ_MANUAL_CXX_INCLUDES_ false
 #endif
 
+#ifndef MJZ_CXX_INCLUDES_BIT_STDCPP_
+#define MJZ_CXX_INCLUDES_BIT_STDCPP_ __has_include(<bits/stdc++.h>)
+#endif
+
 #if !defined(__cpp_lib_stacktrace)
 #undef MJZ_PAINC_TRACE_
 #define MJZ_PAINC_TRACE_ false

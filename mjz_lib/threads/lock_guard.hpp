@@ -23,45 +23,45 @@ SOFTWARE.
 #include "base.hpp"
 #ifndef MJZ_THREADS_lock_guard_LIB_HPP_FILE_
 #define MJZ_THREADS_lock_guard_LIB_HPP_FILE_
-namespace mjz::threads_ns {
-template <class my_mutex_t>
-class MJZ_NODISCRAD_FOR(
-    " you forgot to use lock_guard_t , or you forgot to use std::ignore")
-    lock_guard_t {
-  my_mutex_t *ptr{};
-  MJZ_NO_CPY(lock_guard_t);
+MJZ_EXPORT namespace mjz::threads_ns {
+  template <class my_mutex_t>
+  class MJZ_NODISCRAD_FOR(
+      " you forgot to use lock_guard_t , or you forgot to use std::ignore")
+      lock_guard_t {
+    my_mutex_t *ptr{};
+    MJZ_NO_CPY(lock_guard_t);
 
- public:
-  MJZ_CX_FN lock_guard_t(lock_guard_t &&obj) noexcept
-      : ptr(std::exchange(obj.ptr, nullptr)) {}
-  MJZ_CX_FN lock_guard_t &operator=(lock_guard_t &&obj) noexcept {
-    if (ptr) {
-      ptr->unlock();
+   public:
+    MJZ_CX_FN lock_guard_t(lock_guard_t &&obj) noexcept
+        : ptr(std::exchange(obj.ptr, nullptr)) {}
+    MJZ_CX_FN lock_guard_t &operator=(lock_guard_t &&obj) noexcept {
+      if (ptr) {
+        ptr->unlock();
+      }
+      ptr = std::exchange(obj.ptr, nullptr);
+      return *this;
     }
-    ptr = std::exchange(obj.ptr, nullptr);
-    return *this;
-  }
-  MJZ_CX_FN lock_guard_t(my_mutex_t &ref, const bool need_to_wait,
-                         uint64_t timeout_count = defult_timeout) noexcept
-      : ptr(&ref) {
-    if (!ref.try_lock(need_to_wait, timeout_count)) {
-      ptr = nullptr;
+    MJZ_CX_FN lock_guard_t(my_mutex_t &ref, const bool need_to_wait,
+                           uint64_t timeout_count = defult_timeout) noexcept
+        : ptr(&ref) {
+      if (!ref.try_lock(need_to_wait, timeout_count)) {
+        ptr = nullptr;
+      }
     }
-  }
-  MJZ_CX_FN
-  lock_guard_t(my_mutex_t &ref) noexcept(noexcept(my_mutex_t{}.lock()))
-      : ptr(&ref) {
-    ref.lock();
-  }
-  MJZ_CX_FN lock_guard_t() noexcept = default;
-  MJZ_CX_FN ~lock_guard_t() noexcept {
-    if (ptr) {
-      ptr->unlock();
+    MJZ_CX_FN
+    lock_guard_t(my_mutex_t &ref) noexcept(noexcept(my_mutex_t{}.lock()))
+        : ptr(&ref) {
+      ref.lock();
     }
-  }
-  MJZ_CX_ND_FN explicit operator bool() const noexcept { return !!ptr; }
-};
-template <typename T>
-lock_guard_t(T) -> lock_guard_t<T>;
+    MJZ_CX_FN lock_guard_t() noexcept = default;
+    MJZ_CX_FN ~lock_guard_t() noexcept {
+      if (ptr) {
+        ptr->unlock();
+      }
+    }
+    MJZ_CX_ND_FN explicit operator bool() const noexcept { return !!ptr; }
+  };
+  template <typename T>
+  lock_guard_t(T) -> lock_guard_t<T>;
 };  // namespace mjz::threads_ns
 #endif  // MJZ_THREADS_lock_guard_LIB_HPP_FILE_

@@ -24,7 +24,23 @@ SOFTWARE.
 #include "user_include_context_.hpp"
 #ifndef MJZ_string_lib_macros_HPP_FILE_
 #define MJZ_string_lib_macros_HPP_FILE_
+
+////////////////////////////
+///////////////////
+#include "choose_include_marco_.hpp"
+/////////////////
+
+#include "include_externals.hpp"
+
+////////////////////////////
+
 #define MJZ_string_lib_macros_ true
+
+#if MJZ_USE_CXX_MODULES_
+#define MJZ_EXPORT export
+#else
+#define MJZ_EXPORT
+#endif
 
 /*
  * shows if we can assume an expression in an assumbtion macro
@@ -82,6 +98,17 @@ SOFTWARE.
 #ifndef MJZ_cow_threashold_CACHE_LINE_N_
 #define MJZ_cow_threashold_CACHE_LINE_N_ 4
 #endif  // !MJZ_cow_threashold_CACHE_LINE_N_
+// esp32 issues for some reason :(
+// note that enabling this may cause type punning
+#ifndef MJZ_CALL_LIB_MEMCPY_ON_CPYBITCAST
+#define MJZ_CALL_LIB_MEMCPY_ON_CPYBITCAST true
+#undef MJZ_MEMCPY_ON_CPYBITCAST_PUNNED
+#define MJZ_MEMCPY_ON_CPYBITCAST_PUNNED false
+#else
+#ifndef MJZ_MEMCPY_ON_CPYBITCAST_PUNNED
+#define MJZ_MEMCPY_ON_CPYBITCAST_PUNNED false
+#endif  // !MJZ_MEMCPY_ON_CPYBITCAST_PUNNED
+#endif  // !MJZ_CALL_LIB_MEMCPY_ON_CPYBITCAST
 
 #ifndef MJZ_SANE_MEMMOVE_IMPLS
 #define MJZ_SANE_MEMMOVE_IMPLS true
@@ -268,13 +295,6 @@ SOFTWARE.
 
 #define MJZ_EXPAND_(X) X
 
-////////////////////////////
-///////////////////
-#include "choose_include_marco_.hpp"
-/////////////////
-#include "include_externals.hpp"
-////////////////////////////
-
 #define MJZ_STD_is_constant_evaluated_FUNCTION_RET_ \
   (::std::is_constant_evaluated())
 #define MJZ_CONSTEVAL consteval
@@ -329,13 +349,30 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_DISABLED_MSVC_WANINGS_ \
   5264 26495 4180 4412 4455 4494 4514 4574 4582 4583 4587 4588 4619 4623 4625 4626 4643 4648 4702 4793 4820 4988 5026 5027 5045 6294 4710 4711 4868 4866 5246 4702 6385 26115 26110 6236 26495 6287 28020 26816 6386
 
+#define MJZ_WARNINGS_IGNORE_BEGIN_BASE_IMPL_() \
+  MJZ_MSVC_ONLY_PRAGMA_(warning(push))
+
+#define MJZ_WARNINGS_IGNORE_END_BASE_IMPL_() MJZ_MSVC_ONLY_PRAGMA_(warning(pop))
+
 #define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_   \
   MJZ_MSVC_ONLY_PRAGMA_(warning(push, 0)) \
   MJZ_MSVC_ONLY_PRAGMA_(warning(disable : MJZ_DISABLED_MSVC_WANINGS_))
 
 #define MJZ_WARNINGS_IGNORE_END_IMPL_ MJZ_MSVC_ONLY_PRAGMA_(warning(pop));
 
+#define CLANG_NO_GCC_CODE_IMPL(X)
+#define GCC_NO_CLANG_CODE_IMPL(X)
 #elif defined(__GNUC__)
+
+#if defined(__clang__)
+#define CLANG_NO_GCC_CODE_IMPL(X) X
+#define GCC_NO_CLANG_CODE_IMPL(X)
+#else
+
+#define CLANG_NO_GCC_CODE_IMPL(X)
+#define GCC_NO_CLANG_CODE_IMPL(X) X
+
+#endif
 
 #ifdef __SIZEOF_INT128__
 #define MJZ_uint128_t_impl_t_ unsigned __int128
@@ -350,36 +387,45 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
 #define MJZ_GCC_ONLY_CODE_(X) X
 #define MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(warnoption0) \
   MJZ_MACRO_PRAGMA_(GCC diagnostic ignored warnoption0)
-#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_                        \
-  MJZ_MACRO_PRAGMA_(GCC diagnostic push);                      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wall");                  \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wextra");                \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Walloca");               \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-align");           \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-qual");            \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wctor-dtor-privacy");    \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdeprecated-copy-dtor"); \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdouble-promotion");     \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wenum-conversion");      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wfloat-equal");          \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat-signedness");    \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat=2");             \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmismatched-tags");      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmultichar");            \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wnon-virtual-dtor");     \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Woverloaded-virtual");   \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wpointer-arith");        \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wrange-loop-construct"); \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wshadow");               \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wuninitialized");        \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wvla");                  \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wwrite-strings");        \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wsign-conversion");      \
-  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(                           \
-      "-Wdelete-non-"                                          \
+
+#define MJZ_WARNINGS_IGNORE_BEGIN_BASE_IMPL_() \
+  MJZ_MACRO_PRAGMA_(GCC diagnostic push)
+
+#define MJZ_WARNINGS_IGNORE_END_BASE_IMPL_() \
+  MJZ_MACRO_PRAGMA_(GCC diagnostic pop)
+
+#define MJZ_WARNINGS_IGNORE_BEGIN_IMPL_                            \
+  MJZ_WARNINGS_IGNORE_BEGIN_BASE_IMPL_();                          \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wall");                      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wextra");                    \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Walloca");                   \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-align");               \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wcast-qual");                \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wctor-dtor-privacy");        \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdeprecated-copy-dtor");     \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wdouble-promotion");         \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wenum-conversion");          \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wfloat-equal");              \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat-signedness");        \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wformat=2");                 \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmismatched-tags");          \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmultichar");                \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wnon-virtual-dtor");         \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Woverloaded-virtual");       \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wpointer-arith");            \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wrange-loop-construct");     \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wshadow");                   \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wuninitialized");            \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wvla");                      \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wwrite-strings");            \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wsign-conversion");          \
+  GCC_NO_CLANG_CODE_IMPL(                                          \
+      MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_("-Wmaybe-uninitialized")); \
+  MJZ_WARNINGS_IGNORE_BEGIN_IMPL00_(                               \
+      "-Wdelete-non-"                                              \
       "virtual-dtor")
 
-#define MJZ_WARNINGS_IGNORE_END_IMPL_ MJZ_MACRO_PRAGMA_(GCC diagnostic pop)
+#define MJZ_WARNINGS_IGNORE_END_IMPL_ MJZ_WARNINGS_IGNORE_END_BASE_IMPL_()
 
 #define MJZ_restrict __restrict__
 #define MJZ_GCC_ATTRIBUTES_(X) __attribute__((X))
@@ -750,7 +796,7 @@ struct releaser_helper_t {
 static_assert(std::is_empty_v<releaser_helper_t<>>);
 
 template <class Lmabda_t, bool no_exeptions = false>
-MJZ_CX_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
+MJZ_CX_AL_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
   if constexpr (requires(Lmabda_t &&code_) {
                   { std::forward<Lmabda_t>(code_)() } noexcept;
                 }) {

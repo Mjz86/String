@@ -25,75 +25,76 @@ SOFTWARE.
 
 #ifndef MJZ_THREADS_big_mutex_LIB_HPP_FILE_
 #define MJZ_THREADS_big_mutex_LIB_HPP_FILE_
-namespace mjz::threads_ns {
-template <partial_same_as<totally_empty_type_t> T_E_ = totally_empty_type_t>
-class big_mutex_t {
-  template <class>
-  friend class mjz_private_accessed_t;
+MJZ_EXPORT namespace mjz::threads_ns {
+  template <partial_same_as<totally_empty_type_t> T_E_ = totally_empty_type_t>
+  class big_mutex_t {
+    template <class>
+    friend class mjz_private_accessed_t;
 
- private:
-  MJZ_NO_MV_NO_CPY(big_mutex_t);
-  union data_t {
-    MJZ_NO_MV_NO_CPY(data_t);
-    MJZ_DISABLE_ALL_WANINGS_START_;
-    alignas(alignof(std::mutex)) char r_mutex_[sizeof(std::mutex)];
-    bit_mutex_t<T_E_> cx_mutex;
-    MJZ_DISABLE_ALL_WANINGS_END_;
-    MJZ_DISABLE_ALL_WANINGS_START_;
-    MJZ_CX_FN data_t() noexcept {
+   private:
+    MJZ_NO_MV_NO_CPY(big_mutex_t);
+    union data_t {
+      MJZ_NO_MV_NO_CPY(data_t);
+      MJZ_DISABLE_ALL_WANINGS_START_;
+      alignas(alignof(std::mutex)) char r_mutex_[sizeof(std::mutex)];
+      bit_mutex_t<T_E_> cx_mutex;
       MJZ_DISABLE_ALL_WANINGS_END_;
-      MJZ_IF_CONSTEVAL { std::construct_at(&cx_mutex); }
+      MJZ_DISABLE_ALL_WANINGS_START_;
+      MJZ_CX_FN data_t() noexcept {
+        MJZ_DISABLE_ALL_WANINGS_END_;
+        MJZ_IF_CONSTEVAL { std::construct_at(&cx_mutex); }
+        else {
+          std::construct_at(reinterpret_cast<std::mutex*>(r_mutex_));
+        }
+      }
+      MJZ_DISABLE_ALL_WANINGS_START_;
+      MJZ_CX_FN std::mutex& get_r() noexcept {
+        return *(reinterpret_cast<std::mutex*>(r_mutex_));
+      }
+      MJZ_CX_FN ~data_t() noexcept {
+        MJZ_DISABLE_ALL_WANINGS_END_;
+        MJZ_IF_CONSTEVAL {
+          asserts(!cx_mutex, "you forgot to unlock this object!!");
+          std::destroy_at(&cx_mutex);
+        }
+        else {
+          std::destroy_at(&get_r());
+        }
+      }
+    };
+    data_t m{};
+
+   public:
+    MJZ_CX_FN ~big_mutex_t() noexcept = default;
+    MJZ_CX_FN big_mutex_t() noexcept = default;
+    MJZ_CX_ND_RES_OBJ_FN
+    success_t try_lock(const bool need_to_wait,
+                       uint64_t timeout_count) noexcept {
+      MJZ_IFN_CONSTEVAL { return try_lock(); }
+      return m.cx_mutex.try_lock(need_to_wait, timeout_count);
+    }
+    MJZ_CX_ND_RES_OBJ_FN success_t try_lock() noexcept {
+      MJZ_IF_CONSTEVAL { return m.cx_mutex.try_lock(); }
       else {
-        std::construct_at(reinterpret_cast<std::mutex*>(r_mutex_));
+        return m.get_r().try_lock();
       }
     }
-    MJZ_DISABLE_ALL_WANINGS_START_;
-    MJZ_CX_FN std::mutex& get_r() noexcept {
-      return *std::launder(reinterpret_cast<std::mutex*>(r_mutex_));
-    }
-    MJZ_CX_FN ~data_t() noexcept {
-      MJZ_DISABLE_ALL_WANINGS_END_;
-      MJZ_IF_CONSTEVAL {
-        asserts(!cx_mutex, "you forgot to unlock this object!!");
-        std::destroy_at(&cx_mutex);
-      }
+    MJZ_CX_FN void lock() {
+      MJZ_IF_CONSTEVAL { return m.cx_mutex.lock(); }
       else {
-        std::destroy_at(&get_r());
+        MJZ_DISABLE_ALL_WANINGS_START_;
+        std::ignore = std::unique_lock{m.get_r()}.release();
+        MJZ_DISABLE_ALL_WANINGS_END_;
+      }
+    }
+    MJZ_CX_FN void unlock() noexcept {
+      MJZ_IF_CONSTEVAL { return m.cx_mutex.unlock(); }
+      else {
+        MJZ_DISABLE_ALL_WANINGS_START_;
+        std::ignore = std::unique_lock{m.get_r(), std::adopt_lock};
+        MJZ_DISABLE_ALL_WANINGS_END_;
       }
     }
   };
-  data_t m{};
-
- public:
-  MJZ_CX_FN ~big_mutex_t() noexcept = default;
-  MJZ_CX_FN big_mutex_t() noexcept = default;
-  MJZ_CX_ND_RES_OBJ_FN
-  success_t try_lock(const bool need_to_wait, uint64_t timeout_count) noexcept {
-    MJZ_IFN_CONSTEVAL { return try_lock(); }
-    return m.cx_mutex.try_lock(need_to_wait, timeout_count);
-  }
-  MJZ_CX_ND_RES_OBJ_FN success_t try_lock() noexcept {
-    MJZ_IF_CONSTEVAL { return m.cx_mutex.try_lock(); }
-    else {
-      return m.get_r().try_lock();
-    }
-  }
-  MJZ_CX_FN void lock() {
-    MJZ_IF_CONSTEVAL { return m.cx_mutex.lock(); }
-    else {
-      MJZ_DISABLE_ALL_WANINGS_START_;
-      std::ignore = std::unique_lock{m.get_r()}.release();
-      MJZ_DISABLE_ALL_WANINGS_END_;
-    }
-  }
-  MJZ_CX_FN void unlock() noexcept {
-    MJZ_IF_CONSTEVAL { return m.cx_mutex.unlock(); }
-    else {
-      MJZ_DISABLE_ALL_WANINGS_START_;
-      std::ignore = std::unique_lock{m.get_r(), std::adopt_lock};
-      MJZ_DISABLE_ALL_WANINGS_END_;
-    }
-  }
-};
 }  // namespace mjz::threads_ns
 #endif  // MJZ_THREADS_big_mutex_LIB_HPP_FILE_

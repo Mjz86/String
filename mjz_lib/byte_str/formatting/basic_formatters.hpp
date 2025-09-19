@@ -28,68 +28,67 @@ SOFTWARE.
 #include "formatters_abi.hpp"
 #ifndef MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_
-namespace mjz ::bstr_ns::format_ns {
+MJZ_EXPORT namespace mjz ::bstr_ns::format_ns{
 
-template <version_t version_v>
-MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_align(
-    parse_context_t<version_v> &cntx) noexcept {
-  if (cntx.encoding() != encodings_e::ascii) {
-    cntx.as_error(
-        "[Error]basic_format_specs_t::parse_align():only ascii is "
-        "suppoerted!(note that this "
-        "may change in later versions)");
-    return false;
-  }
-  auto first = cntx.begin();
-  auto last = cntx.end();
-  if (first == last || *first == '}') {
-    return true;
-  }
-  auto align_it = first + std::min<intlen_t>(last - first, 1);
+    template <version_t version_v>
+    MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_align(
+        parse_context_t<version_v> & cntx) noexcept {
+        if (cntx.encoding() != encodings_e::ascii){cntx.as_error(
+            "[Error]basic_format_specs_t::parse_align():only ascii is "
+            "suppoerted!(note that this "
+            "may change in later versions)");
+return false;
+}
+auto first = cntx.begin();
+auto last = cntx.end();
+if (first == last || *first == '}') {
+  return true;
+}
+auto align_it = first + std::min<intlen_t>(last - first, 1);
 
-  if (align_it == last) {
-    align_it = first;
+if (align_it == last) {
+  align_it = first;
+}
+auto alignment_ = alignment;
+for (;;) {
+  switch (*align_it) {
+    case '<':
+      alignment_ = align_e ::left;
+      break;
+    case '>':
+      alignment_ = align_e::right;
+      break;
+    case '^':
+      alignment_ = align_e::center;
+      break;
+    default:
+      break;
   }
-  auto alignment_ = alignment;
-  for (;;) {
-    switch (*align_it) {
-      case '<':
-        alignment_ = align_e ::left;
-        break;
-      case '>':
-        alignment_ = align_e::right;
-        break;
-      case '^':
-        alignment_ = align_e::center;
-        break;
-      default:
-        break;
-    }
-    if (alignment_ == align_e::none) {
-      if (align_it == first) {
-        break;
-      }
-      align_it = first;
-      continue;
-    }
+  if (alignment_ == align_e::none) {
     if (align_it == first) {
-      ++first;
-      alignment = alignment_;
       break;
     }
-    if (*first == '{') {
-      cntx.as_error(
-          "[Error]basic_format_specs_t::parse_align():  invalid fill "
-          "character '{' ");
-      return false;
-    }
-    fill_char = *first;
-    first = align_it + 1;
+    align_it = first;
+    continue;
+  }
+  if (align_it == first) {
+    ++first;
     alignment = alignment_;
     break;
   }
+  if (*first == '{') {
+    cntx.as_error(
+        "[Error]basic_format_specs_t::parse_align():  invalid fill "
+        "character '{' ");
+    return false;
+  }
+  fill_char = *first;
+  first = align_it + 1;
+  alignment = alignment_;
+  break;
+}
 
-  return cntx.advance_to(first);
+return cntx.advance_to(first);
 }
 template <version_t version_v>
 MJZ_CX_FN success_t basic_format_specs_t<version_v>::parse_type(
@@ -832,6 +831,6 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill_pv(
   }
   return !!actual_it;
 }
-
-};  // namespace mjz::bstr_ns::format_ns
+}
+;       // namespace mjz::bstr_ns::format_ns
 #endif  // MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_
