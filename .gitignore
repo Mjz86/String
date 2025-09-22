@@ -18,3 +18,6 @@ mjz_lib/threads/jthread.hpp
 /mjz_lib/corot
 mjz_lib/threads/counting_semaphore.hpp
 /mjz_lib/err
+tests/main3
+tests/main3.ilk
+tests/main3.pdb

@@ -3,23 +3,8 @@
 #define MJZ_TEST_MODE_ 0
 #define MJZ_LOG_NEW_ALLOCATIONS_ 0
 #define MJZ_aggregate_tuple_workaround false
-#include <chrono>
-#include <thread>
 
-#include "../mjz_lib/allocs/bump_alloc.hpp"
-#include "../mjz_lib/byte_str/formatting/basic_formatters.hpp"
-#include "../mjz_lib/byte_str/formatting/common_formatters.hpp"
-#include "../mjz_lib/byte_str/formatting/easy_formatters.hpp"
-#include "../mjz_lib/byte_str/formatting/error_formatters.hpp"
-#include "../mjz_lib/byte_str/formatting/format.hpp"
-#include "../mjz_lib/byte_str/formatting/formated_stream.hpp"
-#include "../mjz_lib/byte_str/formatting/named_args.hpp"
-#include "../mjz_lib/byte_str/formatting/opt_formatters.hpp"
-#include "../mjz_lib/byte_str/formatting/print.hpp"
-#include "../mjz_lib/byte_str/formatting/range_formatters.hpp"
-#include "../mjz_lib/byte_str/formatting/std_view_formatters.hpp"
-#include "../mjz_lib/byte_str/implace_string.hpp"
-#include "../mjz_lib/byte_str/string.hpp"
+#include "../mjz_lib/alllib_import.hpp"
 
 namespace used_mjz_ns {
 using namespace mjz;

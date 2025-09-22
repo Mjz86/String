@@ -1,4 +1,4 @@
-#ifdef MJZ_LIB_FILE_alllib_
+#ifndef MJZ_LIB_FILE_alllib_
 #define MJZ_LIB_FILE_alllib_
 #if 0
 #error "meta files that should not be used:"
