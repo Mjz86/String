@@ -480,7 +480,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_specs(
   if (!this->in_range(ctx, arg)) {
     return false;
   }
-  auto blk_0_ = ctx.fn_alloca(conversion_buffer_size_v<T>, alignof(uintlen_t));
+  auto blk_0_ = ctx.fn_alloca(basic_format_specs_conversion_buffer_size_v<version_v,T>, alignof(uintlen_t));
   if (!blk_0_.size()) {
     ctx.as_error(
         "[Error]basic_format_specs_t::format_specs:cannot allocate more "
@@ -765,7 +765,7 @@ MJZ_CX_FN success_t basic_format_specs_t<version_v>::format_fill(
     MJZ_CX_FN Place_t(decltype(function) ptr) noexcept : function(ptr) {}
   };
   Place_t p{&place_stuff};
-  auto blk_0_ = ctx.fn_alloca(conversion_buffer_size_v<T>, alignof(uintlen_t));
+  auto blk_0_ = ctx.fn_alloca(basic_format_specs_conversion_buffer_size_v<version_v,T>, alignof(uintlen_t));
   if (!blk_0_.size()) {
     ctx.as_error(
         "[Error]basic_format_specs_t::format_fill:cannot allocate more "

@@ -54,7 +54,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
            format_context_t<version_v> &ctx) const noexcept {
       bool good{true};
       auto blk_0_ =
-          ctx.fn_alloca(conversion_buffer_size_v<T_>, alignof(uintlen_t));
+          ctx.fn_alloca(basic_format_specs_conversion_buffer_size_v<version_v,T_>, alignof(uintlen_t));
       if (!blk_0_.size()) {
         ctx.as_error(
             "[Error]default_formatter_t<is_stream_formatter_c>::format:cannot "

@@ -52,6 +52,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     bool is_ownerized{};
     may_bool_t is_threaded{may_bool_t::idk};
     align_direction_e align{};
+    encodings_e encoding{encodings_e::err_ascii};
   };
   template <version_t version_v_, basic_str_props_t<version_v_> props_v_ =
                                       basic_str_props_t<version_v_>{}>
@@ -66,9 +67,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     Version_v_{version_v};
 
   private:
-    using abi = str_abi_t_<version_v, props_v.has_alloc, props_v.has_null,
-                           props_v.is_ownerized, props_v.is_threaded,
-                           props_v.sso_min_cap, props_v.align>;
+    using abi =
+        str_abi_t_<version_v, props_v.has_alloc, props_v.has_null,
+                   props_v.is_ownerized, props_v.is_threaded,
+                   props_v.sso_min_cap, props_v.align, props_v.encoding>;
     using m_t = typename abi::data_t;
     template <class> friend class mjz_private_accessed_t;
 
@@ -298,6 +300,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_AL_FN success_t memcopy_assign_(str_c_<self_t> auto const &obj,
                                            bool no_allocate, uintlen_t offset,
                                            uintlen_t count) noexcept {
+
+      if (!encode_compat_(obj))
+        return false;
       if (!memcpy_to_me_<when_v>(obj.m.get_begin() + offset, count,
                                  no_allocate)) {
         return false;
@@ -353,6 +358,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <when_t when_v, str_c_<self_t> T>
     MJZ_CX_AL_FN success_t
     move_init_cpy_impl_0_(alias_t<T &&> str, bool other_ownerized) noexcept {
+      if (!encode_compat_(str))
+        return false;
       MJZ_RELEASE {
         std::destroy_at(&str);
         std::construct_at(&str);
@@ -369,11 +376,27 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return copy_assign_<when_v>(str);
     }
 
+    MJZ_CX_AL_FN success_t encode_compat_(auto &str) noexcept {
+      constexpr basic_str_props_t<version_v> other_prop =
+          std::remove_cvref_t<decltype(str)>::props_v;
+      if constexpr (other_prop.encoding != props_v.encoding &&
+                    encodings_e::err_ascii != props_v.encoding) {
+        if constexpr (other_prop.encoding != encodings_e::err_ascii)
+          return false;
+        if (str.m.u_get_encoding() != props_v.encoding)
+          return false;
+      }
+      return true;
+    }
     template <when_t when_v, str_c_<self_t> T>
     MJZ_CX_AL_FN success_t move_init_impl_(alias_t<T &&> str) noexcept {
       constexpr bool is_same_type = partial_same_as<decltype(str), self_t>;
       constexpr basic_str_props_t<version_v> other_prop =
           std::remove_cvref_t<T>::props_v;
+
+      if (!encode_compat_(str))
+        return false;
+
       if constexpr (is_same_type && when_v.is_sso()) {
         if constexpr (when_v) {
           m.destruct_to_invalid();
@@ -451,6 +474,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     template <when_t when_v, str_c_<self_t> T>
     MJZ_CX_AL_FN success_t move_init_(alias_t<T &&> str) noexcept {
+      if (!encode_compat_(str))
+        return false;
       if (void_struct_cast_t::up_cast(this) ==
           &void_struct_cast_t::up_cast(str)) {
         return true;
@@ -462,6 +487,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                        bool no_allocate = false,
                                        uintlen_t offset = 0,
                                        uintlen_t count = nops) noexcept {
+      if (!encode_compat_(obj))
+        return false;
       if (void_struct_cast_t::up_cast(this) ==
           &void_struct_cast_t::up_cast(obj)) {
         return as_substring_<when_v>(offset, count);
@@ -473,6 +500,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                             bool no_allocate = false,
                                             uintlen_t offset = 0,
                                             uintlen_t count = nops) noexcept {
+      if (!encode_compat_(obj))
+        return false;
       set_prpos_to_<when_v>(obj);
       bool has_null_{obj.make_right_then_give_has_null(offset, count)};
       constexpr bool need_to_check_alloc_equality =
@@ -522,6 +551,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                      bool no_allocate = false,
                                      uintlen_t offset = 0,
                                      uintlen_t count = nops) noexcept {
+      if (!encode_compat_(obj))
+        return false;
       if (void_struct_cast_t::up_cast(this) ==
           &void_struct_cast_t::up_cast(obj)) {
         return as_substring_<when_v>(offset, count);
@@ -533,6 +564,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                              bool no_allocate = false,
                                              uintlen_t offset = 0,
                                              uintlen_t count = nops) noexcept {
+      if (!encode_compat_(obj))
+        return false;
       set_prpos_to_<when_v>(obj);
 
       obj.make_right_then_give_has_null(offset, count);

@@ -22,48 +22,45 @@ SOFTWARE.
 */
 
 #include "basic_formatters.hpp"
-#ifdef MJZ_WITH_iostream
-#include "../../threads/bit_mutex.hpp"
-#endif
 #ifndef MJZ_BYTE_FORMATTING_print_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_print_HPP_FILE_
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   template <version_t version_v>
   struct standard_output_it_t : file_output_it_t<version_v> {
-    MJZ_MCONSTANT(uint64_t) timeout { uint16_t(-1) };
-    bool bad{};
+  private:
+    bool good{};
+
+  public:
     MJZ_NO_MV_NO_CPY(standard_output_it_t);
 #if MJZ_WITH_iostream
-
-    static threads_ns::bit_mutex_t<> &output_muext() noexcept {
-      alignas(hardware_destructive_interference_size) static threads_ns::
-          bit_mutex_t<>
-              mutex{};
-      return mutex;
+    struct standard_output_it_t_mutx_ {
+      static inline std::atomic_flag at{};
+    };
+    static std::atomic_flag &output_muext() noexcept {
+      return standard_output_it_t_mutx_::at;
     }
     MJZ_CX_FN standard_output_it_t(bool &&p = bool{}) noexcept
         : standard_output_it_t(p) {}
     MJZ_CX_FN standard_output_it_t(bool &status) noexcept {
-      MJZ_IF_CONSTEVAL {
-        bad = true;
-        status = false;
+      status = false;
+      MJZ_RELEASE { good = status; };
+      MJZ_IF_CONSTEVAL { return; };
+      if (output_muext().test_and_set(std::memory_order_acquire))
         return;
-      }
       status = true;
-      status &= output_muext().try_lock(false, timeout);
-      bad = !status;
-      if (!bad) {
+      if (status) {
         this->Stream = stdout;
       }
     }
     MJZ_CX_FN standard_output_it_t(FILE *Stream_) : standard_output_it_t{true} {
-      if (this->Stream)
-        this->Stream = Stream_;
+      if (!good)
+        return;
+      this->Stream = Stream_;
     }
     MJZ_CX_FN ~standard_output_it_t() noexcept {
-      if (!bad) {
-        output_muext().unlock();
-      }
+      if (!good)
+        return;
+      output_muext().clear(std::memory_order_release);
     }
 
 #else

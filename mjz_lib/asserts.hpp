@@ -25,6 +25,7 @@ SOFTWARE.
 #define MJZ_ASSERTS_LIB_HPP_FILE_
 
 MJZ_EXPORT namespace mjz {
+
   struct mjz_assert_t {
     mjz_assert_t(auto) = delete;
     MJZ_CX_AL_FN mjz_assert_t(totally_empty_type_t) noexcept {}
@@ -42,37 +43,63 @@ MJZ_EXPORT namespace mjz {
         /* if you see an error hear , go to the caller , they have more context
          * for the assert*/
         if (!consteval_only) {
-          MJZ_IFN_CONSTEVAL { panic(str); };
+          panic(str);
         }
         unreachable(str);
       }
       return *this;
     }
 
-    MJZ_NORETURN MJZ_NCX_AL_FN void
-    unreachable(MJZ_UNUSED const char *const str = "assert") const noexcept {
+    MJZ_NORETURN MJZ_NCX_AL_FN void static unreachable(
+        MJZ_UNUSED const char *const str = "assert") noexcept {
       MJZ_DISABLE_ALL_WANINGS_START_;
       MJZ_UNREACHABLE();
       MJZ_DISABLE_ALL_WANINGS_END_;
     }
     MJZ_NORETURN MJZ_NCX_FN static void panic_handle_deafult() noexcept {
 #if MJZ_PAINC_TRACE_ && MJZ_WITH_iostream
+#ifdef __cpp_lib_stacktrace
       std::cout << std::stacktrace::current();
+#endif
 #endif
       std::terminate();
     }
 
+    MJZ_CX_FN static void deafult_breakpoint_handler() noexcept {}
+
   private:
-    struct panic_handle_fn_ptr_t_ {
+    struct handle_fn_ptr_t_ {
       static inline std::atomic<decltype(&panic_handle_deafult)> a{
           &panic_handle_deafult};
+      static inline std::atomic<decltype(&deafult_breakpoint_handler)> d{
+          MJZ_IN_DEBUG_MODE ? &deafult_breakpoint_handler : nullptr};
     };
 
   public:
-    MJZ_NCX_AL_FN static auto &panic_handle_fn_ptr() noexcept {
-      return panic_handle_fn_ptr_t_::a;
+    MJZ_CX_AL_FN static void breakpoint() noexcept {
+      MJZ_IFN_CONSTEVAL {
+        auto bp = handle_fn_ptr_t_::d.load(std::memory_order_acquire);
+        if (bp) {
+          return bp();
+        }
+      }
+      return panic_handler();
     }
-    MJZ_NORETURN MJZ_NO_INLINE static void panic_handler() noexcept {
+    MJZ_CX_AL_FN static void breakpoint_if_debugging() noexcept {
+      MJZ_IF_CONSTEVAL { return; }
+      auto bp = handle_fn_ptr_t_::d.load(std::memory_order_acquire);
+      if (bp) {
+        return bp();
+      }
+    }
+    MJZ_CX_AL_FN static bool is_debugger_present() noexcept {
+      MJZ_IF_CONSTEVAL { return false; }
+      return !!handle_fn_ptr_t_::d.load(std::memory_order_acquire);
+    }
+    MJZ_NCX_AL_FN static auto &panic_handle_fn_ptr() noexcept {
+      return handle_fn_ptr_t_::a;
+    }
+    MJZ_NORETURN static void panic_handler() noexcept {
       MJZ_DISABLE_ALL_WANINGS_START_;
       panic_handle_fn_ptr().load(std::memory_order_acquire)();
       MJZ_UNREACHABLE();

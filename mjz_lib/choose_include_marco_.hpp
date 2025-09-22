@@ -20,6 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+#ifndef MJZ_LIB_FILE_choose_include_marco_
+#define MJZ_LIB_FILE_choose_include_marco_
 #ifndef MJZ_USE_cpp_lib_to_chars_int
 #define MJZ_USE_cpp_lib_to_chars_int false
 #endif
@@ -51,6 +53,12 @@ SOFTWARE.
 #else
 #define MJZ_USE_CXX_MODULES_ false
 #endif
+
+
+#ifndef MJZ_IS_CXX_MODULES_
+#define  MJZ_IS_CXX_MODULES_ MJZ_USE_CXX_MODULES_
+#endif
+
 
 #ifndef MJZ_STD_HAS_SIMD_LIB_
 #define MJZ_STD_HAS_SIMD_LIB_ __has_include(<experimental/simd>)
@@ -85,3 +93,4 @@ SOFTWARE.
 #ifndef MJZ_PAINC_TRACE_
 #define MJZ_PAINC_TRACE_ true
 #endif
+#endif //MJZ_LIB_FILE_choose_include_marco_

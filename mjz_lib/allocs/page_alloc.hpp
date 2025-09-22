@@ -146,7 +146,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
             meta_refrence->allocate(minsize, strategy.get_alignof_z());
         ret.ptr = ret_.data();
         minsize = branchless_teranary(
-            !strategy.allocate_exactly_minsize ret_.size(), minsize);
+            !strategy.allocate_exactly_minsize ,ret_.size(), minsize);
         ret.length = std::min(minsize, ret_.size());
         return ret;
       }

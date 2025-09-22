@@ -712,8 +712,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
       const auto func_ = get_vtbl().ref_call;
       if (!func_)
         return true;
-      MJZ_RELEASE { this->ref = nullptr; };
-      run(func_, false);
+      func_(std::exchange(this->ref, nullptr), false);
       return true;
     }
     MJZ_CX_FN
@@ -793,9 +792,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
 #if MJZ_LOG_ALLOC_ALLOCATIONS_
       MJZ_NOEXCEPT { mjz_debug_cout::print("[dealloc:", blk.length, "]"); };
 #endif
-      run_grantee_table(ref, ref.vtable.deallocate, blk, ai);
-      blk = block_info{};
-      return;
+      return run_grantee_table(ref, ref.vtable.deallocate, blk, ai);
     }
     using allocation_mode_e = typename alloc_info::allocation_mode_e;
     MJZ_CX_FN static block_info
@@ -893,8 +890,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         }
       }
       if (deallocate_fn) {
-        local_dealloc(*ref, blk, ai);
-        return;
+        return local_dealloc(*ref, blk, ai);
       }
       if (allocate_fn) {
         // monotonic

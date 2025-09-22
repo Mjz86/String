@@ -92,7 +92,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_FCONSTANT(auto) unsafe_v = "i do know that what im doing is unsafe."_dw;
 
   }; // namespace unsafe_ns
-
+  inline namespace static_data_ns {
   template <callable_anyret_c<void() noexcept> static_data_fn_t>
     requires requires() {
       { static_data_fn_t()() } noexcept;
@@ -142,6 +142,8 @@ MJZ_EXPORT namespace mjz {
   };
   MJZ_FCONSTANT(static_range_maker_t) make_static_range{};
   MJZ_FCONSTANT(static_data_maker_t) make_static_data{};
+  }; // namespace static_data_ns
+  using namespace static_data_ns;
 
 } // namespace mjz
 #endif //  MJZ_RES_ARGS_LIB_HPP_FILE_

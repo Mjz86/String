@@ -46,6 +46,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     const cx_formatter_storage_base_t<version_v> *formatter_ptr{};
   };
 
+
   template <version_t version_v>
   using cx_formatter_storage_ref_t =
       optional_ref_t<const cx_formatter_storage_base_t<version_v>>;
@@ -191,6 +192,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   // configurable
   template <version_t version_v>
   const constexpr uintlen_t format_basic_buffer_size_v = 64;
+  
+  // configurable
+  template <version_t version_v, typename>
+  MJZ_MCONSTANT(uintlen_t)
+  basic_format_specs_conversion_buffer_size_v{
+      format_basic_buffer_size_v<version_v>};
   // configurable
   template <version_t version_v>
   const constexpr uintlen_t format_stack_size_v = 128 * sizeof(uintlen_t);

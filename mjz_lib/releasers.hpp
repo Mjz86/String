@@ -294,12 +294,15 @@ MJZ_EXPORT namespace mjz {
 
   template <typename T> using nullable_t = T;
   template <typename T> using no_null_t = T;
+  inline namespace just_do_ns {
   MJZ_MSVC_ONLY_PRAGMA_(optimize("", off));
   MJZ_CX_NL_FN void just_do(auto &&...) noexcept {}
   MJZ_MSVC_ONLY_PRAGMA_(optimize("", on));
-  template <typename T> MJZ_CX_NL_FN T just_ret(T && arg) noexcept {
+  template <typename T> MJZ_CX_NL_FN T just_ret(T &&arg) noexcept {
     return std::forward<T>(arg);
   }
+  }; // namespace just_do_ns
+  using namespace just_do_ns;
   template <typename T> using non_null_rvalue_ptr_t = T *const;
 
   // no perfect forward

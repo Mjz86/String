@@ -26,6 +26,7 @@ SOFTWARE.
 #define MJZ_OPTIONALS_LIB_HPP_FILE_
 
 MJZ_EXPORT namespace mjz {
+  inline namespace optional_ref_ns {
   template <typename T> struct MJZ_trivially_relocatable optional_ref_t {
     single_object_pointer_t<T> ptr{};
     MJZ_CX_ND_FN T &operator*() const noexcept {
@@ -280,7 +281,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_DISABLE_ALL_WANINGS_END_;
 
   template <class... lambdas_t>
-  multilambda_t(lambdas_t && ...) -> multilambda_t<lambdas_t &&...>;
+  multilambda_t(lambdas_t &&...) -> multilambda_t<lambdas_t &&...>;
 
   class success_ret_arg_t {
     template <class> friend class mjz_private_accessed_t;
@@ -363,6 +364,7 @@ MJZ_EXPORT namespace mjz {
 
   template <class T>
   using optional_of_t = typename optioal_of_type_helper_t<T>::type;
-
+  }; // namespace optional_ref_ns
+  using namespace optional_ref_ns;
 } // namespace mjz
 #endif // MJZ_OPTIONALS_LIB_HPP_FILE_

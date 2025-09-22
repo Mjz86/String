@@ -25,6 +25,7 @@ SOFTWARE.
 #define MJZ_TUPLE_LIB_HPP_FILE_
 #include "all_macors.hpp"
 MJZ_EXPORT namespace mjz {
+  inline namespace tuple_ns {
   template <class, class> struct tuple_strorage_t {};
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <class T, size_t my_I>
@@ -92,8 +93,8 @@ MJZ_EXPORT namespace mjz {
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <typename... Ts, size_t... Is>
     requires(!!sizeof...(Ts))
-  struct MJZ_maybe_trivially_relocatable MJZ_MSVC_ONLY_CODE_(
-      __declspec(empty_bases))
+  struct MJZ_maybe_trivially_relocatable
+  MJZ_MSVC_ONLY_CODE_(__declspec(empty_bases))
       tuple_strorage_t<void(Ts...), std::index_sequence<Is...>>
       : tuple_elem_storage_t<Ts, Is>... {
     MJZ_DISABLE_ALL_WANINGS_END_;
@@ -170,7 +171,7 @@ MJZ_EXPORT namespace mjz {
     using is_mjz_tuple_c_uuid_098765987654345678 = void;
   };
   template <typename... Ts>
-  tuple_t(Ts && ...) noexcept -> tuple_t<std::remove_cvref_t<Ts>...>;
+  tuple_t(Ts &&...) noexcept -> tuple_t<std::remove_cvref_t<Ts>...>;
 
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <class first_t, class second_t>
@@ -269,6 +270,9 @@ MJZ_EXPORT namespace mjz {
   concept is_mjz_tuple_c_ = requires() {
     typename std::remove_cvref_t<T>::is_mjz_tuple_c_uuid_098765987654345678;
   };
+  }; // namespace tuple_ns
+
+  using namespace tuple_ns;
 
 } // namespace mjz
 MJZ_EXPORT namespace std {

@@ -106,20 +106,22 @@ MJZ_EXPORT namespace mjz::threads_ns {
                            uint64_t timeout_count) noexcept {
       MJZ_IF_CONSTEVAL { return true; }
       auto &m = *get();
-      uint64_t i{};
-      while (i < timeout_count && test_and_set_m(m)) {
-        i++;
-      }
-      if (i < timeout_count) {
+      if (!test_and_set_m(m))
         return true;
-      }
-      if (!need_to_wait) {
+      if (!timeout_count)
         return false;
-      }
-      while (test_and_set_m(m)) {
+      uint64_t i{};
+      do {
+        if (!test_and_set_m(m))
+          return true;
+        i++;
+      } while (i < timeout_count);
+      while (need_to_wait) {
         wait_m(m);
-      }
-      return true;
+        if (!test_and_set_m(m))
+          return true;
+      };
+      return false;
     }
     MJZ_CX_FN void unlock_ncx() noexcept {
       MJZ_IF_CONSTEVAL { return; }

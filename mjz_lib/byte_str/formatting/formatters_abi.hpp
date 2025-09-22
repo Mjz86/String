@@ -45,11 +45,6 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <version_t version_v, partial_same_as<std::nullopt_t> T>
   struct default_formatter_t<version_v, T, 20>
       : formatter_type_t<version_v, void_struct_t> {};
-  template <version_t version_v, typename>
-  MJZ_MCONSTANT(uintlen_t)
-  basic_format_specs_conversion_buffer_size_v{
-      format_basic_buffer_size_v<version_v>};
-
   template <version_t version_v> struct basic_format_specs_format_fn_obj_t {
     base_lazy_view_t<version_v> as_string{};
     std::optional<uintlen_t> length{};
@@ -64,11 +59,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     byte_traits_t<version_v> bt{};
   };
   template <version_t version_v> struct basic_format_specs_t {
-    using format_fn_obj = basic_format_specs_format_fn_obj_t<version_v>;
-    template <typename T>
-    MJZ_MCONSTANT(uintlen_t)
-    conversion_buffer_size_v{
-        basic_format_specs_conversion_buffer_size_v<version_v, T>};
+    using format_fn_obj = basic_format_specs_format_fn_obj_t<version_v>; 
     enum class align_e : uint8_t { none, left, right, center };
     enum class sign_e : uint8_t { none, plus, minus, space };
     enum class type_e : uint8_t {

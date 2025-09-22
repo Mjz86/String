@@ -54,7 +54,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   template <version_t version_v, bool has_alloc_v_, bool has_null_v_,
             bool is_ownerized_v_, may_bool_t is_threaded_v_,
             uintlen_t user_sso_selected_cap,
-            align_direction_e align_direction_v_>
+            align_direction_e align_direction_v_,
+            encodings_e static_encoding_v_>
   struct str_abi_t_ {
     static_assert(is_threaded_v_ != may_bool_t::err);
     /// <summary>
@@ -86,13 +87,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                   cntrl_size;
     struct nsso_mdata_t {
       // same as is_heap ()
-      uint8_t no_destroy : 1 {1};
+      bool no_destroy{/*true*/};
       // !(should_destroy&&!heap.might_share())||is_sharable
-      uint8_t is_sharable : 1 {};
-      uint8_t has_mut : 1 {};
+      bool is_sharable{};
+      bool has_mut{};
       // !has_null|| data()[len]==0
-      uint8_t has_null : 1 {};
-      uint8_t reserved_0_ : 4 {};
+      bool has_null{};
 
       // shallow bit cpy , share , deep cpy, deep cpy to sso
 
@@ -102,23 +102,107 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       MJZ_CX_FN bool operator==(const nsso_mdata_t &) const noexcept = default;
     };
     struct control_byte_t {
-      uint8_t is_sso : 1 {};
-      uint8_t is_ownerized : 1 {is_ownerized_v_};
-      uint8_t as_not_threaded_bit : 1 {!bool(char(is_threaded_v_))};
-      uint8_t encodings_bits : 5 {};
+      bool is_sso{};
+      bool is_ownerized{bool(is_ownerized_v_)};
+      bool as_not_threaded_bit{!bool(char(is_threaded_v_))};
+      uint8_t encodings_bits{};
       MJZ_CX_FN bool
       operator==(const control_byte_t &) const noexcept = default;
     };
 
+    struct control_layout_cast_t {
+      MJZ_CX_FN bool
+      operator==(const control_layout_cast_t &) const noexcept = default;
+      struct layout_t_ {
+        int count{1};
+        int offset{};
+
+        MJZ_CX_FN bool operator==(const layout_t_ &) const noexcept = default;
+      };
+
+      layout_t_ encodings_bits{};
+      layout_t_ is_sso{};
+      layout_t_ is_ownerized{};
+      layout_t_ as_not_threaded_bit{};
+      layout_t_ no_destroy{};
+      layout_t_ is_sharable{};
+      layout_t_ has_mut{};
+      layout_t_ has_null{};
+      MJZ_CX_AL_FN control_layout_cast_t() noexcept {
+        asserts(count == 0 && encodings_bits.count == 1);
+        if constexpr (static_encoding_v_ == encodings_e::err_ascii) {
+          encodings_bits.count = 5;
+        }
+        if constexpr (is_ownerized_v_) {
+          is_ownerized.count = 0;
+        }
+        if constexpr (is_threaded_v_ != may_bool_t::idk) {
+          as_not_threaded_bit.count = 0;
+        }
+        std::ignore =
+            (add_to_layout(encodings_bits), add_to_layout(is_ownerized),
+             add_to_layout(as_not_threaded_bit), add_to_layout(is_sso),
+             add_to_layout(no_destroy), add_to_layout(is_sharable),
+             add_to_layout(has_mut), add_to_layout(has_null), 0);
+      }
+
+      template <class T, class uX_t>
+      MJZ_CX_AL_FN static void input(uX_t &ret, layout_t_ layout,
+                                     T val_) noexcept {
+        uX_t val = uX_t(val_);
+        if constexpr (std::same_as<uint8_t, T> &&
+                      static_encoding_v_ != encodings_e::err_ascii) {
+          val = val_ == uint8_t(encodings_e::err_ascii) ? 1 : 0;
+        }
+
+        val &= uX_t(uX_t(1 << layout.count) - 1);
+        ret |= uX_t(val << layout.offset);
+      }
+      template <class T, class uX_t>
+      MJZ_CX_AL_FN static void output(T &ret, layout_t_ layout,
+                                      uX_t val) noexcept {
+        val >>= layout.offset;
+        val &= uX_t(uX_t(1 << layout.count) - 1);
+        if constexpr (std::same_as<uint8_t, T> &&
+                      static_encoding_v_ != encodings_e::err_ascii) {
+          ret = uint8_t(val ? encodings_e::err_ascii : static_encoding_v_);
+        } else {
+
+          ret = T(val);
+        }
+      }
+
+      int count{};
+
+    private:
+      MJZ_CX_AL_FN auto add_to_layout(layout_t_ &l) noexcept {
+        if constexpr (std::endian::big != std::endian::native) {
+          count += l.count;
+          l.offset = -count;
+          return ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void {
+            l.offset += count < 8 ? 8 : 16;
+          };
+        } else {
+          l.offset = count;
+          count += l.count;
+        }
+      }
+    };
+    static constexpr control_layout_cast_t control_layout_cast_v{};
     MJZ_PACKING_START_;
-    static_assert(sizeof(nsso_mdata_t) == sizeof(uint8_t));
     constexpr static uintlen_t raw_lencap_size_v =
-        buffer_size - (sizeof(char *) * 2 + sizeof(nsso_mdata_t));
+        buffer_size - (sizeof(char *) * 2 + (8 < control_layout_cast_v.count));
     struct non_sso_t {
       const char *begin_ptr{};
       char *data_block{};
-      char raw_lencap[raw_lencap_size_v]{};
-      nsso_mdata_t nsso_mdata{};
+      char raw_lencap[raw_lencap_size_v + (8 < control_layout_cast_v.count)]{};
+      MJZ_CX_FN non_sso_t() noexcept {
+        if constexpr (8 < control_layout_cast_v.count) {
+          constexpr char initv = std::bit_cast<std::array<char, 2>>(
+              uint16_t(1 << (control_layout_cast_v.no_destroy.offset)))[0];
+          raw_lencap[raw_lencap_size_v] = initv;
+        }
+      }
     };
     // sorry 16 bit ptrs
     static_assert((sizeof(char *) * 2) % sizeof(uintlen_t) == 0);
@@ -128,33 +212,119 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     };
     static_assert(sizeof(raw_data_u) == sizeof(non_sso_t));
 
+    static constexpr bool all_feilds_are_fully_sized =
+        !(raw_lencap_size_v < sizeof(uintlen_t) * 2);
     static constexpr size_t raw_length_offset = 0;
     static constexpr size_t raw_capacity_offset =
-        raw_lencap_size_v < sizeof(uintlen_t) * 2 ? sizeof(uintlen_t) - 1
-                                                  : sizeof(uintlen_t);
+        (!all_feilds_are_fully_sized)
+            ? raw_lencap_size_v - (sizeof(uintlen_t) - 1)
+            : sizeof(uintlen_t);
     static constexpr bool is_raw_capacity_aliged =
         !(raw_capacity_offset % sizeof(uintlen_t));
-    static constexpr bool are_raw_feilds_aliged = is_raw_capacity_aliged;
 
     struct raw_data_t {
-      static_assert(sizeof(control_byte_t) == sizeof(uint8_t));
       raw_data_u raw_data{};
-      control_byte_t control_byte{};
+      uint8_t control_byte{};
+      MJZ_CX_FN raw_data_t() noexcept {
+        constexpr uint8_t initv =
+            8 < control_layout_cast_v.count
+                ? uint8_t(0)
+                : uint8_t(1 << (control_layout_cast_v.no_destroy.offset));
+
+        ;
+
+        control_byte = initv;
+      }
     };
     MJZ_PACKING_END_;
     static_assert(sizeof(raw_data_t) == sizeof(raw_data_u) + sizeof(uint8_t) &&
                   sizeof(raw_data_u) == buffer_size);
     static_assert((sizeof(raw_data_t) % alignof(uintlen_t)) == 0);
 
-    struct alignas(2) str_data0_t {
-      nsso_mdata_t first{};
-      control_byte_t second{};
+    struct str_data_bytes_u8_t {
+      uint8_t control_byte{};
+
+      MJZ_CX_AL_FN bool
+      operator==(const str_data_bytes_u8_t &) const noexcept = default;
     };
-    static_assert(sizeof(str_data0_t) == 2);
+    struct alignas(2) str_data_bytes_u16_t {
+      uint8_t nsso_mdata{};
+      uint8_t control_byte{};
+
+      MJZ_CX_AL_FN bool
+      operator==(const str_data_bytes_u16_t &) const noexcept = default;
+    };
+    using str_data_bytes_t =
+        std::conditional_t<(8 < control_layout_cast_v.count),
+                           str_data_bytes_u16_t, str_data_bytes_u8_t>;
+    using uintbytes_t_ = uint_size_of_t<sizeof(str_data_bytes_t)>;
     struct str_data_t : nsso_mdata_t, control_byte_t {
-      MJZ_CX_FN str_data_t(str_data0_t d) noexcept
-          : nsso_mdata_t{d.first}, control_byte_t{d.second} {}
-      MJZ_CX_FN bool operator==(const str_data_t &) const noexcept = default;
+      MJZ_CX_AL_FN str_data_t() noexcept = default;
+      MJZ_CX_AL_FN str_data_t(str_data_bytes_t d) noexcept
+          : str_data_t(control_layout_cast(d)) {}
+      MJZ_CX_AL_FN
+      operator str_data_bytes_t() const noexcept {
+        return control_layout_cast(*this);
+      }
+      MJZ_CX_AL_FN bool operator==(const str_data_t &) const noexcept = default;
+      // theres somting wrong
+      MJZ_CX_AL_FN static str_data_bytes_t
+      control_layout_cast(str_data_t input) noexcept {
+        uintbytes_t_ ret{};
+        constexpr control_layout_cast_t layout{control_layout_cast_v};
+#define MJZ_control_layout_cast_helper_in(X)                                   \
+  layout.input(ret, layout.X, input.X)
+
+        /// the ones that are knows should be asserts! and not excuted
+        MJZ_control_layout_cast_helper_in(encodings_bits);
+        MJZ_control_layout_cast_helper_in(is_sso);
+        if constexpr (!is_ownerized_v_) {
+          MJZ_control_layout_cast_helper_in(is_ownerized);
+        } else {
+          asserts(asserts.assume_rn, input.is_ownerized);
+        }
+        if constexpr (is_threaded_v_ == may_bool_t::idk) {
+          MJZ_control_layout_cast_helper_in(as_not_threaded_bit);
+        } else {
+          asserts(asserts.assume_rn,
+                  input.as_not_threaded_bit == bool(is_threaded_v_));
+        }
+        MJZ_control_layout_cast_helper_in(no_destroy);
+        MJZ_control_layout_cast_helper_in(is_sharable);
+        MJZ_control_layout_cast_helper_in(has_mut);
+        MJZ_control_layout_cast_helper_in(has_null);
+#undef MJZ_control_layout_cast_helper_in
+        return std::bit_cast<str_data_bytes_t>(ret);
+      }
+      MJZ_CX_AL_FN static str_data_t
+      control_layout_cast(str_data_bytes_t input_) noexcept {
+        constexpr control_layout_cast_t layout{control_layout_cast_v};
+        uintbytes_t_ input{std::bit_cast<uintbytes_t_>(input_)};
+
+        str_data_t ret{};
+#define MJZ_control_layout_cast_helper_out(X)                                  \
+  layout.output(ret.X, layout.X, input)
+
+        /// the ones that are knows should be returns! and not excuted
+        MJZ_control_layout_cast_helper_out(encodings_bits);
+        MJZ_control_layout_cast_helper_out(is_sso);
+        if constexpr (!is_ownerized_v_) {
+          MJZ_control_layout_cast_helper_out(is_ownerized);
+        } else {
+          ret.is_ownerized = true;
+        }
+        if constexpr (is_threaded_v_ == may_bool_t::idk) {
+          MJZ_control_layout_cast_helper_out(as_not_threaded_bit);
+        } else {
+          ret.as_not_threaded_bit = bool(is_threaded_v_);
+        }
+        MJZ_control_layout_cast_helper_out(no_destroy);
+        MJZ_control_layout_cast_helper_out(is_sharable);
+        MJZ_control_layout_cast_helper_out(has_mut);
+        MJZ_control_layout_cast_helper_out(has_null);
+#undef MJZ_control_layout_cast_helper_out
+        return ret;
+      }
     };
 
     struct data_t : abi_ns_::alloc_t<version_v, has_alloc_v_> {
@@ -268,12 +438,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       MJZ_DISABLE_ALL_WANINGS_START_;
       MJZ_CX_AL_FN const str_data_t cntrl() const noexcept {
         MJZ_DISABLE_ALL_WANINGS_END_;
-        MJZ_IF_CONSTEVAL {
-          auto cnt8 = get_cntrl_u8();
-          return str_data0_t{cnt8.is_sso ? nsso_mdata_t{} : u_nsso_mdata_get(),
-                             cnt8};
-        }
-        return u_ncx_cntrl_get();
+        return u_cntrl_get();
       }
 
       MJZ_CX_AL_FN void set_cap_minus_sso_length(uintlen_t new_val_) noexcept {
@@ -304,6 +469,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
       MJZ_CX_AL_FN encodings_e get_encoding() const noexcept {
         return u_get_encoding();
+      }
+
+      MJZ_CX_AL_FN success_t set_encoding(encodings_e e) noexcept {
+        if constexpr (static_encoding_v_ != encodings_e::err_ascii) {
+          if (static_encoding_v_ != e && e != encodings_e::err_ascii)
+            return false;
+        }
+        u_set_encoding(e);
+        return true;
       }
       MJZ_CX_AL_FN const char *get_begin() const noexcept {
         MJZ_IF_CONSTEVAL_ {
@@ -339,11 +513,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         asserts(asserts.assume_rn,
                 !memory_has_overlap_ncx(this, sizeof(*this), begin, length));
       }
-      template <bool is_aligned>
+      template <bool is_aligned, bool is_fully_sized>
       MJZ_CX_AL_FN static void u_headless_uintlen_set(char *ptr_0_,
                                                       uintlen_t val) noexcept {
         asserts(asserts.assume_rn, val <= byte_traits_t<version_v>::npos - 1);
-        if constexpr (are_raw_feilds_aliged) {
+        if constexpr (is_fully_sized) {
           return cpy_aligned_bitcast(ptr_0_, val);
         }
         char *ptr_ = ptr_0_;
@@ -366,11 +540,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           memcpy(ptr_0_, buf_, sizeof(uintlen_t) - 1);
         }
       }
-      template <bool is_aligned>
+      template <bool is_aligned, bool is_fully_sized>
       MJZ_CX_AL_FN static uintlen_t
       u_headless_uintlen_get(const char *ptr_) noexcept {
         uintlen_t ret{};
-        if constexpr (!are_raw_feilds_aliged) {
+        if constexpr (!is_fully_sized) {
           alignas(alignof(uintlen_t)) char buf_[sizeof(uintlen_t)]{};
           if constexpr (!is_aligned) {
             memcpy(buf_, ptr_, sizeof(uintlen_t) - 1);
@@ -404,13 +578,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         check_buffer_correct_ness_(begin_, length_, buffer_begin_, capacity_);
 
         asserts(asserts.assume_rn, !should_destroy_ || buffer_begin_);
-
-        non_sso_t &data = *std::construct_at(&m_v().raw_data.non_sso);
+        non_sso_t *datap_{};
         {
           auto cnt8 = get_cntrl_u8();
           cnt8.is_sso = false;
+          datap_ = std::construct_at(&m_v().raw_data.non_sso);
           u_set_cntrl_u8(cnt8);
         }
+        non_sso_t &data = *datap_;
         data.begin_ptr = begin_;
         data.data_block = buffer_begin_;
         u_nsso_lenas(length_);
@@ -423,7 +598,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           u_nsso_mdata_set(mdata_);
         };
 
-        u_headless_uintlen_set<is_raw_capacity_aliged>(
+        u_headless_uintlen_set<is_raw_capacity_aliged,
+                               all_feilds_are_fully_sized>(
             const_cast<char *>(uu_nsso_capp()), capacity_);
       }
       template <when_t when_v>
@@ -466,7 +642,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
 
       MJZ_CX_AL_FN uintlen_t get_non_sso_capacity() const noexcept {
-        return u_headless_uintlen_get<is_raw_capacity_aliged>(uu_nsso_capp());
+        return u_headless_uintlen_get<is_raw_capacity_aliged,
+                                      all_feilds_are_fully_sized>(
+            uu_nsso_capp());
       }
       MJZ_CX_AL_FN uintlen_t get_capacity() const noexcept {
         MJZ_IF_CONSTEVAL {
@@ -481,10 +659,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
       MJZ_CX_AL_FN char *u_set_invalid_to_inactive_sso(uintlen_t len) noexcept {
         asserts(asserts.assume_rn, len <= sso_cap);
-        m_v().raw_data.sso_buffer[len] = 0; // make the buffer alive
         {
           auto cnt8 = get_cntrl_u8();
           cnt8.is_sso = true;
+          m_v().raw_data.sso_buffer[len] = 0; // make the buffer alive
           u_set_cntrl_u8(cnt8);
         }
         set_sso_length(len);
@@ -536,7 +714,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       MJZ_CX_AL_FN bool is_sharable() const noexcept {
         str_data_t cnt = cntrl();
-        return (!cnt.is_sso && cnt.is_sharable);
+        return !(cnt.is_sso || !cnt.is_sharable);
       }
       MJZ_CX_FN basic_string_view_t<version_v> get_view() const noexcept {
         return base_string_view_t<version_v>::make(
@@ -566,21 +744,21 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       MJZ_CX_FN void destruct_to_invalid_impl_big() noexcept {
         return destruct_to_invalid_impl_big_();
       }
-      MJZ_CX_AL_FN void desturct_heap_impl_al_(str_data_t cnt) noexcept {
-        asserts(asserts.assume_rn, cnt == cntrl());
+      MJZ_CX_AL_FN void desturct_heap_impl_al_(str_data_bytes_t cnt) noexcept {
+        asserts(asserts.assume_rn, cnt == u_cntrl_get());
         non_sso_my_heap_manager_no_own().u_must_free();
       }
 
-      MJZ_CX_NL_FN void desturct_heap_impl_nl_(str_data_t cnt) noexcept {
+      MJZ_CX_NL_FN void desturct_heap_impl_nl_(str_data_bytes_t cnt) noexcept {
         return desturct_heap_impl_al_(cnt);
       }
-      MJZ_CX_FN void desturct_heap_impl_(str_data_t cnt) noexcept {
+      MJZ_CX_FN void desturct_heap_impl_(str_data_bytes_t cnt) noexcept {
         return desturct_heap_impl_al_(cnt);
       }
 
     public:
       MJZ_CX_AL_FN void destruct_heap_impl_al_() noexcept {
-        desturct_heap_impl_(cntrl());
+        desturct_heap_impl_(u_cntrl_get());
       }
       MJZ_CX_NL_FN void destruct_heap_impl_nl_() noexcept {
         destruct_heap_impl_al_();
@@ -698,11 +876,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return (ptr + raw_capacity_offset);
       }
       MJZ_CX_AL_FN uintlen_t uu_nsso_len() const noexcept {
-        return u_headless_uintlen_get<true>(uu_nsso_lenp());
+        return u_headless_uintlen_get<true, is_raw_capacity_aliged>(
+            uu_nsso_lenp());
       }
       MJZ_CX_AL_FN void uu_nsso_lenas(uintlen_t new_len) noexcept {
-        u_headless_uintlen_set<true>(const_cast<char *>(uu_nsso_lenp()),
-                                     new_len);
+        u_headless_uintlen_set<true, is_raw_capacity_aliged>(
+            const_cast<char *>(uu_nsso_lenp()), new_len);
       }
 
     public:
@@ -827,13 +1006,31 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                      is_sharable(), true, is_heap());
         return true;
       }
+
+      MJZ_CX_AL_FN uintbytes_t_ cntrl_uint() const noexcept {
+        return std::bit_cast<uintbytes_t_>(u_cntrl_get());
+      }
       MJZ_CX_AL_FN bool is_heap() const noexcept {
+
+        constexpr uintbytes_t_ mask = std::bit_cast<uintbytes_t_>([]() {
+          str_data_t cnt{};
+          cnt.no_destroy = true;
+          cnt.is_sso = true;
+
+          return str_data_bytes_t(cnt);
+        }());
         str_data_t cnt = cntrl();
-        return !(cnt.is_sso || cnt.no_destroy);
+
+        const bool ret0 = !(cnt.is_sso || cnt.no_destroy);
+
+        const bool ret{(cntrl_uint() & mask) == 0};
+
+        asserts(asserts.assume_rn, ret0 == ret);
+        return ret;
       }
       MJZ_CX_AL_FN bool is_s_view() const noexcept {
         str_data_t cnt = cntrl();
-        return (!cnt.is_sso && cnt.is_sharable && cnt.no_destroy);
+        return !(cnt.is_sso || !cnt.is_sharable || !cnt.no_destroy);
       }
       MJZ_CX_AL_FN bool is_stable() const noexcept {
         str_data_t cnt = cntrl();
@@ -849,48 +1046,92 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
 
       MJZ_CX_AL_FN encodings_e u_get_encoding() const noexcept {
-        return encodings_e(cntrl().encodings_bits);
+        encodings_e e = encodings_e(cntrl().encodings_bits);
+        if constexpr (static_encoding_v_ == encodings_e::err_ascii) {
+          return e;
+        }
+        asserts(asserts.assume_rn,
+                e == static_encoding_v_ || e == encodings_e::err_ascii);
+        return e;
       }
       MJZ_CX_AL_FN void u_set_encoding(encodings_e e) noexcept {
+        if constexpr (static_encoding_v_ != encodings_e::err_ascii) {
+          asserts(asserts.assume_rn,
+                  e == static_encoding_v_ || e == encodings_e::err_ascii);
+        }
         auto cnt8 = get_cntrl_u8();
         cnt8.encodings_bits = uint8_t(e);
         u_set_cntrl_u8(cnt8);
+        asserts(asserts.assume_rn, get_cntrl_u8().encodings_bits == uint8_t(e));
+      }
+
+      MJZ_CX_AL_FN nsso_mdata_t u_nsso_mdata_get() const noexcept {
+        return nsso_mdata_t(cntrl());
       }
 
     public:
       MJZ_CX_AL_FN control_byte_t get_cntrl_u8() const noexcept {
-        MJZ_IF_CONSTEVAL { return m_v().control_byte; }
-        return control_byte_t(u_ncx_cntrl_get());
-      }
-      MJZ_CX_AL_FN nsso_mdata_t u_nsso_mdata_get() const noexcept {
-        MJZ_IF_CONSTEVAL { return m_v().raw_data.non_sso.nsso_mdata; }
-        return nsso_mdata_t(u_ncx_cntrl_get());
-      }
-
-      MJZ_NCX_AL_FN str_data_t u_ncx_cntrl_get() const noexcept {
-        return std::bit_cast<str_data0_t>(cpy_aligned_bitcast<uint16_t>(
-            reinterpret_cast<const char *>(&m) + (sizeof(m) - 2)));
-      }
-      MJZ_NCX_AL_FN void u_ncx_cntrl_set(str_data_t u16) const noexcept {
-        cpy_aligned_bitcast(reinterpret_cast<const char *>(&m) +
-                                (sizeof(m) - 2),
-                            std::bit_cast<str_data0_t>(u16));
-      }
-      MJZ_CX_AL_FN void u_set_cntrl_u8(control_byte_t cnt8) noexcept {
-        MJZ_IF_CONSTEVAL {
-          m_v().control_byte = cnt8;
-          return;
+        str_data_bytes_t bytes{};
+        bytes.control_byte = m_v().control_byte;
+        str_data_t data{bytes};
+        asserts(asserts.assume_rn, str_data_t(bytes) == data);
+        auto &cb = static_cast<control_byte_t &>(data);
+        MJZ_IFN_CONSTEVAL {
+          asserts(asserts.assume_rn, cb == control_byte_t(cntrl()));
         }
-        reinterpret_cast<uint8_t *>(&m)[sizeof(m) - 1] =
-            std::bit_cast<uint8_t>(cnt8);
+        return cb;
       }
       MJZ_CX_AL_FN void u_nsso_mdata_set(nsso_mdata_t mdta) noexcept {
-        MJZ_IF_CONSTEVAL {
-          m_v().raw_data.non_sso.nsso_mdata = mdta;
-          return;
-        };
-        reinterpret_cast<uint8_t *>(&m)[sizeof(m) - 2] =
-            std::bit_cast<uint8_t>(mdta);
+        str_data_t data = cntrl();
+        static_cast<nsso_mdata_t &>(data) = mdta;
+        u_cntrl_set(data);
+      }
+
+      MJZ_CX_AL_FN void u_set_cntrl_u8(control_byte_t cnt8) noexcept {
+        str_data_bytes_t bytes{};
+        bytes.control_byte = m_v().control_byte;
+        str_data_t data{bytes};
+        asserts(asserts.assume_rn, bytes == str_data_bytes_t(data));
+        static_cast<control_byte_t &>(data) = cnt8;
+        bytes = data;
+        asserts(asserts.assume_rn, str_data_t(bytes) == data);
+        m_v().control_byte = bytes.control_byte;
+        asserts(asserts.assume_rn, data == cnt8);
+        asserts(asserts.assume_rn, cnt8 == get_cntrl_u8());
+      }
+
+      MJZ_CX_AL_FN str_data_bytes_t u_cntrl_get() const noexcept {
+        constexpr control_layout_cast_t layout{control_layout_cast_v};
+        str_data_bytes_t bytes{};
+        if constexpr (8 < layout.count) {
+          MJZ_IFN_CONSTEVAL {
+            return std::bit_cast<str_data_bytes_t>(
+                cpy_aligned_bitcast<uintbytes_t_>(
+                    reinterpret_cast<const char *>(&m) +
+                    (sizeof(m) - sizeof(uintbytes_t_))));
+          }
+          if (!get_cntrl_u8().is_sso)
+            bytes.nsso_mdata =
+                uint8_t(m_v().raw_data.non_sso.raw_lencap[raw_lencap_size_v]);
+        }
+        bytes.control_byte = m_v().control_byte;
+        return bytes;
+      }
+      MJZ_CX_AL_FN void u_cntrl_set(str_data_bytes_t bytes) noexcept {
+        constexpr control_layout_cast_t layout{control_layout_cast_v};
+        if constexpr (8 < layout.count) {
+          MJZ_IFN_CONSTEVAL {
+            cpy_aligned_bitcast(reinterpret_cast<char *>(&m) +
+                                    (sizeof(m) - sizeof(uintbytes_t_)),
+                                bytes);
+            return;
+          }
+
+          if (!str_data_t{bytes}.is_sso)
+            m_v().raw_data.non_sso.raw_lencap[raw_lencap_size_v] =
+                char(bytes.nsso_mdata);
+        }
+        m_v().control_byte = bytes.control_byte;
       }
     };
   };
