@@ -189,6 +189,25 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
     };
     static constexpr control_layout_cast_t control_layout_cast_v{};
+
+    struct str_data_bytes_u8_t {
+      uint8_t control_byte{};
+
+      MJZ_CX_AL_FN bool
+      operator==(const str_data_bytes_u8_t &) const noexcept = default;
+    };
+    struct alignas(2) str_data_bytes_u16_t {
+      uint8_t nsso_mdata{};
+      uint8_t control_byte{};
+
+      MJZ_CX_AL_FN bool
+      operator==(const str_data_bytes_u16_t &) const noexcept = default;
+    };
+    using str_data_bytes_t =
+        std::conditional_t<(8 < control_layout_cast_v.count),
+                           str_data_bytes_u16_t, str_data_bytes_u8_t>;
+    using uintbytes_t_ = uint_size_of_t<sizeof(str_data_bytes_t)>;
+
     MJZ_PACKING_START_;
     constexpr static uintlen_t raw_lencap_size_v =
         buffer_size - (sizeof(char *) * 2 + (8 < control_layout_cast_v.count));
@@ -198,8 +217,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       char raw_lencap[raw_lencap_size_v + (8 < control_layout_cast_v.count)]{};
       MJZ_CX_FN non_sso_t() noexcept {
         if constexpr (8 < control_layout_cast_v.count) {
-          constexpr char initv = std::bit_cast<std::array<char, 2>>(
-              uint16_t(1 << (control_layout_cast_v.no_destroy.offset)))[0];
+          constexpr char initv = make_bitcast(
+              uintbytes_t_(1 << (control_layout_cast_v.no_destroy.offset)))[0];
           raw_lencap[raw_lencap_size_v] = initv;
         }
       }
@@ -226,13 +245,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       raw_data_u raw_data{};
       uint8_t control_byte{};
       MJZ_CX_FN raw_data_t() noexcept {
-        constexpr uint8_t initv =
-            8 < control_layout_cast_v.count
-                ? uint8_t(0)
-                : uint8_t(1 << (control_layout_cast_v.no_destroy.offset));
-
-        ;
-
+        constexpr uint8_t initv = uint8_t(
+            make_bitcast(
+                uintbytes_t_(1 << (control_layout_cast_v.no_destroy.offset)))
+                .back());
         control_byte = initv;
       }
     };
@@ -241,23 +257,6 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                   sizeof(raw_data_u) == buffer_size);
     static_assert((sizeof(raw_data_t) % alignof(uintlen_t)) == 0);
 
-    struct str_data_bytes_u8_t {
-      uint8_t control_byte{};
-
-      MJZ_CX_AL_FN bool
-      operator==(const str_data_bytes_u8_t &) const noexcept = default;
-    };
-    struct alignas(2) str_data_bytes_u16_t {
-      uint8_t nsso_mdata{};
-      uint8_t control_byte{};
-
-      MJZ_CX_AL_FN bool
-      operator==(const str_data_bytes_u16_t &) const noexcept = default;
-    };
-    using str_data_bytes_t =
-        std::conditional_t<(8 < control_layout_cast_v.count),
-                           str_data_bytes_u16_t, str_data_bytes_u8_t>;
-    using uintbytes_t_ = uint_size_of_t<sizeof(str_data_bytes_t)>;
     struct str_data_t : nsso_mdata_t, control_byte_t {
       MJZ_CX_AL_FN str_data_t() noexcept = default;
       MJZ_CX_AL_FN str_data_t(str_data_bytes_t d) noexcept

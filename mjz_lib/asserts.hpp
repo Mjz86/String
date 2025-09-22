@@ -57,6 +57,7 @@ MJZ_EXPORT namespace mjz {
       MJZ_DISABLE_ALL_WANINGS_END_;
     }
     MJZ_NORETURN MJZ_NCX_FN static void panic_handle_deafult() noexcept {
+      breakpoint_if_debugging();
 #if MJZ_PAINC_TRACE_ && MJZ_WITH_iostream
 #ifdef __cpp_lib_stacktrace
       std::cout << std::stacktrace::current();
