@@ -21,3 +21,5 @@ mjz_lib/threads/counting_semaphore.hpp
 tests/main3
 tests/main3.ilk
 tests/main3.pdb
+tests/mainc.pdb
+tests/mainc.ilk
