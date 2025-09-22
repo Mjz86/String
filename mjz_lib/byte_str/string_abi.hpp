@@ -315,7 +315,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if constexpr (is_threaded_v_ == may_bool_t::idk) {
           MJZ_control_layout_cast_helper_out(as_not_threaded_bit);
         } else {
-          ret.as_not_threaded_bit = bool(is_threaded_v_);
+          ret.as_not_threaded_bit = !bool(is_threaded_v_);
         }
         MJZ_control_layout_cast_helper_out(no_destroy);
         MJZ_control_layout_cast_helper_out(is_sharable);
