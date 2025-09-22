@@ -286,7 +286,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           MJZ_control_layout_cast_helper_in(as_not_threaded_bit);
         } else {
           asserts(asserts.assume_rn,
-                  input.as_not_threaded_bit == bool(is_threaded_v_));
+                  input.as_not_threaded_bit != bool(is_threaded_v_));
         }
         MJZ_control_layout_cast_helper_in(no_destroy);
         MJZ_control_layout_cast_helper_in(is_sharable);
