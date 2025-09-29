@@ -551,7 +551,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN it_t &fn(bview opt_view_or_reserve) noexcept {
       return fn(opt_view_or_reserve.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v));
     }
-    
+    template <class> friend class mjz_private_accessed_t;
 
     void_struct_t *obj{};
     fn_t function_ptr{};

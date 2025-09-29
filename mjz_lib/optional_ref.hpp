@@ -139,6 +139,8 @@ MJZ_EXPORT namespace mjz {
   struct char_storage_as_temp_t : public optional_ref_t<T> {
     MJZ_NO_MV_NO_CPY(char_storage_as_temp_t);
 
+    template <class> friend class mjz_private_accessed_t;
+
   private:
     using optional_ref_t<T>::ptr;
     std::remove_const_t<T> buffer_obj{};
@@ -282,6 +284,7 @@ MJZ_EXPORT namespace mjz {
   multilambda_t(lambdas_t &&...) -> multilambda_t<lambdas_t &&...>;
 
   class success_ret_arg_t {
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     success_t *ptr;

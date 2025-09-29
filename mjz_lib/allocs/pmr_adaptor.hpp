@@ -61,6 +61,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     };
   };
   template <version_t version_v> struct pmr_alloc_t : alloc_base_t<version_v> {
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     using pmr_alloc = pmr_alloc_t<version_v>;
@@ -72,6 +73,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     using alloc_ref = alloc_base_ref_t<version_v>;
     using alloc_vtable = alloc_vtable_t<version_v>;
     MJZ_NO_MV_NO_CPY(pmr_alloc_t);
+
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     std::pmr::polymorphic_allocator<char> undelying{};
@@ -106,11 +109,15 @@ MJZ_EXPORT namespace mjz::allocs_ns {
               "by now !?");
     }
 
+    template <class> friend class mjz_private_accessed_t;
+
   private:
     MJZ_NCX_FN static bool inequals(const alloc_ref &other,
                                     const alloc_base *This) noexcept {
       return As(other.get_ptr()).undelying != As(This).undelying;
     }
+
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     template <version_t> friend struct pmr_alloc_maker_t;
@@ -170,6 +177,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
       return allocate(This, minsize, ai);
     }
 
+    template <class> friend class mjz_private_accessed_t;
+
   private:
     using blk_t_ = block_info_t<version_v, pmr_alloc>;
 
@@ -195,6 +204,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
       rc.store(0, std::memory_order_relaxed);
       return;
     }
+
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     MJZ_NCX_FN static alloc_ref
@@ -223,6 +234,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     MJZ_NCX_FN alloc_ref operator+() & noexcept {
       return alloc_ref{this, true};
     }
+
+    template <class> friend class mjz_private_accessed_t;
   };
 
   template <version_t version_v> struct pmr_alloc_maker_t {

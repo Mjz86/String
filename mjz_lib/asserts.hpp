@@ -75,30 +75,27 @@ MJZ_EXPORT namespace mjz {
       static inline std::atomic<decltype(&deafult_breakpoint_handler)> d{
           MJZ_IN_DEBUG_MODE ? &deafult_breakpoint_handler : nullptr};
     };
-    MJZ_CX_AL_FN static decltype(&deafult_breakpoint_handler)
-    breakpoint_load_fnp() noexcept {
-      MJZ_IF_CONSTEVAL { return nullptr; }
-      return handle_fn_ptr_t_::d.load(std::memory_order_acquire);
-    }
 
   public:
     MJZ_CX_AL_FN static void breakpoint() noexcept {
-      auto bp = breakpoint_load_fnp();
-      if (bp) {
-        return bp();
+      MJZ_IFN_CONSTEVAL {
+        auto bp = handle_fn_ptr_t_::d.load(std::memory_order_acquire);
+        if (bp) {
+          return bp();
+        }
       }
       return panic_handler();
     }
     MJZ_CX_AL_FN static void breakpoint_if_debugging() noexcept {
       MJZ_IF_CONSTEVAL { return; }
-      auto bp = breakpoint_load_fnp();
+      auto bp = handle_fn_ptr_t_::d.load(std::memory_order_acquire);
       if (bp) {
         return bp();
       }
     }
     MJZ_CX_AL_FN static bool is_debugger_present() noexcept {
       MJZ_IF_CONSTEVAL { return false; }
-      return !!breakpoint_load_fnp();
+      return !!handle_fn_ptr_t_::d.load(std::memory_order_acquire);
     }
     MJZ_NCX_AL_FN static auto &panic_handle_fn_ptr() noexcept {
       return handle_fn_ptr_t_::a;

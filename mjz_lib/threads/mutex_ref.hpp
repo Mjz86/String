@@ -25,7 +25,7 @@ SOFTWARE.
 #define MJZ_THREADS_mutex_ref_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz::threads_ns {
   template <std::integral T> class mutex_ref_t : private atomic_ref_t<T> {
-
+    template <class> friend class mjz_private_accessed_t;
     MJZ_MCONSTANT(T) one { 1 };
     MJZ_MCONSTANT(T) zero { 0 };
 

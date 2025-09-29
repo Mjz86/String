@@ -32,9 +32,6 @@
 
 // folder
 
-#if __has_include("mjc/alllib.hpp")
-#include "mjc/alllib.hpp"
-#endif
 #if __has_include("allocs/alllib.hpp")
 #include "allocs/alllib.hpp"
 #endif
@@ -62,5 +59,4 @@
 #if __has_include("unicode/alllib.hpp")
 #include "unicode/alllib.hpp"
 #endif
-
 #endif //MJZ_LIB_FILE_alllib_

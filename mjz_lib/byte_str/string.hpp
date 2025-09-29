@@ -72,6 +72,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                    props_v.is_ownerized, props_v.is_threaded,
                    props_v.sso_min_cap, props_v.align, props_v.encoding>;
     using m_t = typename abi::data_t;
+    template <class> friend class mjz_private_accessed_t;
 
     constexpr static bool double_route_v_ = false;
 

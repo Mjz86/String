@@ -87,12 +87,6 @@ SOFTWARE.
 #ifndef MJZ_TEST_MODE_
 #define MJZ_TEST_MODE_ false
 #endif // !MJZ_TEST_MODE_
-
-
-
-#ifndef MJZ_STR_RC_SPERATE_CACHE_LINE_
-#define MJZ_STR_RC_SPERATE_CACHE_LINE_ false
-#endif // !MJZ_STR_RC_SPERATE_CACHE_LINE_
 /*
  * log allocations in the allocators when using new.
  */
@@ -318,15 +312,7 @@ static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
       return debug_helper;
     }();
   }
-  
 };
-
-
-  struct totally_empty_type_t {};
-  using nullptr_t = std::nullptr_t;
-  MJZ_FCONSTANT(totally_empty_type_t) totally_empty_type{};
-  static_assert(std::is_empty_v<totally_empty_type_t>);
-  using void_struct_t = totally_empty_type_t;
 }; // namespace mjz
 #define MJZ_STD_is_constant_evaluated_FUNCTION_RET ::mjz::is_at_consteval_()
 
@@ -785,7 +771,7 @@ private:
     }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
     MJZ_CX_AL_FN ~releaser_0_t_() { m_releaser_lambda_(); }
 
-//    
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     releaser_LAMBDA_t m_releaser_lambda_;

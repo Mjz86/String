@@ -44,6 +44,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       stack_ref_t stack_refrence{};
       char *stack_begin_ptr{};
       uintlen_t stack_length{};
+      template <class> friend class mjz_private_accessed_t;
 
     private:
       MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
@@ -107,6 +108,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       meta_ref_t meta_refrence{};
       char *data_begin_ptr{};
       uintlen_t data_length{};
+      template <class> friend class mjz_private_accessed_t;
 
     private:
       MJZ_CX_ND_FN friend bool operator==(const obj_t &a,
@@ -143,8 +145,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         std::span<char> ret_ =
             meta_refrence->allocate(minsize, strategy.get_alignof_z());
         ret.ptr = ret_.data();
-        minsize = branchless_teranary(!strategy.allocate_exactly_minsize,
-                                      ret_.size(), minsize);
+        minsize = branchless_teranary(
+            !strategy.allocate_exactly_minsize ,ret_.size(), minsize);
         ret.length = std::min(minsize, ret_.size());
         return ret;
       }

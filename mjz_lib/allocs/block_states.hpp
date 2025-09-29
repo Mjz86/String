@@ -100,6 +100,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return cache.buffer[i];
       }
     };
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     MJZ_CX_AL_FN

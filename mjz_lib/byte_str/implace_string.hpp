@@ -30,7 +30,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             uintlen_t stack_cap>
   struct implace_string_data_t : public basic_str_t<version_v, props_v> {
   private:
-    
+    template <class> friend class mjz_private_accessed_t;
   };
   template <version_t version_v, basic_str_props_t<version_v> props_v,
             uintlen_t stack_cap>
@@ -40,7 +40,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   struct implace_string_data_t<version_v, props_v, stack_cap>
       : public basic_str_t<version_v, props_v> {
   protected:
-    
+    template <class> friend class mjz_private_accessed_t;
     MJZ_MCONSTANT(uintlen_t)
     sso_cap_v_{((stack_cap / sizeof(uintlen_t)) +
                 uintlen_t(!!(stack_cap % sizeof(uintlen_t)))) *
@@ -63,7 +63,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <version_t version_v_0_, uintlen_t,
               basic_str_props_t<version_v_0_>>
     friend struct implace_str_t;
-    
+    template <class> friend class mjz_private_accessed_t;
 
   public:
     using traits_type = byte_traits_t<version_v>;

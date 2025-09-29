@@ -75,7 +75,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
   template <version_t version_v> class alloc_base_ref_t;
 
   template <version_t v> struct alloc_info_t {
-
+    template <class> friend class mjz_private_accessed_t;
+    template <class> friend class mjz_private_accessed_t;
     enum class allocation_mode_e : uint16_t {
       // dont change the values!
       relaxed_mode = 0b00,
@@ -259,6 +260,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
                         uintlen_t stack_min_align, bool release_all) noexcept>;
       using allocate = F_t<block_info(uintlen_t, alloc_info) noexcept>;
       using deallocate = F_t<void(block_info, alloc_info) noexcept>;
+      template <class> friend class mjz_private_accessed_t;
 
     private: // not useful rn.
       using add_ref = F_t<success_t(intlen_t) noexcept>;
@@ -282,6 +284,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
       using could_use_super_alloc = F_t<bool() const noexcept>;
       using could_use_sub_alloc = F_t<bool() const noexcept>;
     };
+
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     struct not_used_t_ {
@@ -354,6 +358,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
   class global_allocator_class_t {};
   template <version_t version_v>
   struct global_allocator_class_t<version_v, 256> : void_struct_t {
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     template <typename T> using block_info_ot = block_info_t<version_v, T>;
@@ -593,6 +598,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
 
   template <version_t version_v>
   class MJZ_trivially_relocatable alloc_base_ref_t {
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     template <typename T> using block_info_ot = block_info_t<version_v, T>;
@@ -653,6 +659,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     MJZ_CX_FN void reset() noexcept { destroy_obj(); }
     MJZ_CX_FN explicit operator bool() const noexcept { return !!this->ref; };
 
+    template <class> friend class mjz_private_accessed_t;
+
   private:
     MJZ_CX_FN void copy_init(const alloc_base_ref_t &other) noexcept {
       if (!other.add_ref())
@@ -695,6 +703,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     MJZ_CX_FN ~alloc_base_ref_t() noexcept { reset(); }
     MJZ_CX_FN alloc_base_ref_t operator()() const noexcept { return *this; }
     MJZ_CX_FN alloc_base_ref_t operator+() const noexcept { return *this; }
+
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     MJZ_CX_FN
@@ -1413,6 +1423,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         return {};
       }
     }
+
+    template <class> friend class mjz_private_accessed_t;
 
   public:
     MJZ_CX_FN success_t release_all(uintlen_t monotonic_minsize,

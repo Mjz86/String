@@ -46,6 +46,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     const cx_formatter_storage_base_t<version_v> *formatter_ptr{};
   };
 
+
   template <version_t version_v>
   using cx_formatter_storage_ref_t =
       optional_ref_t<const cx_formatter_storage_base_t<version_v>>;
@@ -191,13 +192,12 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   // configurable
   template <version_t version_v>
   const constexpr uintlen_t format_basic_buffer_size_v = 64;
-
+  
   // configurable
   template <version_t version_v, typename>
   MJZ_MCONSTANT(uintlen_t)
   basic_format_specs_conversion_buffer_size_v{
       format_basic_buffer_size_v<version_v>};
-
   // configurable
   template <version_t version_v>
   const constexpr uintlen_t format_stack_size_v = 128 * sizeof(uintlen_t);
@@ -215,6 +215,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         !((format_stack_size_v<version_v> |
            format_basic_buffer_size_v<version_v>)&(stack_alloc_t::align - 1)));
 
+    template <class> friend class mjz_private_accessed_t;
     template <version_t> friend struct parse_and_format_data_t;
 
     using out_it_t = base_out_it_t<version_v>;
@@ -408,6 +409,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <version_t version_v> struct parse_context_t {
     using stack_alloc_t =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
+    template <class> friend class mjz_private_accessed_t;
 
     template <version_t, typename...> friend struct cx_parser_t;
     template <version_t> friend struct formatting_object_t;
@@ -660,7 +662,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <version_t version_v> struct format_context_t {
     using stack_alloc_t =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
-
+    template <class> friend class mjz_private_accessed_t;
     template <version_t> friend struct parse_and_format_data_t;
 
     template <version_t> friend struct hash_context_t;
@@ -789,6 +791,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <version_t version_v> struct hash_context_t {
     using stack_alloc_t =
         allocs_ns::stack_alloc_ns::stack_allocator_meta_t<version_v>;
+    template <class> friend class mjz_private_accessed_t;
 
     template <version_t, typename...> friend struct cx_parser_t;
     template <version_t> friend struct formatting_object_t;
@@ -895,7 +898,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         parse_context_t<version_v>,
         format_context_t<version_v>,
         hash_context_t<version_v> {
-
+    template <class> friend class mjz_private_accessed_t;
     template <version_t, typename...> friend struct cx_parser_t;
     MJZ_NO_MV_NO_CPY(parse_and_format_data_t);
     using out_it_t = base_out_it_t<version_v>;
@@ -1061,6 +1064,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
   template <version_t version_v>
   struct basic_arg_ref_t : protected typeless_arg_ref_t<version_v> {
+    template <class> friend class mjz_private_accessed_t;
 
   protected:
     using base_t = typeless_arg_ref_t<version_v>;
@@ -1104,7 +1108,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
   template <version_t version_v>
   struct typeid_arg_ref_t : protected basic_arg_ref_t<version_v> {
-
+    template <class> friend class mjz_private_accessed_t;
     using base_t = basic_arg_ref_t<version_v>;
     using bbase_t = typeless_arg_ref_t<version_v>;
     MJZ_CX_FN typeid_arg_ref_t() noexcept : base_t{} {}
@@ -1125,7 +1129,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
    */
   template <version_t version_v, typename type_t>
   struct the_typed_arg_ref_t : void_struct_t {
-
+    template <class> friend class mjz_private_accessed_t;
     using Type_t = type_t;
     using typeless_ref = typeless_arg_ref_t<version_v>;
     using T = std::remove_reference_t<type_t>;
@@ -1221,7 +1225,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         bit_cast_able_and_small_c<std::remove_cvref_t<type_t>, version_v> &&
         !std::is_volatile_v<type_t>)
   struct the_typed_arg_ref_t<version_v, type_t> : void_struct_t {
-
+    template <class> friend class mjz_private_accessed_t;
     using Type_t = type_t;
     using typeless_ref = typeless_arg_ref_t<version_v>;
     using T = std::remove_cvref_t<type_t>;

@@ -53,6 +53,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   private:
     using dont_mess_up_t = unsafe_ns::i_know_what_im_doing_t;
 
+    template <class> friend class mjz_private_accessed_t;
     template <version_t, bool> friend struct generic_string_view_t;
 
   public:
@@ -472,7 +473,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   template <version_t version_v, bool is_static_>
   struct generic_string_view_t : public basic_string_view_t<version_v> {
     static_assert(is_totaly_trivial<basic_string_view_t<version_v>>);
-
+    template <class> friend class mjz_private_accessed_t;
     MJZ_CX_FN base_string_view_t<version_v>
     to_base_view_pv_fn_(unsafe_ns::i_know_what_im_doing_t) const noexcept {
       return this->unsafe_handle();

@@ -27,12 +27,6 @@ SOFTWARE.
 #ifndef MJZ_BYTE_STRING_heap_LIB_HPP_FILE_
 #define MJZ_BYTE_STRING_heap_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz ::bstr_ns {
-
-  template <version_t version_v>
-  static constexpr inline uintlen_t str_heap_manager_threaded_rf_block_align_v =
-      MJZ_STR_RC_SPERATE_CACHE_LINE_ ? hardware_destructive_interference_size
-                                     : sizeof(uintlen_t);
-
   template <version_t version_v, may_bool_t is_threaded_v_,
             bool is_ownerized_v_, bool has_alloc_v_>
   class str_heap_manager_t {
@@ -40,7 +34,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
 
     using block_info = allocs_ns::block_info_t<version_v>;
 
-    
+    template <class> friend class mjz_private_accessed_t;
 
   private:
     struct m_t {
@@ -137,37 +131,18 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       }
     }
     MJZ_CX_AL_FN success_t deinit_heap_and_ask() noexcept {
-      if (!*this)
-        return false;
-      if (m.is_owenrized)
-        return true;
-      if (!can_add_shareholder())
-        return true;
       if (is_owner()) {
         return true;
       }
-      /*
-       * if this is zero, then we know we where the last person.
-       */
-      if (temp_layout_t{m}.perform_ref(
-              [](auto &ref) noexcept -> uintlen_t {
-                return ref.fetch_sub(1, std::memory_order_acq_rel);
-              },
-              [](auto &ref) noexcept -> uintlen_t { return ref--; }) == 1) {
-        asserts(asserts.assume_rn, !get_is_threaded());
-        return true;
-      }
+      if (remove_shareholder_then_check_has_no_owner())
+        MJZ_IS_UNLIKELY { return true; }
       return false;
     }
     MJZ_MCONSTANT(uintlen_t)
     non_threaded_rf_block = sizeof(uintlen_t);
     MJZ_MCONSTANT(uintlen_t)
     threaded_rf_block =
-        std::max(str_heap_manager_threaded_rf_block_align_v<version_v>,
-                 non_threaded_rf_block);
-
-    static_assert(std::has_single_bit(non_threaded_rf_block));
-    static_assert(std::has_single_bit(threaded_rf_block));
+        std::max(hardware_destructive_interference_size, non_threaded_rf_block);
 
   public:
     MJZ_NO_CPY(str_heap_manager_t);
@@ -365,11 +340,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       if (!var)
         return false;
 
-      uintlen_t rc_val{get_is_threaded()
-                           ? refcr_t{*var}.load(std::memory_order_acquire)
-                           : *var};
-      asserts(asserts.assume_rn, !!rc_val);
-      return rc_val == 1;
+      if (!get_is_threaded()) {
+        return *var < 2;
+      }
+      refcr_t ref_count{*var};
+      return (ref_count).load(std::memory_order_acquire) < 2;
     }
 
   public:
@@ -382,7 +357,29 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     }
 
   private:
+    MJZ_CX_AL_FN bool
+    remove_shareholder_then_check_has_no_owner_heap() noexcept {
+      return temp_layout_t{m}.perform_ref(
+                 [](auto &ref) noexcept -> uintlen_t {
+                   return ref.fetch_sub(1, std::memory_order_acq_rel) - 1;
+                 },
+                 [](auto &ref) noexcept -> uintlen_t { return --ref; }) < 1;
+    }
+
   public:
+    MJZ_CX_AL_FN bool remove_shareholder_then_check_has_no_owner() noexcept {
+      if (!*this)
+        return false;
+      if (m.is_owenrized)
+        return true;
+      if (!can_add_shareholder())
+        return true;
+      /*
+       * if this is zero, then we know we where the last person.
+       */
+      return remove_shareholder_then_check_has_no_owner_heap();
+    }
+
     MJZ_CX_AL_FN str_heap_manager_t(const alloc_base_ref &alloc,
                                     bool is_threaded_,
                                     bool is_owenrized_) noexcept

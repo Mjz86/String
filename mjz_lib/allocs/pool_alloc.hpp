@@ -71,6 +71,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     uintlen_t byte_count{};
     this_align_val_t this_aligns{};
     struct obj_t {
+      template <class> friend class mjz_private_accessed_t;
 
     private:
       template <uintlen_t i>
@@ -99,6 +100,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       std::array<m_t, N> bucket_data_s{};
 
       MJZ_NO_MV_NO_CPY(obj_t);
+
+      template <class> friend class mjz_private_accessed_t;
 
     private:
       MJZ_CX_FN auto lock_gaurd(bool is_threaded, bool mut_op) const noexcept {
@@ -151,6 +154,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         }
       }
 
+      template <class> friend class mjz_private_accessed_t;
+
     private:
       MJZ_CX_FN char *mutex_byte() const noexcept
         requires(has_lock)
@@ -191,6 +196,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         }
         return false;
       }
+
+      template <class> friend class mjz_private_accessed_t;
 
     private:
       MJZ_CX_ND_FN friend bool operator==(const obj_t &a,

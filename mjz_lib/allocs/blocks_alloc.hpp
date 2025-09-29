@@ -74,6 +74,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       MJZ_CX_FN auto &&unsafe_get_handle() noexcept { return m; }
       MJZ_CX_FN auto &&unsafe_get_handle() const noexcept { return m; }
 
+      template <class> friend class mjz_private_accessed_t;
+
     private:
       MJZ_CX_FN bool operator==(const obj_t &other) const noexcept = delete;
 
@@ -88,6 +90,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
                                     this->m.blk_states.num_blocks,
                                 blk.ptr, blk.length);
       }
+
+      template <class> friend class mjz_private_accessed_t;
 
     private:
       using block_range_t = blk_state::block_range_t;
