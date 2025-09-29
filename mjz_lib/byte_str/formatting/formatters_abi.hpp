@@ -59,7 +59,17 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     byte_traits_t<version_v> bt{};
   };
   template <version_t version_v> struct basic_format_specs_t {
-    using format_fn_obj = basic_format_specs_format_fn_obj_t<version_v>; 
+    using format_fn_obj = basic_format_specs_format_fn_obj_t<version_v>;
+    template <class T>
+    constexpr static inline uintlen_t type_buffer_size_v = std::max(
+        []() -> uintlen_t {
+          if constexpr (extended_ingeral_c<T>) {
+            return 8 * ((std::decay_t<T>::max_dec_width + 8) / 8);
+          }
+          return 16;
+        }(),
+        basic_format_specs_conversion_buffer_size_v<version_v, T>);
+
     enum class align_e : uint8_t { none, left, right, center };
     enum class sign_e : uint8_t { none, plus, minus, space };
     enum class type_e : uint8_t {
@@ -112,9 +122,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   private:
     template <typename T>
     MJZ_MCONSTANT(bool)
-    is_numeric = partial_is_one_of_c<
-        T, signed char, unsigned char, short, unsigned short, int, unsigned int,
-        long, unsigned long, long long, unsigned long long>;
+    is_extended_uint_ = extended_ingeral_c<T>;
+    template <typename T>
+    MJZ_MCONSTANT(bool)
+    is_numeric =
+        partial_is_one_of_c<T, signed char, unsigned char, short,
+                            unsigned short, int, unsigned int, long,
+                            unsigned long, long long, unsigned long long> ||
+        is_extended_uint_<T>;
     template <typename T>
     MJZ_MCONSTANT(bool)
     is_numeric_or_ptr =
@@ -148,12 +163,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
   template <typename T, version_t version_v>
   concept uses_basic_spec_c =
-      !std::is_volatile_v<T> &&
-      (partial_is_one_of_c<T, bool, char, signed char, unsigned char, short,
-                           unsigned short, int, unsigned int, long,
-                           unsigned long, long long, unsigned long long, float,
-                           double, long double, nullptr_t> ||
-       std::is_pointer_v<std::remove_cvref_t<T>>);
+      (!std::is_volatile_v<T> &&
+       (partial_is_one_of_c<T, bool, char, signed char, unsigned char, short,
+                            unsigned short, int, unsigned int, long,
+                            unsigned long, long long, unsigned long long, float,
+                            double, long double, nullptr_t> ||
+        std::is_pointer_v<std::remove_cvref_t<T>>)) ||
+      extended_ingeral_c<T>;
 
   template <version_t version_v, uses_basic_spec_c<version_v> T>
   struct default_formatter_t<version_v, T, 20> {

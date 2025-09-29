@@ -28,7 +28,6 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz::threads_ns {
   template <partial_same_as<totally_empty_type_t> T_E_ = totally_empty_type_t>
   class big_mutex_t {
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     MJZ_NO_MV_NO_CPY(big_mutex_t);

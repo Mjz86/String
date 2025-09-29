@@ -743,7 +743,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
 
     MJZ_NO_MV_NO_CPY(formatting_object_t);
-    template <class> friend class mjz_private_accessed_t;
+
     using out_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using stack_alloc_t =
@@ -921,7 +921,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return *this;
     }
     MJZ_CX_FN base_context_t<version_v> &base_ctx() noexcept { return *this; }
-    template <class> friend class mjz_private_accessed_t;
+
     using out_it_t = base_out_it_t<version_v>;
     using view_t = basic_string_view_t<version_v>;
     using alloc_ref_t = allocs_ns::alloc_base_ref_t<version_v>;
