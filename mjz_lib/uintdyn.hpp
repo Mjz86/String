@@ -395,13 +395,13 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN uintlen_t n_word() const noexcept { return words.size(); }
 
   public:
-    MJZ_CX_FN uintlen_t /*byte count*/
+    MJZ_CX_AL_FN uintlen_t /*byte count*/
     to_ascii(
         std::span<uint64_t> aligned8_output_and_temp_buffer) const noexcept {
       return to_ascii_impl_(uint_dyn_t<version_v, true>(*this),
                             aligned8_output_and_temp_buffer);
     }
-    MJZ_CX_FN uintlen_t /*u64 count*/
+    MJZ_CX_AL_FN uintlen_t /*u64 count*/
     stack_shrinked_ceil_size_for_ascii() noexcept {
       uintlen_t bw = bit_width();
       shrink_to_width(bw);
@@ -459,19 +459,22 @@ MJZ_EXPORT namespace mjz {
       return {true, cut_off};
     }
     MJZ_DEPRECATED_R("O(3*n) memory , use operator_modulo_and_devide")
-    MJZ_CX_FN uint_dyn_t &operator%=(uint_dyn_t<version_v, true> rhs) noexcept
+    MJZ_CX_AL_FN uint_dyn_t &
+    operator%=(uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
     = delete;
     MJZ_DEPRECATED_R("O(3*n) memory , use operator_modulo_and_devide")
-    MJZ_CX_FN uint_dyn_t &operator/=(uint_dyn_t<version_v, true> rhs) noexcept
+    MJZ_CX_AL_FN uint_dyn_t &
+    operator/=(uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
     = delete;
     MJZ_DEPRECATED_R("3*n) memory , use operator_mul")
-    MJZ_CX_FN uint_dyn_t &operator*=(uint_dyn_t<version_v, true> rhs) noexcept
+    MJZ_CX_AL_FN uint_dyn_t &
+    operator*=(uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
     = delete;
     // argument must not overlap (/*restrict span*/ )
-    MJZ_CX_FN pair_t<success_t, bool /*overflow-cutoff of devide_out*/>
+    MJZ_CX_AL_FN pair_t<success_t, bool /*overflow-cutoff of devide_out*/>
     operator_modulo_in_to_devide(uint_dyn_t modulo_out_val_in,
                                  uint_dyn_t rhs) noexcept
       requires(!is_const_v)
@@ -479,7 +482,7 @@ MJZ_EXPORT namespace mjz {
       return operator_modulo_and_devide(*this, modulo_out_val_in, rhs);
     }
     // argument must not overlap (/*restrict span*/ )
-    MJZ_CX_FN pair_t<success_t, bool /*overflow-cutoff of devide_out*/>
+    MJZ_CX_AL_FN pair_t<success_t, bool /*overflow-cutoff of devide_out*/>
     operator_devide_to_modulo_in(uint_dyn_t devide_out, uint_dyn_t rhs) noexcept
       requires(!is_const_v)
     {
@@ -753,13 +756,13 @@ MJZ_EXPORT namespace mjz {
       uintlen_t max_dec_width{};
       uintlen_t bw{};
     };
-    MJZ_CX_FN offset_span_t conv(std::span<uint64_t> s) const noexcept {
+    MJZ_CX_AL_FN offset_span_t conv(std::span<uint64_t> s) const noexcept {
       return {s.data() - begin_of_buf_pointer, s.size()};
     }
-    MJZ_CX_FN std::span<uint64_t> conv(offset_span_t s) const noexcept {
+    MJZ_CX_AL_FN std::span<uint64_t> conv(offset_span_t s) const noexcept {
       return {s.offset + begin_of_buf_pointer, s.size};
     }
-    MJZ_CX_FN success_t
+    MJZ_CX_AL_FN success_t
     push_frame(conert_extended_dyn_uint_to_base10p8_u64_t frame) noexcept {
       if (old_frame_ptr)
         return false;
@@ -782,7 +785,7 @@ MJZ_EXPORT namespace mjz {
       }
       return true;
     }
-    MJZ_CX_FN success_t pop_frame() noexcept {
+    MJZ_CX_AL_FN success_t pop_frame() noexcept {
       if (!old_frame_ptr) {
         return true;
       }
@@ -805,7 +808,7 @@ MJZ_EXPORT namespace mjz {
       return false;
     }
 
-    MJZ_CX_FN success_t quick_small_conv() noexcept {
+    MJZ_CX_AL_FN success_t quick_small_conv() noexcept {
       if (!max_dec_width)
         return true;
       constexpr uint64_t v10p8 = 100000000;
@@ -846,7 +849,7 @@ MJZ_EXPORT namespace mjz {
       return false;
     }
 
-    MJZ_CX_FN success_t
+    MJZ_CX_AL_FN success_t
     big_conv_impl(uint_dyn_t<version_v, false> val_devide_out,
                   uintlen_t pow_of_ten_index) noexcept {
       uint_dyn_t<version_v, false> dyn_pow_div =
@@ -878,7 +881,7 @@ MJZ_EXPORT namespace mjz {
       val_buffer = val_buffer_old_0;
       return true;
     }
-    MJZ_CX_FN success_t big_conv() noexcept {
+    MJZ_CX_AL_FN success_t big_conv() noexcept {
       std::span<uint64_t> val_buffer_old = val_buffer;
       uintlen_t pow_of_ten_index_wide = (max_dec_width / 16);
       uintlen_t pow_of_ten_index = pow_of_ten_index_wide * 8;
@@ -901,7 +904,7 @@ MJZ_EXPORT namespace mjz {
     }
 
   public:
-    MJZ_CX_FN success_t run() noexcept {
+    MJZ_CX_AL_FN success_t run() noexcept {
       while (true) {
         if (quick_small_conv()) {
           if (pop_frame()) {
@@ -967,6 +970,7 @@ MJZ_EXPORT namespace mjz {
       uint_dyn_t<version_v, false>{vals} >>= offset << 3;
     }
     count -= offset;
+    memomve_overlap(beg_of_buf_ptr, vals.data(), vals.size());
     return count;
   }
 };
