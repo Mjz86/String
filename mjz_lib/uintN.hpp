@@ -834,10 +834,10 @@ MJZ_EXPORT namespace mjz {
     constexpr uint64_t inv10p6_47b = 140737489;
     constexpr uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00;
     constexpr uint64_t inv10p1_b10 = 103;
-  
-    for (uint64_t &elem : vals) { 
-    asserts(asserts.assume_rn,elem < 100000000ull);
-    } 
+
+    for (uint64_t &elem : vals) {
+      asserts(asserts.assume_rn, elem < 100000000ull);
+    }
     for (uint64_t &elem : vals) {
       uint64_t val = elem;
       MJZ_ASSUME_(val < 100000000ull);

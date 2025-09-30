@@ -217,19 +217,19 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN static std::strong_ordering
     compare(uint_dyn_t<version_v, true> lhs,
             uint_dyn_t<version_v, true> rhs) noexcept {
-    uintlen_t bwr=  rhs.bit_width();
-    uintlen_t bwl = lhs.bit_width();
-    if (bwr != bwl)
-      return (bwl <=> bwr);
-    lhs.shrink_to_width(bwl);
-    rhs.shrink_to_width(bwr);
-    for (intlen_t i{intlen_t(rhs.n_word()) - 1}; 0 <= i; i--) {
-      std::strong_ordering order = lhs.nth_word(i) <=> rhs.nth_word(i);
-      if (order != std::strong_ordering::equal) {
-        return order;
+      uintlen_t bwr = rhs.bit_width();
+      uintlen_t bwl = lhs.bit_width();
+      if (bwr != bwl)
+        return (bwl <=> bwr);
+      lhs.shrink_to_width(bwl);
+      rhs.shrink_to_width(bwr);
+      for (intlen_t i{intlen_t(rhs.n_word()) - 1}; 0 <= i; i--) {
+        std::strong_ordering order = lhs.nth_word(i) <=> rhs.nth_word(i);
+        if (order != std::strong_ordering::equal) {
+          return order;
+        }
       }
-    }
-    return std::strong_ordering::equal;
+      return std::strong_ordering::equal;
     }
 
     MJZ_CX_AL_FN bool
@@ -434,19 +434,18 @@ MJZ_EXPORT namespace mjz {
       }
       rhs <<= uintlen_t(bit_index_max);
       if (cut_off) {
-        for (intlen_t i{bit_index_max}; intlen_t(devide_out.n_bit()) <= i;
-           ) {
+        for (intlen_t i{bit_index_max}; intlen_t(devide_out.n_bit()) <= i;) {
           bool is_bigger{rhs <= modulo_out_val_in};
           if (is_bigger) {
             modulo_out_val_in -= rhs;
           };
           i--;
           if (intlen_t(devide_out.n_bit()) <= i)
-          rhs >>= uintlen_t(1);
+            rhs >>= uintlen_t(1);
         }
-        bit_index_max =intlen_t (devide_out.n_bit());
+        bit_index_max = intlen_t(devide_out.n_bit());
       }
-      for (intlen_t i{bit_index_max}; 0 <= i; ) {
+      for (intlen_t i{bit_index_max}; 0 <= i;) {
         bool is_bigger{rhs <= modulo_out_val_in};
         if (is_bigger) {
           devide_out.set_nth_bit(i, is_bigger);
@@ -454,7 +453,7 @@ MJZ_EXPORT namespace mjz {
         };
         i--;
         if (0 <= i)
-        rhs >>= uintlen_t(1);
+          rhs >>= uintlen_t(1);
       }
       // rhs is back to original
       return {true, cut_off};
@@ -569,7 +568,7 @@ MJZ_EXPORT namespace mjz {
           w = 0;
         return;
       }
-      uintlen_t word_zeroed{(amount ) >> 6};
+      uintlen_t word_zeroed{(amount) >> 6};
       uintlen_t word_working{words.size() - word_zeroed};
       amount &= 63;
       if constexpr (version_v.is_LE()) {
@@ -730,13 +729,85 @@ MJZ_EXPORT namespace mjz {
     } while (true);
     return out;
   }
+
   template <version_t version_v>
-  MJZ_CX_FN success_t conert_extended_dyn_uint_to_base10p8_u64(
-      std::span<uint64_t> output, std::span<uint64_t> val_buffer,
-      uint_dyn_t<version_v, false> val_input, uintlen_t max_dec_width,
-      uintlen_t bw) noexcept {
-    do {
-      val_input.shrink_to_width(bw);
+  struct conert_extended_dyn_uint_to_base10p8_u64_t {
+    uint64_t *begin_of_buf_pointer{};
+    std::span<uint64_t> output{};
+    std::span<uint64_t> val_buffer{};
+    uint_dyn_t<version_v, false> val_input{};
+    uintlen_t max_dec_width{};
+    uintlen_t bw{};
+    uint64_t *old_frame_ptr{};
+
+  private:
+    struct offset_span_t {
+      intlen_t offset;
+      uintlen_t size;
+    };
+    struct frame_obj_t {
+      int64_t old_frame_ptr{};
+      offset_span_t output{};
+      offset_span_t val_buffer{};
+      offset_span_t val_input{};
+      uintlen_t max_dec_width{};
+      uintlen_t bw{};
+    };
+    MJZ_CX_FN offset_span_t conv(std::span<uint64_t> s) const noexcept {
+      return {s.data() - begin_of_buf_pointer, s.size()};
+    }
+    MJZ_CX_FN std::span<uint64_t> conv(offset_span_t s) const noexcept {
+      return {s.offset + begin_of_buf_pointer, s.size};
+    }
+    MJZ_CX_FN success_t
+    push_frame(conert_extended_dyn_uint_to_base10p8_u64_t frame) noexcept {
+      if (old_frame_ptr)
+        return false;
+      if (val_buffer.size() < sizeof(frame_obj_t) / 8)
+        return false;
+      old_frame_ptr = val_buffer.data();
+      val_buffer = val_buffer.subspan(sizeof(frame_obj_t) / 8);
+      frame_obj_t frame_obj{
+          .old_frame_ptr{frame.old_frame_ptr - frame.begin_of_buf_pointer},
+          .output{conv(frame.output)},
+          .val_buffer{conv(frame.val_buffer)},
+          .val_input{conv(frame.val_input.words)},
+          .max_dec_width{frame.max_dec_width},
+          .bw{frame.bw}};
+      auto b = std::bit_cast<std::array<uint64_t, sizeof(frame_obj_t) / 8>>(
+          frame_obj);
+      auto *p{old_frame_ptr};
+      for (uint64_t u : b) {
+        *p++ = u;
+      }
+      return true;
+    }
+    MJZ_CX_FN success_t pop_frame() noexcept {
+      if (!old_frame_ptr) {
+        return true;
+      }
+      frame_obj_t frame{};
+      auto b =
+          std::bit_cast<std::array<uint64_t, sizeof(frame_obj_t) / 8>>(frame);
+      auto *p{old_frame_ptr};
+      for (uint64_t &u : b) {
+        u = *p++;
+      }
+      frame = std::bit_cast<frame_obj_t>(b);
+      *this = conert_extended_dyn_uint_to_base10p8_u64_t{
+          .begin_of_buf_pointer{begin_of_buf_pointer},
+          .output{conv(frame.output)},
+          .val_buffer{conv(frame.val_buffer)},
+          .val_input{conv(frame.val_input)},
+          .max_dec_width{frame.max_dec_width},
+          .bw{frame.bw},
+          .old_frame_ptr{frame.old_frame_ptr + begin_of_buf_pointer}};
+      return false;
+    }
+
+    MJZ_CX_FN success_t quick_small_conv() noexcept {
+      if (!max_dec_width)
+        return true;
       constexpr uint64_t v10p8 = 100000000;
       constexpr uint64_t v10p16 = v10p8 * v10p8;
       constexpr uint64_t bw10p8 = bit_width(v10p8);
@@ -772,53 +843,80 @@ MJZ_EXPORT namespace mjz {
         output[2] = res;
         return true;
       }
-      {
-        std::span<uint64_t> val_buffer_old = val_buffer;
-        uintlen_t pow_of_ten_index_wide = (max_dec_width / 16);
-        uintlen_t pow_of_ten_index = pow_of_ten_index_wide * 8;
-        if (val_buffer.size() < (pow_of_ten_index_wide + 1) * 2)
-          MJZ_IS_UNLIKELY break;
-        uint_dyn_t<version_v, false> val_devide_out{
-            val_buffer.subspan(0, pow_of_ten_index_wide + 1)};
-        {
-          uint_dyn_t<version_v, false> dyn_pow_div =
-              pow10_dyn_uint_u64<version_v>(val_buffer, pow_of_ten_index);
-          if (!dyn_pow_div.n_word())
-            MJZ_IS_UNLIKELY break;
+      return false;
+    }
 
-          if (val_devide_out.n_word() < dyn_pow_div.n_word())
-            MJZ_IS_UNLIKELY break;
+    MJZ_CX_FN success_t
+    big_conv_impl(uint_dyn_t<version_v, false> val_devide_out,
+                  uintlen_t pow_of_ten_index) noexcept {
+      uint_dyn_t<version_v, false> dyn_pow_div =
+          pow10_dyn_uint_u64<version_v>(val_buffer, pow_of_ten_index);
+      if (!dyn_pow_div.n_word())
+        return false;
 
-          val_buffer = val_buffer.subspan(val_devide_out.n_word());
-          uint_dyn_t<version_v, false> dyn_pow_dest =
-              val_buffer.subspan(0, val_devide_out.n_word());
-          for (uint64_t &w : dyn_pow_dest.words)
-            w = 0;
-          dyn_pow_dest.copy_from(std::exchange(dyn_pow_div, {}));
-          std::span<uint64_t> val_buffer_old_0 = std::exchange(
-              val_buffer, val_buffer.subspan(val_devide_out.n_word()));
-          for (uint64_t &w : val_devide_out.words)
-            w = 0;
-          auto [good_, cuted_] =
-              uint_dyn_t<version_v, false>::operator_modulo_and_devide(
-                  val_devide_out, val_input, dyn_pow_dest);
-          if (!good_ || cuted_)
-            MJZ_IS_UNLIKELY break;
-          val_buffer = val_buffer_old_0;
+      if (val_devide_out.n_word() < dyn_pow_div.n_word())
+        return false;
+
+      val_buffer = val_buffer.subspan(val_devide_out.n_word());
+      uint_dyn_t<version_v, false> dyn_pow_dest =
+          val_buffer.subspan(0, val_devide_out.n_word());
+      for (uint64_t &w : dyn_pow_dest.words)
+        w = 0;
+      dyn_pow_dest.copy_from(std::exchange(dyn_pow_div, {}));
+      std::span<uint64_t> val_buffer_old_0 = std::exchange(
+          val_buffer, val_buffer.subspan(val_devide_out.n_word()));
+      for (uint64_t &w : val_devide_out.words)
+        w = 0;
+
+      val_input.shrink_to_width(bw);
+      auto [good_, cuted_] =
+          uint_dyn_t<version_v, false>::operator_modulo_and_devide(
+              val_devide_out, val_input, dyn_pow_dest);
+      if (!good_ || cuted_)
+        return false;
+
+      val_buffer = val_buffer_old_0;
+      return true;
+    }
+    MJZ_CX_FN success_t big_conv() noexcept {
+      std::span<uint64_t> val_buffer_old = val_buffer;
+      uintlen_t pow_of_ten_index_wide = (max_dec_width / 16);
+      uintlen_t pow_of_ten_index = pow_of_ten_index_wide * 8;
+      if (val_buffer.size() < (pow_of_ten_index_wide + 1) * 2)
+        return false;
+      uint_dyn_t<version_v, false> val_devide_out{
+          val_buffer.subspan(0, pow_of_ten_index_wide + 1)};
+      if (!big_conv_impl(val_devide_out, pow_of_ten_index))
+        return false;
+      auto other_routine = conert_extended_dyn_uint_to_base10p8_u64_t(
+          begin_of_buf_pointer,
+          output.subspan(0, output.size() - pow_of_ten_index_wide), val_buffer,
+          val_devide_out, max_dec_width - pow_of_ten_index,
+          val_devide_out.bit_width());
+      bw = val_input.bit_width();
+      max_dec_width = pow_of_ten_index;
+      val_buffer = val_buffer_old;
+      output = output.subspan(output.size() - pow_of_ten_index_wide);
+      return push_frame(std::exchange(*this, other_routine));
+    }
+
+  public:
+    MJZ_CX_FN success_t run() noexcept {
+      while (true) {
+        if (quick_small_conv()) {
+          if (pop_frame()) {
+            return true;
+          }
+          continue;
         }
-        if (!conert_extended_dyn_uint_to_base10p8_u64(
-                output.subspan(0, output.size() - pow_of_ten_index_wide),
-                val_buffer, val_devide_out, max_dec_width - pow_of_ten_index,
-                val_devide_out.bit_width()))
-          MJZ_IS_UNLIKELY break;
-        bw = val_input.bit_width();
-        max_dec_width = pow_of_ten_index;
-        val_buffer = val_buffer_old;
-        output = output.subspan(output.size() - pow_of_ten_index_wide);
-      }
-    } while (true);
-    return false;
-  }
+        if (!big_conv())
+          MJZ_IS_UNLIKELY
+        return false;
+      };
+      return true;
+    }
+  };
+
   template <version_t version_v>
   MJZ_CX_FN uintlen_t /*byte count*/
   to_ascii_impl_(uint_dyn_t<version_v, true> input,
@@ -830,6 +928,8 @@ MJZ_EXPORT namespace mjz {
       aligned8_output_and_temp_buffer[0] = details_ns::ascii_offset;
       return 1;
     }
+
+    uint64_t *const beg_of_buf_ptr{aligned8_output_and_temp_buffer.data()};
     input.shrink_to_width(bw);
     uintlen_t max_dec_width = input.dec_width_aprox_ceil(bw);
     uintlen_t out_buf_width = (max_dec_width + 7) >> 3;
@@ -840,14 +940,16 @@ MJZ_EXPORT namespace mjz {
 
     uint_dyn_t<version_v, false> input_ =
         aligned8_output_and_temp_buffer.subspan(out_buf_width, input.n_word());
+    input_.copy_from(input);
     for (uint64_t &elem : vals) {
       elem = 0;
     }
-    if (!conert_extended_dyn_uint_to_base10p8_u64<version_v>(
-            vals,
-            aligned8_output_and_temp_buffer.subspan(out_buf_width +
-                                                    input.n_word()),
-            input_, max_dec_width, bw)) {
+    if (!conert_extended_dyn_uint_to_base10p8_u64_t<version_v>(
+             beg_of_buf_ptr, vals,
+             aligned8_output_and_temp_buffer.subspan(out_buf_width +
+                                                     input.n_word()),
+             input_, max_dec_width, bw)
+             .run()) {
       return {};
     }
     while (!vals[0])
