@@ -32,7 +32,6 @@ MJZ_EXPORT namespace mjz::threads_ns {
       std::conditional_t<uses_atomic_bool, std::atomic_bool, std::atomic_flag>;
   template <partial_same_as<totally_empty_type_t> = totally_empty_type_t>
   class alignas(alignof(flag_t)) bit_mutex_t {
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     alignas(alignof(flag_t)) char buffer[sizeof(flag_t)]{};

@@ -24,13 +24,7 @@ SOFTWARE.
 #ifndef MJZ_RELEASER_LIB_HPP_FILE_
 #define MJZ_RELEASER_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz {
-  template <class unique_accessor_id_t> class mjz_private_accessed_t {};
-  struct totally_empty_type_t {};
-  using nullptr_t = std::nullptr_t;
-  MJZ_FCONSTANT(totally_empty_type_t) totally_empty_type{};
-  static_assert(std::is_empty_v<totally_empty_type_t>);
-  using void_struct_t = totally_empty_type_t;
-  template <> class mjz_private_accessed_t<void_struct_t(void_struct_t *)> {
+  class void_struct_cast_t {
   public:
     template <class T> MJZ_CX_AL_FN static T mptr_static_cast(auto p) noexcept {
       if constexpr (requires() { static_cast<T>(p); }) {
@@ -84,8 +78,6 @@ MJZ_EXPORT namespace mjz {
       return *down_cast<T>(std::addressof(ptr));
     }
   };
-  using void_struct_cast_t =
-      mjz_private_accessed_t<void_struct_t(void_struct_t *)>;
   enum class may_bool_t : char { no = false, yes = true, idk = 2, err = 3 };
   MJZ_FCONSTANT(bool)
   SYSTEM_is_little_endian_{std::endian::little == std::endian::native};
@@ -249,8 +241,6 @@ MJZ_EXPORT namespace mjz {
       call();
     }
 
-    template <class> friend class mjz_private_accessed_t;
-
   private:
     releaser_LAMBDA_t m_releaser_lambda_;
     template <size_t INDEX>
@@ -285,8 +275,6 @@ MJZ_EXPORT namespace mjz {
     }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
     MJZ_CX_AL_FN ~releaser_t() { m_releaser_lambda_(); }
 
-    template <class> friend class mjz_private_accessed_t;
-
   private:
     releaser_LAMBDA_t m_releaser_lambda_;
     MJZ_NO_DYNAMIC_ALLOCATOR(releaser_t);
@@ -311,7 +299,7 @@ MJZ_EXPORT namespace mjz {
     requires(!std::is_const_v<T> && !std::is_abstract_v<T> &&
              !std::is_reference_v<T> && std::is_class_v<T>)
   class conditional_releaser_t : private T {
-    template <class> friend class mjz_private_accessed_t;
+
     conditional_releaser_t(const conditional_releaser_t &) = delete;
     conditional_releaser_t(conditional_releaser_t &) = delete;
     conditional_releaser_t &operator=(conditional_releaser_t &) = delete;

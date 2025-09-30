@@ -47,7 +47,7 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_FN lifetimes_indicator_t &
     operator=(const lifetimes_indicator_t &that) noexcept {
-      MJZ_IF_CONSTEVAL { return*this; }
+      MJZ_IF_CONSTEVAL { return *this; }
       std::cout << "lifetimes_indicator_t[copy]="
                 << static_cast<const void *>(&that) << "->"
                 << static_cast<const void *>(this);
@@ -61,7 +61,7 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_FN lifetimes_indicator_t &
     operator=(lifetimes_indicator_t &&that) noexcept {
-      MJZ_IF_CONSTEVAL { return*this; }
+      MJZ_IF_CONSTEVAL { return *this; }
       std::cout << "lifetimes_indicator_t[move]="
                 << static_cast<const void *>(&that) << "->"
                 << static_cast<const void *>(this);

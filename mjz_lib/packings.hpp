@@ -72,7 +72,6 @@ MJZ_EXPORT namespace mjz {
   };
 
   template <typename T, size_t minsize_> union unaligned_optional_holder_t {
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     char minsize_helper_dummy_[minsize_];

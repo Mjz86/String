@@ -41,8 +41,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       MJZ_NO_MV_NO_CPY(obj_t);
       fast_alloc_chache_t<version_v> &m;
 
-      template <class> friend class mjz_private_accessed_t;
-
     private:
       MJZ_CX_FN auto lock_gaurd(bool is_threaded) const noexcept {
         return lock_details_ns::lock_gaurd_maker<version_v>(

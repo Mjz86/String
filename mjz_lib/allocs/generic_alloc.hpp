@@ -29,7 +29,6 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz ::allocs_ns {
   template <version_t version_v, class generic_alloc_init_t>
   struct generic_alloc_t : alloc_base_t<version_v> {
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     using generic_alloc = generic_alloc_t<version_v, generic_alloc_init_t>;
@@ -43,8 +42,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     using alloc_vtable = alloc_vtable_t<version_v>;
     using obj_t = typename AI_t::obj_t;
     MJZ_NO_MV_NO_CPY(generic_alloc_t);
-
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     union data_u_t {
@@ -93,8 +90,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       std::destroy_at(&data.obj);
     }
 
-    template <class> friend class mjz_private_accessed_t;
-
   private:
     MJZ_MCONSTANT(bool)
     Const_inequals = !requires(const obj_t &obj) {
@@ -113,8 +108,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
       return &As(other.get_ptr()).get() != &As(This).get();
     }
-
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     template <version_t> friend struct generic_alloc_maker_t;
@@ -222,7 +215,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
                  MJZ_MAYBE_UNUSED bool release_all) noexcept {
       return false; /*not implemented , cause im lazy*/
     }
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     using blk_t_ = block_info_t<version_v, generic_alloc_t>;
@@ -249,8 +241,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       rc.store(0, std::memory_order_relaxed);
       return;
     }
-
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     template <partial_same_as<generic_alloc_init_t> T>
@@ -280,8 +270,6 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     MJZ_CX_FN const generic_alloc *operator&() const noexcept { return this; }
     MJZ_CX_FN alloc_ref operator()() & noexcept { return +*this; }
     MJZ_CX_FN alloc_ref operator+() & noexcept { return alloc_ref{this, true}; }
-
-    template <class> friend class mjz_private_accessed_t;
 
   private:
     MJZ_CX_FN auto &&get() noexcept { return *(&data.obj); }

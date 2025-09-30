@@ -37,7 +37,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using parse_math_helper_t_<version_v>::divide_modulo;
     using parse_math_helper_t_<version_v>::signed_divide_modulo;
     using enum floating_format_e;
-    template <class> friend class mjz_private_accessed_t;
+
     MJZ_MCONSTANT(auto)
     npos{std::min((uintlen_t(-1) >> 8) + 1, std_view_max_size)};
 
@@ -1038,7 +1038,65 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       memcpy(out_buf, buf.data(), count);
       return count;
     }
+    template <extended_ingeral_c T, size_t = 0, size_t = 1>
+    MJZ_CX_ND_FN static std::optional<uintlen_t>
+    from_integral_fill(char *buf, uintlen_t len, const T &val_rg_,
+                       bool upper_case, const uint8_t raidex) noexcept {
+      if (raidex == 10) {
 
+        uintlen_t ret{};
+        if constexpr (dyn_extended_ingeral_c<T>) {
+          if (len < 8)
+            return {};
+          MJZ_IF_CONSTEVAL {
+            std::vector<uint64_t> v(len / 8);
+            ret = val_rg_.to_ascii({v.data(), len / 8});
+
+            memcpy_u64_to_char_buffer(std::span{buf, ret}, v.data());
+          }
+          else {
+            uintlen_t delta = uintlen_t(
+                std::bit_cast<char *>((std::bit_cast<uintptr_t>(buf) + 7) &
+                                      ~uintptr_t(7)) -
+                buf);
+            len -= delta;
+            buf += delta;
+            len >>= 3;
+            ret = val_rg_.to_ascii({new (buf) uint64_t[len], len});
+            memmove(buf - delta, buf, ret);
+          }
+
+        } else {
+          ret = val_rg_.to_ascii(buf, len);
+        }
+        return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
+      } // others are harder to implement and mostly unneeded
+      if (raidex != 16 && raidex != 2)
+        return {};
+      char *const old{buf};
+      uintlen_t cntl0 = val_rg_.countr_zero();
+      if (raidex == 2) {
+        for (uintlen_t i{cntl0}; i < std::ranges::size(val_rg_.words) * 64;
+             i++) {
+          *buf++ =
+              char('0' | char(val_rg_.nth_bit(
+                             std::ranges::size(val_rg_.words) * 64 - i - 1)));
+        }
+      } else {
+        const auto tbl = branchless_teranary(
+            upper_case, cpy_bitcast<std::array<char, 16>>("0123456789ABCDEF"),
+            cpy_bitcast<std::array<char, 16>>("0123456789abcdef"));
+
+        for (uintlen_t i{cntl0 >> 2};
+             i < (std::ranges::size(val_rg_.words) * 64 >> 2); i++) {
+          *buf++ = tbl[(val_rg_.nth_word(std::ranges::size(val_rg_.words) -
+                                         (i >> 4) - 1) >>
+                        (i * 4)) &
+                       15];
+        }
+      }
+      return uintlen_t(buf - old);
+    }
     template <std::integral T, size_t min_cap = 0, size_t min_align = 1>
       requires(!std::same_as<T, bool>)
     MJZ_CX_ND_FN static std::optional<uintlen_t>
