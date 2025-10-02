@@ -32,11 +32,14 @@ MJZ_EXPORT namespace mjz {
     alignas(std::min<uintlen_t>(
         hardware_constructive_interference_size,
         log2_of_val_to_val(uint8_t(std::countr_zero(word_count * 8)))))
-        uint64_t words[word_count]{};
+        std::array<uint64_t, word_count> words{};
     MJZ_DISABLE_ALL_WANINGS_START_;
     MJZ_DEFAULTED_CLASS(uintN_t);
     MJZ_DISABLE_ALL_WANINGS_END_;
     using mjz_uintN_t_id_val_t_2354675648764874753789 = uintN_t;
+
+    MJZ_CX_AL_FN uintN_t(std::array<uint64_t, word_count> w) noexcept
+        : words{w} {}
 
   private:
     MJZ_CX_AL_FN uintN_t(void_struct_t, uintlen_t) noexcept : uintN_t{} {}
@@ -160,19 +163,19 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uintN_t &operator&=(const uintN_t amount) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
-        words[i] &= amount.words[i];
+        words[size_t(i)] &= amount.words[size_t(i)];
       }
       return *this;
     }
     MJZ_CX_AL_FN uintN_t &operator|=(const uintN_t amount) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
-        words[i] |= amount.words[i];
+        words[size_t(i)] |= amount.words[size_t(i)];
       }
       return *this;
     }
     MJZ_CX_AL_FN uintN_t &operator^=(const uintN_t amount) noexcept {
       for (intlen_t i{}; i < intlen_t(word_count); i++) {
-        words[i] ^= amount.words[i];
+        words[size_t(i)] ^= amount.words[size_t(i)];
       }
       return *this;
     }
@@ -240,10 +243,79 @@ MJZ_EXPORT namespace mjz {
       add(amount);
       return *this;
     }
+    template <int = 0>
+      requires(1 < word_count)
+    MJZ_CX_AL_FN auto split() const noexcept
+
+    {
+      using ret_t = pair_t<uintN_t<version_v, ((word_count) / 2) * 64>,
+                           uintN_t<version_v, ((word_count + 1) / 2) * 64>>;
+      if constexpr (version_v.is_BE()) {
+        auto [high, low] =
+            std::bit_cast<pair_t<std::array<uint64_t, ((word_count + 1) / 2)>,
+                                 std::array<uint64_t, ((word_count) / 2)>>>(
+                words);
+        return ret_t{low, high};
+      } else {
+        auto [low, high] =
+            std::bit_cast<pair_t<std::array<uint64_t, ((word_count) / 2)>,
+                                 std::array<uint64_t, ((word_count + 1) / 2)>>>(
+                *this);
+        return ret_t{low, high};
+      }
+    }
+    template <int = 0>
+      requires(1 == word_count)
+    MJZ_CX_AL_FN pair_t<uint32_t, uint32_t> split() const noexcept {
+      return {uint32_t(words[0]), uint32_t(words[0] >> 32)};
+    }
+    // buggy rn
+    MJZ_CX_FN auto acumilate_halfs() const noexcept {
+      using ret_t = uintN_t<version_v, ((word_count + 1) / 2) * 64 + 64>;
+      auto [l, h] = split();
+      return ret_t{l} + ret_t{h};
+    }
+    MJZ_CX_FN uintN_t<version_v, n_bits * 2>
+    operator_mul_ret(const uintN_t &amount) const noexcept {
+      using ret_t = uintN_t<version_v, n_bits * 2>;
+      if constexpr (word_count == 1) {
+        using u128_t0_ = uintN_t<version_v, 128>;
+        return u128_t0_(*this) * u128_t0_{amount};
+      } else if constexpr (word_count <= 4) {
+        using u128_t0_ = uintN_t<version_v, 128>;
+        ret_t ret{};
+        u128_t0_ carry_lvl0{};
+        for (uintlen_t k{}; k < ret.word_count; k++) {
+          uint64_t carry_lvl2{};
+          for (uintlen_t i{}; i <= k; i++) {
+            uintlen_t j = k - i;
+            if (i < word_count && j < amount.word_count)
+              carry_lvl2 += carry_lvl0.add(u128_t0_(amount.nth_word(j)) *
+                                           u128_t0_(nth_word(i)));
+          }
+          ret.nth_word(k) =
+              std::exchange(carry_lvl0.nth_word(0),
+                            std::exchange(carry_lvl0.nth_word(1), carry_lvl2));
+        }
+        return ret;
+      } else {
+        // Karatsuba multiplication
+        const auto [lowl0, highl0] = split();
+        const auto [lowr0, highr0] = amount.split();
+        const auto z1 =
+            ret_t(acumilate_halfs().operator_mul_ret(amount.acumilate_halfs()));
+        const auto z0 = ret_t(lowl0.operator_mul_ret(lowr0));
+        const auto z2 = ret_t(highr0.operator_mul_ret(highl0));
+        const auto n1 = lowr0.word_count * 64;
+        const auto n2 = n1 * 2;
+        return (z2 << n2) + ((z1 - (z2 + z0)) << n1) + (z0);
+      }
+    }
     MJZ_CX_AL_FN uintN_t &operator*=(const uintN_t &amount) noexcept {
       if constexpr (word_count == 1) {
         return *this = uintN_t(nth_word(0) * amount.nth_word(0));
       } else if constexpr (word_count == 2) {
+
 #ifdef MJZ_uint128_t_impl_t_
         return *this = std::bit_cast<uintN_t>(
                    std::bit_cast<MJZ_uint128_t_impl_t_>(amount) *
@@ -299,7 +371,7 @@ MJZ_EXPORT namespace mjz {
           }
         }
         return *this = ret;
-      } else { // convolotion
+      } else if constexpr (word_count <= 4) { // convolotion
         using u128_t0_ = uintN_t<version_v, 128>;
         uintN_t ret{};
         u128_t0_ carry_lvl0{};
@@ -310,12 +382,16 @@ MJZ_EXPORT namespace mjz {
             carry_lvl2 += carry_lvl0.add(u128_t0_(amount.nth_word(j)) *
                                          u128_t0_(nth_word(i)));
           }
+
           ret.nth_word(k) =
               std::exchange(carry_lvl0.nth_word(0),
                             std::exchange(carry_lvl0.nth_word(1), carry_lvl2));
         }
 
         return *this = ret;
+      } else {
+        auto [lowl0, highl0] = operator_mul_ret(amount).split();
+        return *this = lowl0;
       }
     }
     MJZ_CX_AL_FN std::strong_ordering

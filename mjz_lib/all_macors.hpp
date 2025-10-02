@@ -889,17 +889,6 @@ MJZ_RELEASE  { delete p; p=nullptr;};
       ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
 
 template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
-  /*/usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:30:36:
-  note: alignment of the base pointee object (1 byte) is less than the asserted
-  8 bytes 30 |     (void)__builtin_assume_aligned(__ptr, _Np); | ^
-  /usr/lib/llvm-19/bin/../include/c++/v1/__memory/assume_aligned.h:43:10: note:
-  in call to '__assume_aligned<8UL, char>(&{*new char[64]#1}[0])'
-
-    note that assume_aligned<8UL, char>(&{*new char[64]#1}[0]) failed!  even tho
-  its at offset 0 of new char[N] !
-
-
-    */
   MJZ_IF_CONSTEVAL_ { return ptr; }
   return ::std::assume_aligned<align_v>(ptr);
 }

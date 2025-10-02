@@ -1049,10 +1049,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           if (len < 8)
             return {};
           MJZ_IF_CONSTEVAL {
-            std::vector<uint64_t> v(len / 8);
-            ret = val_rg_.to_ascii({v.data(), len / 8});
+          uint64_t*p =  new uint64_t[len / 8];
+          MJZ_RELEASE{
+            delete []p;
+          };
+            ret = val_rg_.to_ascii({p, len / 8});
 
-            memcpy_u64_to_char_buffer(std::span{buf, ret}, v.data());
+            memcpy_u64_to_char_buffer(std::span{buf, ret}, p);
           }
           else {
             uintlen_t delta = uintlen_t(

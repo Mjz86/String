@@ -67,7 +67,7 @@ MJZ_EXPORT namespace mjz {
     {
       for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
            i++) {
-        words[i] &= amount.words[i];
+        words[size_t(i)] &= amount.words[size_t(i)];
       }
       return *this;
     }
@@ -77,7 +77,7 @@ MJZ_EXPORT namespace mjz {
     {
       for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
            i++) {
-        words[i] |= amount.words[i];
+        words[size_t(i)] |= amount.words[size_t(i)];
       }
       return *this;
     }
@@ -87,7 +87,7 @@ MJZ_EXPORT namespace mjz {
     {
       for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
            i++) {
-        words[i] ^= amount.words[i];
+        words[size_t(i)] ^= amount.words[size_t(i)];
       }
       return *this;
     }
@@ -97,8 +97,12 @@ MJZ_EXPORT namespace mjz {
       requires(!is_const_v)
     {
       for (uintlen_t i{}; i < std::min(words.size(), amount.n_word()); i++) {
-        words[i] = amount.words[i];
+        nth_word(size_t(i)) = amount.nth_word(size_t(i));
       }
+      for (uintlen_t i{amount.n_word()}; i < words.size(); i++) {
+        nth_word(size_t(i)) = 0;
+      }
+
       return *this;
     }
     MJZ_CX_AL_FN uint_dyn_t &flip() noexcept
@@ -468,7 +472,7 @@ MJZ_EXPORT namespace mjz {
     operator/=(uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
     = delete;
-    MJZ_DEPRECATED_R("3*n) memory , use operator_mul")
+    MJZ_DEPRECATED_R("3*n) memory , use operator_muleq")
     MJZ_CX_AL_FN uint_dyn_t &
     operator*=(uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
@@ -496,13 +500,20 @@ MJZ_EXPORT namespace mjz {
                  uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
     {
-      uint_dyn_t dyn_int = std::span<uint64_t>{ptr, word_n};
+      std::span<uint64_t> playground_space{ptr, word_n};
+      uint_dyn_t dyn_int = playground_space;
       using u128_t0_ = uintN_t<version_v, 128>;
       uintlen_t rhs_bw = rhs.bit_width();
       uintlen_t lhs_bw = lhs.bit_width();
       rhs.shrink_to_width(rhs_bw);
       lhs.shrink_to_width(lhs_bw);
       dyn_int.shrink_to_width(rhs_bw + lhs_bw);
+      if constexpr (version_v.is_BE()) {
+        playground_space = playground_space.subspan(0, playground_space.size() -
+                                                           dyn_int.n_word());
+      } else {
+        playground_space = playground_space.subspan(dyn_int.n_word());
+      }
       u128_t0_ carry_lvl0{};
       for (uintlen_t k{}; k < dyn_int.n_word(); k++) {
         uint64_t carry_lvl2{};
@@ -519,13 +530,57 @@ MJZ_EXPORT namespace mjz {
       return dyn_int;
     }
 
+    MJZ_CX_FN static uint_dyn_t
+    operator_muladd(uint64_t *MJZ_restrict ptr, uintlen_t word_n,
+                    uint_dyn_t<version_v, true> lhs,
+                    uint_dyn_t<version_v, true> rhs) noexcept
+      requires(!is_const_v)
+    {
+      std::span<uint64_t> playground_space{ptr, word_n};
+      uint_dyn_t dyn_int = playground_space;
+      using u128_t0_ = uintN_t<version_v, 128>;
+      uintlen_t rhs_bw = rhs.bit_width();
+      uintlen_t lhs_bw = lhs.bit_width();
+      rhs.shrink_to_width(rhs_bw);
+      lhs.shrink_to_width(lhs_bw);
+      dyn_int.shrink_to_width(rhs_bw + lhs_bw);
+      if constexpr (version_v.is_BE()) {
+        playground_space = playground_space.subspan(0, playground_space.size() -
+                                                           dyn_int.n_word());
+      } else {
+        playground_space = playground_space.subspan(dyn_int.n_word());
+      }
+      u128_t0_ carry_lvl0{};
+      for (uintlen_t k{}; k < dyn_int.n_word(); k++) {
+        uint64_t carry_lvl2{};
+        for (uintlen_t i{}; i <= k; i++) {
+          uintlen_t j = k - i;
+          if (j < rhs.n_word() && i < lhs.n_word())
+            carry_lvl2 += carry_lvl0.add(u128_t0_(lhs.nth_word(i)) *
+                                         u128_t0_(rhs.nth_word(j)));
+        }
+
+        uintN_t<version_v, 64> temp = std::array{
+            std::exchange(carry_lvl0.nth_word(0),
+                          std::exchange(carry_lvl0.nth_word(1), carry_lvl2))};
+        carry_lvl2 += carry_lvl0.add(
+            u128_t0_{uint64_t(temp.add(std::array{dyn_int.nth_word(k)}))});
+        dyn_int.nth_word(k) = temp.nth_word(0);
+      }
+      return dyn_int;
+    }
+
     // *this argument must not overlap (/*restrict span*/ )
     MJZ_CX_AL_FN uint_dyn_t &
     operator_muleq(uint_dyn_t<version_v, true> lhs,
                    uint_dyn_t<version_v, true> rhs) noexcept
       requires(!is_const_v)
     {
-      operator_mul(words.data(), words.size(), lhs, rhs);
+      for (uintlen_t i{
+               operator_mul(words.data(), words.size(), lhs, rhs).n_word()};
+           i < words.size(); i++) {
+        nth_word(size_t(i)) = 0;
+      };
       return *this;
     }
     MJZ_CX_AL_FN void operator_sl(uintlen_t amount) noexcept
@@ -771,7 +826,9 @@ MJZ_EXPORT namespace mjz {
       old_frame_ptr = val_buffer.data();
       val_buffer = val_buffer.subspan(sizeof(frame_obj_t) / 8);
       frame_obj_t frame_obj{
-          .old_frame_ptr{frame.old_frame_ptr - frame.begin_of_buf_pointer},
+          .old_frame_ptr{frame.old_frame_ptr
+                             ? frame.old_frame_ptr - frame.begin_of_buf_pointer
+                             : -1},
           .output{conv(frame.output)},
           .val_buffer{conv(frame.val_buffer)},
           .val_input{conv(frame.val_input.words)},
@@ -804,7 +861,9 @@ MJZ_EXPORT namespace mjz {
           .val_input{conv(frame.val_input)},
           .max_dec_width{frame.max_dec_width},
           .bw{frame.bw},
-          .old_frame_ptr{frame.old_frame_ptr + begin_of_buf_pointer}};
+          .old_frame_ptr{frame.old_frame_ptr < 0
+                             ? nullptr
+                             : frame.old_frame_ptr + begin_of_buf_pointer}};
       return false;
     }
 
