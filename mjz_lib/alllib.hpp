@@ -4,7 +4,7 @@
 #error "meta files that should not be used:"
 #include "choose_include_marco_.hpp"
 #include "import_mjz_lib_.hpp"
-#include "import_mjz_lib_.hppm
+#include "import_mjz_lib_.hppm"
 #include "alllib.hpp"
 #include "alllib_import.hpp"
 #include "import_std_.hpp"
