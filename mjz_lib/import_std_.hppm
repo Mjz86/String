@@ -23,9 +23,7 @@ SOFTWARE.
 ////////////////// an equivlent to this code should be compiled within module support
 module;
 ///////////
-#include "user_include_context_.hpp"
-///////////
-#include "choose_include_marco_.hpp"
+#include "user_include_context_.hpp" 
 ////////////////
 #include "import_std_.hpp"
 ///////////

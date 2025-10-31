@@ -89,6 +89,10 @@ SOFTWARE.
 #define MJZ_PAINC_TRACE_ false
 #endif
 #ifndef MJZ_PAINC_TRACE_
+#if defined(__cpp_lib_stacktrace)
 #define MJZ_PAINC_TRACE_ true
+#else
+#define MJZ_PAINC_TRACE_ false
+#endif
 #endif
 #endif // MJZ_LIB_FILE_choose_include_marco_

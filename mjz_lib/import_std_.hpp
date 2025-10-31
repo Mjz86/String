@@ -23,7 +23,7 @@ SOFTWARE.
 
 #ifndef MJZ_LIB_import_std_FILE_
 #define MJZ_LIB_import_std_FILE_
-
+#include "choose_include_marco_.hpp"
 #if !MJZ_MANUAL_CXX_INCLUDES_
 
 #if !MJZ_CXX_INCLUDES_BIT_STDCPP_
@@ -113,9 +113,9 @@ SOFTWARE.
  *  This is an implementation file for a precompiled header.
  */
 
-// 17.4.1.2 Headers
+ // 17.4.1.2 Headers
 
-// C
+ // C
 #ifndef _GLIBCXX_NO_ASSERT
 #include <cassert>
 #endif

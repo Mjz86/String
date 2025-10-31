@@ -921,7 +921,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN file_output_it_t(auto *ptr) noexcept : file_output_it_t() {
       Stream = ptr;
     }
-    MJZ_CX_FN success_t back_insert(const char *ptr, uintlen_t len) {
+    MJZ_CX_FN success_t back_insert(MJZ_MAYBE_UNUSED const char *ptr,MJZ_MAYBE_UNUSED uintlen_t len) {
       MJZ_IF_CONSTEVAL { return false; }
 #if MJZ_WITH_iostream
       return len == std::fwrite(ptr, 1, std::size_t(len), Stream);
