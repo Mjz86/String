@@ -1788,10 +1788,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return false;
       }
       if (!c) {
-        remove_prefix(1);
+         remove_suffix(1);
         return true;
       }
-      m.u_get_mut_begin()[len - 1] = *c;
+      m.u_get_mut_begin()[len] = *c;
       return true;
     }
     MJZ_CX_ND_FN MJZ_FORCED_INLINE success_t
@@ -1801,7 +1801,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return false;
       }
       if (!c) {
-        remove_suffix(1);
+        remove_prefix(1);
         return true;
       }
       m.u_get_mut_begin()[0] = *c;

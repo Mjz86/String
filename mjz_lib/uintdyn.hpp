@@ -1,4 +1,3 @@
-
 #include "uintN.hpp"
 #ifndef MJZ_LIB_FILE_UINT_DYN_HPP_
 #define MJZ_LIB_FILE_UINT_DYN_HPP_
@@ -502,6 +501,19 @@ public:
         operator*=(uint_dyn_t<version_v,true> rhs) noexcept
         requires(!is_const_v)
     = delete;
+
+    MJZ_CX_AL_FN uint_dyn_t &operator*=(uint64_t amount) noexcept {
+        using u128_t0_ = uintN_t<version_v,128>;
+        u128_t0_ carry_lvl0{};
+        for(uintlen_t i{}; i < n_word(); i++) {
+            uint64_t carry_lvl2{};
+            carry_lvl2 += carry_lvl0.add(u128_t0_(nth_word(i)) * u128_t0_(amount));
+            nth_word(i) =
+                std::exchange(carry_lvl0.nth_word(0),
+                              std::exchange(carry_lvl0.nth_word(1),carry_lvl2));
+        }
+        return *this;
+    }
     // argument must not overlap (/*restrict span*/ )
     MJZ_CX_AL_FN pair_t<success_t,bool /*overflow-cutoff of devide_out*/>
         operator_modulo_in_to_devide(uint_dyn_t modulo_out_val_in,
@@ -558,8 +570,8 @@ public:
         split(uintlen_t n_low) const noexcept {
         n_low = std::min(n_low,n_word());
         if constexpr(version_v.is_BE()) {
-            auto [high,low] =
-                pair_t(words.subspan(0,n_word()-n_low),words.subspan(n_word()-n_low,n_low));
+            auto [high,low] = pair_t(words.subspan(0,n_word() - n_low),
+                                      words.subspan(n_word() - n_low,n_low));
             return {low,high};
         } else {
             auto [low,high] =
@@ -1249,7 +1261,56 @@ to_ascii_impl_(uint_dyn_t<version_v,true> input,
     memomve_overlap(beg_of_buf_ptr,vals.data(),vals.size());
     return count;
 }
+
+template <version_t version_v>
+MJZ_CX_FN uint_dyn_t<version_v,false>
+from_ascii_impl_(uint_dyn_t<version_v,false> ret,
+                 std::span<const char> ascii_input) noexcept {
+    while(ascii_input.size() && ascii_input[0] == '0')
+        ascii_input = ascii_input.subspan(1);
+    uintlen_t sz16in = ascii_input.size() >> 4;
+    uintlen_t ret_wsz = (ascii_input.size() + 15) >> 4;
+    const  auto ret0=ret;
+    ret.broadcast(uint64_t());
+    ret.shrink_to_width(ret_wsz * 64);
+    uintlen_t szm16in = ascii_input.size() & 15;
+    constexpr auto f = vectorizable_conv_base_impl<version_v>.b10p1_2_10p8;
+    uintlen_t i{};
+    if(!ret_wsz)return ret0;
+    if(szm16in) {
+
+        uint64_t word{};
+        std::array<char,16> temp{};
+        memcpy(16 - szm16in + temp.data(),ascii_input.data(),
+               szm16in);
+        auto [w0,w1] = std::bit_cast<std::array<uint64_t,2>>(temp);
+        word = f(w0) * uint64_t(100000000) + f(w1);
+        ret += uint_dyn_t<version_v,false>{std::span<uint64_t>{&word,1}};
+        if(sz16in)
+            ret *= uint64_t(10000000000000000);
+    }
+    if(sz16in)
+    {
+        do{
+            uint64_t word{};
+            auto [w0,w1] =
+                cpy_bitcast<std::array<uint64_t,2>>(ascii_input.data()+ szm16in+ i * 16);
+            word = f(w0) * uint64_t(100000000) + f(w1);
+            ret += uint_dyn_t<version_v,false>{std::span<uint64_t>{&word,1}};
+            i++;
+            if(i == sz16in)break;
+            ret *= uint64_t(10000000000000000);
+        } while(true);
+    }
+    return ret0;
+}
+template <version_t version_v,uintlen_t n_bits>
+    requires(64 * (n_bits / 64) == n_bits && !!n_bits)
+MJZ_CX_AL_FN void uintN_t<version_v,n_bits>::from_ascii(
+    std::span<const char> ascii_input) noexcept {
+    *this = uintN_t<version_v,n_bits>(
+        from_ascii_impl_(as_dyn(),ascii_input).n_word());
+}
 }; // namespace uint_ex_t
 };
-
-#endif /* MJZ_LIB_FILE_UINT_DYN_HPP_ */
+#endif

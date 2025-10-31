@@ -555,7 +555,19 @@ public:
     }
 
 
-
+    MJZ_CX_AL_FN  uintN_t &operator*=(uint64_t amount) noexcept {
+        using u128_t0_ = uintN_t<version_v,128>;
+        u128_t0_ carry_lvl0{};
+        for(uintlen_t i{}; i <n_word(); i++) {
+            uint64_t carry_lvl2{};
+            carry_lvl2 += carry_lvl0.add(u128_t0_(nth_word(i)) *
+                                                 u128_t0_(amount));
+            nth_word(i) =
+                std::exchange(carry_lvl0.nth_word(0),
+                              std::exchange(carry_lvl0.nth_word(1),carry_lvl2));
+        }
+        return *this;
+    }
 
 
     MJZ_CX_AL_FN uintN_t to_modulo_ret_devide(const uintN_t &rhs) noexcept {
@@ -731,6 +743,9 @@ public:
             return 0;
         return to_ascii_impl_pick_pv_<0,n_bits>(output,len,bit_width());
     }
+    MJZ_CX_AL_FN void
+        from_ascii(std::span<const char> ascii_input) noexcept
+        ;
 
     template <uintlen_t low_bit_bound,uintlen_t high_bit_bound,
         bool no_bloat_v = true>
@@ -1033,19 +1048,12 @@ template <version_t version_v> struct vectorizable_conv_base_impl_t {
     public:
         MJZ_CX_FN static uint32_t call(uint64_t ascii) noexcept {
             uint64_t val64 = ascii & ~ascii_offset;
-            if constexpr(std::endian::big == std::endian::native) {
-                val64 =
-                    (~high16_half_mask & val64) | ((val64 & high16_half_mask) >> 4);
-                val64 |= (val64 >> 8);
-                val64 &= ~high32_half_mask;
-                val64 |= val64 >> 16;
-            } else {
-                val64 = ((~high16_half_mask & val64) << 4) |
-                    ((val64 & high16_half_mask) >> 8);
-                val64 = (val64 << 8) | (val64 >> 16);
-                val64 &= ~high32_half_mask;
-                val64 |= (val64 << 16) | (val64 >> 32);
-            }
+          auto [r7, r6, r5, r4, r3, r2, r1, r0] =
+              std::bit_cast<std::array<uint8_t, 8>>(val64);
+            val64 = ((uint64_t)r0 | (uint64_t(r1) << 4) | ((uint64_t)r2 << 8) |
+                     ((uint64_t)r3 << 12) | ((uint64_t)r4 << 16) |
+                   ((uint64_t)r5 << 20) | ((uint64_t)r6 << 24) |
+                   ((uint64_t)r7 << 28));
             uint32_t val = uint32_t(val64);
             val -= ((val & (high8_half_mask32)) >> 3) * 3;
             val -= ((val & (high16_half_mask32)) >> 6) * 39;
