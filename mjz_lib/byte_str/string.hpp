@@ -1788,7 +1788,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return false;
       }
       if (!c) {
-         remove_suffix(1);
+        remove_suffix(1);
         return true;
       }
       m.u_get_mut_begin()[len] = *c;
@@ -1807,14 +1807,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       m.u_get_mut_begin()[0] = *c;
       return true;
     }
-    MJZ_CX_ND_FN optional_ref_t<mut_type> pop_back() noexcept {
-      optional_ref_t<mut_type> ch{back()};
+    MJZ_CX_ND_FN std::optional<mut_type> pop_back() noexcept {
+    auto ch=   std::optional<mut_type>{+back()};
       if (remove_suffix(1))
         return ch;
       return {};
     }
-    MJZ_CX_ND_FN optional_ref_t<mut_type> pop_front() noexcept {
-      optional_ref_t<mut_type> ch{front()};
+    MJZ_CX_ND_FN std::optional<mut_type> pop_front() noexcept {
+      auto ch=std::optional<mut_type> {+front()};
       if (remove_prefix(1))
         return ch;
       return {};

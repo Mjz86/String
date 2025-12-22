@@ -1264,13 +1264,14 @@ to_ascii_impl_(uint_dyn_t<version_v,true> input,
 
 template <version_t version_v>
 MJZ_CX_FN uint_dyn_t<version_v,false>
-from_ascii_impl_(uint_dyn_t<version_v,false> ret,
+from_ascii_impl_(uint_dyn_t<version_v,false> uninit_output_and_temp_buffer,
                  std::span<const char> ascii_input) noexcept {
     while(ascii_input.size() && ascii_input[0] == '0')
         ascii_input = ascii_input.subspan(1);
     uintlen_t sz16in = ascii_input.size() >> 4;
     uintlen_t ret_wsz = (ascii_input.size() + 15) >> 4;
-    const  auto ret0=ret;
+    const  auto ret0=uninit_output_and_temp_buffer;
+    auto ret=ret0;
     ret.broadcast(uint64_t());
     ret.shrink_to_width(ret_wsz * 64);
     uintlen_t szm16in = ascii_input.size() & 15;
