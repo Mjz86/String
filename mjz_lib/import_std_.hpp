@@ -113,9 +113,9 @@ SOFTWARE.
  *  This is an implementation file for a precompiled header.
  */
 
- // 17.4.1.2 Headers
+// 17.4.1.2 Headers
 
- // C
+// C
 #ifndef _GLIBCXX_NO_ASSERT
 #include <cassert>
 #endif

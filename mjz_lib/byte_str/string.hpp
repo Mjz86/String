@@ -1808,13 +1808,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
     MJZ_CX_ND_FN std::optional<mut_type> pop_back() noexcept {
-    auto ch=   std::optional<mut_type>{+back()};
+      auto ch = std::optional<mut_type>{+back()};
       if (remove_suffix(1))
         return ch;
       return {};
     }
     MJZ_CX_ND_FN std::optional<mut_type> pop_front() noexcept {
-      auto ch=std::optional<mut_type> {+front()};
+      auto ch = std::optional<mut_type>{+front()};
       if (remove_prefix(1))
         return ch;
       return {};

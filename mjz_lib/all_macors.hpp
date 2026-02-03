@@ -50,9 +50,9 @@ SOFTWARE.
 #ifndef MJZ_TRUST_LEVEL_
 #define MJZ_TRUST_LEVEL_ 3
 #endif // !MJZ_TRUST_LEVEL_
- /*
-  * for some reason , notify does not work on esp32 , this is for that :(
-  */
+       /*
+        * for some reason , notify does not work on esp32 , this is for that :(
+        */
 
 #ifndef MJZ_SLEEP_WITH_WAIT_
 #define MJZ_SLEEP_WITH_WAIT_ 0ull
@@ -61,39 +61,43 @@ SOFTWARE.
 #ifndef MJZ_assert_TRUST_LEVEL_
 #define MJZ_assert_TRUST_LEVEL_ 4
 #endif // !MJZ_assert_TRUST_LEVEL_
-  /*
-   * shows if we can assume liklyhood of an operation.
-   * 0 means no assumbtion */
+/*
+ * shows if we can assume liklyhood of an operation.
+ * 0 means no assumbtion */
 #ifndef MJZ_LIKELYHOD_LEVEL_
 #define MJZ_LIKELYHOD_LEVEL_ 2
 #endif // !MJZ_LIKELYHOD_LEVEL_
-   /*
-    * shows the ABI version of the library
-    */
+       /*
+        * shows the ABI version of the library
+        */
 #ifndef MJZ_LIB_NEWEST_VERSION_
 #define MJZ_LIB_NEWEST_VERSION_ 0
 #endif // !MJZ_LIB_NEWEST_VERSION_
-    /*
-     * use the msvc debug mode.
-     */
+       /*
+        * use the msvc debug mode.
+        */
 
 #ifndef MJZ_CONTROL_IN_DEBUG_MODE_
 #define MJZ_CONTROL_IN_DEBUG_MODE_ true
 #endif // !MJZ_CONTROL_IN_DEBUG_MODE_
-     /*
-      * use the debug forcefully mode.
-      */
+       /*
+        * use the debug forcefully mode.
+        */
 
 #ifndef MJZ_TEST_MODE_
-#define MJZ_TEST_MODE_ false
+#ifdef _DEBUG
+#define MJZ_TEST_MODE_ 1
+#else
+#define MJZ_TEST_MODE_ 0
+#endif
 #endif // !MJZ_TEST_MODE_
 
 #ifndef MJZ_STR_RC_SPERATE_CACHE_LINE_
 #define MJZ_STR_RC_SPERATE_CACHE_LINE_ false
 #endif // !MJZ_STR_RC_SPERATE_CACHE_LINE_
-      /*
-       * log allocations in the allocators when using new.
-       */
+       /*
+        * log allocations in the allocators when using new.
+        */
 
 #ifndef MJZ_PMR_GLOBAL_ALLOCATIONS_
 #define MJZ_PMR_GLOBAL_ALLOCATIONS_ false
@@ -164,28 +168,28 @@ SOFTWARE.
 #endif // !MJZ_DO_DEBUG_COUT
 
 #ifndef MJZ_WITH_iostream
-#define MJZ_WITH_iostream MJZ_DO_DEBUG_COUT
+#define MJZ_WITH_iostream true
 #endif // !MJZ_WITH_iostream
 
 #ifndef MJZ_uintlen_t_as_64_bit
 #define MJZ_uintlen_t_as_64_bit false
 #endif // !MJZ_TRUST_LEVEL_
 
- /*
-  * gives curunt line number
-  */
+/*
+ * gives curunt line number
+ */
 #define MJZ_LINE_() __LINE__
-  /*
-   * gives curunt file name
-   */
+/*
+ * gives curunt file name
+ */
 #define MJZ_FILE_() __FILE__
 #define MJZ_UNIQUE_VAR_NAME_HELPER_0_(X, L) X##_##L##_unique_var_
 #define MJZ_UNIQUE_VAR_NAME_HELPER_1_(X, L) MJZ_UNIQUE_VAR_NAME_HELPER_0_(X, L)
-   /*
-    * gives uniqe variable name for a line and an
-    */
+/*
+ * gives uniqe variable name for a line and an
+ */
 #define MJZ_UNIQUE_VAR_NAME(X) MJZ_UNIQUE_VAR_NAME_HELPER_1_(X, __LINE__)
-    // nothing
+// nothing
 #define MJZ_JUST_NOTHING()
 // makes a c++ attribute
 #define MJZ_AS_CPP_ATTREBUTE(X)                                                \
@@ -309,12 +313,13 @@ SOFTWARE.
   MJZ_IS_LIKELY
 namespace mjz {
 static constexpr const inline auto is_at_consteval_ = []() noexcept -> bool {
-    MJZ_IF_CONSTEVAL_{return true;} else {
-        return []() noexcept {
-            MJZ_IN_DEBUG_MODE_CODE(static) bool debug_helper = false;
-            return debug_helper;
-        }();
-    }
+  MJZ_IF_CONSTEVAL_ { return true; }
+  else {
+    return []() noexcept {
+      MJZ_IN_DEBUG_MODE_CODE(static) bool debug_helper = false;
+      return debug_helper;
+    }();
+  }
 };
 
 struct totally_empty_type_t {};
@@ -500,29 +505,29 @@ using void_struct_t = totally_empty_type_t;
 #else
 #define MJZ_PRETEND_(X_expression_)
 #endif
- /*
- this is purely a documentation macro.
- THIS DOSE NOT GENERATE ANY CODE !!
- INVISIBLE FOR THE COMPILER !!
+/*
+this is purely a documentation macro.
+THIS DOSE NOT GENERATE ANY CODE !!
+INVISIBLE FOR THE COMPILER !!
 
 
- used for understanding the consequenses of a valid pointer, true boolean flag
- , template specilization, value of a function argument ,active enum member,
- active union member...
- */
+used for understanding the consequenses of a valid pointer, true boolean flag
+, template specilization, value of a function argument ,active enum member,
+active union member...
+*/
 #define MJZ_ALWAYS_BELIEVE(X_expression_)
 
- /*
- this is purely a documentation macro.
- THIS DOSE NOT GENERATE ANY CODE !!
- INVISIBLE FOR THE COMPILER !!
+/*
+this is purely a documentation macro.
+THIS DOSE NOT GENERATE ANY CODE !!
+INVISIBLE FOR THE COMPILER !!
 
 
- used for understanding the consequenses of a valid pointer, true boolean flag
- , template specilization, value of a function argument ,active enum member,
- active union member... IF the first statement is true
+used for understanding the consequenses of a valid pointer, true boolean flag
+, template specilization, value of a function argument ,active enum member,
+active union member... IF the first statement is true
 
- */
+*/
 #define MJZ_ALWAYS_BELIEVE_IF(X_IF_STATEMENT_expression_, X_expression_)
 
 #define MJZ_COMMENT(X_expression_)
@@ -695,7 +700,7 @@ using void_struct_t = totally_empty_type_t;
 
 #define MJZ_TO_STRING_V(X) MJZ_TO_STRING(X)
 
- //-V:MJZ_NOT_CONSTEXPR: 779 , 1080 , 571 , 2535 , 3522
+//-V:MJZ_NOT_CONSTEXPR: 779 , 1080 , 571 , 2535 , 3522
 #define MJZ_NOT_CONSTEXPR()                                                    \
   ;                                                                            \
   MJZ_IF_CONSTEVAL {                                                           \
@@ -765,101 +770,95 @@ typedef bool success_t;
 
 template <std::same_as<void> = void> struct releaser_helper_t {
 private:
-    template <class releaser_LAMBDA_t>
-        requires requires(releaser_LAMBDA_t l) {
-        releaser_LAMBDA_t(std::move(l));
-        l();
+  template <class releaser_LAMBDA_t>
+    requires requires(releaser_LAMBDA_t l) {
+      releaser_LAMBDA_t(std::move(l));
+      l();
     }
-    class releaser_0_t_ {
-    public:
-        MJZ_NO_MV_NO_CPY(releaser_0_t_);
-        releaser_0_t_() = delete;
-        MJZ_CX_AL_FN
-            releaser_0_t_(releaser_LAMBDA_t &&releaser_lambda) noexcept(requires() {
-                {
-                    releaser_LAMBDA_t(std::move(releaser_lambda))
-                } noexcept;
-        }): m_releaser_lambda_(std::move(releaser_lambda)) {}
-        MJZ_CX_AL_FN ~releaser_0_t_() {
-            m_releaser_lambda_();
-        }
+  class releaser_0_t_ {
+  public:
+    MJZ_NO_MV_NO_CPY(releaser_0_t_);
+    releaser_0_t_() = delete;
+    MJZ_CX_AL_FN
+    releaser_0_t_(releaser_LAMBDA_t &&releaser_lambda) noexcept(requires() {
+      { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
+    }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
+    MJZ_CX_AL_FN ~releaser_0_t_() { m_releaser_lambda_(); }
 
-        //
+    //
 
-    private:
-        releaser_LAMBDA_t m_releaser_lambda_;
-        MJZ_NO_DYNAMIC_ALLOCATOR(releaser_0_t_);
-    };
+  private:
+    releaser_LAMBDA_t m_releaser_lambda_;
+    MJZ_NO_DYNAMIC_ALLOCATOR(releaser_0_t_);
+  };
 
 public:
-    MJZ_CE_FN releaser_helper_t() noexcept {}
-    template <typename T>
-    MJZ_CX_AL_NDR_FN("this should be stored for it to be called at end of scope")
-        auto operator->*(T &&fn) const
-        noexcept(noexcept(releaser_0_t_{std::forward<T>(fn)}))
-        -> decltype(releaser_0_t_{std::forward<T>(fn)}) {
-        return releaser_0_t_{std::forward<T>(fn)};
-    };
-    MJZ_DEPRECATED_R("confusion")
-        MJZ_CX_FN explicit operator bool() const noexcept = delete;
-    MJZ_DEPRECATED_R("confusion")
-        MJZ_CX_FN bool operator!() const noexcept = delete;
-    MJZ_DEPRECATED_R("confusion")
-        MJZ_CX_FN void operator&() const noexcept = delete;
+  MJZ_CE_FN releaser_helper_t() noexcept {}
+  template <typename T>
+  MJZ_CX_AL_NDR_FN("this should be stored for it to be called at end of scope")
+  auto operator->*(T &&fn) const
+      noexcept(noexcept(releaser_0_t_{std::forward<T>(fn)}))
+          -> decltype(releaser_0_t_{std::forward<T>(fn)}) {
+    return releaser_0_t_{std::forward<T>(fn)};
+  };
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN explicit operator bool() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN bool operator!() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN void operator&() const noexcept = delete;
 };
 static_assert(std::is_empty_v<releaser_helper_t<>>);
 
-template <class Lmabda_t,bool no_exeptions = false>
+template <class Lmabda_t, bool no_exeptions = false>
 MJZ_CX_AL_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
-    if constexpr(requires(Lmabda_t &&code_) {
-        {
-            std::forward<Lmabda_t>(code_)()
-        } noexcept;
-    }) {
-        std::forward<Lmabda_t>(code)();
-        return true;
-    } else if constexpr(no_exeptions) {
-        std::forward<Lmabda_t>(code)();
-        return true;
-    } else {
-        MJZ_DISABLE_ALL_WANINGS_START_;
-        #if MJZ_CATCHES_EXCEPTIONS_
-        try {
-            std::forward<Lmabda_t>(code)();
-        } catch(...) {
-            return false;
-        }
-        #else
-        std::forward<Lmabda_t>(code)();
-        #endif
-        MJZ_DISABLE_ALL_WANINGS_END_;
-
-        return true;
+  if constexpr (requires(Lmabda_t &&code_) {
+                  { std::forward<Lmabda_t>(code_)() } noexcept;
+                }) {
+    std::forward<Lmabda_t>(code)();
+    return true;
+  } else if constexpr (no_exeptions) {
+    std::forward<Lmabda_t>(code)();
+    return true;
+  } else {
+    MJZ_DISABLE_ALL_WANINGS_START_;
+#if MJZ_CATCHES_EXCEPTIONS_
+    try {
+      std::forward<Lmabda_t>(code)();
+    } catch (...) {
+      return false;
     }
+#else
+    std::forward<Lmabda_t>(code)();
+#endif
+    MJZ_DISABLE_ALL_WANINGS_END_;
+
+    return true;
+  }
 }
 template <std::same_as<void> = void> struct noexcept_er_helper_t {
 public:
-    MJZ_CE_FN noexcept_er_helper_t() noexcept {}
-    template <class Lmabda_t>
-    MJZ_CX_FN success_t operator->*(Lmabda_t &&fn) const noexcept {
-        return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
-    };
+  MJZ_CE_FN noexcept_er_helper_t() noexcept {}
+  template <class Lmabda_t>
+  MJZ_CX_FN success_t operator->*(Lmabda_t &&fn) const noexcept {
+    return run_and_block_exeptions(std::forward<Lmabda_t>(fn));
+  };
 
-    template <class Lmabda_t>
-    MJZ_CX_FN success_t operator*(Lmabda_t &&fn) const noexcept {
-        success_t ret{};
-        run_and_block_exeptions(
-            [&]() noexcept(noexcept(success_t(std::forward<Lmabda_t>(fn)()))) {
-            ret = success_t(std::forward<Lmabda_t>(fn)());
+  template <class Lmabda_t>
+  MJZ_CX_FN success_t operator*(Lmabda_t &&fn) const noexcept {
+    success_t ret{};
+    run_and_block_exeptions(
+        [&]() noexcept(noexcept(success_t(std::forward<Lmabda_t>(fn)()))) {
+          ret = success_t(std::forward<Lmabda_t>(fn)());
         });
-        return ret;
-    };
-    MJZ_DEPRECATED_R("confusion")
-        MJZ_CX_FN explicit operator bool() const noexcept = delete;
-    MJZ_DEPRECATED_R("confusion")
-        MJZ_CX_FN bool operator!() const noexcept = delete;
-    MJZ_DEPRECATED_R("confusion")
-        MJZ_CX_FN void operator&() const noexcept = delete;
+    return ret;
+  };
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN explicit operator bool() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN bool operator!() const noexcept = delete;
+  MJZ_DEPRECATED_R("confusion")
+  MJZ_CX_FN void operator&() const noexcept = delete;
 };
 static_assert(std::is_empty_v<noexcept_er_helper_t<>>);
 
@@ -878,7 +877,7 @@ void g(){
 }
 */
 
-#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable -> void
+#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable->void
 
 /*
 this is a temporary RAII object for being used for something like this:
@@ -894,8 +893,8 @@ MJZ_RELEASE  { delete p; p=nullptr;};
       ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
 
 template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
-    MJZ_IF_CONSTEVAL_{return ptr;}
-    return ::std::assume_aligned<align_v>(ptr);
+  MJZ_IF_CONSTEVAL_ { return ptr; }
+  return ::std::assume_aligned<align_v>(ptr);
 }
 
 #define MJZ_BAD_DEBUG_0_                                                       \

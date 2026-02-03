@@ -186,6 +186,156 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     uintlen_t index{};
   };
   template <class Str_t> using iterator_t = continuos_iterator_of_t<Str_t>;
+  template <class Range_t> struct random_access_iterator_of_t {
+  public:
+    using iterator_concept = std::random_access_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
+    using difference_type = intlen_t;
+    using reference = decltype(std::declval<Range_t &>()[uintlen_t()]);
+    using value_type = reference;
+    MJZ_CX_FN random_access_iterator_of_t() noexcept {};
+    MJZ_CX_FN random_access_iterator_of_t(nullptr_t) noexcept
+        : random_access_iterator_of_t(){};
+    MJZ_CX_FN random_access_iterator_of_t(Range_t &trc_,
+                                          uintlen_t index_ = 0) noexcept
+        : trc(&trc_), index(index_) {
+      MJZ_UNUSED auto checker = check();
+    }
+
+  public:
+    MJZ_CX_FN reference operator*() const noexcept {
+      MJZ_UNUSED auto checker = check(true);
+      return (*trc)[index];
+    }
+
+    MJZ_CX_FN Range_t *operator()() const noexcept { return trc; }
+
+    MJZ_CX_FN bool operator!() const noexcept { return !trc; }
+    MJZ_CX_FN explicit operator bool() const noexcept { return !!trc; }
+    MJZ_CX_FN random_access_iterator_of_t &operator++() noexcept {
+      MJZ_UNUSED auto checker = check();
+      ++index;
+      return *this;
+    }
+
+    MJZ_CX_FN random_access_iterator_of_t operator++(int) noexcept {
+      MJZ_UNUSED auto checker = check();
+      random_access_iterator_of_t Tmp{*this};
+      ++*this;
+      return Tmp;
+    }
+
+    MJZ_CX_FN random_access_iterator_of_t &operator--() noexcept {
+      MJZ_UNUSED auto checker = check();
+      --index;
+      return *this;
+    }
+
+    MJZ_CX_ND_FN random_access_iterator_of_t operator--(int) noexcept {
+      MJZ_UNUSED auto checker = check();
+      random_access_iterator_of_t Tmp{*this};
+      --*this;
+      return Tmp;
+    }
+
+    MJZ_CX_FN random_access_iterator_of_t &
+    operator+=(const difference_type diff) noexcept {
+      MJZ_UNUSED auto checker = check();
+      index += uintlen_t(diff);
+
+      return *this;
+    }
+    MJZ_CX_ND_FN random_access_iterator_of_t
+    operator+(const difference_type Off) const noexcept {
+      MJZ_UNUSED auto checker = check();
+      random_access_iterator_of_t Tmp{*this};
+      Tmp += Off;
+      return Tmp;
+    }
+    MJZ_CX_FN friend random_access_iterator_of_t
+    operator+(const difference_type Off,
+              random_access_iterator_of_t Right) noexcept {
+      MJZ_UNUSED auto checker = Right.check();
+      Right += Off;
+      return Right;
+    }
+
+    MJZ_CX_FN random_access_iterator_of_t &
+    operator-=(const difference_type Off) noexcept {
+      MJZ_UNUSED auto checker = check();
+      index -= Off;
+
+      return *this;
+    }
+    MJZ_CX_ND_FN random_access_iterator_of_t
+    operator-(const difference_type Off) const noexcept {
+      MJZ_UNUSED auto checker = check();
+      random_access_iterator_of_t Tmp{*this};
+      Tmp -= Off;
+      return Tmp;
+    }
+    MJZ_CX_ND_FN difference_type
+    operator-(const random_access_iterator_of_t &Right) const noexcept {
+      MJZ_UNUSED auto checker = check();
+      MJZ_UNUSED auto checker2 = Right.check();
+      asserts(asserts.assume_rn, Right.trc == trc);
+      return difference_type(index) - difference_type(Right.index);
+    }
+    MJZ_CX_ND_FN reference
+    operator[](const difference_type Off) const noexcept {
+      MJZ_UNUSED auto checker = check();
+      return *(*this + Off);
+    }
+    MJZ_CX_ND_FN bool
+    operator==(const random_access_iterator_of_t &Right) const noexcept {
+      MJZ_UNUSED auto checker = check();
+      MJZ_UNUSED auto checker2 = Right.check();
+      MJZ_WARNINGS_IGNORE_BEGIN_IMPL_;
+      if (trc && Right.trc) {
+        return trc == Right.trc && index == Right.index;
+      }
+      return trc == Right.trc;
+      MJZ_WARNINGS_IGNORE_END_IMPL_;
+    }
+    MJZ_CX_ND_FN std::strong_ordering
+    operator<=>(const random_access_iterator_of_t &Right) const noexcept {
+      MJZ_UNUSED auto checker = check();
+      MJZ_UNUSED auto checker2 = Right.check();
+      asserts(asserts.expect_rn, Right.trc == trc);
+      return index <=> Right.index;
+    }
+    MJZ_CX_ND_FN encodings_e get_encoding() const noexcept
+      requires requires(Range_t *p) {
+        { p->get_encoding() } noexcept -> std::same_as<encodings_e>;
+      }
+    {
+      asserts(asserts.assume_rn, !!this->trc);
+      return this->trc->get_encoding();
+    }
+
+  protected:
+    MJZ_CX_ND_FN auto check(bool extra = false) const noexcept {
+      static_assert(requires(Range_t &p) {
+        { p[uintlen_t(0)] } noexcept;
+      });
+      auto fn = [this, extra]() noexcept -> void {
+        if (!trc) {
+          asserts(asserts.expect_rn, !index);
+          return;
+        }
+        const auto len = trc->size();
+        constexpr auto max_len = Range_t::max_size();
+
+        asserts(asserts.expect_rn, trc && index <= max_len && len <= max_len &&
+                                       index <= len &&
+                                       (!extra || index != len));
+      };
+      fn();
+      return releaser_t{std::move(fn)};
+    }
+    Range_t *trc{};
+    uintlen_t index{};
+  };
 
   namespace basic_str_abi_ns_ {
   template <version_t version_v> struct mut_ref_t {
@@ -921,7 +1071,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN file_output_it_t(auto *ptr) noexcept : file_output_it_t() {
       Stream = ptr;
     }
-    MJZ_CX_FN success_t back_insert(MJZ_MAYBE_UNUSED const char *ptr,MJZ_MAYBE_UNUSED uintlen_t len) {
+    MJZ_CX_FN success_t back_insert(MJZ_MAYBE_UNUSED const char *ptr,
+                                    MJZ_MAYBE_UNUSED uintlen_t len) {
       MJZ_IF_CONSTEVAL { return false; }
 #if MJZ_WITH_iostream
       return len == std::fwrite(ptr, 1, std::size_t(len), Stream);

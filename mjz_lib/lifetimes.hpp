@@ -26,49 +26,49 @@ SOFTWARE.
 #include "all_macors.hpp"
 
 MJZ_EXPORT namespace mjz {
-struct lifetimes_indicator_t {
-    #if MJZ_DO_DEBUG_COUT && MJZ_WITH_iostream
+  struct lifetimes_indicator_t {
+#if MJZ_DO_DEBUG_COUT && MJZ_WITH_iostream
     MJZ_CX_FN lifetimes_indicator_t() noexcept {
-        MJZ_IF_CONSTEVAL{return;}
-            std::cout << "lifetimes_indicator_t()->{}"
-            << static_cast<const void *>(this);
+      MJZ_IF_CONSTEVAL { return; }
+      std::cout << "lifetimes_indicator_t()->{}"
+                << static_cast<const void *>(this);
     }
     MJZ_CX_FN ~lifetimes_indicator_t() noexcept {
-        MJZ_IF_CONSTEVAL{return;}
-            std::cout << "~lifetimes_indicator_t()->"
-            << static_cast<const void *>(this);
+      MJZ_IF_CONSTEVAL { return; }
+      std::cout << "~lifetimes_indicator_t()->"
+                << static_cast<const void *>(this);
     }
     MJZ_CX_FN
-        lifetimes_indicator_t(const lifetimes_indicator_t &that) noexcept {
-        MJZ_IF_CONSTEVAL{return;}
-            std::cout << "lifetimes_indicator_t[copy]("
-            << static_cast<const void *>(&that) << ")->"
-            << static_cast<const void *>(this);
+    lifetimes_indicator_t(const lifetimes_indicator_t &that) noexcept {
+      MJZ_IF_CONSTEVAL { return; }
+      std::cout << "lifetimes_indicator_t[copy]("
+                << static_cast<const void *>(&that) << ")->"
+                << static_cast<const void *>(this);
     }
     MJZ_CX_FN lifetimes_indicator_t &
-        operator=(const lifetimes_indicator_t &that) noexcept {
-        MJZ_IF_CONSTEVAL{return *this;}
-            std::cout << "lifetimes_indicator_t[copy]="
-            << static_cast<const void *>(&that) << "->"
-            << static_cast<const void *>(this);
-        return *this;
+    operator=(const lifetimes_indicator_t &that) noexcept {
+      MJZ_IF_CONSTEVAL { return *this; }
+      std::cout << "lifetimes_indicator_t[copy]="
+                << static_cast<const void *>(&that) << "->"
+                << static_cast<const void *>(this);
+      return *this;
     }
     MJZ_CX_FN lifetimes_indicator_t(lifetimes_indicator_t &&that) noexcept {
-        MJZ_IF_CONSTEVAL{return;}
-            std::cout << "lifetimes_indicator_t[move]("
-            << static_cast<const void *>(&that) << ")->"
-            << static_cast<const void *>(this);
+      MJZ_IF_CONSTEVAL { return; }
+      std::cout << "lifetimes_indicator_t[move]("
+                << static_cast<const void *>(&that) << ")->"
+                << static_cast<const void *>(this);
     }
     MJZ_CX_FN lifetimes_indicator_t &
-        operator=(lifetimes_indicator_t &&that) noexcept {
-        MJZ_IF_CONSTEVAL{return *this;}
-            std::cout << "lifetimes_indicator_t[move]="
-            << static_cast<const void *>(&that) << "->"
-            << static_cast<const void *>(this);
-        return *this;
+    operator=(lifetimes_indicator_t &&that) noexcept {
+      MJZ_IF_CONSTEVAL { return *this; }
+      std::cout << "lifetimes_indicator_t[move]="
+                << static_cast<const void *>(&that) << "->"
+                << static_cast<const void *>(this);
+      return *this;
     }
 
-    #endif
-};
+#endif
+  };
 }; // namespace mjz
 #endif // MJZ_TEST_lifetimes_HPP_FILE_

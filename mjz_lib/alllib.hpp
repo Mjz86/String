@@ -2,11 +2,11 @@
 #define MJZ_LIB_FILE_alllib_
 #if 0
 #error "meta files that should not be used:"
+#include "alllib.hpp"
+#include "alllib_import.hpp"
 #include "choose_include_marco_.hpp"
 #include "import_mjz_lib_.hpp"
 #include "import_mjz_lib_.hppm"
-#include "alllib.hpp"
-#include "alllib_import.hpp"
 #include "import_std_.hpp"
 #include "import_std_.hppm"
 #endif
@@ -32,12 +32,8 @@
 #include "user_include_context_.hpp"
 #include "versions.hpp"
 
-
 // folder
 
-#if __has_include("mjc/alllib.hpp")
-#include "mjc/alllib.hpp"
-#endif
 #if __has_include("allocs/alllib.hpp")
 #include "allocs/alllib.hpp"
 #endif
@@ -64,6 +60,13 @@
 #endif
 #if __has_include("unicode/alllib.hpp")
 #include "unicode/alllib.hpp"
+#endif
+#if __has_include("dumb/alllib.hpp")
+#include "dumb/alllib.hpp"
+#endif
+
+#if __has_include("mjc/alllib.hpp")
+#include "mjc/alllib.hpp"
 #endif
 
 #endif // MJZ_LIB_FILE_alllib_
