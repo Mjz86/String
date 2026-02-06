@@ -443,7 +443,7 @@ using void_struct_t = totally_empty_type_t;
 
 #define MJZ_restrict __restrict__
 #define MJZ_GCC_ATTRIBUTES_(X) __attribute__((X))
-#define MJZ_JUST_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_(always_inline) inline
+#define MJZ_JUST_FORCED_INLINE_ MJZ_GCC_ATTRIBUTES_(always_inline)
 #define MJZ_JUST_NO_INLINE_ MJZ_GCC_ATTRIBUTES_(noinline)
 #if __has_cpp_attribute(assume)
 #define MJZ_JUST_ASSUME_(X_expression_)                                        \
@@ -670,18 +670,18 @@ active union member... IF the first statement is true
 
 #define MJZ_CX_AL_FN                                                           \
   MJZ_MAYBE_UNUSED                                                             \
-  MJZ_GCC_ONLY_CODE_(__attribute__((always_inline)))                           \
-  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__forceinline)
+  MJZ_GCC_ONLY_CODE_(MJZ_FORCED_INLINE)                                        \
+  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(MJZ_FORCED_INLINE)
 
 #define MJZ_NCX_AL_FN                                                          \
   MJZ_MAYBE_UNUSED                                                             \
-  MJZ_GCC_ONLY_CODE_(__attribute__((always_inline)))                           \
-  inline MJZ_MSVC_ONLY_CODE_(__forceinline)
+  MJZ_GCC_ONLY_CODE_(MJZ_FORCED_INLINE)                                        \
+  inline MJZ_MSVC_ONLY_CODE_(MJZ_FORCED_INLINE)
 
 #define MJZ_CX_NL_FN                                                           \
   MJZ_MAYBE_UNUSED                                                             \
-  MJZ_GCC_ONLY_CODE_(__attribute__((noinline)))                                \
-  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(__declspec(noinline))
+  MJZ_GCC_ONLY_CODE_(MJZ_NO_INLINE)                                            \
+  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(MJZ_NO_INLINE)
 
 #define MJZ_CX_AL_A_FN(X) X MJZ_CX_AL_FN
 
