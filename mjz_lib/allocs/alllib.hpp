@@ -4,6 +4,7 @@
 #include "blocks_alloc.hpp"
 #include "bump_alloc.hpp"
 #include "generic_alloc.hpp"
+#include "null_alloc.hpp"
 #include "page_alloc.hpp"
 #include "page_alloc_base.hpp"
 #include "pmr_adaptor.hpp"

@@ -877,7 +877,7 @@ void g(){
 }
 */
 
-#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable->void
+#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable -> void
 
 /*
 this is a temporary RAII object for being used for something like this:

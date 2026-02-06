@@ -98,7 +98,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
   public:
     MJZ_NCX_FN pmr_alloc_t(std::pmr::polymorphic_allocator<char> pmr,
                            bool fast_table = false) noexcept
-        : alloc_base{*vtable_val_f(fast_table)}, undelying{std::move(pmr)} {}
+        : alloc_base{vtable_val_f(fast_table)}, undelying{std::move(pmr)} {}
     MJZ_NCX_FN ~pmr_alloc_t() noexcept {
       asserts(asserts.condition_rn, 0 == reference_count,
               "the ref count must be 0 (deleted) , there is still an alive "

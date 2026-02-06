@@ -350,6 +350,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
   template <version_t version_v>
   MJZ_FCONSTANT(generic_alloc_maker_t<version_v>)
   generic_alloc_maker{totally_empty_type};
+
 }; // namespace mjz::allocs_ns
 
 #endif // MJZ_ALLOCS_generic_alloc_FILE_HPP_
