@@ -676,7 +676,7 @@ active union member... IF the first statement is true
 #define MJZ_NCX_AL_FN                                                          \
   MJZ_MAYBE_UNUSED                                                             \
   MJZ_GCC_ONLY_CODE_(MJZ_FORCED_INLINE)                                        \
-  inline MJZ_MSVC_ONLY_CODE_(MJZ_FORCED_INLINE)
+  MJZ_MSVC_ONLY_CODE_(MJZ_FORCED_INLINE)
 
 #define MJZ_CX_NL_FN                                                           \
   MJZ_MAYBE_UNUSED                                                             \
