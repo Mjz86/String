@@ -43,8 +43,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     MJZ_CX_ND_FN static intlen_t pv_compare(const char *rhs, const char *lhs,
                                             uintlen_t len) noexcept {
-      if (lhs == rhs)
-        return 0;
+      
       MJZ_IFN_CONSTEVAL { return std::memcmp(rhs, lhs, len); }
       for (; 0 < len; --len, ++rhs, ++lhs) {
         if (*rhs != *lhs) {

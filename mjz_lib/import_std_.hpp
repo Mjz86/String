@@ -135,8 +135,15 @@ SOFTWARE.
 #endif
 
 // C++
-// #include <bitset>
-// #include <complex>
+
+#if __has_include(<bitset>)
+#include <bitset>
+#endif
+
+#if __has_include(<complex>)
+#include <complex>
+#endif
+
 #include <algorithm>
 #include <bitset>
 #include <functional>
@@ -165,7 +172,9 @@ SOFTWARE.
 
 #if __cplusplus >= 201703L
 #include <any>
-// #include <execution>
+#if __has_include(<execution>)
+#include <execution>
+#endif
 #include <optional>
 #include <string_view>
 #include <variant>
@@ -292,7 +301,10 @@ SOFTWARE.
 #if __cplusplus >= 201703L
 #include <any>
 #include <charconv>
-// #include <execution>
+
+#if __has_include(<execution>)
+#include <execution>
+#endif
 #include <filesystem>
 #include <memory_resource>
 #include <optional>

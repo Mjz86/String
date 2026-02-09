@@ -107,7 +107,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN continuos_iterator_of_t &
     operator-=(const difference_type Off) noexcept {
       MJZ_UNUSED auto checker = check();
-      index -= Off;
+      index -= uintlen_t(Off);
 
       return *this;
     }
@@ -263,7 +263,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN random_access_iterator_of_t &
     operator-=(const difference_type Off) noexcept {
       MJZ_UNUSED auto checker = check();
-      index -= Off;
+      index -= uintlen_t(Off);
 
       return *this;
     }

@@ -57,24 +57,23 @@ SOFTWARE.
 #define MJZ_STR_HASH_BYTES_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz {
   template <version_t> struct hash_bytes_t {
-  private:
-    MJZ_IL_CX_FN static uintlen_t
-    load_bytes(const char *p, uint8_t len = sizeof(uintlen_t)) noexcept {
-      asserts(asserts.assume_rn, len <= sizeof(uintlen_t));
-      std::array<char, sizeof(uintlen_t)> buf{};
-      for (uintlen_t i{}; i < len; i++)
-        buf[(size_t)i] = p[(size_t)i];
-      return std::bit_cast<uintlen_t>(buf);
-    }
-
   public:
     uintlen_t val{};
 
   public:
-    MJZ_CX_FN static uintlen_t
+    template <std::unsigned_integral uinthash_t = uintlen_t>
+    MJZ_CX_FN static uinthash_t
     hash_bytes(const char *ptr, uintlen_t len,
-               uintlen_t seed = uintlen_t(0xc70f6907UL)) noexcept {
-      if constexpr (sizeof(uintlen_t) == 8) {
+               uinthash_t seed = uinthash_t(0xc70f6907UL)) noexcept {
+      constexpr auto load_bytes =
+          [](const char *p, uint8_t len = sizeof(uinthash_t)) noexcept {
+            asserts(asserts.assume_rn, len <= sizeof(uinthash_t));
+            std::array<char, sizeof(uinthash_t)> buf{};
+            for (uinthash_t i{}; i < len; i++)
+              buf[(size_t)i] = p[(size_t)i];
+            return std::bit_cast<uinthash_t>(buf);
+          };
+      if constexpr (sizeof(uinthash_t) == 8) {
         auto shift_mix = [](uint64_t v) noexcept -> uint64_t {
           return v ^ (v >> 47);
         };
@@ -100,7 +99,7 @@ MJZ_EXPORT namespace mjz {
         hash = shift_mix(hash) * mul;
         hash = shift_mix(hash);
         return hash;
-      } else if constexpr (sizeof(uintlen_t) == 4) {
+      } else if constexpr (sizeof(uinthash_t) == 4) {
         const uint32_t m = 0x5bd1e995;
         uint32_t hash = seed ^ len;
         const char *buf = static_cast<const char *>(ptr);
@@ -142,7 +141,7 @@ MJZ_EXPORT namespace mjz {
       }
 
       else {
-        static_assert(4 <= sizeof(uintlen_t));
+        static_assert(4 <= sizeof(uinthash_t) && sizeof(uinthash_t) <= 8);
         return 0;
       }
     }
