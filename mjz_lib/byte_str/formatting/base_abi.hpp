@@ -763,6 +763,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN success_t write(const auto &v) noexcept {
       return main_ctx().output_it.append_obj_impl_(v);
     }
+    MJZ_CX_FN success_t write(const auto &...vs) noexcept {
+      return (write(vs) && ...);
+    }
     MJZ_CX_FN success_t write_format_style(view_t v) noexcept {
       const char *ptr{v.data()};
       const char *const ptr_begin{ptr};
