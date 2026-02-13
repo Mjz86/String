@@ -493,10 +493,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                 offsetof(non_sso_t, begin_ptr)),
             m_sso_buffer_());
       }
-      MJZ_CX_AL_FN void
-      check_buffer_correct_ness_(const char *begin, uintlen_t length,
-                                 char *buffer_begin,
-                                 uintlen_t buffer_capacity) const noexcept {
+      MJZ_CX_AL_FN void check_buffer_correct_ness_(
+          const char *begin, uintlen_t length, char *buffer_begin,
+          uintlen_t buffer_capacity,
+          bool may_overlap_with_this = false) const noexcept {
         asserts(asserts.assume_rn,
                 buffer_capacity <= byte_traits_t<version_v>::npos - 1 &&
                     length <= byte_traits_t<version_v>::npos - 1 &&
@@ -506,6 +506,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                       begin + length <= buffer_begin + buffer_capacity &&
                       length <= buffer_capacity)));
         MJZ_IF_CONSTEVAL return;
+        if (may_overlap_with_this)
+          return;
         asserts(asserts.assume_rn,
                 !memory_has_overlap_ncx(this, sizeof(*this), buffer_begin,
                                         buffer_capacity));
@@ -610,7 +612,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           asserts(asserts.assume_rn, no_destroy());
         }
 
-        check_buffer_correct_ness_(ptr, len, nullptr, 0);
+        check_buffer_correct_ness_(ptr, len, nullptr, 0, no_destroy());
 
         check_buffer_correct_ness_(buffer_begin_, capacity_, nullptr, 0);
 

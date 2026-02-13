@@ -1193,13 +1193,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     MJZ_CX_ND_FN optional_ref_t<const char>
     at(const uintlen_t i) const noexcept {
-      bool bad = (i < length());
+      bool bad = !(i < length());
       auto ptr = data();
       ptr = branchless_teranary<const char *>(!bad, ptr, nullptr);
       return ptr + branchless_teranary<uintlen_t>(!bad, i, 0);
     }
     MJZ_CX_ND_FN optional_ref_t<mut_type> at(const uintlen_t i) noexcept {
-      bool bad = (i < length());
+      bool bad = !(i < length());
       auto ptr = data();
       ptr = branchless_teranary<mut_type *>(!bad, ptr, nullptr);
       return ptr + branchless_teranary<uintlen_t>(!bad, i, 0);
@@ -1315,7 +1315,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
      * removes min(byte_count,length) from end
      */
     MJZ_CX_FN success_t remove_suffix(uintlen_t byte_count) noexcept {
-      auto len = m.get_length() - byte_count;
+      auto len = std::max(m.get_length(), byte_count) - byte_count;
       if (no_heap_route()) {
         return as_substring_<when_t::no_heap>(0, len);
       }

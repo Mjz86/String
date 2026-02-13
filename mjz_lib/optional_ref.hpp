@@ -82,8 +82,13 @@ MJZ_EXPORT namespace mjz {
       reset();
       return *this;
     }
-    MJZ_CX_FN bool
-    operator==(const optional_ref_t &opt) const noexcept = default;
+    MJZ_CX_FN bool operator==(const optional_ref_t &opt) const noexcept {
+      if (opt.ptr == ptr)
+        return true;
+      if (!(opt.ptr && ptr))
+        return false;
+      return *ptr == *opt.ptr;
+    }
     MJZ_CX_FN optional_ref_t &
     operator=(const optional_ref_t &opt) noexcept = default;
     MJZ_CX_FN optional_ref_t &operator=(optional_ref_t &&opt) noexcept {

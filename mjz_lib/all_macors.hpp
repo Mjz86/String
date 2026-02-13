@@ -570,8 +570,7 @@ active union member... IF the first statement is true
   CLASS_NAME &operator=(CLASS_NAME &) = delete;                                \
   CLASS_NAME &operator=(const CLASS_NAME &) = delete;
 
-#define MJZ_DEFAULTED_CLASS(CLASS_NAME)                                        \
-  MJZ_CX_FN CLASS_NAME() noexcept = default;                                   \
+#define MJZ_MOSTLY_DEFAULTED_CLASS(CLASS_NAME)                                 \
   MJZ_CX_FN ~CLASS_NAME() noexcept = default;                                  \
   MJZ_CX_FN CLASS_NAME(CLASS_NAME &) noexcept = default;                       \
   MJZ_CX_FN CLASS_NAME(CLASS_NAME &&) noexcept = default;                      \
@@ -579,6 +578,19 @@ active union member... IF the first statement is true
   MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &) noexcept = default;            \
   MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&) noexcept = default;           \
   MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept = default;
+
+#define MJZ_MOSTLY_DEFAULTED_CLASS_WDST(CLASS_NAME)                            \
+  MJZ_CX_FN ~CLASS_NAME() noexcept {};                                         \
+  MJZ_CX_FN CLASS_NAME(CLASS_NAME &) noexcept = default;                       \
+  MJZ_CX_FN CLASS_NAME(CLASS_NAME &&) noexcept = default;                      \
+  MJZ_CX_FN CLASS_NAME(const CLASS_NAME &) noexcept = default;                 \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &) noexcept = default;            \
+  MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&) noexcept = default;           \
+  MJZ_CX_FN CLASS_NAME &operator=(const CLASS_NAME &) noexcept = default;
+
+#define MJZ_DEFAULTED_CLASS(CLASS_NAME)                                        \
+  MJZ_CX_FN CLASS_NAME() noexcept = default;                                   \
+  MJZ_MOSTLY_DEFAULTED_CLASS(CLASS_NAME)
 
 #define MJZ_ASSIGN_LIKE_CONSTRUCT(CLASS_NAME)                                  \
   MJZ_CX_FN CLASS_NAME &operator=(CLASS_NAME &&src_0_) noexcept {              \

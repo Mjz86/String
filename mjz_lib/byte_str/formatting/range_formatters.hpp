@@ -41,8 +41,31 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     } noexcept -> std::convertible_to<uintlen_t>;
   };
 
+  template <version_t version_v> struct ranges_default_formatter_base_t {
+    using sview = static_string_view_t<version_v>;
+    using view = basic_string_view_t<version_v>;
+    view open_braket{sview("[")};
+    view close_braket{sview("]")};
+    view separator{sview(", ")};
+    uintlen_t slice_index{};
+    uintlen_t slice_length{uintlen_t(-1)};
+    basic_format_specs_t<version_v> partial_spec{};
+  };
+  template <version_t version_v>
+  struct tuples_default_formatter_base_t
+      : ranges_default_formatter_base_t<version_v> {
+    using sview = static_string_view_t<version_v>;
+    MJZ_CX_FN tuples_default_formatter_base_t() noexcept {
+      this->separator = sview(", ");
+      this->close_braket = sview(")");
+      this->open_braket = sview("(");
+    }
+    bool is_m{};
+  };
+
   template <version_t version_v, is_tuple_c T_>
-  struct default_formatter_t<version_v, T_, 60> {
+  struct default_formatter_t<version_v, T_, 60>
+      : tuples_default_formatter_base_t<version_v> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
     MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
@@ -68,14 +91,15 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     using F_t = std::remove_pointer_t<decltype(F_t_fn(IS_t{}))>;
 
   public:
+    using Tplbase = tuples_default_formatter_base_t<version_v>;
+    using Tplbase::close_braket;
+    using Tplbase::is_m;
+    using Tplbase::open_braket;
+    using Tplbase::partial_spec;
+    using Tplbase::separator;
+    using Tplbase::slice_index;
+    using Tplbase::slice_length;
     F_t formatters{};
-    view open_braket{sview("(")};
-    view close_braket{sview(")")};
-    view separator{sview(", ")};
-    uintlen_t slice_index{};
-    uintlen_t slice_length{uintlen_t(-1)};
-    basic_format_specs_t<version_v> partial_spec{};
-    bool is_m{};
 
     template <std::size_t I_v>
     MJZ_CX_FN auto inner_loop_fn(auto &&fn_v, uintlen_t &len,
@@ -232,7 +256,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
   template <version_t version_v, std::ranges::input_range T>
-  struct default_formatter_t<version_v, T, 50> {
+  struct default_formatter_t<version_v, T, 50>
+      : ranges_default_formatter_base_t<version_v> {
     using T_range = std::remove_const_t<std::remove_reference_t<T>>;
     using CT_range = std::conditional_t<requires(const T_range obj) {
       *std::ranges::begin(obj);
@@ -254,13 +279,14 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         decayed_t>;
 
   public:
+    using Tplbase = ranges_default_formatter_base_t<version_v>;
+    using Tplbase::close_braket;
+    using Tplbase::open_braket;
+    using Tplbase::partial_spec;
+    using Tplbase::separator;
+    using Tplbase::slice_index;
+    using Tplbase::slice_length;
     F_t formatter{};
-    view open_braket{sview("[")};
-    view close_braket{sview("]")};
-    view separator{sview(", ")};
-    uintlen_t slice_index{};
-    uintlen_t slice_length{uintlen_t(-1)};
-    basic_format_specs_t<version_v> partial_spec{};
 
     MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
       if (ctx.encoding() != encodings_e::ascii) {
