@@ -422,10 +422,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
 
-      if (m.template has_room_for<when_v>(str.m.get_length(),
+    /* idk whats wrong here but there is if (m.template has_room_for<when_v>(str.m.get_length(),
                                           props_v.has_null)) {
         return move_init_cpy_impl_0_<when_v>(std::move(str), other_ownerize);
-      }
+      }*/
 
       str.m.set_ownerized(true);
       if constexpr (is_same_type) {
