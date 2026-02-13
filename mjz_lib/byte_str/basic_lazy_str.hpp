@@ -126,6 +126,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     }
     MJZ_CX_FN basic_lazy_str_t &
     operator=(const basic_lazy_str_t &obj) noexcept {
+    if(this==&obj)return *this;
       return init_with(obj, false);
     }
     MJZ_CX_FN ~basic_lazy_str_t() noexcept { reset(); }
