@@ -162,11 +162,12 @@ public:
     m_values.pop_back();
     m_keys.pop_back();
     ///////////
-    if (m_flat_tree.size() == 1)
-      return;
+    
     parent = ~(back_i_r >> shift_index_node);
     while (childern_node_t{} == m_flat_tree[size_t(~parent)]) {
-      if (size_t(-parent) != m_flat_tree.size()) {
+    if (m_flat_tree.size() == 1)
+      return;
+  if (size_t(-parent) != m_flat_tree.size()) {
         m_flat_tree[size_t(~parent)] = m_flat_tree.back();
         parent = std::exchange(m_reverse_tree_indexies[size_t(~parent)],
                                m_reverse_tree_indexies.back());
