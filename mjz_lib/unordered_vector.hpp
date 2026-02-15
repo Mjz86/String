@@ -259,7 +259,7 @@ template <
         hash_fn_t,
     uint8_t branching_power_v>
 constexpr bool std::ranges::enable_borrowed_range<mjz::unordered_vector_t<
-    version_v, key_t, value_t, hash_fn_t, branching_power_v>> = true;
+    version_v, key_t, value_t, hash_fn_t, branching_power_v>> = false;
 
 template <
     mjz::version_t version_v, class key_t, class value_t,
