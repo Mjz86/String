@@ -88,11 +88,15 @@ private:
       intlen_t node{-1};
       intlen_t parent{};
     } ret{};
-
-    for (; ret.node < 0;) {
+    if (ret.node >= 0)
+      return ret;
+    do {
       ret.parent =
-          std::exchange(ret.node, m_flat_tree[size_t(~ret.node)][h.next()]);
-    }
+          std::exchange(ret.node, m_flat_tree[size_t(~ret.node)][h.current()]);
+      if (ret.node >= 0)
+        break;
+      h.next();
+    } while (true);
     return ret;
   }
 
@@ -133,6 +137,8 @@ public:
         if (sibl_hr.next() != hr.next())
           MJZ_MOSTLY_LIKELY { break; }
       };
+      m_reverse_value_indexies[size_t(node - 1)] =
+          intlen_t(sibl_hr.current()) + intlen_t((~parent) << shift_index_node);
       m_flat_tree.back()[sibl_hr.current()] = node;
     };
     m_values.push_back(std::move(value));
@@ -163,22 +169,38 @@ public:
     m_values.pop_back();
     m_keys.pop_back();
     ///////////
-    if (m_flat_tree.size() == 1)
-      return;
-    parent = ~(back_i_r >> shift_index_node);
-    while (childern_node_t{} == m_flat_tree[size_t(~parent)]) {
-      if (size_t(-parent) != m_flat_tree.size()) {
-        m_flat_tree[size_t(~parent)] = m_flat_tree.back();
-        parent = std::exchange(m_reverse_tree_indexies[size_t(~parent)],
-                               m_reverse_tree_indexies.back());
-      } else {
-        parent = m_reverse_tree_indexies.back();
+
+    size_t parent_node = size_t(node_i_r >> shift_index_node);
+    while (parent_node) {
+      if (childern_node_t{} != m_flat_tree[parent_node]) {
+        break;
       }
-      parent = ~(parent >> shift_index_node);
+      if ((1 + parent_node) != m_flat_tree.size()) {
+        node_i_r = std::exchange(m_reverse_tree_indexies[parent_node],
+                                 m_reverse_tree_indexies.back());
+        m_flat_tree[parent_node] = m_flat_tree.back();
+        intlen_t i{};
+        for (intlen_t child : m_flat_tree[parent_node]) {
+          auto val = i + (intlen_t(parent_node) << shift_index_node);
+
+          if (0 < child) {
+            m_reverse_value_indexies[size_t(child - 1)] = val;
+          }
+          if (child < 0) {
+            m_reverse_tree_indexies[size_t(~child)] = val;
+          }
+          i++;
+        }
+        back_i_r = m_reverse_tree_indexies.back();
+        m_flat_tree[size_t(back_i_r) >> shift_index_node]
+                   [mask & uintlen_t(back_i_r)] = ~intlen_t(parent_node);
+      } else {
+        node_i_r = m_reverse_tree_indexies.back();
+      }
+      parent_node = size_t(node_i_r) >> shift_index_node;
+      m_flat_tree[parent_node][mask & uintlen_t(node_i_r)] = 0;
       m_reverse_tree_indexies.pop_back();
       m_flat_tree.pop_back();
-      if (m_flat_tree.size() == 1)
-        return;
     };
   }
 
