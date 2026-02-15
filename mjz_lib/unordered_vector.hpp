@@ -149,7 +149,7 @@ public:
       return;
     intlen_t back_i_r = m_reverse_value_indexies.back();
     intlen_t node_i_r = m_reverse_value_indexies[size_t(node - 1)];
-    if (node != node_i_r) {
+    if (back_i_r != node_i_r) {
       m_reverse_value_indexies[size_t(node - 1)] = back_i_r;
       m_values[size_t(node - 1)] = std::move(m_values.back());
       m_keys[size_t(node - 1)] = std::move(m_keys.back());
