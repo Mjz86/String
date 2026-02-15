@@ -37,8 +37,9 @@ a continous hash "map" that has no holes or toombstons , with  fast element iter
 
 
 
-# rehash ellision:
-    hash of N bits ,  we  have   m=(N/shift_index_node) hashes for  m
+-  rehash ellision:
+ 
+      hash of N bits ,  we  have   m=(N/shift_index_node) hashes for  m
      levels , but the  next one requires a new hash , this means that
      if depth is passed in the function for hash regeneration it has
      its first shift_index_node bits zero always.
@@ -46,12 +47,12 @@ a continous hash "map" that has no holes or toombstons , with  fast element iter
 
 
 
-# find:
+- find:
        goes down the tree to find the element,  if reached it compares the keys
    then returns
 
 
-# insert:
+- insert:
     inserts based on hash in the tree , going down and putting it in the hash
    index of the tree , if the index had a leaf with different node we turn it
    into a node with the two different childen  , O(depth-tree) = O(logn)
@@ -59,7 +60,7 @@ a continous hash "map" that has no holes or toombstons , with  fast element iter
 
 
 
-# erase:
+- erase:
    removes  a key , using the reverse index to remove its  flat parent if its
    empty ,  then each removed element(leaf) or tree node  has the back of the
    vextor go in its place , using the reverse hash to change the leaf index in
