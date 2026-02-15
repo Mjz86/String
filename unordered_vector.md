@@ -69,6 +69,30 @@ a continous hash "map" that has no holes or toombstons , with  fast element iter
 
 
 
+- my   benchmark on potato pc:
+
+clang version 21.1.1 (https://github.com/llvm/llvm-project 5a86dc996c26299de63effc927075dcbfb924167)
+Target: x86_64-unknown-linux-gnu
+Thread model: posix
+InstalledDir: /home/mjz/LLVM-21.1.1-Linux-X64/bin
+
+/String/tests$ ~/LLVM-21.1.1-Linux-X64/bin/clang++ -std=c++26 -O3   -g -fprebuilt-module-path=build  -fconstexpr-steps=55555555 -fexperimental-library  -march=native   -Werror -Wall -Wextra  -Walloca -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdeprecated-copy-dtor -Wdouble-promotion -Wenum-conversion -Wfloat-equal -Wformat-signedness -Wformat=2 -Wmismatched-tags  -Wmultichar -Wnon-virtual-dtor -Woverloaded-virtual -Wpointer-arith -Wrange-loop-construct -Wshadow -Wuninitialized -Wvla -Wwrite-strings -Wsign-conversion -Wdelete-non-virtual-dtor  -ferror-limit=10        -stdlib=libstdc++    -lstdc++    -o  uvec uvec.cpp
+
+/String/tests$ ./uvec
+[baseline:4480900ns]
+[insert:321527297.00000017ns]
+[find_good:142235100.00000007ns]
+[erase:115435700.00000006ns]
+[find_mix:119566699.00000006ns]
+[find_bad:60268000.00000003ns]
+[iterate_load:1099800ns]
+[std_insert:475399299.00000025ns]
+[std_find_good:187802500.0000001ns]
+[std_erase:142239100.00000007ns]
+[std_find_mix:159960399.00000008ns]
+[std_find_bad:89687900.00000005ns]
+[std_iterate_load:38746900.00000002ns]
+
 
 # refrences:
 
