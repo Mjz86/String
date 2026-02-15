@@ -100,7 +100,10 @@ public:
   MJZ_CX_FN unordered_vector_t(hash_fn_t &&hash_fn_ = hash_fn_t{}) noexcept
       : hash_fn{std::move(hash_fn_)} {
     m_flat_tree.reserve(256);
+    m_reverse_tree_indexies.reserve(256);
+    m_reverse_tree_indexies.emplace_back();
     m_flat_tree.emplace_back();
+    
   }
 
   MJZ_CX_FN std::optional<uintlen_t> find(const key_t &key) const noexcept {
@@ -162,12 +165,11 @@ public:
     m_values.pop_back();
     m_keys.pop_back();
     ///////////
-    
-    parent = ~(back_i_r >> shift_index_node);
-    while (childern_node_t{} == m_flat_tree[size_t(~parent)]) {
     if (m_flat_tree.size() == 1)
       return;
-  if (size_t(-parent) != m_flat_tree.size()) {
+    parent = ~(back_i_r >> shift_index_node);
+    while (childern_node_t{} == m_flat_tree[size_t(~parent)]) {
+      if (size_t(-parent) != m_flat_tree.size()) {
         m_flat_tree[size_t(~parent)] = m_flat_tree.back();
         parent = std::exchange(m_reverse_tree_indexies[size_t(~parent)],
                                m_reverse_tree_indexies.back());
@@ -177,6 +179,8 @@ public:
       parent = ~(parent >> shift_index_node);
       m_reverse_tree_indexies.pop_back();
       m_flat_tree.pop_back();
+      if (m_flat_tree.size() == 1)
+      return;
     };
   }
 
