@@ -101,7 +101,7 @@ MJZ_EXPORT namespace mjz {
         return hash;
       } else if constexpr (sizeof(uinthash_t) == 4) {
         const uint32_t m = 0x5bd1e995;
-        uint32_t hash = seed ^ len;
+        uint32_t hash = seed ^ uint32_t(len);
         const char *buf = static_cast<const char *>(ptr);
 
         // Mix 4 bytes at a time into the hash.
