@@ -29,7 +29,7 @@ namespace mjz {
 template <
     version_t version_v, class key_t, class value_t,
     callable_c<uintlen_t(const key_t &, uintlen_t seed) noexcept> hash_fn_t,
-    uint8_t branching_power_v = 1>
+    uint8_t branching_power_v = 2>
 struct unordered_vector_t {
   static_assert(branching_power_v < 6);
 
@@ -108,6 +108,7 @@ public:
     m_reverse_tree_indexies.emplace_back();
     m_flat_tree.emplace_back();
   }
+
 
   MJZ_CX_FN std::optional<uintlen_t> find(const key_t &key) const noexcept {
     hasher_t hr{key, hash_fn};
@@ -262,6 +263,10 @@ public:
   MJZ_CX_ND_FN const_reverse_iterator crend() const noexcept { return rend(); }
 
   MJZ_CX_ND_FN size_type size() const noexcept { return values().size(); }
+
+  MJZ_CX_FN static size_type size()  noexcept {
+    return std::vector<childern_node_t>::max_size() >> shift_index_node;
+  }
 };
 
 template <version_t version_v, class key_t, class value_t>
