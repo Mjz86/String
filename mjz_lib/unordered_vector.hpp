@@ -265,7 +265,8 @@ public:
   MJZ_CX_ND_FN size_type size() const noexcept { return values().size(); }
 
   MJZ_CX_FN static size_type max_size()  noexcept {
-    return std::vector<childern_node_t>::max_size() >> shift_index_node;
+    constexpr auto sz=std::vector<childern_node_t>().max_size();
+    return  sz>> shift_index_node;
   }
 };
 
