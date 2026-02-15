@@ -49,7 +49,7 @@ a continous hash "map" that has no holes or toombstons , with  fast element iter
 
 - find:
        goes down the tree to find the element,  if reached it compares the keys
-   then returns
+   then returns ,O(depth-tree) = O(logn)Amortized
 
 
 - insert:
