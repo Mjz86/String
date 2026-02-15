@@ -9,8 +9,6 @@
   using namespace format_ns;
   using namespace fmt_litteral_ns;
   using namespace print_ns;
-  using namespace any_ns;
-  using namespace err_ns;
   inline static constexpr version_t version_v{};
   using sview_t = static_string_view_t<version_v>;
   using dview_t = dynamic_string_view_t<version_v>;
