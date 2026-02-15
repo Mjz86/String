@@ -1,6 +1,6 @@
 # the unordered vector
 
-a continous hash "map" that has no holes or toombstons , with  fast element itteration and acceptable lookup.
+a continous hash "map" that has no holes or toombstons , with  fast element iteration and acceptable lookup.
 
 
 
@@ -71,3 +71,10 @@ a continous hash "map" that has no holes or toombstons , with  fast element itte
 
 # refrences:
 
+
+https://github.com/Mjz86/String/blob/main/mjz_lib/unordered_vector.hpp
+
+
+https://en.cppreference.com/w/cpp/container/unordered_map
+
+https://en.cppreference.com/w/cpp/container/flat_map
