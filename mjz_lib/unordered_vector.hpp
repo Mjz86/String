@@ -29,7 +29,7 @@ namespace mjz {
 template <
     version_t version_v, class key_t, class value_t,
     callable_c<uintlen_t(const key_t &, uintlen_t seed) noexcept> hash_fn_t,
-    uint8_t branching_power_v = 2>
+    uint8_t branching_power_v = 1>
 struct unordered_vector_t {
   static_assert(branching_power_v < 6);
 
@@ -56,7 +56,7 @@ private:
     static_assert(std::has_single_bit(shift_index_node) &&
                   shift_index_node < sizeof(uintlen_t) * 8);
     constexpr static uintlen_t omask =
-        (uintlen_t(1ull) << (sizeof(uintlen_t) * 8 / shift_index_node)) - 1;
+        ((sizeof(uintlen_t) * 8 / shift_index_node)) - 1;
     MJZ_CX_FN hasher_t(const key_t &k, const hash_fn_t &hf_,
                        uintlen_t depth_ = 0) noexcept
         : key{std::addressof(k)}, hf{std::addressof(hf_)}, depth{depth_} {
