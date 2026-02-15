@@ -24,21 +24,23 @@ SOFTWARE.
 #define MJZ_SRC_UORD_VEC_base_FILE_
 #include "byte_str/iterator.hpp"
 namespace mjz {
-  // can be allocator aware and the capacity and size feilds of the vectors can be collapsed into one for tree and one for kw, but right now its not good enough
-template <version_t version_v, class key_t, class value_t,
-          callable_c<uintlen_t(const key_t &, uintlen_t seed) noexcept>
-              hash_fn_t,uint8_t branching_power_v=2>
+// can be allocator aware and the capacity and size feilds of the vectors can be
+// collapsed into one for tree and one for kw, but right now its not good enough
+template <
+    version_t version_v, class key_t, class value_t,
+    callable_c<uintlen_t(const key_t &, uintlen_t seed) noexcept> hash_fn_t,
+    uint8_t branching_power_v = 2>
 struct unordered_vector_t {
-  static_assert(branching_power_v<6);
+  static_assert(branching_power_v < 6);
 
 private:
   // any power of 2 works
-  constexpr static inline uintlen_t shift_index_node{
-      uintlen_t(1)<<branching_power_v};
+  constexpr static inline uintlen_t shift_index_node{uintlen_t(1)
+                                                     << branching_power_v};
   using childern_node_t = std::array<intlen_t, (1ull << shift_index_node)>;
 
   /*
- 
+
   */
 
   std::vector<childern_node_t> m_flat_tree{};
@@ -77,10 +79,8 @@ private:
     const hash_fn_t *hf{};
     uintlen_t cache{};
     uintlen_t depth{};
-   
-    MJZ_CX_FN uintlen_t get_hash() const noexcept {
-      return (*hf)(*key, depth);
-    }
+
+    MJZ_CX_FN uintlen_t get_hash() const noexcept { return (*hf)(*key, depth); }
   };
 
   MJZ_CX_FN auto place_find(hasher_t &h) const noexcept {
@@ -103,7 +103,6 @@ public:
     m_reverse_tree_indexies.reserve(256);
     m_reverse_tree_indexies.emplace_back();
     m_flat_tree.emplace_back();
-    
   }
 
   MJZ_CX_FN std::optional<uintlen_t> find(const key_t &key) const noexcept {
@@ -116,7 +115,6 @@ public:
     return uintlen_t(node - 1);
   };
 
- 
   MJZ_CX_FN uintlen_t insert(key_t &&key, value_t &&value) noexcept {
     hasher_t hr{key, hash_fn};
     auto [node, parent] = place_find(hr);
@@ -180,12 +178,13 @@ public:
       m_reverse_tree_indexies.pop_back();
       m_flat_tree.pop_back();
       if (m_flat_tree.size() == 1)
-      return;
+        return;
     };
   }
 
   MJZ_CX_FN std::span<value_t> values() noexcept { return m_values; }
-  MJZ_CX_FN std::span<key_t> keys() noexcept { return m_keys; };
+  // dont modify the key!.. its not going to end well
+  // MJZ_CX_FN std::span<key_t> keys() noexcept { return m_keys; };
   MJZ_CX_FN std::span<const value_t> values() const noexcept {
     return m_values;
   }
@@ -194,41 +193,40 @@ public:
   operator[](uintlen_t i) const noexcept {
     return {keys()[i], values()[i]};
   }
-  MJZ_CX_FN pair_t<key_t &, value_t &> operator[](uintlen_t i) noexcept {
+  MJZ_CX_FN pair_t<const key_t &, value_t &> operator[](uintlen_t i) noexcept {
     return {keys()[i], values()[i]};
   }
 
-  using const_iterator =bstr_ns:: random_access_iterator_of_t<const unordered_vector_t>;
-  using iterator = bstr_ns:: random_access_iterator_of_t<unordered_vector_t>;
-  using value_type =pair_t<key_t &, value_t &>;  
-  using reference =value_type;
-  using const_reference =value_type;
+  using const_iterator =
+      bstr_ns::random_access_iterator_of_t<const unordered_vector_t>;
+  using iterator = bstr_ns::random_access_iterator_of_t<unordered_vector_t>;
+  using value_type = pair_t<key_t, value_t>;
+  using reference = pair_t<const key_t &, value_t &>;
+  using const_reference = pair_t<const key_t &, const value_t &>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using size_type = uintlen_t;
   using difference_type = intlen_t;
-  MJZ_CX_ND_FN const_iterator cbegin() const noexcept { return begin();
-  }
-  MJZ_CX_ND_FN const_iterator cend() const noexcept { return end();
-  }
+  MJZ_CX_ND_FN const_iterator cbegin() const noexcept { return begin(); }
+  MJZ_CX_ND_FN const_iterator cend() const noexcept { return end(); }
   MJZ_CX_ND_FN iterator begin() noexcept { return iterator(*this, 0); }
   MJZ_CX_ND_FN iterator end() noexcept { return iterator(*this, size()); }
   MJZ_CX_ND_FN const_iterator begin() const noexcept {
     return const_iterator(*this, 0);
   }
-  MJZ_CX_ND_FN const_iterator end()const noexcept {
+  MJZ_CX_ND_FN const_iterator end() const noexcept {
     return const_iterator(*this, size());
   }
 
-  MJZ_CX_ND_FN reverse_iterator rbegin()   noexcept {
+  MJZ_CX_ND_FN reverse_iterator rbegin() noexcept {
     return reverse_iterator{end()};
   }
 
-  MJZ_CX_ND_FN reverse_iterator rend()   noexcept {
+  MJZ_CX_ND_FN reverse_iterator rend() noexcept {
     return reverse_iterator{begin()};
   }
 
-  MJZ_CX_ND_FN const_reverse_iterator rbegin()const noexcept {
+  MJZ_CX_ND_FN const_reverse_iterator rbegin() const noexcept {
     return const_reverse_iterator{end()};
   }
 
@@ -244,15 +242,30 @@ public:
   MJZ_CX_ND_FN size_type size() const noexcept { return values().size(); }
 };
 
-template <version_t version_v,class key_t, class value_t>
+template <version_t version_v, class key_t, class value_t>
 struct unordered_vector_str_t
     : unordered_vector_t<
-          version_v,
-          key_t, value_t,
+          version_v, key_t, value_t,
           decltype([](const key_t &key, uintlen_t seed) noexcept -> uintlen_t {
             return hash_bytes_t<version_v>::template hash_bytes<uintlen_t>(
                 key.data(), key.size(), 0xc70f6907UL ^ seed);
           })> {};
 
 }; // namespace mjz
+
+template <
+    mjz::version_t version_v, class key_t, class value_t,
+    mjz::callable_c<mjz::uintlen_t(const key_t &, mjz::uintlen_t seed) noexcept>
+        hash_fn_t,
+    uint8_t branching_power_v>
+constexpr bool std::ranges::enable_borrowed_range<mjz::unordered_vector_t<
+    version_v, key_t, value_t, hash_fn_t, branching_power_v>> = true;
+
+template <
+    mjz::version_t version_v, class key_t, class value_t,
+    mjz::callable_c<mjz::uintlen_t(const key_t &, mjz::uintlen_t seed) noexcept>
+        hash_fn_t,
+    uint8_t branching_power_v>
+constexpr bool std::ranges::enable_view<mjz::unordered_vector_t<
+    version_v, key_t, value_t, hash_fn_t, branching_power_v>> = false;
 #endif // MJZ_SRC_UORD_VEC_base_FILE_
