@@ -818,7 +818,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (!len)
           return std::nullopt;
       }
-      auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
+      auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
         uintlen_t i{};
         while (i < len && i < N - 1 &&
                ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {
@@ -2309,9 +2309,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       int64_t exponent_log10 = exponent_log10_and_component_aprox_(f_val);
       if (floating_format_e::general == floating_format) {
-        auto abs_exp = std::max(exponent_log10, -exponent_log10);
-        floating_format = !(intlen_t(f_len) < abs_exp + 1 + f_accuracacy) &&
-                                  abs_exp <= int64_t(f_accuracacy)
+        floating_format =
+            (f_len >=
+              numeric_fill_size_t{exponent_log10, f_accuracacy}.number_of_chars)
                               ? floating_format_e::fixed
                               : floating_format_e::scientific;
       }
@@ -2524,7 +2524,37 @@ MJZ_EXPORT namespace mjz::bstr_ns {
              num_ch);
       return num_ch;
     }
+    struct numeric_fill_size_t {
+      MJZ_CX_FN numeric_fill_size_t(intlen_t exponent_log10,
+                                    uintlen_t accuracacy) noexcept {
+        intlen_t nint = exponent_log10 + 1;
+        intlen_t nnumeric = intlen_t(accuracacy) + 1;
+        intlen_t n = nnumeric - nint;
+        constexpr intlen_t zero = 0;
+        num_zero_after_dot = uintlen_t(std::max(zero, -nint));
+        num_zero_before_dot = uintlen_t(std::max(zero, -n));
+        num_digit_after_dot = uintlen_t(std::max(zero, n));
+        num_digit_before_dot = uintlen_t(std::max(zero, nint));
+        if (!num_digit_before_dot) {
+          num_digit_before_dot = num_zero_before_dot = 1;
+        }
+        if (num_digit_after_dot) {
+          number_of_chars++;
+        }
+        number_of_chars += num_digit_before_dot + num_digit_after_dot;
+        num_numeric_before_dot = num_digit_before_dot - num_zero_before_dot;
+        num_numeric_after_dot = num_digit_after_dot - num_zero_after_dot;
+      }
+      uintlen_t num_digit_before_dot{};
+      uintlen_t num_zero_before_dot{};
+      uintlen_t num_numeric_before_dot{};
 
+      uintlen_t num_digit_after_dot{};
+      uintlen_t num_zero_after_dot{};
+      uintlen_t num_numeric_after_dot{};
+
+      uintlen_t number_of_chars{};
+    };
     MJZ_CX_FN static uintlen_t from_dec_positive_float_fill_general_parallel(
         char *const f_buf, const uintlen_t f_len,
         big_float_t<version_v> /* normalized */ f_val, int64_t exponent_log10,
@@ -2539,10 +2569,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                      uint64_t(frac_.m_coeffient)};
       number >>= uintlen_t(-frac_.m_exponent);
 
-      uintlen_t number_of_chars_rem =
-          uintlen_t(std::max(exponent_log10, -exponent_log10)) + 1 +
-          f_accuracacy;
-      if (uintlen_t(ptr_end - ptr) < number_of_chars_rem + 2) {
+      numeric_fill_size_t nfc{exponent_log10, f_accuracacy};
+
+      if (uintlen_t(ptr_end - ptr) < nfc.number_of_chars + 2) {
         return {};
       }
       uint64_t buf{};
@@ -2572,22 +2601,19 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             uint_sizeof_t<sizeof(chs)>(ubuf));
       };
 
-      if (number_of_chars_rem & 1) {
+      if (nfc.number_of_chars & 1) {
         push_buf(char(char(number.nth_word(1)) | '0'));
       } else {
         number *= ten_p1;
         push_buf(details_ns::radix_ascii_p2_v_[uint32_t(number.nth_word(1))]);
       }
 
-      uintlen_t digits_till_dot{
-          uintlen_t(std::max<intlen_t>(0, exponent_log10 + 1))};
-      uintlen_t digits_past_dot{number_of_chars_rem - digits_till_dot};
-      if (digits_till_dot) {
-        if (digits_till_dot & 1) {
+      if (nfc.num_numeric_before_dot) {
+        if (nfc.num_numeric_before_dot & 1) {
           pop_buf(*ptr++);
         }
-        digits_till_dot >>= 1;
-        for (uintlen_t i{}; i < digits_till_dot; i++) {
+        nfc.num_numeric_before_dot >>= 1;
+        for (uintlen_t i{}; i < nfc.num_numeric_before_dot; i++) {
           number.nth_word(1) = 0;
           number *= ten_p2;
           push_buf(
@@ -2597,17 +2623,24 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           cpy_bitcast(ptr, b_);
           ptr += 2;
         }
-      } else {
-        *ptr++ = '0';
       }
 
-      if (digits_past_dot) {
+      if (!nfc.num_digit_after_dot) {
+        memset(ptr, nfc.num_zero_before_dot, '0');
+        ptr += nfc.num_zero_before_dot;
+      } else {
+        memset(ptr, nfc.num_zero_before_dot + 1 + nfc.num_zero_after_dot, '0');
+        ptr += nfc.num_zero_before_dot;
         *ptr++ = '.';
-        if (digits_past_dot & 1) {
+        ptr += nfc.num_zero_after_dot;
+      }
+
+      if (nfc.num_numeric_after_dot) {
+        if (nfc.num_numeric_after_dot & 1) {
           pop_buf(*ptr++);
         }
-        digits_past_dot >>= 1;
-        for (uintlen_t i{}; i < digits_past_dot; i++) {
+        nfc.num_numeric_after_dot >>= 1;
+        for (uintlen_t i{}; i < nfc.num_numeric_after_dot; i++) {
           number.nth_word(1) = 0;
           number *= ten_p2;
           push_buf(

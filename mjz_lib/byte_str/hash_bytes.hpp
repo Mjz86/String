@@ -166,6 +166,50 @@ MJZ_EXPORT namespace mjz {
       return val == rhs.val;
     }
   };
+  template <version_t> struct hash64_engine_t {
+    constexpr static auto shift_mix = [](uint64_t v) noexcept -> uint64_t {
+      return v ^ (v >> 47);
+    };
+    constexpr static const uint64_t mul =
+        (((uint64_t)0xc6a4a793UL) << 32UL) + (uint64_t)0x5bd1e995UL;
+    uint64_t hash = 0xc70f6907UL;
 
+    MJZ_CX_FN void seed(uint64_t x) noexcept { hash = x; }
+    MJZ_CX_FN void feed(uint64_t data) noexcept {
+      data = shift_mix(data * mul) * mul;
+      hash ^= data;
+      hash *= mul;
+    }
+    MJZ_CX_FN uint64_t get() const noexcept {
+      uint64_t ret{hash};
+      ret = shift_mix(ret) * mul;
+      return shift_mix(ret);
+    }
+  };
+
+  template <version_t version_v, size_t n> struct hash64xN_engine_t {
+    std::array<hash64_engine_t<version_v>, n> engines{};
+    MJZ_CX_FN void seed(uint64_t x) noexcept {
+      for (auto &engine : engines) {
+        engine.seed(x++);
+        engine.feed(0);
+      }
+    }
+    MJZ_CX_FN void feed(uint64_t data) noexcept {
+      uint64_t shift = engines.back() >> 32;
+      for (auto &engine : engines) {
+        engine.hash =
+            (engine.hash << 32) | std::exchange(shift, engine.hash >> 32);
+        engine.feed(data);
+      }
+    }
+    MJZ_CX_FN std::array<uint64_t, n> get() const noexcept {
+      std::array<uint64_t, n> ret{};
+      for (auto i : std::views::iota(n ^ n, n)) {
+        ret[i] = engines[i].get();
+      }
+      return ret;
+    }
+  };
 } // namespace mjz
 #endif // MJZ_STR_HASH_BYTES_LIB_HPP_FILE_
