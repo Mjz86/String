@@ -320,18 +320,39 @@ MJZ_EXPORT namespace mjz {
     std::ranges::reverse(dest, dest + len);
     return dest;
   }
+  MJZ_CX_AL_FN uint8_t bitswap_impl_shifts_(uint8_t val) noexcept {
+    uint8_t mask4 = 0b00001111;
+    val = uint8_t(((val & mask4) << 4) | ((val & ~mask4) >> 4));
+    uint8_t mask2 = 0b00110011;
+    val = uint8_t(((val & mask2) << 2) | ((val & ~mask2) >> 2));
+    uint8_t mask1 = 0b01010101;
+    val = uint8_t(((val & mask1) << 1) | ((val & ~mask1) >> 1));
+    return val;
+  }
+  
+  constexpr inline auto bitswap_impl_lookup_v = []() noexcept {
+    std::array<uint8_t, 256> ret{};
+    for (size_t i{}; i < 256; i++) {
+      ret[i] = bitswap_impl_shifts_(uint8_t(i));
+    }
+    return ret;
+  }();
+  MJZ_CX_AL_FN uint8_t bitswap_impl_lookup_(uint8_t val) noexcept {
+    return bitswap_impl_lookup_v[val];
+  }
+  MJZ_CX_AL_FN uint8_t bitswap_pick_impl_(uint8_t val) noexcept {
+    uint8_t a = bitswap_impl_shifts_(val);
+    uint8_t b = bitswap_impl_lookup_(val);
+    MJZ_JUST_ASSUME_(b == a);
+    return  b&a;
+  }
+
   MJZ_CX_AL_FN char *mem_bitswap(char *dest, const uintlen_t len) noexcept {
     char *d = dest;
     uintlen_t len_ = len;
     while (len_--) {
       char &ch = *d++;
-      int byte = uint8_t(ch);
-      int fliped{};
-      for (int8_t i{}; i < 8; i++) {
-        fliped <<= 1;
-        fliped |= (byte >> i) & 1;
-      }
-      ch = char(uint8_t(fliped));
+      ch = char(bitswap_pick_impl_(uint8_t(ch)));
     }
     return mem_byteswap(dest, len);
   }
@@ -606,12 +627,11 @@ MJZ_EXPORT namespace mjz {
     if constexpr (std::unsigned_integral<T>) {
       return std::byteswap(value);
     }
-#else
+#endif
     alignas(T) char temp[sizeof(T)]{};
     cpy_bitcast(temp, value);
     mem_byteswap(temp, sizeof(T));
     return cpy_bitcast<T>(temp);
-#endif
   }
 
   MJZ_CX_AL_FN bool operator_and(bool a, bool b) noexcept {

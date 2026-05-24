@@ -2153,7 +2153,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         *this = std::move(str);
         return true;
       }
-      if (!str.append_data(*this)) {
+      if (!append_data(str)) {
         return false;
       }
       return true;
