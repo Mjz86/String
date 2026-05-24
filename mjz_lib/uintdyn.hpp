@@ -33,9 +33,9 @@ MJZ_EXPORT namespace mjz {
                  std::span<uint64_t> aligned8_output_and_temp_buffer) noexcept;
 
   template <version_t version_v_>
-  MJZ_CX_FN uint_dyn_t<version_v_, false>
-  from_ascii_impl_(uint_dyn_t<version_v_, false> uninit_output_and_temp_buffer,
-                   std::span<const char> ascii_input) noexcept;
+  MJZ_CX_FN uint_dyn_t<version_v_, false> unchecked_from_ascii_impl_(
+      uint_dyn_t<version_v_, false> uninit_output_and_temp_buffer,
+      std::span<const char> ascii_input, uint8_t raidex = 10) noexcept;
   template <version_t version_v, bool is_const_v> struct uint_dyn_t {
 
     using mjz_uint_dyn_t_id_val_t_2354675648764874753789 = uint_dyn_t;
@@ -441,11 +441,13 @@ MJZ_EXPORT namespace mjz {
       return to_ascii_impl_(uint_dyn_t<version_v, true>(*this),
                             aligned8_output_and_temp_buffer);
     }
+
     MJZ_CX_AL_FN void /*byte count*/
-    from_ascii(std::span<const char> ascii_input) noexcept
+    unchecked_from_ascii(std::span<const char> ascii_input,
+                         uint8_t raidex = 10) noexcept
       requires(!is_const_v)
     {
-      *this = from_ascii_impl_(*this, ascii_input);
+      *this = unchecked_from_ascii_impl_(*this, ascii_input, raidex);
     }
 
     MJZ_CX_AL_FN uintlen_t /*u64 count*/
@@ -1423,18 +1425,49 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <version_t version_v>
-  MJZ_CX_FN uint_dyn_t<version_v, false>
-  from_ascii_impl_(uint_dyn_t<version_v, false> uninit_output_and_temp_buffer,
-                   std::span<const char> ascii_input) noexcept {
+  MJZ_CX_FN uint_dyn_t<version_v, false> unchecked_from_ascii_impl_(
+      uint_dyn_t<version_v, false> uninit_output_and_temp_buffer,
+      std::span<const char> ascii_input, uint8_t raidex) noexcept {
     while (ascii_input.size() && ascii_input[0] == '0')
       ascii_input = ascii_input.subspan(1);
-    uintlen_t sz16in = ascii_input.size() >> 4;
-    uintlen_t ret_wsz = (ascii_input.size() + 15) >> 4;
     const auto ret0 = uninit_output_and_temp_buffer;
     auto ret = ret0;
     ret.broadcast(uint64_t());
-    ret.shrink_to_width(ret_wsz * 64);
+    if (raidex != 10 &&
+        (1 == raidex || !std::has_single_bit(raidex) || 16 < raidex)) {
+      asserts(false);
+    }
+    if (raidex != 10) {
+      uintlen_t pow = (std::countr_zero(raidex));
+      uintlen_t i{};
+      uintlen_t bit_i{};
+      for (char c : ascii_input | std::views::reverse) {
+        if (c >= '0' && c <= '9') {
+          c -= '0';
+        }
+        if (raidex == 16 && c >= 'A' && c <= 'Z') {
+          c += -'A' + 10;
+        } else if (raidex == 16 && c >= 'a' && c <= 'z') {
+          c += -'a' + 10;
+        }
+
+        uninit_output_and_temp_buffer.nth_word(i) |= uint64_t(c & (raidex - 1))
+                                                     << bit_i;
+        bit_i += pow;
+        if (64 <= bit_i) {
+          bit_i -= 64;
+          i++;
+        }
+      }
+      i += !!bit_i;
+      ret.shrink_to_width(i);
+      return ret0;
+    }
+    uintlen_t sz16in = ascii_input.size() >> 4;
+    uintlen_t ret_wsz = (ascii_input.size() + 15) >> 4;
     uintlen_t szm16in = ascii_input.size() & 15;
+    ret.shrink_to_width(ret_wsz * 64);
+
     constexpr auto f = vectorizable_conv_base_impl<version_v>.b10p1_2_10p8;
     uintlen_t i{};
     if (!ret_wsz)
@@ -1467,10 +1500,12 @@ MJZ_EXPORT namespace mjz {
   }
   template <version_t version_v, uintlen_t n_bits>
     requires(64 * (n_bits / 64) == n_bits && !!n_bits)
-  MJZ_CX_AL_FN void uintN_t<version_v, n_bits>::from_ascii(
-      std::span<const char> ascii_input) noexcept {
-    *this = uintN_t<version_v, n_bits>(
-        from_ascii_impl_(as_dyn(), ascii_input).n_word());
+  MJZ_CX_AL_FN void uintN_t<version_v, n_bits>::unchecked_from_ascii(
+      std::span<const char> ascii_input, uint8_t raidex) noexcept {
+    uintN_t<version_v, n_bits> t{};
+    t.as_dyn()|=
+        unchecked_from_ascii_impl_(as_dyn(), ascii_input, raidex);
+    *this = t;
   }
   }; // namespace uint_ex_t
 };

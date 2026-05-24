@@ -756,7 +756,7 @@ MJZ_EXPORT namespace mjz {
         return 0;
       return to_ascii_impl_pick_pv_<0, n_bits>(output, len, bit_width());
     }
-    MJZ_CX_AL_FN void from_ascii(std::span<const char> ascii_input) noexcept;
+    MJZ_CX_AL_FN void unchecked_from_ascii(std::span<const char> ascii_input,uint8_t raidex=10) noexcept;
 
     template <uintlen_t low_bit_bound, uintlen_t high_bit_bound,
               bool no_bloat_v = true>
