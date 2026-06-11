@@ -454,7 +454,7 @@ MJZ_EXPORT namespace mjz {
     stack_shrinked_ceil_size_for_ascii() noexcept {
       uintlen_t bw = bit_width();
       shrink_to_width(bw);
-      bw = n_bit();
+      bw = std::max<uintlen_t>(n_bit(), 8);
       return (bw >> 3) + (bw >> 4);
     }
     // argument must not overlap (/*restrict span*/ )
@@ -1438,7 +1438,7 @@ MJZ_EXPORT namespace mjz {
       asserts(false);
     }
     if (raidex != 10) {
-      uintlen_t pow = (std::countr_zero(raidex));
+      uintlen_t pow = uintlen_t(std::countr_zero(raidex));
       uintlen_t i{};
       uintlen_t bit_i{};
       for (char c : ascii_input | std::views::reverse) {

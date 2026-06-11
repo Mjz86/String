@@ -166,29 +166,42 @@ MJZ_EXPORT namespace mjz {
       return val == rhs.val;
     }
   };
-  template <version_t> struct hash64_engine_t {
+  template <version_t> struct hash64_prime_engine_t {
     constexpr static auto shift_mix = [](uint64_t v) noexcept -> uint64_t {
       return v ^ (v >> 47);
     };
-    constexpr static const uint64_t mul =
-        (((uint64_t)0xc6a4a793UL) << 32UL) + (uint64_t)0x5bd1e995UL;
+    constexpr static const uint64_t mul = 0x165667B19E3779F9ULL;
     uint64_t hash = 0xc70f6907UL;
 
     MJZ_CX_FN void seed(uint64_t x) noexcept { hash = x; }
+    MJZ_CX_FN static uint64_t avalanche(uint64_t data) noexcept {
+      return shift_mix(data * mul) * mul;
+    }
+    MJZ_CX_FN static uint64_t avalanche2(uint64_t data) noexcept {
+      return shift_mix(shift_mix(data) * mul);
+    }
     MJZ_CX_FN void feed(uint64_t data) noexcept {
-      data = shift_mix(data * mul) * mul;
-      hash ^= data;
+      hash ^= avalanche(data);
       hash *= mul;
     }
-    MJZ_CX_FN uint64_t get() const noexcept {
-      uint64_t ret{hash};
-      ret = shift_mix(ret) * mul;
-      return shift_mix(ret);
+    MJZ_CX_FN uint64_t get() const noexcept { return avalanche2(hash); }
+  };
+
+  // idk if this is bs or not lol, its more of a checksum ? idk
+  template <version_t> struct hash64_AXR_engine_t {
+    uint64_t hash{0xc70f6907UL};
+    MJZ_CX_FN void seed(uint64_t x) noexcept { hash = x; }
+    
+    MJZ_CX_FN void feed(uint64_t data) noexcept {
+      hash += 0x165667B19E3779F9ULL^data ^ std::rotr(hash, 13);
+      hash ^= std::rotl(data, 19) + hash;
+      hash += std::rotr(data, 23) ^ std::rotl(hash, 7);
     }
+    MJZ_CX_FN uint64_t get() const noexcept { return hash; }
   };
 
   template <version_t version_v, size_t n> struct hash64xN_engine_t {
-    std::array<hash64_engine_t<version_v>, n> engines{};
+    std::array<hash64_prime_engine_t<version_v>, n> engines{};
     MJZ_CX_FN void seed(uint64_t x) noexcept {
       for (auto &engine : engines) {
         engine.seed(x++);
@@ -196,7 +209,7 @@ MJZ_EXPORT namespace mjz {
       }
     }
     MJZ_CX_FN void feed(uint64_t data) noexcept {
-      uint64_t shift = engines.back() >> 32;
+      uint64_t shift = engines.back().hash >> 32;
       for (auto &engine : engines) {
         engine.hash =
             (engine.hash << 32) | std::exchange(shift, engine.hash >> 32);

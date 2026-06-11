@@ -470,7 +470,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return std::nullopt;
 
       } else if ((raidex & (raidex - 1)) == 0) {
-        const auto shift_ = std::countr_zero(raidex) - 1;
+        const auto shift_ = std::countr_zero(raidex) ;
         const auto mask = uint8_t(~(raidex - 1));
         if (sizeof(UT) * 8 < (len << shift_)) {
           return std::nullopt;

@@ -117,7 +117,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_ND_RES_OBJ_FN success_t try_lock() noexcept {
       return this->try_lock(defult_timeout);
     }
-    MJZ_CX_FN void lock() noexcept(!MJZ_IN_DEBUG_MODE) {
+    MJZ_CX_FN void lock() noexcept {
       if (this->try_lock(true, defult_timeout))
         MJZ_IS_LIKELY { return; }
       asserts.panic(" what happened !? why did the un-fail-able fail?! ");
