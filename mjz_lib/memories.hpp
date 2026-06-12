@@ -329,7 +329,7 @@ MJZ_EXPORT namespace mjz {
     val = uint8_t(((val & mask1) << 1) | ((val & ~mask1) >> 1));
     return val;
   }
-  
+
   constexpr inline auto bitswap_impl_lookup_v = []() noexcept {
     std::array<uint8_t, 256> ret{};
     for (size_t i{}; i < 256; i++) {
@@ -344,7 +344,7 @@ MJZ_EXPORT namespace mjz {
     uint8_t a = bitswap_impl_shifts_(val);
     uint8_t b = bitswap_impl_lookup_(val);
     MJZ_JUST_ASSUME_(b == a);
-    return  b&a;
+    return b & a;
   }
 
   MJZ_CX_AL_FN char *mem_bitswap(char *dest, const uintlen_t len) noexcept {

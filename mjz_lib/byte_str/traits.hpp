@@ -470,7 +470,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return std::nullopt;
 
       } else if ((raidex & (raidex - 1)) == 0) {
-        const auto shift_ = std::countr_zero(raidex) ;
+        const auto shift_ = std::countr_zero(raidex);
         const auto mask = uint8_t(~(raidex - 1));
         if (sizeof(UT) * 8 < (len * shift_)) {
           return std::nullopt;
@@ -818,7 +818,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (!len)
           return std::nullopt;
       }
-      auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
+      auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
         uintlen_t i{};
         while (i < len && i < N - 1 &&
                ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {
@@ -2311,9 +2311,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (floating_format_e::general == floating_format) {
         floating_format =
             (f_len >=
-              numeric_fill_size_t{exponent_log10, f_accuracacy}.number_of_chars)
-                              ? floating_format_e::fixed
-                              : floating_format_e::scientific;
+             numeric_fill_size_t{exponent_log10, f_accuracacy}.number_of_chars)
+                ? floating_format_e::fixed
+                : floating_format_e::scientific;
       }
       if (floating_format_e::scientific == floating_format) {
         uintlen_t ret = from_dec_positive_float_fill_sientific(

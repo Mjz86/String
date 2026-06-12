@@ -1503,8 +1503,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_AL_FN void uintN_t<version_v, n_bits>::unchecked_from_ascii(
       std::span<const char> ascii_input, uint8_t raidex) noexcept {
     uintN_t<version_v, n_bits> t{};
-    t.as_dyn()|=
-        unchecked_from_ascii_impl_(as_dyn(), ascii_input, raidex);
+    t.as_dyn() |= unchecked_from_ascii_impl_(as_dyn(), ascii_input, raidex);
     *this = t;
   }
   }; // namespace uint_ex_t

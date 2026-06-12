@@ -35,7 +35,8 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN lock_guard_t(lock_guard_t &&obj) noexcept
         : ptr(std::exchange(obj.ptr, nullptr)) {}
     MJZ_CX_FN lock_guard_t &operator=(lock_guard_t &&obj) noexcept {
-    if(this==&obj)return *this;
+      if (this == &obj)
+        return *this;
       if (ptr) {
         ptr->unlock();
       }

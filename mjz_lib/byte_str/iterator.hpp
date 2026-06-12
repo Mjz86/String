@@ -52,7 +52,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
     MJZ_CX_FN pointer operator->() const noexcept {
       MJZ_UNUSED auto checker = check(false);
-      return trc->data()+index;
+      return trc->data() + index;
     }
 
     MJZ_CX_FN Range_t *operator()() const noexcept { return trc; }

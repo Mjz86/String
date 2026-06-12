@@ -109,7 +109,6 @@ public:
     m_flat_tree.emplace_back();
   }
 
-
   MJZ_CX_FN std::optional<uintlen_t> find(const key_t &key) const noexcept {
     hasher_t hr{key, hash_fn};
     auto [node, p] = place_find(hr);
@@ -264,9 +263,9 @@ public:
 
   MJZ_CX_ND_FN size_type size() const noexcept { return values().size(); }
 
-  MJZ_CX_FN static size_type max_size()  noexcept {
-    constexpr auto sz=std::vector<childern_node_t>().max_size();
-    return  sz>> shift_index_node;
+  MJZ_CX_FN static size_type max_size() noexcept {
+    constexpr auto sz = std::vector<childern_node_t>().max_size();
+    return sz >> shift_index_node;
   }
 };
 

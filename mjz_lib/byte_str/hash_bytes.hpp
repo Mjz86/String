@@ -191,9 +191,9 @@ MJZ_EXPORT namespace mjz {
   template <version_t> struct hash64_AXR_engine_t {
     uint64_t hash{0xc70f6907UL};
     MJZ_CX_FN void seed(uint64_t x) noexcept { hash = x; }
-    
+
     MJZ_CX_FN void feed(uint64_t data) noexcept {
-      hash += 0x165667B19E3779F9ULL^data ^ std::rotr(hash, 13);
+      hash += 0x165667B19E3779F9ULL ^ data ^ std::rotr(hash, 13);
       hash ^= std::rotl(data, 19) + hash;
       hash += std::rotr(data, 23) ^ std::rotl(hash, 7);
     }
