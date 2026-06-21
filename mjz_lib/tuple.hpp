@@ -26,6 +26,9 @@ SOFTWARE.
 #include "all_macors.hpp"
 MJZ_EXPORT namespace mjz {
   inline namespace tuple_ns {
+  template <typename T, typename U>
+  concept partial_same_as_ =
+      std::same_as<std::remove_cvref_t<U>, std::remove_cvref_t<T>>;
   template <class, class> struct tuple_strorage_t {};
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <class T, size_t my_I>
@@ -89,6 +92,67 @@ MJZ_EXPORT namespace mjz {
     {
       return get<my_I>() <=> rhs.template get<my_I>();
     }
+
+    template <class U>
+      requires std::same_as<U, T>
+    MJZ_CX_FN static size_t exact_index() noexcept {
+      return my_I;
+    }
+    template <class U>
+      requires partial_same_as_<U, T>
+    MJZ_CX_FN static size_t index() noexcept {
+      return my_I;
+    }
+
+    template <std::same_as<T> _>
+    MJZ_CX_FN decltype(auto) exact_get_type() && noexcept {
+      if constexpr (std::is_reference_v<T>) {
+        return (data);
+      } else {
+        return static_cast<T &&>(data);
+      }
+    }
+    template <std::same_as<T> _>
+    MJZ_CX_FN decltype(auto) exact_get_type() const && noexcept {
+      if constexpr (std::is_reference_v<T>) {
+        return (data);
+      } else {
+        return static_cast<const T &&>(data);
+      }
+    }
+    template <std::same_as<T> _>
+    MJZ_CX_FN decltype(auto) exact_get_type() & noexcept {
+      return (data);
+    }
+    template <std::same_as<T> _>
+    MJZ_CX_FN decltype(auto) exact_get_type() const & noexcept {
+      return (data);
+    }
+
+    template <partial_same_as_<T> _>
+    MJZ_CX_FN decltype(auto) get_type() && noexcept {
+      if constexpr (std::is_reference_v<T>) {
+        return (data);
+      } else {
+        return static_cast<T &&>(data);
+      }
+    }
+    template <partial_same_as_<T> _>
+    MJZ_CX_FN decltype(auto) get_type() const && noexcept {
+      if constexpr (std::is_reference_v<T>) {
+        return (data);
+      } else {
+        return static_cast<const T &&>(data);
+      }
+    }
+    template <partial_same_as_<T> _>
+    MJZ_CX_FN decltype(auto) get_type() & noexcept {
+      return (data);
+    }
+    template <partial_same_as_<T> _>
+    MJZ_CX_FN decltype(auto) get_type() const & noexcept {
+      return (data);
+    }
   };
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <typename... Ts, size_t... Is>
@@ -99,7 +163,11 @@ MJZ_EXPORT namespace mjz {
       : tuple_elem_storage_t<Ts, Is>... {
     MJZ_DISABLE_ALL_WANINGS_END_;
     using tuple_elem_storage_t<Ts, Is>::get...;
+    using tuple_elem_storage_t<Ts, Is>::exact_get_type...;
+    using tuple_elem_storage_t<Ts, Is>::get_type...;
     using tuple_elem_storage_t<Ts, Is>::type_get...;
+    using tuple_elem_storage_t<Ts, Is>::exact_index...;
+    using tuple_elem_storage_t<Ts, Is>::index...;
     MJZ_DEFAULTED_CLASS(tuple_strorage_t);
     template <typename... Us>
       requires(std::convertible_to<Us, Ts> && ...)

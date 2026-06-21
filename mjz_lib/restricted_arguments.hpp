@@ -109,7 +109,8 @@ MJZ_EXPORT namespace mjz {
   private:
     using result_t = decltype(static_range_fn_t()());
     MJZ_CX_FN static auto size() noexcept {
-      return size_t(std::ranges::distance(static_range_fn_t()()));
+      auto r = static_range_fn_t()();
+      return size_t(std::ranges::distance(r));
     }
     MJZ_CX_FN static auto get() noexcept {
       std::array<std::ranges::range_value_t<result_t>, size()> ret{};
