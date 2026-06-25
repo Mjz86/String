@@ -908,33 +908,44 @@ MJZ_EXPORT namespace mjz::allocs_ns {
                   bitcastable_c<alloc_log_info> &&
                   bitcastable_c<cx_alloc_log_info>);
 
+    MJZ_CX_FN uintlen_t allocate_bytes_log_delta(alloc_info ai) const noexcept {
+      return sizeof(alloc_log_info) +
+             std::max(sizeof(alloc_log_info), ai.get_alignof_z());
+    }
     MJZ_CX_FN void
     allocate_bytes_log_check(MJZ_MAYBE_UNUSED uintlen_t &minsize,
                              MJZ_MAYBE_UNUSED alloc_info &ai) const noexcept {
       if (!minsize)
         return;
       ai.allocate_exactly_minsize = true;
-      minsize += sizeof(alloc_log_info);
+      minsize += allocate_bytes_log_delta(ai);
     }
     MJZ_CX_FN void
     allocate_bytes_log_fix(MJZ_MAYBE_UNUSED block_info &ret,
                            MJZ_MAYBE_UNUSED alloc_info old_ai) const noexcept {
       if (!ret.length)
         return;
-      ret.length -= sizeof(alloc_log_info);
+      uintlen_t delta_cap = allocate_bytes_log_delta(old_ai);
+      ret.length -= delta_cap;
+      ret.ptr += delta_cap - sizeof(alloc_log_info);
       char *alloc_log_info_ptr = ret.ptr + ret.length;
-      MJZ_IF_CONSTEVAL {
-        cx_alloc_log_info log{};
-        log.ai_ = old_ai.idk_bit_cast_();
-        cpy_bitcast(log.block_info_, ret.length);
-        cpy_bitcast(alloc_log_info_ptr, log);
-      }
-      else {
-        alloc_log_info log{};
-        log.ai = old_ai;
-        log.ret = ret;
-        cpy_bitcast(alloc_log_info_ptr, log);
-      }
+      auto check_fn = [&]() noexcept {
+        MJZ_IF_CONSTEVAL {
+          cx_alloc_log_info log{};
+          log.ai_ = old_ai.idk_bit_cast_();
+          cpy_bitcast(log.block_info_, ret.length);
+          cpy_bitcast(alloc_log_info_ptr, log);
+        }
+        else {
+          alloc_log_info log{};
+          log.ai = old_ai;
+          log.ret = ret;
+          cpy_bitcast(alloc_log_info_ptr, log);
+        }
+      };
+      check_fn();
+      alloc_log_info_ptr = ret.ptr - (delta_cap - sizeof(alloc_log_info));
+      check_fn();
     }
 
     MJZ_CX_FN void deallocate_bytes_log_check_fix(
@@ -942,26 +953,37 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         MJZ_MAYBE_UNUSED alloc_info &ai) const noexcept {
       if (!blk.length)
         return;
+
+      uintlen_t delta_cap = allocate_bytes_log_delta(ai);
       MJZ_RELEASE {
         ai.allocate_exactly_minsize = true;
-        blk.length += sizeof(alloc_log_info);
+
+        blk.ptr -= delta_cap - sizeof(alloc_log_info);
+        blk.length += delta_cap;
       };
       char *alloc_log_info_ptr = blk.ptr + blk.length;
-      MJZ_IF_CONSTEVAL {
-        cx_alloc_log_info log{};
-        log.ai_ = ai.idk_bit_cast_();
-        cpy_bitcast(log.block_info_, blk.length);
-        cx_alloc_log_info val =
-            cpy_bitcast<cx_alloc_log_info>(alloc_log_info_ptr);
-        asserts(asserts.condition_rn, val == log);
-      }
-      else {
-        alloc_log_info log{};
-        log.ai = ai;
-        log.ret = blk;
-        alloc_log_info val = cpy_bitcast<alloc_log_info>(alloc_log_info_ptr);
-        asserts(asserts.condition_rn, val == log);
-      }
+
+      auto check_fn = [&]() noexcept {
+        MJZ_IF_CONSTEVAL {
+          cx_alloc_log_info log{};
+          log.ai_ = ai.idk_bit_cast_();
+          cpy_bitcast(log.block_info_, blk.length);
+          cx_alloc_log_info val =
+              cpy_bitcast<cx_alloc_log_info>(alloc_log_info_ptr);
+          asserts(asserts.condition_rn, val == log);
+        }
+        else {
+          alloc_log_info log{};
+          log.ai = ai;
+          log.ret = blk;
+          alloc_log_info val = cpy_bitcast<alloc_log_info>(alloc_log_info_ptr);
+          asserts(asserts.condition_rn, val == log);
+        }
+      };
+      check_fn();
+
+      alloc_log_info_ptr = blk.ptr - (delta_cap - sizeof(alloc_log_info));
+      check_fn();
     }
     MJZ_CX_FN alloc_info get_default_th_info() const noexcept {
       return get_default_info().make_threaded();

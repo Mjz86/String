@@ -156,12 +156,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
               bool the_room_is_infront>
     MJZ_CX_AL_FN success_t
     add_null_impl_(uintlen_t reserve_if_allocate_ = 0) noexcept {
-      if constexpr (no_allocate_) {
-        if (!m.template has_room_for<when_v>(reserve_if_allocate_,
-                                             props_v.has_null)) {
+      reserve_if_allocate_ = std::max(reserve_if_allocate_, m.get_length());
+      if constexpr (!no_allocate_) {
+        if (!m.template has_room_for<when_v>(reserve_if_allocate_, true)) {
           str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-          if (!hm.u_malloc(uintlen_t(props_v.has_null) + reserve_if_allocate_,
-                           false))
+          if (!hm.u_malloc(uintlen_t(true) + reserve_if_allocate_, false))
             MJZ_IS_UNLIKELY {
               hm.unsafe_clear();
               return false;
@@ -173,8 +172,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return true;
         }
       } else if constexpr (checked_) {
-        if (!m.template has_room_for<when_v>(reserve_if_allocate_,
-                                             props_v.has_null))
+        if (!m.template has_room_for<when_v>(reserve_if_allocate_, true))
           return false;
       }
       return m.template add_null<when_v, the_room_is_infront>();
@@ -422,12 +420,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
 
-      /* idk whats wrong here but there is if (m.template
-        has_room_for<when_v>(str.m.get_length(), props_v.has_null)) { return
-        move_init_cpy_impl_0_<when_v>(std::move(str), other_ownerize);
-        }*/
-
-      str.m.set_ownerized(true);
+     
+      /* if (m.template has_room_for<when_v>(str.m.get_length(),
+                                          props_v.has_null)) {
+        return move_init_cpy_impl_0_<when_v>(std::move(str), other_ownerize);
+      }
+       str.m.set_ownerized(true);*/
       if constexpr (is_same_type) {
         if constexpr (when_v) {
           m.destruct_to_invalid();

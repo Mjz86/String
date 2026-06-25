@@ -48,7 +48,7 @@ SOFTWARE.
  */
 
 #ifndef MJZ_TRUST_LEVEL_
-#define MJZ_TRUST_LEVEL_ 3
+#define MJZ_TRUST_LEVEL_ 0
 #endif // !MJZ_TRUST_LEVEL_
        /*
         * for some reason , notify does not work on esp32 , this is for that :(
