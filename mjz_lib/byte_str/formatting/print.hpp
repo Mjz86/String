@@ -375,28 +375,6 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     }
   };
 
-  namespace print_ns {
-  template <version_t version_v, typename... Ts>
-  MJZ_CX_AL_FN auto vprint(basic_string_view_t<version_v> fmt,
-                           Ts &&...args) noexcept {
-    return print_t<version_v>::vprint(fmt, std::forward<Ts>(args)...);
-  }
-  template <typename... Ts>
-  MJZ_CX_AL_FN auto print(auto fmt, Ts &&...args) noexcept {
-    return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::print(
-        fmt, std::forward<Ts>(args)...);
-  }
-
-  template <version_t version_v, typename... Ts>
-  MJZ_CX_AL_FN auto vprintln(basic_string_view_t<version_v> fmt,
-                             Ts &&...args) noexcept {
-    return print_t<version_v>::vprintln(fmt, std::forward<Ts>(args)...);
-  }
-  template <typename... Ts>
-  MJZ_CX_AL_FN auto println(auto fmt, Ts &&...args) noexcept {
-    return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::println(
-        fmt, std::forward<Ts>(args)...);
-  }
   template <version_t version_v, typename... Ts>
   MJZ_CX_AL_FN auto vformat_to(auto &out, basic_string_view_t<version_v> fmt,
                                Ts &&...args) noexcept {
@@ -446,6 +424,29 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     return print_t<version_v>::formatlna_to(alloc, out, fmt,
                                             std::forward<Ts>(args)...);
   }
+  namespace print_ns {
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto vprint(basic_string_view_t<version_v> fmt,
+                           Ts &&...args) noexcept {
+    return print_t<version_v>::vprint(fmt, std::forward<Ts>(args)...);
+  }
+  template <typename... Ts>
+  MJZ_CX_AL_FN auto print(auto fmt, Ts &&...args) noexcept {
+    return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::print(
+        fmt, std::forward<Ts>(args)...);
+  }
+
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto vprintln(basic_string_view_t<version_v> fmt,
+                             Ts &&...args) noexcept {
+    return print_t<version_v>::vprintln(fmt, std::forward<Ts>(args)...);
+  }
+  template <typename... Ts>
+  MJZ_CX_AL_FN auto println(auto fmt, Ts &&...args) noexcept {
+    return print_t<std::remove_cvref_t<decltype(fmt())>::Version_v>::println(
+        fmt, std::forward<Ts>(args)...);
+  }
+
   } // namespace print_ns
 
 } // namespace mjz::bstr_ns::format_ns

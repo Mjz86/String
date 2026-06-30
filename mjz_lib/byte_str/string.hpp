@@ -416,16 +416,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             return move_init_cpy_impl_0_<when_v>(std::move(str),
                                                  other_ownerize);
           }
-          str.m.set_ownerized(true);
         }
       }
 
-     
-      /* if (m.template has_room_for<when_v>(str.m.get_length(),
-                                          props_v.has_null)) {
-        return move_init_cpy_impl_0_<when_v>(std::move(str), other_ownerize);
-      }
-       str.m.set_ownerized(true);*/
       if constexpr (is_same_type) {
         if constexpr (when_v) {
           m.destruct_to_invalid();
@@ -449,10 +442,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!str.m.is_sharable()) {
         return move_init_cpy_impl_0_<when_v>(std::move(str), other_ownerize);
       }
+
       if constexpr (when_v) {
         m.destruct_to_invalid();
       }
-
       m.u_set_encoding(str.m.u_get_encoding());
       m.set_threaded(str.m.is_threaded());
       m.set_ownerized(other_ownerize);
@@ -1656,6 +1649,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return true;
       memset(&m.u_get_mut_begin()[offset], length_of_val, *val);
       return true;
+    }
+    MJZ_CX_ND_FN char *
+    reserve_data_with_char_unsafe_impl_(uintlen_t length_of_val,
+                                        uintlen_t offset,
+                                        uintlen_t byte_count) noexcept {
+      make_right_then_give_has_null(offset, byte_count);
+      if (!replace_data_with_none(offset, byte_count, length_of_val)) {
+        return nullptr;
+      }
+      return &m.u_get_mut_begin()[offset];
     }
     MJZ_CX_ND_FN success_t as_ownerized() noexcept {
       if (m.template has_room_for<when_t::relax>(m.get_length(),

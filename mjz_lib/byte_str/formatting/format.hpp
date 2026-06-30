@@ -26,7 +26,7 @@ SOFTWARE.
 #include "../string.hpp"
 #ifndef MJZ_BYTE_FORMATTING_format_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_format_HPP_FILE_
-MJZ_EXPORT namespace mjz::bstr_ns::format_ns{namespace print_ns{
+MJZ_EXPORT namespace mjz::bstr_ns::format_ns{ 
 
     template <version_t version_v, class T>
     MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(
@@ -127,8 +127,7 @@ MJZ_CX_AL_FN auto formatlna(allocs_ns::alloc_base_ref_t<version_v> alloc,
                                               std::forward<Ts>(args)...);
   vformat_err_handle_pv_(ret, opt);
   return ret;
-}
-} // namespace print_ns
+} 
 }
 ;      // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_print_HPP_FILE_

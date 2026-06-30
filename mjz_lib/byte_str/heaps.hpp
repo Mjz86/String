@@ -137,8 +137,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     MJZ_CX_AL_FN success_t deinit_heap_and_ask() noexcept {
       if (!*this)
         return false;
-      if (m.is_owenrized)
+
+      if (m.is_owenrized) {
+        if constexpr (MJZ_IN_DEBUG_MODE) {
+          asserts(asserts.assume_rn, !m.heap_rc_ptr || is_owner_heap());
+        }
         return true;
+      }
       if (!can_add_shareholder())
         return true;
       if (is_owner()) {

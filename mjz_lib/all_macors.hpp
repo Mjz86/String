@@ -908,12 +908,11 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
   MJZ_IF_CONSTEVAL_ { return ptr; }
   return ::std::assume_aligned<align_v>(ptr);
 }
-
+#define MJZ_DEBUG_LOCATION_                                                    \
+  MJZ_EXPAND_(__FILE__ MJZ_TO_STRING_V( : MJZ_LINE_()))
 #define MJZ_BAD_DEBUG_0_                                                       \
   MJZ_IFN_CONSTEVAL {                                                          \
-    std::cout << MJZ_EXPAND_(                                                  \
-                                                                               \
-        __FILE__ MJZ_TO_STRING_V( : MJZ_LINE_())) "hereeeeeeeeeeeeeeee!\n";    \
+    std::cout << MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) "hereeeeeeeeeeeeeeee!\n";                 \
   }
 
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080

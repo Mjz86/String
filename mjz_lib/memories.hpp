@@ -378,31 +378,7 @@ MJZ_EXPORT namespace mjz {
     if (!memory_has_overlap(dest, len, src, len)) {
       return memcpy(dest, src, len);
     } else {
-      const ptrdiff_t n = static_cast<ptrdiff_t>(len);
-      if (to > from && to - from < n) {
-        /* to overlaps with from */
-        /*  <from......>         */
-        /*         <to........>  */
-        /* copy in reverse, to avoid overwriting from */
-        ptrdiff_t i{};
-        for (i = n - 1; i >= 0; i--) {
-          to[i] = from[i];
-        }
-        return dest;
-      }
-      if (from > to && from - to < n) {
-        /* to overlaps with from */
-        /*        <from......>   */
-        /*  <to........>         */
-        /* copy forwards, to avoid overwriting from */
-        uintlen_t i{};
-        for (i = 0; i < len; i++) {
-          to[i] = from[i];
-        }
-        return dest;
-      }
-      memcpy(dest, src, len); //-V2547
-      return dest;
+      return memomve_overlap(dest, src, len);
     }
   }
 
