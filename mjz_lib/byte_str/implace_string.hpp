@@ -130,7 +130,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     MJZ_CX_FN implace_str_t(str_t &&source_, void_struct_t) noexcept
         : implace_str_t() {
-      m_str() = std::move(source_);
+      if (!source_.is_stable()) {
+        m_str() = source_;
+      } else {
+        m_str() = std::move(source_);
+      }
     }
     MJZ_CX_FN implace_str_t(const str_t &source_, void_struct_t) noexcept
         : implace_str_t() {
@@ -140,7 +144,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN implace_str_t(U &&arg) noexcept
         : implace_str_t(std::forward<U>(arg), totally_empty_type) {}
     MJZ_CX_FN implace_str_t(implace_str_t &&arg) noexcept
-        : implace_str_t(std::forward<implace_str_t>(arg), totally_empty_type) {}
+        : implace_str_t(std::forward<implace_str_t>(arg), totally_empty_type) {
+    }
     MJZ_CX_FN implace_str_t(const implace_str_t &arg) noexcept
         : implace_str_t(std::forward<const implace_str_t &>(arg),
                         totally_empty_type) {}
@@ -179,6 +184,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         typename U::implace_str_t_unique_tag_;
       }
     MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
+      if (!source_.is_stable()) {
+        return operator_assign(source_);
+      }
       m_str().reset_to_error_on_fail(
           source_.move_to_dest(m_str()),
           "[Error]implace_str_t::implace_str_t &operator_assign( "

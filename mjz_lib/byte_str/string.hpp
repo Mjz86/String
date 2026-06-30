@@ -419,6 +419,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
 
+      if (m.template has_room_for<when_v>(str.m.get_length(),
+                                          props_v.has_null)) {
+        return move_init_cpy_impl_0_<when_v>(std::move(str), other_ownerize);
+      }
+
       if constexpr (is_same_type) {
         if constexpr (when_v) {
           m.destruct_to_invalid();
@@ -426,6 +431,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         m = std::exchange(str.m, {});
         return true;
       }
+
       if constexpr ((props_v.is_threaded != may_bool_t::idk &&
                      other_prop.is_threaded != may_bool_t::idk &&
                      props_v.is_threaded != other_prop.is_threaded)) {
