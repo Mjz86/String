@@ -695,6 +695,11 @@ active union member... IF the first statement is true
   MJZ_GCC_ONLY_CODE_(MJZ_NO_INLINE)                                            \
   MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(MJZ_NO_INLINE)
 
+#define MJZ_CX_JUST_NL_FN                                                      \
+  MJZ_MAYBE_UNUSED                                                             \
+  MJZ_GCC_ONLY_CODE_(MJZ_JUST_NO_INLINE_)                                      \
+  MJZ_CONSTEXPR MJZ_MSVC_ONLY_CODE_(MJZ_JUST_NO_INLINE_)
+
 #define MJZ_CX_AL_A_FN(X) X MJZ_CX_AL_FN
 
 #define MJZ_CX_AL_ND_FN MJZ_CX_AL_A_FN(MJZ_NODISCRAD)
@@ -912,7 +917,7 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
   MJZ_EXPAND_(__FILE__ MJZ_TO_STRING_V( : MJZ_LINE_()))
 #define MJZ_BAD_DEBUG_0_                                                       \
   MJZ_IFN_CONSTEVAL {                                                          \
-    std::cout << MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) "hereeeeeeeeeeeeeeee!\n";                 \
+    std::cout << MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) "hereeeeeeeeeeeeeeee!\n";    \
   }
 
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
