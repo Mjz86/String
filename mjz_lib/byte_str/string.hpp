@@ -1645,9 +1645,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!replace_data_with_none(offset, byte_count, length_of_val)) {
         return false;
       }
-      if (!val)
+      if (!length_of_val || !val)
         return true;
-      memset(&m.u_get_mut_begin()[offset], length_of_val, *val);
+      memset(m.u_get_mut_begin() + offset, length_of_val, *val);
       return true;
     }
     MJZ_CX_ND_FN char *
@@ -1655,10 +1655,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                         uintlen_t offset,
                                         uintlen_t byte_count) noexcept {
       make_right_then_give_has_null(offset, byte_count);
-      if (!replace_data_with_none(offset, byte_count, length_of_val)) {
+      if (!replace_data_with_none(offset, byte_count, length_of_val) ||
+          !length_of_val) {
         return nullptr;
       }
-      return &m.u_get_mut_begin()[offset];
+      return m.u_get_mut_begin() + offset;
     }
     MJZ_CX_ND_FN success_t as_ownerized() noexcept {
       if (m.template has_room_for<when_t::relax>(m.get_length(),
@@ -2076,7 +2077,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (v.is_resurve()) {
         return good = as_substring(0, offset);
       }
-      char *ptr = &m.u_get_mut_begin()[offset];
+      char *ptr = m.u_get_mut_begin() + offset;
       return good = !!v.get_value(ptr);
     }
 
