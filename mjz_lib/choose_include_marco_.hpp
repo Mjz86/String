@@ -61,6 +61,8 @@ SOFTWARE.
 #ifndef MJZ_STD_HAS_SIMD_LIB_
 #if defined(__cpp_lib_simd)
 #define MJZ_STD_HAS_SIMD_LIB_ __has_include(<experimental/simd>)
+#else 
+#define MJZ_STD_HAS_SIMD_LIB_ false
 #endif
 #endif
 
