@@ -46,6 +46,7 @@ private:
   std::vector<childern_node_t> m_flat_tree{};
   std::vector<value_t> m_values{};
   std::vector<key_t> m_keys{};
+  std::vector<uintlen_t> hash_caches{};
   std::vector<intlen_t> m_reverse_tree_indexies{};
   std::vector<intlen_t> m_reverse_value_indexies{};
   hash_fn_t hash_fn{};
@@ -57,12 +58,24 @@ private:
                   shift_index_node < sizeof(uintlen_t) * 8);
     constexpr static uintlen_t omask =
         ((sizeof(uintlen_t) * 8 / shift_index_node)) - 1;
-    MJZ_CX_FN hasher_t(const key_t &k, const hash_fn_t &hf_,
-                       uintlen_t depth_ = 0) noexcept
+    MJZ_CX_FN hasher_t(const key_t &k, const hash_fn_t &hf_) noexcept
+        : key{std::addressof(k)}, hf{std::addressof(hf_)}, depth{0} {
+      cache = get_hash();
+    }
+    MJZ_CX_FN hasher_t(std::optional<uintlen_t> hash_cache, const key_t &k,
+                       const hash_fn_t &hf_, uintlen_t depth_) noexcept
         : key{std::addressof(k)}, hf{std::addressof(hf_)}, depth{depth_} {
       uintlen_t n = depth & omask;
       depth &= ~omask;
-      cache = get_hash();
+      if (hash_cache && n != depth) {
+        hash_cache = std::nullopt;
+      }
+
+      if (!hash_cache) {
+        hash_cache = get_hash();
+      }
+
+      cache = *hash_cache;
       cache >>= shift_index_node * n;
     }
     MJZ_CX_FN uintlen_t next() noexcept {
@@ -121,12 +134,14 @@ public:
 
   MJZ_CX_FN uintlen_t insert(key_t &&key, value_t &&value) noexcept {
     hasher_t hr{key, hash_fn};
+    uintlen_t hash_cache = hr.cache;
     auto [node, parent] = place_find(hr);
 
     if (node) {
       if (key == m_keys[size_t(node - 1)])
         return uintlen_t(node - 1);
-      hasher_t sibl_hr{m_keys[size_t(node - 1)], hash_fn, hr.depth};
+      hasher_t sibl_hr{hash_caches[size_t(node - 1)], m_keys[size_t(node - 1)],
+                       hash_fn, hr.depth};
       while (true) {
         m_flat_tree[size_t(~parent)][hr.current()] =
             ~intlen_t(m_flat_tree.size());
@@ -143,6 +158,7 @@ public:
     };
     m_values.push_back(std::move(value));
     m_keys.push_back(std::move(key));
+    hash_caches.push_back(std::move(hash_cache));
     m_reverse_value_indexies.push_back(intlen_t(hr.current()) +
                                        intlen_t((~parent) << shift_index_node));
     node = intlen_t(m_values.size());
@@ -160,6 +176,7 @@ public:
       m_reverse_value_indexies[size_t(node - 1)] = back_i_r;
       m_values[size_t(node - 1)] = std::move(m_values.back());
       m_keys[size_t(node - 1)] = std::move(m_keys.back());
+      hash_caches[size_t(node - 1)] = std::move(hash_caches.back());
       m_flat_tree[uintlen_t(back_i_r) >> shift_index_node]
                  [mask & uintlen_t(back_i_r)] = node;
     }
@@ -168,6 +185,7 @@ public:
     m_reverse_value_indexies.pop_back();
     m_values.pop_back();
     m_keys.pop_back();
+    hash_caches.pop_back();
     ///////////
 
     size_t parent_node = size_t(node_i_r >> shift_index_node);

@@ -233,7 +233,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if constexpr (!when_v.is_sso()) {
         if (!m.is_sso() &&
             m.template has_room_for<when_v>(len, props_v.has_null)) {
-          m.template memcpy_to_non_sso<when_t::own_relax>(
+
+          m.template memcpy_to_non_sso<when_t::own_relax, true>(
               ptr, len, m.get_buffer_ptr(), m.get_capacity(), m.is_sharable(),
               m.is_heap());
           return true;
@@ -281,7 +282,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if constexpr (props_v.is_ownerized) {
         return init_view_cpy_<when_v>(view, no_allocate);
       } else {
-        if (init_view_cpy_<when_v>(view, true)) {
+        if (init_view_cpy_<when_v>(view,
+                                   !(!view.has_null() && props_v.has_null))) {
           return true;
         }
         if constexpr (when_v) {
@@ -322,13 +324,17 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
   private:
     template <when_t when_v>
-    MJZ_CX_AL_FN success_t as_substring_impl_(uintlen_t byte_offset,
-                                              uintlen_t byte_count) noexcept {
+    MJZ_CX_AL_FN bool as_substring_impl_(uintlen_t byte_offset,
+                                         uintlen_t byte_count) noexcept {
       if constexpr (!when_v.is_sso()) {
         if (!m.is_sso()) {
           bool b = make_right_then_give_has_null(byte_offset, byte_count);
-          m.u_nsso_subas(byte_offset, byte_count, b);
-          return true;
+          if constexpr (props_v.has_null) {
+            m.u_nsso_subas(byte_offset, byte_count);
+          } else {
+            m.u_nsso_subas(byte_offset, byte_count, b);
+          }
+          return b;
         }
       }
       make_right_then_give_has_null(byte_offset, byte_count);
@@ -343,8 +349,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <when_t when_v>
     MJZ_CX_AL_FN success_t as_substring_(uintlen_t byte_offset,
                                          uintlen_t byte_count) noexcept {
-      asserts(asserts.assume_rn,
-              as_substring_impl_<when_v>(byte_offset, byte_count));
+      bool got_a_null = as_substring_impl_<when_v>(byte_offset, byte_count);
+      if (got_a_null)
+        return true;
       if constexpr (!props_v.has_null || when_v.is_sso()) {
         return true;
       }

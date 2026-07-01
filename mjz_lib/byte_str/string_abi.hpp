@@ -291,7 +291,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         MJZ_control_layout_cast_helper_in(no_destroy);
         MJZ_control_layout_cast_helper_in(is_sharable);
         MJZ_control_layout_cast_helper_in(has_mut);
-        MJZ_control_layout_cast_helper_in(has_null);
+        if constexpr (!has_null_v_) {
+          MJZ_control_layout_cast_helper_in(has_null);
+        } else {
+
+          asserts(asserts.assume_rn, !!input.has_null);
+        }
 #undef MJZ_control_layout_cast_helper_in
         return std::bit_cast<str_data_bytes_t>(ret);
       }
@@ -320,7 +325,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         MJZ_control_layout_cast_helper_out(no_destroy);
         MJZ_control_layout_cast_helper_out(is_sharable);
         MJZ_control_layout_cast_helper_out(has_mut);
-        MJZ_control_layout_cast_helper_out(has_null);
+        if constexpr (!has_null_v_) {
+          MJZ_control_layout_cast_helper_out(has_null);
+        } else {
+          ret.has_null = true;
+        }
 #undef MJZ_control_layout_cast_helper_out
         return ret;
       }
@@ -603,7 +612,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                all_feilds_are_fully_sized>(
             const_cast<char *>(uu_nsso_capp()), capacity_);
       }
-      template <when_t when_v>
+      template <when_t when_v, bool to_self_v = false>
       MJZ_CX_AL_FN void memcpy_to_non_sso(const char *ptr, uintlen_t len,
                                           char *buffer_begin_,
                                           uintlen_t capacity_, bool is_shared_,
@@ -634,7 +643,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (has_null) {
           beg[len] = '\0';
         }
-        if constexpr (when_v) {
+        if constexpr (when_v && !to_self_v) {
           destruct_to_invalid();
         }
 
@@ -950,6 +959,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
       MJZ_CX_AL_FN void u_nsso_nullas(bool b) noexcept {
         asserts(asserts.assume_rn, !is_sso());
+        asserts(asserts.assume_rn, !has_null_v_ || b);
         auto mdata_ = u_nsso_mdata_get();
         mdata_.has_null = b;
         u_nsso_mdata_set(mdata_);
@@ -984,11 +994,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
         uintlen_t len = get_length();
         uintlen_t cap = get_capacity();
-        if constexpr (check_)
+        if constexpr (check_) {
           if (!has_room_for<when_v>(len, true)) {
             u_nsso_nullas(false);
             return false;
           }
+        }
 
         bool can_add_ = true;
         if constexpr (!the_room_is_infront) {
