@@ -899,13 +899,13 @@ void g(){
 /*
 this is a temporary RAII object for being used for something like this:
 m.lock();
-MJZ_RELEASE {m.unlock();};
+MJZ_RAII_RELEASE {m.unlock();};
 p= new int;
-MJZ_RELEASE  { delete p; p=nullptr;};
+MJZ_RAII_RELEASE  { delete p; p=nullptr;};
 ...use...m...
 ...use...p...
 */
-#define MJZ_RELEASE                                                            \
+#define MJZ_RAII_RELEASE                                                       \
   MJZ_UNUSED const auto &&MJZ_UNIQUE_VAR_NAME(releaserr_on_line) =             \
       ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void
 

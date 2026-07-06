@@ -144,8 +144,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN implace_str_t(U &&arg) noexcept
         : implace_str_t(std::forward<U>(arg), totally_empty_type) {}
     MJZ_CX_FN implace_str_t(implace_str_t &&arg) noexcept
-        : implace_str_t(std::forward<implace_str_t>(arg), totally_empty_type) {
-    }
+        : implace_str_t(std::forward<implace_str_t>(arg), totally_empty_type) {}
     MJZ_CX_FN implace_str_t(const implace_str_t &arg) noexcept
         : implace_str_t(std::forward<const implace_str_t &>(arg),
                         totally_empty_type) {}

@@ -610,7 +610,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
                                             Ts &&...args) noexcept {
       auto const old_vtable = ref.vtable;
       auto const old_ref = &ref;
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         asserts(asserts.assume_rn, old_vtable == ref.vtable && old_ref == &ref);
       };
       return fn(&ref, std::forward<Ts>(args)...);
@@ -955,7 +955,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         return;
 
       uintlen_t delta_cap = allocate_bytes_log_delta(ai);
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         ai.allocate_exactly_minsize = true;
 
         blk.ptr -= delta_cap - sizeof(alloc_log_info);
@@ -1113,7 +1113,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
                                    alloc_info strategy) const noexcept {
       strategy = preapare_strategy<T>(strategy);
 
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         blk.ptr = nullptr;
         blk.length = 0;
       };
@@ -1308,7 +1308,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -1325,7 +1325,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -1343,7 +1343,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -1358,7 +1358,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -1379,7 +1379,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -1390,7 +1390,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         block_info &&blk, uintlen_t align) const noexcept {
       if (stack_alloc) {
         if (blk.ptr + blk.length == stack_alloc->sptr) {
-          MJZ_RELEASE { blk = block_info{}; };
+          MJZ_RAII_RELEASE { blk = block_info{}; };
           return stack_alloc->fn_dealloca(std::span{blk.ptr, blk.length});
         }
       }
@@ -1401,7 +1401,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...

@@ -159,7 +159,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   MJZ_CX_FN std::optional<uintlen_t>
   parse_context_t<version_v>::find_name_index(hash_bytes_t<version_v> name,
                                               view_t name_str) noexcept {
-    MJZ_RELEASE { main_ctx().name_ptr = nullptr; };
+    MJZ_RAII_RELEASE { main_ctx().name_ptr = nullptr; };
     typename base_context_t<version_v>::name_t name_v{name, name_str};
     main_ctx().name_ptr = &name_v;
     for (uintlen_t i{}; i < main_ctx().number_of_args; i++) {
@@ -262,7 +262,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     // place.
     out_it_t actual_out_buf = actual_out;
     bool has_filter{};
-    MJZ_RELEASE {
+    MJZ_RAII_RELEASE {
       if (has_filter)
         actual_out = actual_out_buf;
     };

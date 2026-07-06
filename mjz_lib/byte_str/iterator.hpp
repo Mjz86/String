@@ -880,7 +880,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return true;
       char *append_begin = this->length + this->begin_ptr;
       success_t succsess{true};
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         if (!succsess)
           return;
         this->length += opt_view_or_reserve.len;
@@ -912,7 +912,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     MJZ_CX_FN void free() noexcept {
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         this->length = 0;
         this->capacity = 0;
         this->begin_ptr = nullptr;

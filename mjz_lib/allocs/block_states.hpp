@@ -276,7 +276,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     }
     template <bool do_mem_restart = false>
     MJZ_CX_FN success_t deinit() noexcept {
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         if constexpr (do_mem_restart) {
           init();
         }

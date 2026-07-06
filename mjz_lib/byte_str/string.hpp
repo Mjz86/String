@@ -364,7 +364,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     move_init_cpy_impl_0_(alias_t<T &&> str, bool other_ownerized) noexcept {
       if (!encode_compat_(str))
         return false;
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         std::destroy_at(&str);
         std::construct_at(&str);
       };
@@ -986,7 +986,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     MJZ_CX_FN str_heap_manager
     drop_heap(unsafe_ns::i_know_what_im_doing_t) noexcept {
-      MJZ_RELEASE { m.invalid_to_empty(); };
+      MJZ_RAII_RELEASE { m.invalid_to_empty(); };
       if (m.no_destroy()) {
         return make_empty_heap();
       }
@@ -1405,7 +1405,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   private:
     MJZ_CX_FN success_t
     u_consider_stack(owned_stack_buffer &stack_buffer) noexcept {
-      MJZ_RELEASE { stack_buffer = owned_stack_buffer{}; };
+      MJZ_RAII_RELEASE { stack_buffer = owned_stack_buffer{}; };
       auto len_ = size();
       char *buf = stack_buffer.buffer +
                   m.s_buffer_offset(stack_buffer.buffer_size, len_);
@@ -1533,7 +1533,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           choose_back &= std::cmp_less_equal(del, back_del);
           choose_front &= std::cmp_less_equal(del, front_del);
           choose_front &= !m.is_sso();
-          MJZ_RELEASE {
+          MJZ_RAII_RELEASE {
             if (!m.is_sso()) {
               m.set_invalid_to_non_sso_begin(
                   beg, new_len, buf, cap, m.is_sharable(), false, m.is_heap());
@@ -1578,7 +1578,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return true;
         }
 
-        MJZ_RELEASE { looped_once = true; };
+        MJZ_RAII_RELEASE { looped_once = true; };
         if (new_len <= sso_cap) {
           m_t temp{};
           asserts(asserts.assume_rn, !m.is_sso());
@@ -2075,7 +2075,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN success_t format_back_insert_append_pv_fn_(
         unsafe_ns::i_know_what_im_doing_t, blazy_t v) noexcept {
       bool good{};
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         reset_to_error_on_fail_<when_t::relax>(
             good, "[Error]format_back_insert_append_pv_fn_:invalid input");
       };
@@ -2243,7 +2243,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       bool no_throw{false};
       auto perivous_exp_state = cin_base.exceptions();
       {
-        MJZ_RELEASE {
+        MJZ_RAII_RELEASE {
           cin_base.exceptions(std::istream::goodbit);
           if (no_throw) {
             if (!state_changed || !success) {
@@ -2282,7 +2282,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           state_changed = true;
         }
         no_throw = true;
-      } //~MJZ_RELEASE;
+      } //~MJZ_RAII_RELEASE;
       cin_base.exceptions(perivous_exp_state);
       return cin_v;
     }
@@ -2308,7 +2308,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       success &= obj.clear();
       auto perivous_exp_state = cin_base.exceptions();
       {
-        MJZ_RELEASE {
+        MJZ_RAII_RELEASE {
           cin_base.exceptions(std::istream::goodbit);
           if (no_throw) {
             cin_base.width(0);
@@ -2346,7 +2346,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
         no_throw = true;
         ;
-      }; //~MJZ_RELEASE;
+      }; //~MJZ_RAII_RELEASE;
       cin_base.exceptions(perivous_exp_state);
       return cin_v;
     }

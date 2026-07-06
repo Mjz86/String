@@ -581,7 +581,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           previous_section->len++;
           continue;
         }
-        MJZ_RELEASE { previous_section->i = 1 + i; };
+        MJZ_RAII_RELEASE { previous_section->i = 1 + i; };
         if (is_point_fn(ptr[i], raidex)) {
           if (&sientific_coeffient_section1 != previous_section ||
               defualt_power_fn(ptr[i], raidex))
@@ -1049,7 +1049,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             return {};
           MJZ_IF_CONSTEVAL {
             uint64_t *p = new uint64_t[len / 8];
-            MJZ_RELEASE { delete[] p; };
+            MJZ_RAII_RELEASE { delete[] p; };
             ret = val_rg_.to_ascii({p, len / 8});
 
             memcpy_u64_to_char_buffer(std::span{buf, ret}, p);

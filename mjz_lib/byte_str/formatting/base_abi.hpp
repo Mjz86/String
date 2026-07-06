@@ -256,7 +256,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -271,7 +271,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -486,7 +486,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -499,7 +499,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -708,7 +708,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -722,7 +722,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -755,7 +755,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     MJZ_CX_FN err_it_t
     as_error(static_string_view_t<version_v> error_description) noexcept {
-      MJZ_RELEASE { main_ctx().output_it = out_it_t{}; };
+      MJZ_RAII_RELEASE { main_ctx().output_it = out_it_t{}; };
       return parse_ctx().as_error(error_description);
     }
     MJZ_CX_FN explicit operator bool() const noexcept { return !!parse_ctx(); }
@@ -773,7 +773,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       for (; end_p != ptr;) {
         const char *ptr_start = ptr;
         do {
-          MJZ_RELEASE { ptr++; };
+          MJZ_RAII_RELEASE { ptr++; };
           if (*ptr == '{' || *ptr == '}')
             break;
         } while (end_p != ptr);
@@ -830,7 +830,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...
@@ -843,7 +843,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
      * USE THE FOLLOWING TO ENSURE SAFE USE
      * blk=alloca_bytes(...);
-     * MJZ_RELEASE{dealloca_bytes(std::move(blk));};
+     * MJZ_RAII_RELEASE{dealloca_bytes(std::move(blk));};
      * ...
      * CODE THAT DOSE NOT TRANSFER OWNERSHIP OF blk
      * ...

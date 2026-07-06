@@ -43,7 +43,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         : standard_output_it_t(p) {}
     MJZ_CX_FN standard_output_it_t(bool &status) noexcept {
       status = false;
-      MJZ_RELEASE { good = status; };
+      MJZ_RAII_RELEASE { good = status; };
       MJZ_IF_CONSTEVAL { return; };
       if (output_muext().test_and_set(std::memory_order_acquire))
         return;
@@ -113,7 +113,9 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
                                   std::span<char> aliged_stack_resurve) noexcept
           : meta_data_(meta_data_0_), out(out_0_), err_view(return_0_),
             alloc_(meta_data_.alloc), aliged_stack_{aliged_stack_resurve} {
-        MJZ_RELEASE { succuss = out_of_memory_ == out_of_memory_e_::good; };
+        MJZ_RAII_RELEASE {
+          succuss = out_of_memory_ == out_of_memory_e_::good;
+        };
         allocate_formatter_0_();
         if (!storage_resurve_.ptr) {
           //   return "[Error]generic_format_to : out of memory";
@@ -122,7 +124,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         }
         storage_resurve_.length -= sizeof(format_obj_t);
         storage_resurve_.ptr += sizeof(format_obj_t);
-        MJZ_RELEASE {
+        MJZ_RAII_RELEASE {
           if (out_of_memory_ != out_of_memory_e_::good)
             MJZ_IS_UNLIKELY { releser_1_(); }
         };
@@ -142,7 +144,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         ptr_ = std::construct_at(
             ptr_, alloc_,
             std::span{storage_resurve_.ptr, storage_resurve_.length}, align_v_);
-        MJZ_RELEASE {
+        MJZ_RAII_RELEASE {
           if (out_of_memory_ != out_of_memory_e_::good)
             MJZ_IS_UNLIKELY { releser_2_(); }
         };
@@ -154,8 +156,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
                 "[Error]generic_format_to : out of memory"};
             return;
           }
-        MJZ_RELEASE { releser_1_(); };
-        MJZ_RELEASE { releser_2_(); };
+        MJZ_RAII_RELEASE { releser_1_(); };
+        MJZ_RAII_RELEASE { releser_2_(); };
         format_obj_t &obj{*ptr_};
         base_out_it_t<version_v> out_it = obj.main_ctx().format_ctx().out();
         if (meta_data_.has_new_line) {

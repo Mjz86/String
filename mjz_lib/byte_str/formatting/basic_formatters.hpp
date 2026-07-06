@@ -358,9 +358,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     return parse_width(cntx) && parse_precision(cntx) && parse_type(cntx);
   }
   template <version_t version_v>
-  template <typename T>
+  template <typename T_>
   MJZ_CX_FN success_t basic_format_specs_t<version_v>::check_specs(
       parse_context_t<version_v> & cntx) noexcept {
+    using T = std::remove_cvref_t<T_>;
     bool need_numeric_argument{};
     bool numeric_or_pointer_argument{};
     bool need_persitioned_argument{};
@@ -498,13 +499,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
           "memory");
       return false;
     }
-    MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), aln_alloca_); };
+    MJZ_RAII_RELEASE { ctx.fn_dealloca(std::move(blk_0_), aln_alloca_); };
     format_fn_obj stack{};
     stack.buf_arr = blk_0_.data();
     stack.buf_size = blk_0_.size();
     if (!format_specs_start(ctx, stack))
       return false;
-    if constexpr (partial_same_as<T, bview>) {
+    if constexpr (std::derived_from<T, bview>) {
       stack.as_string = arg;
       if (ctx.encoding() != stack.as_string.get_encoding()) {
         ctx.as_error(
@@ -615,6 +616,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
           "[Error]basic_format_specs_t::format_specs():type not suppoerted");
 
       return false;
+      static_assert(std::same_as<void, int>);
     }
     return format_specs_finish(ctx, stack);
   }
@@ -784,7 +786,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
           "memory");
       return false;
     }
-    MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
+    MJZ_RAII_RELEASE {
+      ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t));
+    };
     return format_fill_pv(Place_t::place_fn, p, blk_0_.data(), blk_0_.size(),
                           ctx);
   }
@@ -796,7 +800,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       const noexcept {
     auto place_stuff = [&]() noexcept { return place_fn(place_obj); };
     auto real_output = ctx.out();
-    MJZ_RELEASE {
+    MJZ_RAII_RELEASE {
       if (ctx.out())
         ctx.advance_to(real_output);
     };
@@ -824,7 +828,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       output_buffer.alloc = ctx.allocator();
       my_width = width;
       auto output = ctx.out();
-      MJZ_RELEASE {
+      MJZ_RAII_RELEASE {
         if (ctx.out())
           ctx.advance_to(output);
       };
@@ -865,8 +869,41 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     return !!actual_it;
   }
+  template <class T, version_t version_v>
+  concept as_basic_format_specs_formatted_c = requires(const T &obj) {
+    {
+      obj.basic_format_specs_formatted_pv_fn_(unsafe_ns::unsafe_v)
+    } noexcept -> basic_format_specs_formatted_c<version_v>;
+  };
 
-  template <version_t version_v, uintlen_t n_bits>
-  struct default_formatter_t<version_v, uintN_t<version_v, n_bits>, 20> {};
+  template <version_t version_v, as_basic_format_specs_formatted_c<version_v> T>
+  struct default_formatter_t<version_v, T, 30> {
+    using udtype_ =
+        decltype(std::declval<const T &>().basic_format_specs_formatted_pv_fn_(
+            unsafe_ns::unsafe_v));
+    MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
+    MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
+    MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
+    basic_format_specs_t<version_v> data{};
+    MJZ_CX_FN success_t parse(parse_context_t<version_v> &ctx) noexcept {
+      if (!data.parse_specs(ctx))
+        return false;
+      if (!data.template check_specs<
+              decltype(to_final_type_fn<version_v, udtype_>(
+                  std::declval<udtype_>()))>(ctx))
+        return false;
+      return true;
+    };
+    MJZ_CX_FN success_t
+    format(auto &&arg, format_context_t<version_v> &ctx) const noexcept {
+      if (!basic_format_specs_t<version_v>(data).format_specs(
+              to_final_type_fn<version_v, udtype_>(
+                  arg.basic_format_specs_formatted_pv_fn_(unsafe_ns::unsafe_v)),
+              ctx))
+        return false;
+      return true;
+    };
+  };
+
 }; // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_

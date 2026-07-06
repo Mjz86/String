@@ -49,7 +49,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     if (status)
       return cout_v;
     std::ostream &ref = *it.Stream;
-    MJZ_RELEASE {
+    MJZ_RAII_RELEASE {
       MJZ_NOEXCEPT {
         ref.width(0);
         ref.setstate(std::istream::failbit | std::istream::badbit);

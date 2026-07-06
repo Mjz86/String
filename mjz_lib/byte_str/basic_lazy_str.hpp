@@ -134,7 +134,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     MJZ_CX_FN void reset() noexcept {
       if (!vtable)
         return;
-      MJZ_RELEASE { vtable = nullptr; };
+      MJZ_RAII_RELEASE { vtable = nullptr; };
       if (!MJZ_STD_is_constant_evaluated_FUNCTION_RET &&
           operator_and(!vtable->is_small, vtable->trivial_destroy)) {
         if (!storage.lazy_ref.dec_ref_shall_delete())
@@ -234,7 +234,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
             return This->init(dest, src.storage.lazy_ref.alloc,
                               src.storage.lazy_ref.is_threaded, src_ref);
           }
-          MJZ_RELEASE { destroy_fn(const_cast<basic_lazy_str_t &>(src)); };
+          MJZ_RAII_RELEASE { destroy_fn(const_cast<basic_lazy_str_t &>(src)); };
           return This->init(dest, src.storage.lazy_ref.alloc,
                             src.storage.lazy_ref.is_threaded,
                             std::move(src_ref));
@@ -341,7 +341,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       }
 
       MJZ_CX_FN static void destroy_fn(basic_lazy_str_t &obj) noexcept {
-        MJZ_RELEASE { obj.vtable = nullptr; };
+        MJZ_RAII_RELEASE { obj.vtable = nullptr; };
         if constexpr (small_enough) {
           MJZ_IFN_CONSTEVAL {
             std::destroy_at(&ref(obj));

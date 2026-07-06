@@ -63,7 +63,9 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
             "memory");
         return false;
       }
-      MJZ_RELEASE { ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t)); };
+      MJZ_RAII_RELEASE {
+        ctx.fn_dealloca(std::move(blk_0_), alignof(uintlen_t));
+      };
       good &= MJZ_NOEXCEPT {
         allocs_ns::pmr_adaptor_t<version_v> alloc{ctx.allocator()};
         std::pmr::monotonic_buffer_resource mbr{blk_0_.data(), blk_0_.size(),

@@ -35,6 +35,10 @@
 
 // folder
 
+#if __has_include("graph/alllib.hpp")
+#include "graph/alllib.hpp"
+#endif
+
 #if __has_include("allocs/alllib.hpp")
 #include "allocs/alllib.hpp"
 #endif

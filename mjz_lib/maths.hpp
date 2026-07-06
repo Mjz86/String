@@ -677,7 +677,7 @@ MJZ_EXPORT namespace mjz {
     using T = power2_helper_t<>::maxfloat_t;
     T ret{};
     {
-      MJZ_RELEASE { ret /= power2_helper_t<>::log_2_e; };
+      MJZ_RAII_RELEASE { ret /= power2_helper_t<>::log_2_e; };
       big_float_t<> f = *big_float_t<>::float_from(x);
       ret += T(f.m_exponent);
       f.m_exponent = 0;

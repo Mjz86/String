@@ -26,108 +26,108 @@ SOFTWARE.
 #include "../string.hpp"
 #ifndef MJZ_BYTE_FORMATTING_format_HPP_FILE_
 #define MJZ_BYTE_FORMATTING_format_HPP_FILE_
-MJZ_EXPORT namespace mjz::bstr_ns::format_ns{ 
+MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
 
-    template <version_t version_v, class T>
-    MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(
-        T & ret, const status_view_t<version_v> &opt) noexcept {
-        ret = T(unsafe_ns::unsafe_v, opt());
-}
+  template <version_t version_v, class T>
+  MJZ_CX_NL_FN void vformat_err_handle_impl_pv_(
+      T & ret, const status_view_t<version_v> &opt) noexcept {
+    ret = T(unsafe_ns::unsafe_v, opt());
+  }
 
-template <version_t version_v, class T>
-MJZ_CX_AL_FN void
-vformat_err_handle_pv_(T &ret, const status_view_t<version_v> &opt) noexcept {
-  if (!opt)
-    MJZ_IS_UNLIKELY { vformat_err_handle_impl_pv_(ret, opt); }
-}
+  template <version_t version_v, class T>
+  MJZ_CX_AL_FN void vformat_err_handle_pv_(
+      T & ret, const status_view_t<version_v> &opt) noexcept {
+    if (!opt)
+      MJZ_IS_UNLIKELY { vformat_err_handle_impl_pv_(ret, opt); }
+  }
 
-template <version_t version_v, typename... Ts>
-MJZ_CX_AL_FN auto vformat(basic_string_view_t<version_v> fmt,
-                          Ts &&...args) noexcept {
-  basic_str_t<version_v> ret{};
-  auto opt =
-      print_t<version_v>::vformat_to(ret, fmt, std::forward<Ts>(args)...);
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
-template <typename... Ts>
-MJZ_CX_AL_FN auto format(auto fmt, Ts &&...args) noexcept {
-  constexpr version_t version_v{
-      std::remove_cvref_t<decltype(fmt())>::Version_v};
-  basic_str_t<version_v> ret{};
-  auto opt = print_t<version_v>::format_to(ret, fmt, std::forward<Ts>(args)...);
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto vformat(basic_string_view_t<version_v> fmt,
+                            Ts && ...args) noexcept {
+    basic_str_t<version_v> ret{};
+    auto opt =
+        print_t<version_v>::vformat_to(ret, fmt, std::forward<Ts>(args)...);
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
+  template <typename... Ts>
+  MJZ_CX_AL_FN auto format(auto fmt, Ts &&...args) noexcept {
+    constexpr version_t version_v{
+        std::remove_cvref_t<decltype(fmt())>::Version_v};
+    basic_str_t<version_v> ret{};
+    auto opt =
+        print_t<version_v>::format_to(ret, fmt, std::forward<Ts>(args)...);
 
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
 
-template <version_t version_v, typename... Ts>
-MJZ_CX_AL_FN auto vformatln(basic_string_view_t<version_v> fmt,
-                            Ts &&...args) noexcept {
-  basic_str_t<version_v> ret{};
-  auto opt =
-      print_t<version_v>::vformatln_to(ret, fmt, std::forward<Ts>(args)...);
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
-template <typename... Ts>
-MJZ_CX_AL_FN auto formatln(auto fmt, Ts &&...args) noexcept {
-  constexpr version_t version_v{
-      std::remove_cvref_t<decltype(fmt())>::Version_v};
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto vformatln(basic_string_view_t<version_v> fmt,
+                              Ts && ...args) noexcept {
+    basic_str_t<version_v> ret{};
+    auto opt =
+        print_t<version_v>::vformatln_to(ret, fmt, std::forward<Ts>(args)...);
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
+  template <typename... Ts>
+  MJZ_CX_AL_FN auto formatln(auto fmt, Ts &&...args) noexcept {
+    constexpr version_t version_v{
+        std::remove_cvref_t<decltype(fmt())>::Version_v};
 
-  basic_str_t<version_v> ret{};
-  auto opt =
-      print_t<version_v>::formatln_to(ret, fmt, std::forward<Ts>(args)...);
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
+    basic_str_t<version_v> ret{};
+    auto opt =
+        print_t<version_v>::formatln_to(ret, fmt, std::forward<Ts>(args)...);
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
 
-template <version_t version_v>
-using basic_stra_t =
-    basic_str_t<version_v, basic_str_props_t<version_v>{.has_alloc = true}>;
+  template <version_t version_v>
+  using basic_stra_t =
+      basic_str_t<version_v, basic_str_props_t<version_v>{.has_alloc = true}>;
 
-template <version_t version_v, typename... Ts>
-MJZ_CX_AL_FN auto vformata(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                           basic_string_view_t<version_v> fmt,
-                           Ts &&...args) noexcept {
-
-  basic_stra_t<version_v> ret{};
-  auto opt = print_t<version_v>::vformata_to(std::move(alloc), ret, fmt,
-                                             std::forward<Ts>(args)...);
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
-template <version_t version_v, typename... Ts>
-MJZ_CX_AL_FN auto formata(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                          auto fmt, Ts &&...args) noexcept {
-  basic_stra_t<version_v> ret{};
-  auto opt = print_t<version_v>::formata_to(std::move(alloc), ret, fmt,
-                                            std::forward<Ts>(args)...);
-
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
-
-template <version_t version_v, typename... Ts>
-MJZ_CX_AL_FN auto vformatlna(allocs_ns::alloc_base_ref_t<version_v> alloc,
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto vformata(allocs_ns::alloc_base_ref_t<version_v> alloc,
                              basic_string_view_t<version_v> fmt,
-                             Ts &&...args) noexcept {
-  basic_stra_t<version_v> ret{};
-  auto opt = print_t<version_v>::vformatlna_to(std::move(alloc), ret, fmt,
-                                               std::forward<Ts>(args)...);
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-}
-template <version_t version_v, typename... Ts>
-MJZ_CX_AL_FN auto formatlna(allocs_ns::alloc_base_ref_t<version_v> alloc,
-                            auto fmt, Ts &&...args) noexcept {
+                             Ts && ...args) noexcept {
 
-  basic_stra_t<version_v> ret{};
-  auto opt = print_t<version_v>::formatlna_to(std::move(alloc), ret, fmt,
+    basic_stra_t<version_v> ret{};
+    auto opt = print_t<version_v>::vformata_to(std::move(alloc), ret, fmt,
+                                               std::forward<Ts>(args)...);
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto formata(allocs_ns::alloc_base_ref_t<version_v> alloc,
+                            auto fmt, Ts &&...args) noexcept {
+    basic_stra_t<version_v> ret{};
+    auto opt = print_t<version_v>::formata_to(std::move(alloc), ret, fmt,
                                               std::forward<Ts>(args)...);
-  vformat_err_handle_pv_(ret, opt);
-  return ret;
-} 
-}
-;      // namespace mjz::bstr_ns::format_ns
+
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
+
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto vformatlna(allocs_ns::alloc_base_ref_t<version_v> alloc,
+                               basic_string_view_t<version_v> fmt,
+                               Ts && ...args) noexcept {
+    basic_stra_t<version_v> ret{};
+    auto opt = print_t<version_v>::vformatlna_to(std::move(alloc), ret, fmt,
+                                                 std::forward<Ts>(args)...);
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
+  template <version_t version_v, typename... Ts>
+  MJZ_CX_AL_FN auto formatlna(allocs_ns::alloc_base_ref_t<version_v> alloc,
+                              auto fmt, Ts &&...args) noexcept {
+
+    basic_stra_t<version_v> ret{};
+    auto opt = print_t<version_v>::formatlna_to(std::move(alloc), ret, fmt,
+                                                std::forward<Ts>(args)...);
+    vformat_err_handle_pv_(ret, opt);
+    return ret;
+  }
+}; // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_print_HPP_FILE_

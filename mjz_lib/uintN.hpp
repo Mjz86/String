@@ -1132,8 +1132,8 @@ MJZ_EXPORT namespace mjz {
 
     {
       uintlen_t i{};
-      for (uint64_t &v :  var.words)
-       v= right_var_ref[i++] ;
+      for (uint64_t &v : var.words)
+        v = right_var_ref[i++];
     }
     constexpr uint64_t v10p8 = 100000000;
     constexpr uint64_t v10p16 = v10p8 * v10p8;

@@ -209,14 +209,18 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     };
   };
 
-  template <version_t version_v, class T>
+  template <class T, version_t version_v>
   concept mjz_str_c = requires(const T &obj) {
     {
       obj.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)
     } noexcept -> std::same_as<base_lazy_view_t<version_v>>;
   };
-  template <version_t version_v, class T>
-    requires mjz_str_c<version_v, std::remove_cvref_t<T>>
+
+  template <typename T, version_t version_v>
+  concept basic_format_specs_formatted_c =
+      mjz_str_c<T, version_v> || uses_basic_spec_c<T, version_v>;
+
+  template <version_t version_v, mjz_str_c<version_v> T>
   struct default_formatter_t<version_v, T, 20> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
