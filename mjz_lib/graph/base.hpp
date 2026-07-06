@@ -349,9 +349,7 @@ make_basic_forest(const auto &range_of_range) noexcept {
 
   uintlen_t accumulate{};
   for (auto &&range : range_of_range) {
-    for (uintlen_t edge : range) {
-      accumulate++;
-    }
+    accumulate += std::ranges::size(range);
   }
   ret.edges.reserve(accumulate);
   for (auto &&range : range_of_range) {
@@ -365,7 +363,6 @@ template <version_t version_v>
 MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
 make_basic_inv_forest(const auto &range_of_range) noexcept {
   treversal_result_t<version_v> ret{};
-  uintlen_t reserve_inv{};
 
   static_assert(requires() {
     { range_of_range } -> std::ranges::sized_range;
