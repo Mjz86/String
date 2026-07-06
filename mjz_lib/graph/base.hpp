@@ -260,50 +260,78 @@ struct directed_state_space_t
     return format_node_state_direct();
   };
 };
-
-template <version_t version_v> struct scc_treversal_result_t {
-  std::vector<uintlen_t> nodes{};
+// the densest way i know to pack a graph
+template <version_t version_v, typename T>
+  requires(std::ranges::random_access_range<T> && std::ranges::sized_range<T> &&
+           std::convertible_to<std::ranges::range_reference_t<T>, uintlen_t>)
+struct basic_forest_t {
+  T edges{};
   // index into node vector
-  std::vector<uintlen_t> root_index{};
+  T nodes_index{};
 
   MJZ_CX_FN auto range() const noexcept {
-    return std::views::iota(uintlen_t(0), uintlen_t(root_index.size())) |
-           std::views::transform([this](uintlen_t root_index_index) noexcept {
-             uintlen_t begin_index = root_index[root_index_index];
-             uintlen_t end_index = (root_index_index + 1 < root_index.size())
-                                       ? root_index[root_index_index + 1]
-                                       : nodes.size();
-             return std::span(nodes).subspan(begin_index,
-                                             end_index - begin_index);
-           });
+    uintlen_t nodes_index_sz = std::ranges::size(nodes_index);
+    uintlen_t edges_sz = std::ranges::size(edges);
+    return std::views::iota(uintlen_t(0), nodes_index_sz) |
+           std::views::transform(
+               [this, edges_sz, nodes_index_sz](uintlen_t node_i) noexcept {
+                 uintlen_t begin_index = uintlen_t(nodes_index[node_i]);
+                 uintlen_t end_index = (node_i + 1 < nodes_index_sz)
+                                           ? uintlen_t(nodes_index[node_i + 1])
+                                           : edges_sz;
+                 auto it = std::ranges::begin(edges);
+                 return std::ranges::subrange(it + intlen_t(begin_index),
+                                              it + intlen_t(end_index));
+               });
   }
   MJZ_CX_FN auto batchy_range(uintlen_t min, uintlen_t max) const noexcept {
-    return range() | std::views::filter(
-                         [min, max](std::span<const uintlen_t> pan) noexcept {
-                           return min <= pan.size() && pan.size() < max;
-                         });
+    return range() | std::views::filter([min, max](auto &&pan) noexcept {
+             uintlen_t sz = std::ranges::size(pan);
+             return min <= sz && sz < max;
+           });
   }
+  // for scc
   MJZ_CX_FN auto cyclic_range() const noexcept {
-    return batchy_range(2, nodes.size() + 1);
+    return batchy_range(2, uintlen_t(-1));
   }
+
+  // for scc
   MJZ_CX_FN auto acyclic_range() const noexcept { return batchy_range(0, 2); }
 };
+template <version_t version_v>
+using treversal_result_t = basic_forest_t<version_v, std::vector<uintlen_t>>;
 
 template <version_t version_v>
-MJZ_CX_FN scc_treversal_result_t<version_v>
-calculate_strongly_connected_components(
-    const std::vector<std::vector<uintlen_t>> &edge_of_node) noexcept {
+MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+make_basic_forest(const auto &range_of_range) noexcept {
+  treversal_result_t<version_v> ret{};
+  if constexpr (requires() {
+                  { range_of_range } -> std::ranges::sized_range;
+                }) {
+    ret.nodes_index.reserve(std::ranges::size(range_of_range));
+  }
+  for (auto &&range : range_of_range) {
+    ret.nodes_index.push_back(ret.edges.size());
+    ret.edges.insert(ret.edges.end(), std::ranges::begin(range),
+                     std::ranges::end(range));
+  }
+  return ret;
+}
+template <version_t version_v, class R = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v> calculate_strongly_connected_components(
+    const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
   // credit to
   // https://www.geeksforgeeks.org/dsa/tarjan-algorithm-find-strongly-connected-components/
   // i stil dont fully comprehend what i've optimized lol , maybe not?
   std::vector<uintlen_t> active_nodes{};
-  scc_treversal_result_t<version_v> ret{};
+  treversal_result_t<version_v> ret{};
   std::vector<std::pair<uintlen_t, uintlen_t>> call_stack{};
-  uintlen_t total_node_count = edge_of_node.size();
+  auto edge_of_node = edge_of_node_.range();
+  uintlen_t total_node_count = std::ranges::size(edge_of_node);
   active_nodes.reserve(total_node_count);
   call_stack.reserve(total_node_count);
-  ret.root_index.reserve(total_node_count);
-  ret.nodes.reserve(total_node_count);
+  ret.nodes_index.reserve(total_node_count);
+  ret.edges.reserve(total_node_count);
   auto frozen_ordenal = std::vector<uintlen_t>(total_node_count, uintlen_t());
   auto monotone_lowest_ahead =
       std::vector<uintlen_t>(total_node_count, uintlen_t());
@@ -368,8 +396,8 @@ calculate_strongly_connected_components(
         for (uintlen_t x :
              std::ranges::subrange(scc_root_it, active_nodes.end()))
           is_active_set[x] = false;
-        ret.root_index.push_back(ret.nodes.size());
-        ret.nodes.insert(ret.nodes.end(), scc_root_it, active_nodes.end());
+        ret.nodes_index.push_back(ret.edges.size());
+        ret.edges.insert(ret.edges.end(), scc_root_it, active_nodes.end());
         active_nodes.erase(scc_root_it, active_nodes.end());
         // Pop all vertices from stack till u is found
         // Store one strongly connected component
