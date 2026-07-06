@@ -4,7 +4,7 @@
  */
 int main() {
 #if MJZ_WITH_iostream
-  MJZ_RELEASE { std::cin.get(); };
+  MJZ_RAII_RELEASE { std::cin.get(); };
 #endif  // MJZ_WITH_iostream
         /*run both in compiler and runtime to check UB*/
   constexpr used_mjz_ns::main_t code{};
