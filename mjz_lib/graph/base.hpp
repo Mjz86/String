@@ -260,20 +260,50 @@ struct directed_state_space_t
     return format_node_state_direct();
   };
 };
-MJZ_CX_FN
-std::vector<std::vector<uintlen_t>> calculate_strongly_connected_components(
-    const std::vector<std::vector<uintlen_t>> &edge_of_node,
-    bool dont_count_acyclic = false) noexcept {
+
+template <version_t version_v> struct scc_treversal_result_t {
+  std::vector<uintlen_t> nodes{};
+  // index into node vector
+  std::vector<uintlen_t> root_index{};
+
+  MJZ_CX_FN auto range() const noexcept {
+    return std::views::iota(uintlen_t(0), uintlen_t(root_index.size())) |
+           std::views::transform([this](uintlen_t root_index_index) noexcept {
+             uintlen_t begin_index = root_index[root_index_index];
+             uintlen_t end_index = (root_index_index + 1 < root_index.size())
+                                       ? root_index[root_index_index + 1]
+                                       : nodes.size();
+             return std::span(nodes).subspan(begin_index,
+                                             end_index - begin_index);
+           });
+  }
+  MJZ_CX_FN auto batchy_range(uintlen_t min, uintlen_t max) const noexcept {
+    return range() | std::views::filter(
+                         [min, max](std::span<const uintlen_t> pan) noexcept {
+                           return min <= pan.size() && pan.size() < max;
+                         });
+  }
+  MJZ_CX_FN auto cyclic_range() const noexcept {
+    return batchy_range(2, nodes.size() + 1);
+  }
+  MJZ_CX_FN auto acyclic_range() const noexcept { return batchy_range(0, 2); }
+};
+
+template <version_t version_v>
+MJZ_CX_FN scc_treversal_result_t<version_v>
+calculate_strongly_connected_components(
+    const std::vector<std::vector<uintlen_t>> &edge_of_node) noexcept {
   // credit to
   // https://www.geeksforgeeks.org/dsa/tarjan-algorithm-find-strongly-connected-components/
   // i stil dont fully comprehend what i've optimized lol , maybe not?
   std::vector<uintlen_t> active_nodes{};
-  std::vector<std::vector<uintlen_t>> ret{};
+  scc_treversal_result_t<version_v> ret{};
   std::vector<std::pair<uintlen_t, uintlen_t>> call_stack{};
   uintlen_t total_node_count = edge_of_node.size();
   active_nodes.reserve(total_node_count);
   call_stack.reserve(total_node_count);
-  ret.reserve(total_node_count >> (dont_count_acyclic + 1));
+  ret.root_index.reserve(total_node_count);
+  ret.nodes.reserve(total_node_count);
   auto frozen_ordenal = std::vector<uintlen_t>(total_node_count, uintlen_t());
   auto monotone_lowest_ahead =
       std::vector<uintlen_t>(total_node_count, uintlen_t());
@@ -334,20 +364,15 @@ std::vector<std::vector<uintlen_t>> calculate_strongly_connected_components(
         auto rev = active_nodes | std::views::reverse;
         auto scc_begin = std::ranges::find(rev, u);
         uintlen_t scc_size = uintlen_t(++scc_begin - rev.begin());
-        std::vector<uintlen_t> scc{};
-        bool wasted_space = dont_count_acyclic && scc_size < 2;
         auto scc_root_it = active_nodes.end() - ptrdiff_t(scc_size);
         for (uintlen_t x :
              std::ranges::subrange(scc_root_it, active_nodes.end()))
           is_active_set[x] = false;
-        if (!wasted_space)
-          scc = std::vector<uintlen_t>(scc_root_it, active_nodes.end());
+        ret.root_index.push_back(ret.nodes.size());
+        ret.nodes.insert(ret.nodes.end(), scc_root_it, active_nodes.end());
         active_nodes.erase(scc_root_it, active_nodes.end());
-
         // Pop all vertices from stack till u is found
         // Store one strongly connected component
-        if (!wasted_space)
-          ret.push_back(std::move(scc));
       }
       if (!call_stack.size())
         break;
