@@ -21,7 +21,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 #ifndef MJZ_SRC_GRAPH_base_FILE_
 #define MJZ_SRC_GRAPH_base_FILE_
 #include "../byte_str/formatting/basic_formatters.hpp"
@@ -800,16 +799,18 @@ public:
                                   bool backward_ = true) const noexcept {
     if (is_unrecoverable(i, forward_, backward_))
       return true;
-    auto &node = nodes[i];
+    auto &node = nodes[i.index()];
     return (backward_ && node.directions[1].is_incomplete()) ||
            (forward_ && node.directions[0].is_incomplete());
   }
   MJZ_CX_ND_FN auto view_all_fail_ids(bool forward_ = true,
                                       bool backward_ = true) const noexcept {
     return std::views::iota(uintlen_t(), uintlen_t(nodes.size())) |
+           std::views::transform(
+               [](uintlen_t i) noexcept { return node_id_t(i); }) |
            std::views::filter(
-               [this, backward_, forward_](uintlen_t i) noexcept {
-                 return is_unresolved(node_id_t(i), forward_, backward_);
+               [this, backward_, forward_](node_id_t i) noexcept {
+                 return is_unresolved(i, forward_, backward_);
                });
   }
 
