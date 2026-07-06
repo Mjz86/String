@@ -1,7 +1,3 @@
-// file
-#include "base.hpp"
-#include "stated.hpp"
-// folder
 
 #if __has_include("base.hpp")
 #include "base.hpp"
