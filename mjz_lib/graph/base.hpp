@@ -869,10 +869,10 @@ private:
                            extra_later_dependant);
   }
 
-  MJZ_CX_FN uintlen_t make_node_impl(state_space_t forward_space,
+  MJZ_CX_FN node_id_t make_node_impl(state_space_t forward_space,
                                      state_space_t backward_space,
                                      uintlen_t extra_later) noexcept {
-    uintlen_t i = nodes.size();
+    node_id_t i = node_id_t(nodes.size());
     if (extra_later && extra_later + nodes.size() > nodes.capacity()) {
       extra_later = std::max<uintlen_t>(extra_later, nodes.size());
       nodes.reserve(extra_later + nodes.size());
