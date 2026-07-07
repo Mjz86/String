@@ -84,8 +84,11 @@ now b depends on `meta_expantion` to execute , and b will never lookup premature
 
 
 
+lookated at :
+https://github.com/Mjz86/String/blob/main/mjz_lib/graph/scheduler.md
 
 references:
+
 
 https://github.com/Mjz86/String/blob/main/mjz_lib/graph/base.hpp
 
