@@ -84,10 +84,6 @@ now b depends on `meta_expantion` to execute , and b will never lookup premature
 
 
 
-- things to look/research more into:
-in my current algorithm,  `defuse_resolution` introduces a 1 wave latency delay  between the  dependency and the dependent.
-without it my current algorithms might break, see if we can reduce this 2 wave latency of the event down to 1 without breaking the invariants. 
-
 
 
 lookated at :

@@ -649,23 +649,9 @@ public:
 private:
   std::vector<dependency_node_t> nodes{};
   uintlen_t expected_edges_per_node_v{0};
-  struct direction_t {
-    std::vector<node_id_t> queried_list{};
-    std::vector<node_id_t> query_list{};
-
-    MJZ_CX_AL_FN void
-    reserve_impl(uintlen_t node_estimate,
-                 MJZ_UNUSED uintlen_t edge_estimate) noexcept {
-      const uintlen_t step_reserve_v = node_estimate;
-      query_list.reserve(step_reserve_v);
-      queried_list.reserve(step_reserve_v);
-    }
-  };
-
   std::vector<node_id_t> applied_list{};
   std::vector<node_id_t> apply_list{};
   std::vector<event_t> event_list{};
-  std::array<direction_t, 2> directions{};
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state(node_id_t me) const noexcept {
     return mjz::bstr_ns::format_ns::format(
@@ -678,15 +664,9 @@ private:
                                             bool direction) noexcept {
     return nodes[me.index()].directions[!direction];
   }
-  MJZ_CX_AL_FN direction_t &dependancies(bool direction) noexcept {
-    return directions[!direction];
-  }
   MJZ_CX_AL_FN const node_direction_t &
   dependancy(node_id_t me, bool direction) const noexcept {
     return nodes[me.index()].directions[!direction];
-  }
-  MJZ_CX_AL_FN const direction_t &dependancies(bool direction) const noexcept {
-    return directions[!direction];
   }
   MJZ_CX_AL_FN bool make_resolution_query(node_id_t id,
                                           bool direction) noexcept {
@@ -773,20 +753,6 @@ private:
     };
   }
 
-  MJZ_CX_AL_FN bool propagate_resolution(node_id_t id, bool direction,
-                                         state_space_t old,
-                                         state_space_t fresh) noexcept {
-    //   Kahn's Algorithm , section of in-dgree 0  ( opposite direction  )
-    //   dgree propagation.
-    for (node_id_t dep_i : dependancy(id, !direction).connections) {
-      node_direction_t &node_dependant = dependancy(dep_i, direction);
-      if (!node_dependant.refresh_dependancy_triggers(old, fresh))
-        continue;
-      dependancies(direction).query_list.push_back(dep_i);
-    };
-
-    return true;
-  }
   MJZ_CX_AL_FN bool defuse_resolution(node_id_t id, bool direction,
                                       state_space_t space) noexcept {
     if (!dependancy(id, direction).is_passively_triggered())
@@ -801,11 +767,18 @@ private:
           .refresh_dependancy_defuse(dependancy(dep_i, direction));
     };
     if (dependancy(id, direction).is_incomplete())
-      if (!make_resolution_query(id, direction))
-        return true;
+      make_resolution_query(id, direction);
     if (is_unrecoverable(id))
       return false;
-    return propagate_resolution(id, direction, old, fresh);
+    //   Kahn's Algorithm , section of in-dgree 0  ( opposite direction  )
+    //   dgree propagation.
+    for (node_id_t dep_i : dependancy(id, !direction).connections) {
+      node_direction_t &node_dependant = dependancy(dep_i, direction);
+      if (!node_dependant.refresh_dependancy_triggers(old, fresh))
+        continue;
+      make_resolution_query(dep_i, !!direction);
+    };
+    return !is_unrecoverable(id);
   }
   MJZ_CX_AL_FN bool events_running() const noexcept {
     return event_list.size();
@@ -814,10 +787,7 @@ private:
     asserts(!events_running());
     MJZ_RAII_RELEASE { asserts(!events_running()); };
     bool did_somthing = false;
-    for (uintlen_t direction{}; direction < 2; direction++) {
-      std::swap(dependancies(!!direction).queried_list,
-                dependancies(!!direction).query_list);
-    }
+
     std::swap(applied_list, apply_list);
     {
       MJZ_RAII_RELEASE { execute_resolution_join(pram...); };
@@ -829,15 +799,6 @@ private:
       execute_resolution_ignite(pram...);
     }
 
-    for (uintlen_t direction{}; direction < 2; direction++) {
-      for (node_id_t j : dependancies(!!direction).queried_list) {
-        make_resolution_query(j, !!direction);
-        did_somthing = true;
-      }
-    }
-    for (uintlen_t direction{}; direction < 2; direction++) {
-      dependancies(!!direction).queried_list.clear();
-    }
     return did_somthing;
   };
 
@@ -898,8 +859,6 @@ private:
     applied_list.reserve(node_estimate);
     apply_list.reserve(node_estimate);
     event_list.reserve(node_estimate);
-    for (auto &dirct : directions)
-      dirct.reserve_impl(node_estimate, edge_estimate);
   }
 
 public:
