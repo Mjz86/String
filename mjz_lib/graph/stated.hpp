@@ -30,8 +30,9 @@ namespace mjz::graph_ns {
 /*
 context:
 this is the engine that i plan to use for my compiler SEMA ,
-it is prremoted to my core library utilities beacuse in my view its a useful data structure,
-i recommened using 'basic_dependency_graph_t' instead of  'stated_dependency_graph_t' if its outside my mcc compiler.
+it is prremoted to my core library utilities beacuse in my view its a useful
+data structure, i recommened using 'basic_dependency_graph_t' instead of
+'stated_dependency_graph_t' if its outside my mcc compiler.
 
 
 */

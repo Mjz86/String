@@ -151,6 +151,31 @@ MJZ_EXPORT namespace mjz {
     }
   }
 
+  MJZ_CX_FN void mjz_prefetch_pimpl_(const void *p) noexcept {
+    MJZ_IF_CONSTEVAL { return; }
+#if defined(__has_builtin) && __has_builtin(__builtin_prefetch)
+    __builtin_prefetch(p);
+#elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+    _mm_prefetch(static_cast<const char *>(p), _MM_HINT_T0);
+#elif defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
+    __prefetch(p);
+#else
+    std::ignore = p;
+#endif
+  }
+
+  MJZ_CX_FN void mjz_prefetch_p(const void *p) noexcept {
+    // https://stackoverflow.com/questions/75166611/is-builtin-prefetch-safe-to-be-call-with-nullptr
+    // tl;dr yesn't.
+    return mjz_prefetch_pimpl_(p ? p : &p);
+  }
+
+  MJZ_CX_FN const auto &mjz_prefetch(const auto &ref) noexcept {
+    MJZ_IF_CONSTEVAL { return ref; }
+    const void *p = std::addressof(ref);
+    mjz_prefetch_pimpl_(p);
+    return ref;
+  }
   template <size_t sz, size_t aliggz = 1>
     requires(std::has_single_bit(aliggz))
   MJZ_NCX_AL_FN void memcpy_fixed_impl_ncx_al_(

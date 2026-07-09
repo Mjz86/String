@@ -505,6 +505,7 @@ using void_struct_t = totally_empty_type_t;
 #else
 #define MJZ_PRETEND_(X_expression_)
 #endif
+
 /*
 this is purely a documentation macro.
 THIS DOSE NOT GENERATE ANY CODE !!

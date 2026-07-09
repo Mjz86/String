@@ -369,6 +369,14 @@ SOFTWARE.
 #if 1 < _MSC_VER
 #include <__msvc_int128.hpp>
 #endif
+#if defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
+#include <xmmintrin.h>
+#endif
+#if 1 < _MSC_VER
+#include <__msvc_int128.hpp>
+#endif
 
 #endif
 #endif // MJZ_LIB_import_std_FILE_

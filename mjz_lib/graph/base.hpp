@@ -30,7 +30,8 @@ template <class T, version_t version_v>
 concept dependency_state_c = requires(std::remove_cvref_t<T> s) {
   requires std::is_enum_v<std::remove_cvref_t<T>>;
 };
-template <version_t version_v> struct base_node_id_t {
+template <version_t version_v>
+struct MJZ_maybe_trivially_relocatable base_node_id_t {
 private:
   uintlen_t value = uintlen_t(-1);
 
@@ -76,7 +77,7 @@ state_to_str_impl_(dependency_state_c<version_v> auto e) noexcept {
 
 template <version_t version_v,
           dependency_state_c<version_v> auto max_invalid_state_v>
-struct base_state_space_t {
+struct MJZ_maybe_trivially_relocatable base_state_space_t {
   using states_e = std::remove_cvref_t<decltype(max_invalid_state_v)>;
   static_assert(!!to_underlying(max_invalid_state_v));
   states_e current{};
@@ -92,7 +93,9 @@ struct base_state_space_t {
     return !(!is_incomplete() || is_triggered() || is_unrecoverable());
   }
   MJZ_CX_ND_FN bool is_unrecoverable() const noexcept {
-    return max_invalid_state_v <= current && is_incomplete();
+    if (max_invalid_state_v <= current && is_incomplete())
+      MJZ_MOSTLY_UNLIKELY { return true; }
+    return false;
   };
   MJZ_CX_ND_FN bool is_incomplete() const noexcept {
     return std::min(trigger, current) < max_invalid_state_v;
@@ -114,11 +117,13 @@ struct base_state_space_t {
   MJZ_CX_FN success_t refresh(base_state_space_t fresh) noexcept {
     base_state_space_t me = *this;
     if (me.is_unrecoverable())
-      return false;
-    if (fresh.current < me.current) {
-      return error(
-          " the 'current' of a consumer must not exceed its provider ");
-    }
+      MJZ_MOSTLY_UNLIKELY
+    return false;
+    if (fresh.current < me.current)
+      MJZ_MOSTLY_UNLIKELY {
+        return error(
+            " the 'current' of a consumer must not exceed its provider ");
+      }
     *this = fresh;
     return !fresh.is_unrecoverable();
   }
@@ -137,7 +142,7 @@ struct base_state_space_t {
 
 template <version_t version_v,
           dependency_state_c<version_v> auto max_invalid_state_v>
-struct previous_states_t {
+struct MJZ_maybe_trivially_relocatable previous_states_t {
   using states_e =
       typename base_state_space_t<version_v, max_invalid_state_v>::states_e;
   base_node_id_t<version_v> id{};
@@ -146,7 +151,7 @@ struct previous_states_t {
 };
 template <version_t version_v,
           dependency_state_c<version_v> auto max_invalid_state_v>
-struct directed_state_space_t
+struct MJZ_maybe_trivially_relocatable directed_state_space_t
     : base_state_space_t<version_v, max_invalid_state_v> {
   using base = base_state_space_t<version_v, max_invalid_state_v>;
   using node_id_t = base_node_id_t<version_v>;
@@ -173,18 +178,18 @@ struct directed_state_space_t
 
   MJZ_CX_AL_FN success_t refresh_dependancy_defuse(base fresh) noexcept {
     base me = *this;
-    if (fresh.is_unrecoverable()) {
-      return false;
-    }
+    if (fresh.is_unrecoverable())
+      MJZ_MOSTLY_UNLIKELY { return false; }
     if (!fresh.is_incomplete()) {
       dec_zero_in_dgree();
       return true;
     }
-    if (fresh.current < me.current) {
+    if (fresh.current < me.current)
+      MJZ_MOSTLY_UNLIKELY {
 
-      return this->error(
-          " the 'current' of a consumer must not exceed its provider ");
-    }
+        return this->error(
+            " the 'current' of a consumer must not exceed its provider ");
+      }
     if (fresh.current < me.trigger) {
       return true;
     }
@@ -194,18 +199,18 @@ struct directed_state_space_t
 
   MJZ_CX_AL_FN success_t make_dependancy(base fresh, node_id_t id) noexcept {
     base me = *this;
-    if (fresh.is_unrecoverable()) {
-      return false;
-    }
+    if (fresh.is_unrecoverable())
+      MJZ_MOSTLY_UNLIKELY { return false; }
     if (!fresh.is_incomplete()) {
       dec_zero_in_dgree();
       connections.push_back(id);
       return true;
     }
-    if (fresh.current < me.current) {
-      return this->error(
-          " the 'current' of a consumer must not exceed its provider ");
-    }
+    if (fresh.current < me.current)
+      MJZ_MOSTLY_UNLIKELY {
+        return this->error(
+            " the 'current' of a consumer must not exceed its provider ");
+      }
     connections.push_back(id);
     if (fresh.current < me.trigger) {
       return true;
@@ -229,12 +234,13 @@ struct directed_state_space_t
   }
 
   MJZ_CX_AL_FN success_t defuse(base fresh) noexcept {
-    if (fresh.is_triggered()) {
-      return this->error(
-          " any ignite must be eventually call defuse before the node "
-          "or its dependancies can update , calling defuse with "
-          "exepectation of an ignite is not allowed ");
-    }
+    if (fresh.is_triggered())
+      MJZ_MOSTLY_UNLIKELY {
+        return this->error(
+            " any ignite must be eventually call defuse before the node "
+            "or its dependancies can update , calling defuse with "
+            "exepectation of an ignite is not allowed ");
+      }
     active_connections = 0;
     return this->refresh(fresh);
   }
@@ -261,7 +267,8 @@ struct directed_state_space_t
   };
 };
 // a bloated reachability checker , it probably should never be used.
-template <version_t version_v> struct reachability_graph_t {
+template <version_t version_v>
+struct MJZ_maybe_trivially_relocatable reachability_graph_t {
   std::vector<std::vector<bool>> reachable{};
 
   MJZ_CX_FN uintlen_t add_node() noexcept {
@@ -300,7 +307,7 @@ template <version_t version_v> struct reachability_graph_t {
 template <version_t version_v, typename T>
   requires(std::ranges::random_access_range<T> && std::ranges::sized_range<T> &&
            std::convertible_to<std::ranges::range_reference_t<T>, uintlen_t>)
-struct basic_forest_t {
+struct MJZ_maybe_trivially_relocatable basic_forest_t {
   T edges{};
   // index into node vector
   T nodes_index{};
@@ -631,7 +638,7 @@ MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_from_entry_given_sccs(
 }
 
 template <version_t version_v, class event_t, auto max_invalid_state_v>
-struct basic_dependency_graph_t {
+struct MJZ_maybe_trivially_relocatable basic_dependency_graph_t {
 public:
   using state_space_t = base_state_space_t<version_v, max_invalid_state_v>;
   // if max_invalid_state_v is in node_state , the node had a fatal error
@@ -642,7 +649,7 @@ public:
 
   using node_direction_t =
       directed_state_space_t<version_v, max_invalid_state_v>;
-  struct dependency_node_t {
+  struct MJZ_maybe_trivially_relocatable dependency_node_t {
     std::array<node_direction_t, 2> directions{};
   };
 
@@ -672,6 +679,9 @@ private:
                                           bool direction) noexcept {
     node_direction_t &node_dependancy = dependancy(id, direction);
     node_direction_t &node_opposite = dependancy(id, !direction);
+    mjz_prefetch(node_dependancy);
+    mjz_prefetch(node_opposite);
+    mjz_prefetch_p(apply_list.data() + apply_list.size());
     if (!node_dependancy.can_trigger())
       return false;
     node_dependancy.actively_trigger();
@@ -684,6 +694,9 @@ private:
   MJZ_CX_AL_FN bool execute_resolution(node_id_t id, auto &...pram) noexcept {
     node_direction_t &node_forward = dependancy(id, true);
     node_direction_t &node_backward = dependancy(id, false);
+    mjz_prefetch(node_forward);
+    mjz_prefetch(node_backward);
+    mjz_prefetch_p(event_list.data() + event_list.size());
     bool forward_active = node_forward.is_actively_triggered();
     bool backward_active = node_backward.is_actively_triggered();
     asserts(forward_active || backward_active);
@@ -735,6 +748,27 @@ private:
   are ok
 
 
+  note:
+  to effectively use this for parralel work,
+  we can do read-only work inside ignite to join in multithreaded batches ,
+  and flush the modification buffer of each batch in defuse,
+  this way no lock is introduced,
+  also , if any worker event does heavy work , it can yeild via my quirk of
+  trigger, this way each wave is bounded to end pridictably and the thread pool
+  will not be waiting that much. however this graph structure is thread
+  agnostic.
+
+  note:
+  each defuse costs us O(indeg(v)+outdeg(v)) , v being our node, so ,
+  each ignite to join should also cost at most O(deg(v)) , if it surpasses it
+  must yeild , this way the cost of each yeild is never more than the cost of
+  our work, and we can say , let K be the number of events in the wave, this way
+  the time complexity of each wave is O(K+E_K), where E_K is all edges of the
+  nodes in event K. while one might expect the cost of the defuse micro-tick to
+  dominate, i theorize that a lock-free/locked implementation of this micro-tick
+  will be slower than using a flush buffer,
+  however this is all just my view, i may be wrong.
+
   */
   MJZ_CX_AL_FN void execute_resolution_join(auto &...pram) noexcept {
     MJZ_RAII_RELEASE { event_list.clear(); };
@@ -762,6 +796,13 @@ private:
       return false;
     //   Kahn's Algorithm , section of in-dgree re-initilization of node.
     state_space_t fresh{dependancy(id, direction)};
+    for (node_id_t dep_i : dependancy(id, direction).connections) {
+      mjz_prefetch(dependancy(dep_i, direction));
+    }
+    for (node_id_t dep_i : dependancy(id, !direction).connections) {
+      mjz_prefetch(dependancy(dep_i, direction));
+    }
+
     for (node_id_t dep_i : dependancy(id, direction).connections) {
       dependancy(id, direction)
           .refresh_dependancy_defuse(dependancy(dep_i, direction));
@@ -824,6 +865,15 @@ private:
                                      node_id_t dependant_i,
                                      uintlen_t extra_later_dependancy,
                                      uintlen_t extra_later_dependant) noexcept {
+
+    auto &a1 = mjz_prefetch(dependancy(dependant_i, true)).connections;
+    auto &a2 = mjz_prefetch(dependancy(dependant_i, false)).connections;
+    auto &a3 = mjz_prefetch(dependancy(dependancy_i, true)).connections;
+    auto &a4 = mjz_prefetch(dependancy(dependancy_i, false)).connections;
+    mjz_prefetch_p(a1.data() + a1.size());
+    mjz_prefetch_p(a2.data() + a2.size());
+    mjz_prefetch_p(a3.data() + a3.size());
+    mjz_prefetch_p(a4.data() + a4.size());
     return make_edge_impl2(direction, dependancy_i, dependant_i,
                            extra_later_dependancy) &&
            make_edge_impl2(!direction, dependant_i, dependancy_i,
@@ -839,6 +889,8 @@ private:
       nodes.reserve(extra_later + nodes.size());
     }
     auto &node = nodes.emplace_back();
+    mjz_prefetch(node.directions[0]);
+    mjz_prefetch(node.directions[1]);
     if (expected_edges_per_node_v > 0) {
       for (auto &dirct : node.directions) {
         dirct.connections.reserve(expected_edges_per_node_v);

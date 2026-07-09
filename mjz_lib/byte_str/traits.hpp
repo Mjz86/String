@@ -2224,7 +2224,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
 
       if (!((uint64_t(1) << 63) < number.nth_word(0))) {
-        remove_stupid_zeros();
+        // remove_stupid_zeros();
         return uintlen_t(ptr - f_buf);
       }
       ptr--;
@@ -2652,17 +2652,34 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
 
-      bool needs_rounding{(uint64_t(1) << 63) < number.nth_word(0)};
-      if (number.nth_word(0) == (uint64_t(1) << 63)) {
-        if (!buf_len) {
-          needs_rounding = !!(number.nth_word(1) & 1);
-        } else {
-          uint8_t c_{};
-          pop_buf(c_);
-          needs_rounding = !!(c_ & 1);
-        }
+      bool needs_rounding{};
+
+      if (!buf_len) {
+        number.nth_word(1) = 0;
+        needs_rounding = (uint64_t(1) << 63) < number.nth_word(0);
+      } else {
+        needs_rounding = 50 < number.nth_word(1);
+        if (50 == number.nth_word(1))
+          needs_rounding = !!number.nth_word(0);
       }
 
+      if (!nfc.num_digit_after_dot) {
+        if (needs_rounding) {
+          char *curs = ptr;
+          do {
+            char &c = *--curs;
+            if (c != '9') {
+              c++;
+              return uintlen_t(ptr - f_buf);
+            }
+            c = '0';
+          } while (curs != f_buf);
+          memomve_overlap(f_buf + 1, f_buf, uintlen_t(ptr - f_buf));
+          *f_buf = '1';
+          ptr++;
+        }
+        return uintlen_t(ptr - f_buf);
+      }
       if (!needs_rounding) {
         ptr--;
         while (*ptr == '0') {
