@@ -23,7 +23,7 @@ SOFTWARE.
 
 #ifndef MJZ_SRC_GRAPH_stated_FILE_
 #define MJZ_SRC_GRAPH_stated_FILE_
-#include "base.hpp"
+#include "deps.hpp"
 namespace mjz::graph_ns {
 /////////////////////////////// from my compiler project
 

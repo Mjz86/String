@@ -92,7 +92,7 @@ https://github.com/Mjz86/String/blob/main/mjz_lib/graph/scheduler.md
 references:
 
 
-https://github.com/Mjz86/String/blob/main/mjz_lib/graph/base.hpp
+https://github.com/Mjz86/String/blob/main/mjz_lib/graph/deps.hpp
 
 
 https://www.geeksforgeeks.org/dsa/topological-sorting-indegree-based-solution/
