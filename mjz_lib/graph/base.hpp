@@ -679,9 +679,6 @@ private:
                                           bool direction) noexcept {
     node_direction_t &node_dependancy = dependancy(id, direction);
     node_direction_t &node_opposite = dependancy(id, !direction);
-    mjz_prefetch(node_dependancy);
-    mjz_prefetch(node_opposite);
-    mjz_prefetch_p(apply_list.data() + apply_list.size());
     if (!node_dependancy.can_trigger())
       return false;
     node_dependancy.actively_trigger();
@@ -694,9 +691,6 @@ private:
   MJZ_CX_AL_FN bool execute_resolution(node_id_t id, auto &...pram) noexcept {
     node_direction_t &node_forward = dependancy(id, true);
     node_direction_t &node_backward = dependancy(id, false);
-    mjz_prefetch(node_forward);
-    mjz_prefetch(node_backward);
-    mjz_prefetch_p(event_list.data() + event_list.size());
     bool forward_active = node_forward.is_actively_triggered();
     bool backward_active = node_backward.is_actively_triggered();
     asserts(forward_active || backward_active);
@@ -789,31 +783,33 @@ private:
 
   MJZ_CX_AL_FN bool defuse_resolution(node_id_t id, bool direction,
                                       state_space_t space) noexcept {
-    if (!dependancy(id, direction).is_passively_triggered())
+
+    node_direction_t &node_dependancy = dependancy(id, direction);
+    node_direction_t &node_opposite = dependancy(id, !direction);
+    for (node_id_t dep_i : node_dependancy.connections)
+      mjz_prefetch(dependancy(dep_i, direction));
+    for (node_id_t dep_i : node_opposite.connections)
+      mjz_prefetch(dependancy(dep_i, direction));
+    if (!node_dependancy.is_passively_triggered())
       return false;
-    state_space_t old{dependancy(id, direction)};
-    if (!dependancy(id, direction).defuse(space))
+    state_space_t old{node_dependancy};
+    if (!node_dependancy.defuse(space))
       return false;
     //   Kahn's Algorithm , section of in-dgree re-initilization of node.
-    state_space_t fresh{dependancy(id, direction)};
-    for (node_id_t dep_i : dependancy(id, direction).connections) {
-      mjz_prefetch(dependancy(dep_i, direction));
-    }
-    for (node_id_t dep_i : dependancy(id, !direction).connections) {
-      mjz_prefetch(dependancy(dep_i, direction));
-    }
+    state_space_t fresh{node_dependancy};
 
-    for (node_id_t dep_i : dependancy(id, direction).connections) {
-      dependancy(id, direction)
-          .refresh_dependancy_defuse(dependancy(dep_i, direction));
+    for (node_id_t dep_i : node_dependancy.connections) {
+      node_dependancy.refresh_dependancy_defuse(dependancy(dep_i, direction));
     };
-    if (dependancy(id, direction).is_incomplete())
+    if (node_dependancy.is_incomplete())
       make_resolution_query(id, direction);
     if (is_unrecoverable(id))
       return false;
+
     //   Kahn's Algorithm , section of in-dgree 0  ( opposite direction  )
     //   dgree propagation.
-    for (node_id_t dep_i : dependancy(id, !direction).connections) {
+
+    for (node_id_t dep_i : node_opposite.connections) {
       node_direction_t &node_dependant = dependancy(dep_i, direction);
       if (!node_dependant.refresh_dependancy_triggers(old, fresh))
         continue;
@@ -889,8 +885,6 @@ private:
       nodes.reserve(extra_later + nodes.size());
     }
     auto &node = nodes.emplace_back();
-    mjz_prefetch(node.directions[0]);
-    mjz_prefetch(node.directions[1]);
     if (expected_edges_per_node_v > 0) {
       for (auto &dirct : node.directions) {
         dirct.connections.reserve(expected_edges_per_node_v);
