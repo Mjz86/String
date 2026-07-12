@@ -26,10 +26,6 @@ SOFTWARE.
 #include "../byte_str/formatting/basic_formatters.hpp"
 #include "../byte_str/formatting/format.hpp"
 namespace mjz::graph_ns {
-template <class T, version_t version_v>
-concept dependency_state_c = requires(std::remove_cvref_t<T> s) {
-  requires std::is_enum_v<std::remove_cvref_t<T>>;
-};
 template <version_t version_v>
 struct MJZ_maybe_trivially_relocatable base_node_id_t {
 private:
@@ -52,14 +48,19 @@ public:
     return this->value;
   };
 };
-}; // namespace mjz::graph_ns
 
-namespace mjz::graph_ns {
 template <typename T>
   requires std::is_enum_v<T>
 MJZ_CX_FN std::underlying_type_t<T> to_underlying(T e) noexcept {
   return static_cast<std::underlying_type_t<T>>(e);
 }
+
+template <class T, version_t version_v>
+concept dependency_state_c = requires(std::remove_cvref_t<T> s) {
+  requires std::is_enum_v<std::remove_cvref_t<T>>;
+  { to_underlying(s) } noexcept -> std::unsigned_integral;
+};
+
 template <version_t version_v>
 MJZ_CX_FN decltype(auto)
 state_to_str_impl_(dependency_state_c<version_v> auto e) noexcept {
@@ -106,14 +107,6 @@ struct MJZ_maybe_trivially_relocatable base_state_space_t {
   }
   MJZ_CX_ND_FN
   bool operator==(const base_state_space_t &) const noexcept = default;
-  MJZ_CX_FN static std::unsigned_integral auto decay(states_e lhs) noexcept {
-    return to_underlying(lhs);
-  }
-  MJZ_CX_FN static states_e next_state(states_e lhs) noexcept {
-    if (lhs == max_invalid_state_v)
-      return max_invalid_state_v;
-    return states_e(decay(lhs) + 1);
-  }
   MJZ_CX_FN success_t refresh(base_state_space_t fresh) noexcept {
     base_state_space_t me = *this;
     if (me.is_unrecoverable())
@@ -131,7 +124,10 @@ struct MJZ_maybe_trivially_relocatable base_state_space_t {
     //  A then B is solved , but we suddenly changed A under B's feet to
     //  be for example C then A , but we have sent a signal already that A
     //  is ready
-    trigger = states_e(decay(current = max_invalid_state_v) - 1);
+    trigger = std::min(
+        std::min(trigger, states_e(to_underlying(max_invalid_state_v) - 1)),
+        current);
+    current = max_invalid_state_v;
     return false;
   }
   MJZ_CX_FN decltype(auto)
@@ -155,7 +151,8 @@ struct MJZ_maybe_trivially_relocatable directed_state_space_t
     : base_state_space_t<version_v, max_invalid_state_v> {
   using base = base_state_space_t<version_v, max_invalid_state_v>;
   using node_id_t = base_node_id_t<version_v>;
-  // can be more optimal but ok as is
+  // can be more optimal but ok as is, also
+  // it cant be a "Compressed Sparse Row", my graph evolves dynamically.
   std::vector<node_id_t> connections{};
   // active_connections is latched to one of -2 or -1  when is_triggered,
   // no amount of connections.size() will go up to uintlen_t(-2).
@@ -203,7 +200,7 @@ struct MJZ_maybe_trivially_relocatable directed_state_space_t
       MJZ_MOSTLY_UNLIKELY { return false; }
     if (!fresh.is_incomplete()) {
       dec_zero_in_dgree();
-      connections.push_back(id);
+      connections.emplace_back(id);
       return true;
     }
     if (fresh.current < me.current)
@@ -211,7 +208,7 @@ struct MJZ_maybe_trivially_relocatable directed_state_space_t
         return this->error(
             " the 'current' of a consumer must not exceed its provider ");
       }
-    connections.push_back(id);
+    connections.emplace_back(id);
     if (fresh.current < me.trigger) {
       return true;
     }
@@ -315,7 +312,7 @@ private:
     bool duplicate_event_request = node_opposite.is_actively_triggered();
     if (duplicate_event_request)
       return true;
-    apply_list.push_back(id);
+    apply_list.emplace_back(id);
     return true;
   }
   MJZ_CX_AL_FN bool execute_resolution(node_id_t id, auto &...pram) noexcept {
@@ -347,12 +344,21 @@ private:
   also do NOT call into the run_resolution_queries! inside these.
   */
   MJZ_CX_AL_FN void execute_resolution_ignite(auto &...pram) noexcept {
-    for (event_t &e : event_list) {
-      static_assert(requires() {
-        { e.ignite(pram...) } noexcept;
-      });
-      e.ignite(pram...);
-    };
+    if constexpr (requires() {
+                    {
+                      event_t::ignite_all(std::span(event_list), pram...)
+                    } noexcept;
+                  }) {
+      event_t::ignite_all(std::span(event_list), pram...);
+    } else {
+      for (event_t &e : event_list) {
+        static_assert(requires() {
+          { e.ignite(pram...) } noexcept;
+        });
+        e.ignite(pram...);
+      };
+    }
+
   } /*
 
   almost always we want to defuse the node to trigger the next events ,
@@ -396,22 +402,38 @@ private:
   */
   MJZ_CX_AL_FN void execute_resolution_join(auto &...pram) noexcept {
     MJZ_RAII_RELEASE { event_list.clear(); };
-
-    for (event_t &e : event_list | std::views::reverse) {
-      static_assert(requires() {
-        { e.join(pram...) } noexcept;
-      });
-      e.join(pram...);
-    };
-    for (event_t &e : event_list | std::views::reverse) {
-      static_assert(requires() {
-        { std::move(e).defuse(*this, pram...) } noexcept;
-      });
-      std::move(e).defuse(*this, pram...);
-    };
+    if constexpr (requires() {
+                    {
+                      event_t::join_all(std::span(event_list), pram...)
+                    } noexcept;
+                  }) {
+      event_t::join_all(std::span(event_list), pram...);
+    } else {
+      for (event_t &e : event_list | std::views::reverse) {
+        static_assert(requires() {
+          { e.join(pram...) } noexcept;
+        });
+        e.join(pram...);
+      };
+    }
+    if constexpr (requires() {
+                    {
+                      event_t::defuse_all(*this, std::span(event_list), pram...)
+                    } noexcept;
+                  }) {
+      event_t::defuse_all(*this, std::span(event_list), pram...);
+    } else {
+      for (event_t &e : event_list | std::views::reverse) {
+        static_assert(requires() {
+          { std::move(e).defuse(*this, pram...) } noexcept;
+        });
+        std::move(e).defuse(*this, pram...);
+      };
+    }
   }
 
   MJZ_CX_AL_FN bool defuse_resolution(node_id_t id, bool direction,
+                                      bool query_me, bool query_deps,
                                       state_space_t space) noexcept {
 
     node_direction_t &node_dependancy = dependancy(id, direction);
@@ -421,7 +443,8 @@ private:
     for (node_id_t dep_i : node_opposite.connections)
       mjz_prefetch(dependancy(dep_i, direction));
     if (!node_dependancy.is_passively_triggered())
-      return false;
+      MJZ_MAYBE_UNLIKELY
+    return false;
     state_space_t old{node_dependancy};
     if (!node_dependancy.defuse(space))
       return false;
@@ -431,7 +454,7 @@ private:
     for (node_id_t dep_i : node_dependancy.connections) {
       node_dependancy.refresh_dependancy_defuse(dependancy(dep_i, direction));
     };
-    if (node_dependancy.is_incomplete())
+    if (query_me)
       make_resolution_query(id, direction);
     if (is_unrecoverable(id))
       return false;
@@ -443,7 +466,8 @@ private:
       node_direction_t &node_dependant = dependancy(dep_i, direction);
       if (!node_dependant.refresh_dependancy_triggers(old, fresh))
         continue;
-      make_resolution_query(dep_i, !!direction);
+      if (query_deps)
+        make_resolution_query(dep_i, !!direction);
     };
     return !is_unrecoverable(id);
   }
@@ -639,10 +663,11 @@ public:
   constexpr static inline state_space_t resolved_state_v =
       state_space_t{max_invalid_state_v, max_invalid_state_v};
   MJZ_CX_ND_FN success_t defuse(node_id_t id, state_space_t fresh,
-                                bool direction) noexcept {
+                                bool direction, bool query_me = true,
+                                bool query_deps = true) noexcept {
     if (is_unrecoverable(id))
       return false;
-    if (defuse_resolution(id, direction, fresh))
+    if (defuse_resolution(id, direction, query_me, query_deps, fresh))
       return true;
     return !is_unrecoverable(id);
   }

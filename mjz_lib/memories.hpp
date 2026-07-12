@@ -151,7 +151,7 @@ MJZ_EXPORT namespace mjz {
     }
   }
 
-  MJZ_CX_FN void mjz_prefetch_pimpl_(const void *p) noexcept {
+  MJZ_CX_FN void mjz_prefetch_pimpl_(MJZ_MAYBE_UNUSED const void *p) noexcept {
     MJZ_IF_CONSTEVAL { return; }
 #if defined(__has_builtin) && __has_builtin(__builtin_prefetch)
     __builtin_prefetch(p);
@@ -160,7 +160,6 @@ MJZ_EXPORT namespace mjz {
 #elif defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
     __prefetch(p);
 #else
-    std::ignore = p;
 #endif
   }
 

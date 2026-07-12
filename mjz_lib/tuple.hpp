@@ -273,9 +273,9 @@ MJZ_EXPORT namespace mjz {
       std::common_comparison_category_t<
           decltype(std::declval<const_tr_0_>() <=> std::declval<const_tr_0_>()),
           decltype(std::declval<const_tr_1_>() <=> std::declval<const_tr_1_>())>
-          res{};
-      ((res = (first <=> rhs.first), res != 0) ||
-       (res = (second <=> rhs.second), res != 0));
+          res = 0 <=> 0;
+      std::ignore = ((res = (first <=> rhs.first), res != 0) ||
+                     (res = (second <=> rhs.second), res != 0));
       return res;
     }
 

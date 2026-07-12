@@ -96,3 +96,7 @@ https://github.com/Mjz86/String/blob/main/mjz_lib/graph/deps.hpp
 
 
 https://www.geeksforgeeks.org/dsa/topological-sorting-indegree-based-solution/
+
+
+ive realized my model maps to semilatices in a haskell lib:
+https://github.com/iu-parfunc/lvars
