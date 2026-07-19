@@ -100,3 +100,5 @@ https://www.geeksforgeeks.org/dsa/topological-sorting-indegree-based-solution/
 
 ive realized my model maps to semilatices in a haskell lib:
 https://github.com/iu-parfunc/lvars
+
+https://univ-grenoble-alpes.hal.science/hal-03430149v1/document

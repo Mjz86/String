@@ -918,7 +918,8 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
   MJZ_EXPAND_(__FILE__ MJZ_TO_STRING_V( : MJZ_LINE_()))
 #define MJZ_BAD_DEBUG_0_                                                       \
   MJZ_IFN_CONSTEVAL {                                                          \
-    std::cout << MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) "hereeeeeeeeeeeeeeee!\n";    \
+    std::cout << MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) " hereeeeeeeeeeeeeeee!"      \
+              << std::endl;                                                    \
   }
 
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
@@ -965,6 +966,51 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
 #define MJZ_ASSUME_IF_THEN(CONDITION_STATEMENT_, THEN_STATEMENT_)              \
   MJZ_ASSUME_(!static_cast<bool>(CONDITION_STATEMENT_) ||                      \
               static_cast<bool>(THEN_STATEMENT_))
+
+#define MJZ_random_access_interface_of(Range_t)                                \
+  using const_iterator =                                                       \
+      ::mjz::bstr_ns::random_access_iterator_of_t<const Range_t>;              \
+  using iterator = ::mjz::bstr_ns ::random_access_iterator_of_t<Range_t>;      \
+  using reference = typename iterator::value_type;                             \
+  using const_reference = typename const_iterator::reference;                  \
+  using const_reverse_iterator = std::reverse_iterator<const_iterator>;        \
+  using reverse_iterator = std::reverse_iterator<iterator>;                    \
+  using size_type = uintlen_t;                                                 \
+  using difference_type = intlen_t;                                            \
+  MJZ_CX_FN Range_t &range() noexcept {                                        \
+    return static_cast<Range_t &>(*this);                                      \
+  }                                                                            \
+  MJZ_CX_FN const Range_t &range() const noexcept {                            \
+    return static_cast<const Range_t &>(*this);                                \
+  }                                                                            \
+  MJZ_CX_ND_FN const_iterator cbegin() const noexcept { return begin(); }      \
+  MJZ_CX_ND_FN const_iterator cend() const noexcept { return end(); }          \
+  MJZ_CX_ND_FN iterator begin() noexcept { return iterator(range(), 0); }      \
+  MJZ_CX_ND_FN iterator end() noexcept {                                       \
+    return iterator(range(), range().size());                                  \
+  }                                                                            \
+  MJZ_CX_ND_FN const_iterator begin() const noexcept {                         \
+    return const_iterator(range(), 0);                                         \
+  }                                                                            \
+  MJZ_CX_ND_FN const_iterator end() const noexcept {                           \
+    return const_iterator(range(), range().size());                            \
+  }                                                                            \
+  MJZ_CX_ND_FN reverse_iterator rbegin() noexcept {                            \
+    return reverse_iterator{end()};                                            \
+  }                                                                            \
+  MJZ_CX_ND_FN reverse_iterator rend() noexcept {                              \
+    return reverse_iterator{begin()};                                          \
+  }                                                                            \
+  MJZ_CX_ND_FN const_reverse_iterator rbegin() const noexcept {                \
+    return const_reverse_iterator{end()};                                      \
+  }                                                                            \
+  MJZ_CX_ND_FN const_reverse_iterator rend() const noexcept {                  \
+    return const_reverse_iterator{begin()};                                    \
+  }                                                                            \
+  MJZ_CX_ND_FN const_reverse_iterator crbegin() const noexcept {               \
+    return rbegin();                                                           \
+  }                                                                            \
+  MJZ_CX_ND_FN const_reverse_iterator crend() const noexcept { return rend(); }
 
 }; // namespace mjz
 

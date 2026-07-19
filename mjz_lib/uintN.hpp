@@ -559,6 +559,27 @@ MJZ_EXPORT namespace mjz {
       }
       return ret;
     }
+    MJZ_CX_AL_FN uintlen_t
+    popcount(uintlen_t offset, uintlen_t count = uintlen_t(-1)) const noexcept {
+      offset = std::min(n_bits, offset);
+      uintlen_t end_bits =
+          std::min(offset + std::min(count, n_bits), n_bits) - offset;
+      uintlen_t ret{};
+      uintlen_t leftover = offset & 64;
+      if (leftover) {
+        ret += uintlen_t(std::popcount(nth_word(offset / 64) >> leftover));
+      }
+      for (uint64_t n :
+           std::views::iota(uintlen_t((offset + 63) / 64), (end_bits) / 64)) {
+        ret += uintlen_t(std::popcount(nth_word(n)));
+      }
+      leftover = end_bits & 63;
+      if (leftover) {
+        ret += uintlen_t(
+            std::popcount(nth_word((end_bits) / 64) << (64 - leftover)));
+      }
+      return ret;
+    }
 
     MJZ_CX_AL_FN uintN_t byteswap() const noexcept { return byteswap(*this); }
     MJZ_CX_AL_FN uintN_t bitswap() const noexcept { return bitswap(*this); }
@@ -803,10 +824,17 @@ MJZ_EXPORT namespace mjz {
       return log_or_1_plus_log + 1;
     }
   };
-
+  template <class T> MJZ_CX_AL_FN uintlen_t n_bit(const T &v) noexcept {
+    if constexpr (requires() { v.n_bit(); }) {
+      return v.n_bit();
+    } else {
+      static_assert(std::unsigned_integral<T>);
+      return sizeof(T) * 8;
+    }
+  }
   MJZ_CX_AL_FN uintlen_t countr_zero(auto v, uintlen_t offset = 0) noexcept {
     if constexpr (requires() { std::countr_zero(v); }) {
-      if (sizeof(v) * 8 <= offset)
+      if (n_bit(v) <= offset)
         v = uintlen_t(-1);
       return uintlen_t(std::countr_one((~v) >> offset));
     } else {
@@ -817,7 +845,7 @@ MJZ_EXPORT namespace mjz {
   }
   MJZ_CX_AL_FN uintlen_t countl_zero(auto v, uintlen_t offset = 0) noexcept {
     if constexpr (requires() { std::countl_zero(v); }) {
-      if (sizeof(v) * 8 <= offset)
+      if (n_bit(v) <= offset)
         v = uintlen_t(-1);
       return (uintlen_t)std::countl_one((~v) << offset);
     } else {
@@ -829,7 +857,7 @@ MJZ_EXPORT namespace mjz {
   }
   MJZ_CX_AL_FN uintlen_t countr_one(auto v, uintlen_t offset = 0) noexcept {
     if constexpr (requires() { std::countr_one(v); }) {
-      if (sizeof(v) * 8 <= offset)
+      if (n_bit(v) <= offset)
         v = 0;
       return (uintlen_t)std::countr_one(v >> offset);
     } else {
@@ -841,7 +869,7 @@ MJZ_EXPORT namespace mjz {
 
   MJZ_CX_AL_FN uintlen_t countl_one(auto v, uintlen_t offset = 0) noexcept {
     if constexpr (requires() { std::countl_one(v); }) {
-      if (sizeof(v) * 8 <= offset)
+      if (n_bit(v) <= offset)
         v = 0;
       return (uintlen_t)std::countl_one(v << offset);
     } else {
@@ -854,20 +882,47 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_AL_FN uintlen_t popcount(auto v, uintlen_t offset = 0,
                                   uintlen_t count = uintlen_t(-1)) noexcept {
     if constexpr (requires() { std::popcount(v); }) {
-      if (sizeof(v) * 8 <= offset || !count)
+      if (n_bit(v) <= offset || !count)
         return 0;
-      if (64 < count)
-        count = 64;
-      return (uintlen_t)std::popcount((v >> offset) << (64 - count));
+      if (n_bit(v) < count)
+        count = n_bit(v);
+      return (uintlen_t)std::popcount((v >> offset) << (n_bit(v) - count));
     } else {
       return v.popcount(offset, count);
     }
   }
+
   MJZ_CX_AL_FN bool has_single_bit(auto v) noexcept {
     if constexpr (requires() { std::has_single_bit(v); }) {
       return std::has_single_bit(v);
     } else {
       return v.has_single_bit();
+    }
+  }
+  MJZ_CX_AL_FN bool nth_bit(auto v, auto i) noexcept {
+    if (n_bit(v) <= i)
+      return false;
+    if constexpr (requires() { v.nth_bit(i); }) {
+      return v.nth_bit(i);
+    } else {
+      using T = std::remove_cvref_t<decltype(v)>;
+
+      const T mask = T(1) << i;
+      return bool(v & mask);
+    }
+  }
+  MJZ_CX_AL_FN auto make_set_nth_bit(auto v, auto i, bool val) noexcept {
+    if (n_bit(v) <= i)
+      return v;
+    if constexpr (requires() { v.set_nth_bit(i, val); }) {
+      v.set_nth_bit(i, val);
+      return v;
+    } else {
+      using T = std::remove_cvref_t<decltype(v)>;
+      const T mask = T(1) << i;
+      v &= ~mask;
+      v |= val ? mask : T();
+      return v;
     }
   }
 

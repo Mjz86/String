@@ -28,14 +28,17 @@ SOFTWARE.
 namespace mjz::graph_ns {
 template <version_t version_v>
 struct MJZ_maybe_trivially_relocatable base_node_id_t {
+
+  constexpr static inline uintlen_t sentinal_v = uintlen_t(-1);
+
 private:
-  uintlen_t value = uintlen_t(-1);
+  uintlen_t value = sentinal_v;
 
 public:
   MJZ_CX_FN explicit operator bool() const noexcept {
-    return value != uintlen_t(-1);
+    return value != sentinal_v;
   }
-  MJZ_CX_FN bool operator!() const noexcept { return value == uintlen_t(-1); }
+  MJZ_CX_FN bool operator!() const noexcept { return value == sentinal_v; }
   MJZ_CX_FN std::strong_ordering
   operator<=>(const base_node_id_t &) const noexcept = default;
   MJZ_CX_FN bool operator==(const base_node_id_t &) const noexcept = default;
@@ -94,7 +97,8 @@ struct MJZ_maybe_trivially_relocatable base_state_space_t {
     return !(!is_incomplete() || is_triggered() || is_unrecoverable());
   }
   MJZ_CX_ND_FN bool is_unrecoverable() const noexcept {
-    if (max_invalid_state_v <= current && is_incomplete())
+    if ((max_invalid_state_v <= current || max_invalid_state_v < trigger) &&
+        is_incomplete())
       MJZ_MOSTLY_UNLIKELY { return true; }
     return false;
   };
@@ -151,11 +155,14 @@ struct MJZ_maybe_trivially_relocatable directed_state_space_t
     : base_state_space_t<version_v, max_invalid_state_v> {
   using base = base_state_space_t<version_v, max_invalid_state_v>;
   using node_id_t = base_node_id_t<version_v>;
+
+  constexpr static inline uintlen_t active_trigger_tag_v = uintlen_t(-1);
+  constexpr static inline uintlen_t passive_trigger_tag_v = uintlen_t(-2);
   // can be more optimal but ok as is, also
   // it cant be a "Compressed Sparse Row", my graph evolves dynamically.
   std::vector<node_id_t> connections{};
   // active_connections is latched to one of -2 or -1  when is_triggered,
-  // no amount of connections.size() will go up to uintlen_t(-2).
+  // no amount of connections.size() will go up to uintlen_t(-3).
   // active_connections grows until reinitilized.
   uintlen_t active_connections{};
   MJZ_CX_AL_FN bool refresh_dependancy_triggers(base old, base fresh) noexcept {
@@ -216,17 +223,17 @@ struct MJZ_maybe_trivially_relocatable directed_state_space_t
     return true;
   }
   MJZ_CX_ND_FN bool is_actively_triggered() const noexcept {
-    return this->is_triggered() && active_connections == uintlen_t(-1);
+    return this->is_triggered() && active_connections == active_trigger_tag_v;
   }
   MJZ_CX_ND_FN bool is_passively_triggered() const noexcept {
-    return this->is_triggered() && active_connections == uintlen_t(-2);
+    return this->is_triggered() && active_connections == passive_trigger_tag_v;
   }
   MJZ_CX_AL_FN auto actively_trigger() noexcept {
-    active_connections = uintlen_t(-1);
+    active_connections = active_trigger_tag_v;
     return this->trigger = this->current;
   }
   MJZ_CX_AL_FN auto passively_trigger() noexcept {
-    active_connections = uintlen_t(-2);
+    active_connections = passive_trigger_tag_v;
     return this->trigger = this->current;
   }
 
@@ -342,24 +349,7 @@ private:
   exclusively, however if its read-only we can do that on all threads. the time
   frame from   create begin to create end  MUST NOT be multithreaded.
   also do NOT call into the run_resolution_queries! inside these.
-  */
-  MJZ_CX_AL_FN void execute_resolution_ignite(auto &...pram) noexcept {
-    if constexpr (requires() {
-                    {
-                      event_t::ignite_all(std::span(event_list), pram...)
-                    } noexcept;
-                  }) {
-      event_t::ignite_all(std::span(event_list), pram...);
-    } else {
-      for (event_t &e : event_list) {
-        static_assert(requires() {
-          { e.ignite(pram...) } noexcept;
-        });
-        e.ignite(pram...);
-      };
-    }
 
-  } /*
 
   almost always we want to defuse the node to trigger the next events ,
   defuse is a graph mutating operation,
@@ -400,35 +390,53 @@ private:
   however this is all just my view, i may be wrong.
 
   */
-  MJZ_CX_AL_FN void execute_resolution_join(auto &...pram) noexcept {
-    MJZ_RAII_RELEASE { event_list.clear(); };
-    if constexpr (requires() {
-                    {
-                      event_t::join_all(std::span(event_list), pram...)
-                    } noexcept;
+  MJZ_CX_FN void execute_resolution_wave(auto &...pram) noexcept {
+    if constexpr (requires(std::span<event_t> ev) {
+                    { event_t::ignite_join_defuse_all(ev, pram...) } noexcept;
                   }) {
-      event_t::join_all(std::span(event_list), pram...);
+      std::span<event_t> ev = std::span(event_list);
+      event_t::ignite_join_defuse_all(ev, pram...);
     } else {
-      for (event_t &e : event_list | std::views::reverse) {
-        static_assert(requires() {
-          { e.join(pram...) } noexcept;
-        });
-        e.join(pram...);
-      };
-    }
-    if constexpr (requires() {
-                    {
-                      event_t::defuse_all(*this, std::span(event_list), pram...)
-                    } noexcept;
-                  }) {
-      event_t::defuse_all(*this, std::span(event_list), pram...);
-    } else {
-      for (event_t &e : event_list | std::views::reverse) {
-        static_assert(requires() {
-          { std::move(e).defuse(*this, pram...) } noexcept;
-        });
-        std::move(e).defuse(*this, pram...);
-      };
+
+      if constexpr (requires(std::span<event_t> ev) {
+                      { event_t::ignite_all(ev, pram...) } noexcept;
+                    }) {
+        std::span<event_t> ev = std::span(event_list);
+        event_t::ignite_all(ev, pram...);
+      } else {
+        for (event_t &e : event_list) {
+          static_assert(requires() {
+            { e.ignite(pram...) } noexcept;
+          });
+          e.ignite(pram...);
+        };
+      }
+      if constexpr (requires(std::span<event_t> ev) {
+                      { event_t::join_all(ev, pram...) } noexcept;
+                    }) {
+        std::span<event_t> ev = std::span(event_list);
+        event_t::join_all(ev, pram...);
+      } else {
+        for (event_t &e : event_list | std::views::reverse) {
+          static_assert(requires() {
+            { e.join(pram...) } noexcept;
+          });
+          e.join(pram...);
+        };
+      }
+      if constexpr (requires(std::span<event_t> ev) {
+                      { event_t::defuse_all(*this, ev, pram...) } noexcept;
+                    }) {
+        std::span<event_t> ev = std::span(event_list);
+        event_t::defuse_all(*this, ev, pram...);
+      } else {
+        for (event_t &e : event_list | std::views::reverse) {
+          static_assert(requires() {
+            { std::move(e).defuse(*this, pram...) } noexcept;
+          });
+          std::move(e).defuse(*this, pram...);
+        };
+      }
     }
   }
 
@@ -480,16 +488,13 @@ private:
     bool did_somthing = false;
 
     std::swap(applied_list, apply_list);
-    {
-      MJZ_RAII_RELEASE { execute_resolution_join(pram...); };
-      for (node_id_t j : applied_list) {
-        execute_resolution(j, pram...);
-        did_somthing = true;
-      }
-      applied_list.clear();
-      execute_resolution_ignite(pram...);
+    for (node_id_t j : applied_list) {
+      execute_resolution(j, pram...);
+      did_somthing = true;
     }
-
+    applied_list.clear();
+    execute_resolution_wave(pram...);
+    event_list.clear();
     return did_somthing;
   };
 
