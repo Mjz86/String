@@ -26,3 +26,4 @@ tests/mainc.ilk
 /mjz_lib/mjc
 /mjz_lib/dumb
 tests/uvec
+*.pdb

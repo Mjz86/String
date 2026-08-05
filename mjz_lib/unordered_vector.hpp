@@ -278,7 +278,7 @@ struct interning_vector_t {
       return current();
     }
     MJZ_CX_FN uintlen_t current() const noexcept {
-      constexpr static uintlen_t omask = level_count_v - 1;
+      constexpr uintlen_t omask = level_count_v - 1;
       return uintlen_t(cache >> depth) & omask;
     }
     intern_uinthash_t cache{};
@@ -437,8 +437,7 @@ struct leveled_interning_vector_t {
       return current();
     }
     MJZ_CX_FN uint_index_t current() const noexcept {
-      constexpr static uint_index_t omask =
-          (uint_index_t(1) << level_bit_count_v) - 1;
+      constexpr uint_index_t omask = (uint_index_t(1) << level_bit_count_v) - 1;
       return uint_index_t(cache >> depth) & omask;
     }
     intern_uinthash_t cache{};
@@ -716,8 +715,7 @@ struct two_leveled_interning_vector_t {
       return current();
     }
     MJZ_CX_FN uint_index_t current() const noexcept {
-      constexpr static uint_index_t omask =
-          (uint_index_t(1) << level_bit_count_v) - 1;
+      constexpr uint_index_t omask = (uint_index_t(1) << level_bit_count_v) - 1;
       return uint_index_t(cache >> depth) & omask;
     }
     intern_uinthash_t cache{};
@@ -1010,8 +1008,7 @@ struct inline_two_leveled_interning_vector_t {
       return current();
     }
     MJZ_CX_FN uint_index_t current() const noexcept {
-      constexpr static uint_index_t omask =
-          (uint_index_t(1) << level_bit_count_v) - 1;
+      constexpr uint_index_t omask = (uint_index_t(1) << level_bit_count_v) - 1;
       return uint_index_t(cache >> depth) & omask;
     }
     intern_uinthash_t cache{};
@@ -1331,8 +1328,7 @@ struct recycling_inline_two_leveled_interning_vector_t {
       return current();
     }
     MJZ_CX_FN uint_index_t current() const noexcept {
-      constexpr static uint_index_t omask =
-          (uint_index_t(1) << level_bit_count_v) - 1;
+      constexpr uint_index_t omask = (uint_index_t(1) << level_bit_count_v) - 1;
       return uint_index_t(cache >> depth) & omask;
     }
     intern_uinthash_t cache{};
