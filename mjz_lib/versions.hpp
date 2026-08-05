@@ -161,5 +161,76 @@ MJZ_EXPORT namespace mjz {
     }
   };
 
+  template <version_t version_v>
+  struct MJZ_trivially_relocatable basic_index_range_t {
+    uintlen_t i{};
+    uintlen_t n{};
+
+    MJZ_CX_FN uintlen_t begining() const noexcept { return i; }
+    MJZ_CX_FN uintlen_t ending() const noexcept { return i + n; }
+    MJZ_CX_FN std::ranges::iota_view<uintlen_t, uintlen_t>
+    iota() const noexcept {
+      return std::views::iota(i, ending());
+    }
+    MJZ_CX_FN pair_t<uintlen_t, uintlen_t> bounds() const noexcept {
+      return {i, ending()};
+    }
+
+    MJZ_CX_FN static basic_index_range_t from_bounds(uintlen_t i,
+                                                     uintlen_t j) noexcept {
+      if (i > j)
+        i = j;
+      return {i, j - i};
+    }
+    MJZ_CX_FN static basic_index_range_t
+    from_union(const basic_index_range_t &j,
+               const basic_index_range_t &i) noexcept {
+      auto [small1, big1] = j.bounds();
+      auto [small2, big2] = i.bounds();
+      return from_bounds(std::min(small1, small2), std::max(big1, big2));
+    }
+    MJZ_CX_FN static basic_index_range_t
+    from_insersection(const basic_index_range_t &j,
+                      const basic_index_range_t &i) noexcept {
+      auto [small1, big1] = j.bounds();
+      auto [small2, big2] = i.bounds();
+      return from_bounds(std::max(small1, small2), std::min(big1, big2));
+    }
+    MJZ_CX_FN bool has_inside(uintlen_t canidate_node_index,
+                              bool empty_overlaps = false) const noexcept {
+      if (!empty_overlaps && !n)
+        return false;
+      return i <= canidate_node_index && canidate_node_index < ending();
+    }
+    MJZ_CX_FN bool has_inside(const basic_index_range_t &r,
+                              bool empty_overlaps = false) const noexcept {
+      if (!empty_overlaps && (!n || !r.n))
+        return false;
+      return i <= r.i && r.ending() <= ending();
+    }
+    MJZ_CX_FN bool overlaps(const basic_index_range_t &r,
+                            bool empty_overlaps = false) const noexcept {
+      if (!empty_overlaps && (!n || !r.n))
+        return false;
+      return has_inside(r.i, empty_overlaps) ||
+             r.has_inside(i, empty_overlaps) || r.i == i;
+    }
+
+    MJZ_CX_FN static std::partial_ordering
+    partial_compare_range(const basic_index_range_t &lhs,
+                          const basic_index_range_t &rhs,
+                          bool empty_overlaps = false) noexcept {
+      if (lhs.overlaps(rhs, empty_overlaps))
+        return std::partial_ordering::unordered;
+      return lhs.i <=> rhs.i;
+    };
+
+    MJZ_CX_FN std::strong_ordering
+    operator<=>(const basic_index_range_t &rhs) const noexcept = default;
+    MJZ_CX_FN bool
+    operator==(const basic_index_range_t &rhs) const noexcept = default;
+    MJZ_CX_FN explicit operator bool() const noexcept { return !!n; }
+  };
+
 } // namespace mjz
 #endif // MJZ_VERSIONS_LIB_HPP_FILE_

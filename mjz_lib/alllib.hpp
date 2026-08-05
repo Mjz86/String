@@ -35,6 +35,10 @@
 
 // folder
 
+#if __has_include("ccoro.hpp")
+#include "ccoro.hpp"
+#endif
+
 #if __has_include("graph/alllib.hpp")
 #include "graph/alllib.hpp"
 #endif

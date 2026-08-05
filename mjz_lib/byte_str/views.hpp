@@ -632,7 +632,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       asserts(!r[N - 1]);
     }
   };
-
+  template <std::size_t N>
+  str_litteral_t(const char8_t (&r)[N]) -> str_litteral_t<N>;
+  template <std::size_t N>
+  str_litteral_t(const char (&r)[N]) -> str_litteral_t<N>;
+  template <std::size_t N>
+  str_litteral_t(std::span<const char8_t, N>) -> str_litteral_t<N>;
+  template <std::size_t N>
+  str_litteral_t(std::span<const char, N>) -> str_litteral_t<N>;
   template <char... cs> MJZ_CX_FN auto &operator""_cs() noexcept {
     return static_data_t<decltype([]() noexcept {
       return std::array<char, sizeof...(cs) + 1>{cs...};

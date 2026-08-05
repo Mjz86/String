@@ -239,7 +239,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     if (!ch || *ch != '}') {
       cntx.as_error(
           "[Error]basic_format_specs_t::parse_width(): expected end of "
-          "width/feild");
+          "width/field");
       return false;
     }
     return cntx.unchecked_advance_amount_(1);
@@ -268,7 +268,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         return cntx.unchecked_advance_amount_(1);
       cntx.as_error(
           "[Error]basic_format_specs_t::parse_precision(): expected end of "
-          "precision/feild with '}'");
+          "precision/field with '}'");
       return false;
     };
     if ('0' <= *ch && *ch <= '9') {

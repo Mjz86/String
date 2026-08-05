@@ -22,9 +22,12 @@ SOFTWARE.
 */
 #ifndef MJZ_SRC_UORD_VEC_base_FILE_
 #define MJZ_SRC_UORD_VEC_base_FILE_
+#include "byte_str/hash_bytes.hpp"
 #include "byte_str/iterator.hpp"
+#include "tuple.hpp"
+
 namespace mjz {
-// can be allocator aware and the capacity and size feilds of the vectors can be
+// can be allocator aware and the capacity and size fields of the vectors can be
 // collapsed into one for tree and one for kw, but right now its not good enough
 template <
     version_t version_v, class key_t, class value_t,
@@ -945,8 +948,8 @@ struct inline_two_leveled_interning_vector_t {
       if (!has_population())
         return uintp_t();
       uint_index_t i = population_lvl2_index();
-      std::array<uint_index_t, population_word_sz_v> ret{};
-      for (uint_index_t &e : ret)
+      std::array<int_index_t, population_word_sz_v> ret{};
+      for (int_index_t &e : ret)
         e = m_semi_flat_lvl_tree[i++];
       return std::bit_cast<uintp_t>(ret);
     }
@@ -1068,8 +1071,8 @@ struct inline_two_leveled_interning_vector_t {
     level_t lvl = get_lvl_ref_impl(parent_i);
     asserts(lvl.has_population());
     uint_index_t i = lvl.population_lvl2_index();
-    for (uint_index_t e :
-         std::bit_cast<std::array<uint_index_t, population_word_sz_v>>(p))
+    for (int_index_t e :
+         std::bit_cast<std::array<int_index_t, population_word_sz_v>>(p))
       m_semi_flat_lvl_tree[i++] = e;
   }
   MJZ_CX_FN uint_index_t enhabit_impl(uint_index_t parent_i,
@@ -1102,7 +1105,7 @@ struct inline_two_leveled_interning_vector_t {
     level_t lvl = get_lvl_ref_impl(parent_i);
     if (!lvl.has_population()) {
       uint_index_t child_lvl1_i = enhabit_impl(parent_i, virtual_i);
-      m_semi_flat_lvl_tree[child_lvl1_i] = child_i + 1;
+      m_semi_flat_lvl_tree[child_lvl1_i] = int_index_t(child_i + 1);
       return;
     }
     uint_index_t sz = lvl.size();
@@ -1114,7 +1117,7 @@ struct inline_two_leveled_interning_vector_t {
                     ptrdiff_t(index_old + population_word_sz_v + sz);
       auto it = m_semi_flat_lvl_tree.begin() + ptrdiff_t(ch_i_old);
       std::move_backward(it, end_it, end_it + 1);
-      *it = child_i + 1;
+      *it = int_index_t(child_i + 1);
       born_to_tree_impl(parent_i, virtual_i);
       return;
     }
@@ -1148,7 +1151,7 @@ struct inline_two_leveled_interning_vector_t {
     auto new_begin = m_semi_flat_lvl_tree.begin() + ptrdiff_t(index_new);
     std::ranges::move(begin_it, it, new_begin);
     new_begin += it - begin_it;
-    *new_begin = child_i + 1;
+    *new_begin = int_index_t(child_i + 1);
     std::ranges::move(it, end_it, ++new_begin);
     born_to_tree_impl(parent_i, virtual_i);
 
@@ -1198,6 +1201,376 @@ struct inline_two_leveled_interning_vector_t {
 
   using value_type = intern_uinthash_t;
   MJZ_random_access_interface_of(inline_two_leveled_interning_vector_t);
+};
+
+template <version_t version_v, class intern_uinthash_t,
+          std::unsigned_integral uint_index_t = uintlen_t>
+struct recycling_inline_two_leveled_interning_vector_t {
+
+  constexpr static inline uintlen_t level_bit_count_min_v =
+      uintlen_t(std::countr_zero(sizeof(uint_index_t) * 8));
+  constexpr static inline uintlen_t level_bit_count_v = level_bit_count_min_v;
+  using int_index_t = std::make_signed_t<uint_index_t>;
+
+  uintlen_t lvl1_free_list_mask{};
+  std::array<std::vector<uint_index_t>, level_bit_count_v> free_lvl1_list{};
+  std::vector<int_index_t> m_semi_flat_lvl_tree{};
+  std::vector<intern_uinthash_t> m_hashes{};
+
+  MJZ_CX_FN static std::array<uint8_t, 64>
+  free_list_split_soloution_of(uint8_t n) noexcept {
+    if (n < 2 || n > 63) {
+      return {};
+    }
+    uint8_t distance = 0;
+    while (distance + std::popcount(distance) + 2 < n) {
+      distance++;
+    }
+    uint8_t target_sum = uint8_t(distance + 2);
+    uint8_t current_sum = uint8_t(n - std::popcount(distance));
+    uint64_t mask = ((1ULL << n) - 1) - uint64_t(distance);
+    std::array<uint8_t, 64> ret{};
+    for (uint8_t i{}; i < 64; i++) {
+      ret[i] = !!(mask & (uint64_t(1) << i));
+    }
+    for (uint8_t i = 1; current_sum < target_sum; current_sum++) {
+      i += std::countr_zero(mask >> i);
+      mask &= --ret[i] ? mask : ~(uint64_t(1) << i);
+      ret[i - 1] += 2;
+      mask &= ret[i - 1] ? mask : ~(uint64_t(1) << (i - 1));
+      i -= i > 1;
+    }
+
+    return ret;
+  }
+
+  constexpr static inline std::array<std::array<uint8_t, 64>, level_bit_count_v>
+      free_lvl1_list_split_how_v = []() noexcept {
+        std::array<std::array<uint8_t, 64>, level_bit_count_v> ret{};
+        for (uint8_t n{}; n < level_bit_count_v; n++) {
+          ret[n] = free_list_split_soloution_of(n);
+        }
+        return ret;
+      }();
+  struct level_t {
+    std::span<const int_index_t> m_semi_flat_lvl_tree{};
+    uint_index_t lvl1_index{};
+    MJZ_CX_FN int_index_t lvl2_index() const noexcept {
+      return m_semi_flat_lvl_tree[lvl1_index];
+    }
+    MJZ_CX_FN uint_index_t population_lvl2_index() const noexcept {
+      return uint_index_t(~lvl2_index());
+    }
+    MJZ_CX_FN uint_index_t population_lvl1_index() const noexcept {
+      return uint_index_t(-lvl2_index());
+    }
+
+    MJZ_CX_FN uint_index_t leaf_index() const noexcept {
+      return uint_index_t(lvl2_index() - 1);
+    }
+    MJZ_CX_FN uint_index_t population() const noexcept {
+      if (!has_population())
+        return uint_index_t();
+      uint_index_t i = population_lvl2_index();
+      return uint_index_t(m_semi_flat_lvl_tree[i]);
+    }
+    MJZ_CX_FN
+    bool has_population() const noexcept { return lvl2_index() < 0; }
+    MJZ_CX_FN
+    bool is_root() const noexcept { return lvl1_index == 0; }
+    MJZ_CX_FN
+    bool is_tree() const noexcept { return has_population(); }
+    MJZ_CX_FN
+    bool is_leaf() const noexcept { return 0 < lvl2_index(); }
+    MJZ_CX_FN
+    bool is_empty() const noexcept { return 0 == lvl2_index(); }
+    MJZ_CX_FN uint_index_t size() const noexcept {
+      return has_population() ? uint_index_t(popcount(population()))
+                              : uint_index_t();
+    }
+    MJZ_CX_FN uint_index_t capacity() const noexcept {
+      if (is_root())
+        return uint_index_t(1) << level_bit_count_v;
+      return has_population() ? uint_index_t(std::bit_ceil(size()))
+                              : uint_index_t();
+    }
+    MJZ_CX_FN uint_index_t next_index_in_free_list() const noexcept {
+      if (is_root())
+        return level_bit_count_v;
+      return uint_index_t(std::bit_width(size()));
+    }
+    MJZ_CX_FN uint_index_t
+    child_place_impl(uint_index_t virtual_i) const noexcept {
+      return uint_index_t(population_lvl1_index() +
+                          uint_index_t(popcount(population(), 0, virtual_i)));
+    }
+    MJZ_CX_FN std::optional<uint_index_t>
+    child_index(uint_index_t virtual_i) const noexcept {
+      if (has_population() && nth_bit(population(), virtual_i))
+        return child_place_impl(virtual_i);
+      return {};
+    }
+  };
+
+  MJZ_CX_FN void born_to_tree_impl(uint_index_t lvl1_index,
+                                   uint_index_t virtual_i) noexcept {
+    set_population_impl(
+        lvl1_index, make_set_nth_bit(get_lvl_ref_impl(lvl1_index).population(),
+                                     virtual_i, true));
+  }
+  MJZ_CX_FN level_t get_lvl_ref_impl(uint_index_t lvl1_index) const noexcept {
+    return {m_semi_flat_lvl_tree, lvl1_index};
+  }
+
+  struct hasher_t {
+    MJZ_CX_FN hasher_t(intern_uinthash_t hash, uintlen_t depth_ = 0) noexcept
+        : cache{hash}, depth{depth_} {}
+    MJZ_CX_FN uintlen_t next() noexcept {
+      depth += level_bit_count_v;
+      asserts(depth < sizeof(intern_uinthash_t) * 8);
+      return current();
+    }
+    MJZ_CX_FN uint_index_t current() const noexcept {
+      constexpr static uint_index_t omask =
+          (uint_index_t(1) << level_bit_count_v) - 1;
+      return uint_index_t(cache >> depth) & omask;
+    }
+    intern_uinthash_t cache{};
+    uintlen_t depth{};
+  };
+  MJZ_CX_FN static uintlen_t
+  reserve_lvl1_cap_heuristic(uintlen_t count) noexcept {
+    const uintlen_t root_footprint = 2 + (uintlen_t(1) << level_bit_count_v);
+    return root_footprint + (count * 4) + (count * 100 >> level_bit_count_v) +
+           32;
+  }
+
+  MJZ_CX_FN void reserve(uintlen_t count) noexcept {
+    reserve(count, reserve_lvl1_cap_heuristic(count),
+            std::max(uintlen_t(1) << level_bit_count_v, count >> 3));
+  }
+
+  MJZ_CX_FN void reserve(uintlen_t count, uintlen_t count_lvl1_tree,
+                         uintlen_t free_list_reserves) noexcept {
+    m_hashes.reserve(count);
+    m_semi_flat_lvl_tree.reserve(count_lvl1_tree);
+
+    for (auto &vec : free_lvl1_list) {
+      vec.reserve(free_list_reserves);
+    }
+  }
+  MJZ_CX_FN
+  recycling_inline_two_leveled_interning_vector_t(uintlen_t res = 1) noexcept {
+    reserve(res);
+    m_semi_flat_lvl_tree.resize(2 + (uintlen_t(1) << level_bit_count_v), 0);
+    m_semi_flat_lvl_tree[0] = int_index_t(uint_index_t(~1));
+  }
+
+  MJZ_CX_FN uint_index_t place_find(hasher_t &h_) const noexcept {
+    hasher_t h = h_;
+    uint_index_t ret{};
+    for (;;) {
+      std::optional<uint_index_t> opt =
+          get_lvl_ref_impl(ret).child_index(h.current());
+      if (!opt)
+        break;
+      ret = *opt;
+      h.next();
+    };
+    std::swap(h, h_);
+    return ret;
+  }
+
+  MJZ_CX_FN std::optional<uintlen_t>
+  find(intern_uinthash_t key) const noexcept {
+    hasher_t hr{key};
+    level_t lvl = get_lvl_ref_impl(place_find(hr));
+    if (!lvl.is_leaf() || key != m_hashes[lvl.leaf_index()])
+      return {};
+    return lvl.leaf_index();
+  };
+  MJZ_CX_FN void set_population_impl(uint_index_t parent_i,
+                                     uint_index_t p) noexcept {
+    level_t lvl = get_lvl_ref_impl(parent_i);
+    asserts(lvl.has_population());
+    uint_index_t i = lvl.population_lvl2_index();
+    m_semi_flat_lvl_tree[i] = int_index_t(p);
+  }
+
+private:
+  MJZ_CX_FN void recycle_free(uint_index_t next_free_list_loc,
+                              uint_index_t index_old) noexcept {
+    if (!next_free_list_loc)
+      return;
+    lvl1_free_list_mask |= uintlen_t(1) << (size_t(next_free_list_loc) - 1);
+    free_lvl1_list[size_t(next_free_list_loc) - 1].emplace_back(
+        int_index_t(index_old));
+  }
+  MJZ_CX_FN uint_index_t
+  recycle_alloc_impl(uint_index_t next_free_list_loc) noexcept {
+    uint_index_t index_new = free_lvl1_list[size_t(next_free_list_loc)].back();
+    free_lvl1_list[size_t(next_free_list_loc)].pop_back();
+    lvl1_free_list_mask &=
+        free_lvl1_list[size_t(next_free_list_loc)].size()
+            ? lvl1_free_list_mask
+            : ~(uintlen_t(1) << (size_t(next_free_list_loc)));
+
+    return index_new;
+  }
+
+  MJZ_CX_FN uint_index_t
+  actual_alloc(uint_index_t next_free_list_loc) noexcept {
+    uint_index_t index_new = uint_index_t(m_semi_flat_lvl_tree.size());
+    m_semi_flat_lvl_tree.resize(m_semi_flat_lvl_tree.size() + 1 +
+                                (size_t(1) << next_free_list_loc));
+    asserts(intlen_t(m_semi_flat_lvl_tree.size()) ==
+            int_index_t(m_semi_flat_lvl_tree.size()));
+    return index_new;
+  }
+  MJZ_CX_FN uint_index_t
+  recycle_alloc(uint_index_t next_free_list_loc) noexcept {
+
+    uint_index_t next_splitable_index =
+        std::max<uint_index_t>(2, next_free_list_loc);
+    while (true) {
+      if (level_bit_count_v <= next_free_list_loc ||
+          !(lvl1_free_list_mask >> next_free_list_loc))
+        break;
+      if (nth_bit(lvl1_free_list_mask, next_free_list_loc))
+        return recycle_alloc_impl(next_free_list_loc);
+      if (level_bit_count_v <= next_splitable_index)
+        break;
+      next_splitable_index +=
+          countr_zero(lvl1_free_list_mask >> next_splitable_index);
+      if (level_bit_count_v <= next_splitable_index)
+        break;
+      uint_index_t big_chunk = recycle_alloc_impl(next_splitable_index);
+      std::span<const uint8_t, 64> ret =
+          free_lvl1_list_split_how_v[next_splitable_index];
+      for (uint_index_t i{}; i < next_splitable_index; i++) {
+        for (uint8_t j{}; j < ret[i]; j++) {
+          recycle_free(uint_index_t(i + 1), big_chunk);
+          big_chunk += 1 + (size_t(1) << i);
+        }
+      }
+      next_splitable_index++;
+    };
+
+    return actual_alloc(next_free_list_loc);
+  }
+
+  MJZ_CX_FN uint_index_t enhabit_impl(uint_index_t parent_i,
+                                      uint_index_t virtual_i) noexcept {
+    level_t lvl = get_lvl_ref_impl(parent_i);
+    asserts(!lvl.has_population());
+    m_semi_flat_lvl_tree[parent_i] =
+        int_index_t(uint_index_t(~recycle_alloc(0)));
+    lvl = get_lvl_ref_impl(parent_i);
+    set_population_impl(parent_i, uint_index_t());
+    born_to_tree_impl(parent_i, virtual_i);
+    uint_index_t child_lvl1_i = lvl.population_lvl1_index();
+    m_semi_flat_lvl_tree[child_lvl1_i] = 0;
+    return child_lvl1_i;
+  }
+  MJZ_CX_FN void
+  add_non_existing_child_to_node_impl(uint_index_t parent_i,
+                                      uint_index_t virtual_i,
+                                      uint_index_t child_i) noexcept {
+    level_t lvl = get_lvl_ref_impl(parent_i);
+    if (!lvl.has_population()) {
+      uint_index_t child_lvl1_i = enhabit_impl(parent_i, virtual_i);
+      m_semi_flat_lvl_tree[child_lvl1_i] = int_index_t(child_i + 1);
+      return;
+    }
+    uint_index_t sz = lvl.size();
+    uint_index_t cap = lvl.capacity();
+    uint_index_t ch_i_old = lvl.child_place_impl(virtual_i);
+    uint_index_t index_old = lvl.population_lvl2_index();
+    if (sz < cap) {
+      auto end_it =
+          m_semi_flat_lvl_tree.begin() + ptrdiff_t(index_old + 1 + sz);
+      auto it = m_semi_flat_lvl_tree.begin() + ptrdiff_t(ch_i_old);
+      std::move_backward(it, end_it, end_it + 1);
+      *it = int_index_t(child_i + 1);
+      born_to_tree_impl(parent_i, virtual_i);
+      return;
+    }
+
+    uint_index_t next_free_list_loc = lvl.next_index_in_free_list();
+    uint_index_t index_new{};
+
+    index_new = recycle_alloc(next_free_list_loc);
+    lvl = get_lvl_ref_impl(parent_i);
+    recycle_free(next_free_list_loc, index_old);
+    m_semi_flat_lvl_tree[parent_i] = int_index_t(uint_index_t(~index_new));
+    m_semi_flat_lvl_tree[index_new++] = m_semi_flat_lvl_tree[index_old++];
+
+    auto end_it = m_semi_flat_lvl_tree.begin() + ptrdiff_t(index_old + sz);
+    auto begin_it = m_semi_flat_lvl_tree.begin() + ptrdiff_t(index_old);
+    auto it = m_semi_flat_lvl_tree.begin() + ptrdiff_t(ch_i_old);
+    auto new_begin = m_semi_flat_lvl_tree.begin() + ptrdiff_t(index_new);
+    std::ranges::move(begin_it, it, new_begin);
+    new_begin += it - begin_it;
+    *new_begin = int_index_t(child_i + 1);
+    std::ranges::move(it, end_it, ++new_begin);
+    born_to_tree_impl(parent_i, virtual_i);
+
+    return;
+  }
+
+public:
+  MJZ_CX_FN void clear() noexcept {
+    lvl1_free_list_mask = 0;
+    for (auto &e : free_lvl1_list)
+      e.clear();
+    m_semi_flat_lvl_tree.clear();
+    m_hashes.clear();
+  }
+  MJZ_CX_FN uintlen_t insert(intern_uinthash_t key) noexcept {
+    hasher_t hr{key};
+
+    uint_index_t node = place_find(hr);
+    level_t lvl = get_lvl_ref_impl(node);
+    if (lvl.is_leaf()) {
+      uint_index_t leaf_i = lvl.leaf_index();
+      if (key == m_hashes[leaf_i])
+        return leaf_i;
+
+      hasher_t sibl_hr{m_hashes[leaf_i], hr.depth};
+      while (sibl_hr.current() == hr.current()) {
+        node = enhabit_impl(node, hr.current());
+        sibl_hr.next();
+        hr.next();
+      };
+      add_non_existing_child_to_node_impl(node, sibl_hr.current(), leaf_i);
+    };
+    asserts(intlen_t(m_hashes.size()) == int_index_t(m_hashes.size()));
+
+    add_non_existing_child_to_node_impl(node, hr.current(),
+                                        uint_index_t(m_hashes.size()));
+
+    m_hashes.push_back(std::move(key));
+
+    return uintlen_t(m_hashes.size() - 1);
+  }
+
+  MJZ_CX_FN std::span<const intern_uinthash_t> values() const noexcept {
+    return m_hashes;
+  }
+  MJZ_CX_FN const intern_uinthash_t &operator[](uintlen_t i) const noexcept {
+    return m_hashes[i];
+  }
+
+  MJZ_CX_ND_FN uintlen_t size() const noexcept { return values().size(); }
+
+  MJZ_CX_FN static uintlen_t max_size() noexcept {
+    constexpr auto sz = std::vector<level_t>().max_size();
+    return sz >> level_bit_count_v;
+  }
+
+  using value_type = intern_uinthash_t;
+  MJZ_random_access_interface_of(
+      recycling_inline_two_leveled_interning_vector_t);
 };
 
 }; // namespace mjz
@@ -1251,20 +1624,30 @@ template <mjz::version_t version_v, class intern_uinthash_t,
 constexpr bool std::ranges::enable_view<mjz::two_leveled_interning_vector_t<
     version_v, intern_uinthash_t, level_bit_count_v, int_index_t>> = false;
 
-
-    
+template <mjz::version_t version_v, class intern_uinthash_t,
+          mjz::uintlen_t level_bit_count_extra_v,
+          std::signed_integral int_index_t>
+constexpr bool std::ranges::enable_borrowed_range<
+    mjz::inline_two_leveled_interning_vector_t<
+        version_v, intern_uinthash_t, level_bit_count_extra_v, int_index_t>> =
+    false;
 template <mjz::version_t version_v, class intern_uinthash_t,
           mjz::uintlen_t level_bit_count_extra_v,
           std::signed_integral int_index_t>
 constexpr bool
-    std::ranges::enable_borrowed_range<mjz::inline_two_leveled_interning_vector_t<
+    std::ranges::enable_view<mjz::inline_two_leveled_interning_vector_t<
         version_v, intern_uinthash_t, level_bit_count_extra_v, int_index_t>> =
         false;
+
 template <mjz::version_t version_v, class intern_uinthash_t,
-          mjz::uintlen_t level_bit_count_extra_v,
           std::signed_integral int_index_t>
-constexpr bool std::ranges::enable_view<mjz::inline_two_leveled_interning_vector_t<
-    version_v, intern_uinthash_t, level_bit_count_extra_v, int_index_t>> =
-    false;
+constexpr bool std::ranges::enable_borrowed_range<
+    mjz::recycling_inline_two_leveled_interning_vector_t<
+        version_v, intern_uinthash_t, int_index_t>> = false;
+template <mjz::version_t version_v, class intern_uinthash_t,
+          std::signed_integral int_index_t>
+constexpr bool std::ranges::enable_view<
+    mjz::recycling_inline_two_leveled_interning_vector_t<
+        version_v, intern_uinthash_t, int_index_t>> = false;
 
 #endif // MJZ_SRC_UORD_VEC_base_FILE_

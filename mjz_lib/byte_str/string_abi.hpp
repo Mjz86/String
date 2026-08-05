@@ -231,11 +231,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     };
     static_assert(sizeof(raw_data_u) == sizeof(non_sso_t));
 
-    static constexpr bool all_feilds_are_fully_sized =
+    static constexpr bool all_fields_are_fully_sized =
         !(raw_lencap_size_v < sizeof(uintlen_t) * 2);
     static constexpr size_t raw_length_offset = 0;
     static constexpr size_t raw_capacity_offset =
-        (!all_feilds_are_fully_sized)
+        (!all_fields_are_fully_sized)
             ? raw_lencap_size_v - (sizeof(uintlen_t) - 1)
             : sizeof(uintlen_t);
     static constexpr bool is_raw_capacity_aliged =
@@ -609,7 +609,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         };
 
         u_headless_uintlen_set<is_raw_capacity_aliged,
-                               all_feilds_are_fully_sized>(
+                               all_fields_are_fully_sized>(
             const_cast<char *>(uu_nsso_capp()), capacity_);
       }
       template <when_t when_v, bool to_self_v = false>
@@ -653,7 +653,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
       MJZ_CX_AL_FN uintlen_t get_non_sso_capacity() const noexcept {
         return u_headless_uintlen_get<is_raw_capacity_aliged,
-                                      all_feilds_are_fully_sized>(
+                                      all_fields_are_fully_sized>(
             uu_nsso_capp());
       }
       MJZ_CX_AL_FN uintlen_t get_capacity() const noexcept {
@@ -860,7 +860,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         const char *ptr{};
         auto optr = &m_v().raw_data.non_sso;
         MJZ_IF_CONSTEVAL {
-          // the feild values should not be relevant in sso mode.
+          // the field values should not be relevant in sso mode.
           asserts(!is_sso());
           ptr = optr->raw_lencap;
         }
@@ -875,7 +875,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         const char *ptr{};
         auto optr = &m_v().raw_data.non_sso;
         MJZ_IF_CONSTEVAL {
-          // the feild values should not be relevant in sso mode.
+          // the field values should not be relevant in sso mode.
           asserts(!is_sso());
           ptr = optr->raw_lencap;
         }

@@ -36,6 +36,164 @@ data structure, i recommened using 'basic_dependency_graph_t' instead of
 
 
 */
+
+template <version_t version_v,
+          dependency_state_c<version_v> auto max_invalid_state_v>
+struct MJZ_trivially_relocatable previous_states_t {
+  using states_e =
+      typename base_state_space_t<version_v, max_invalid_state_v>::states_e;
+  base_node_id_t<version_v> id{};
+  std::optional<states_e> forward{};
+  std::optional<states_e> backward{};
+};
+template <version_t version_v, class event_t, auto max_invalid_state_v>
+struct basic_dependency_graph_t
+    : basic_dependency_graph_base_t<version_v, max_invalid_state_v> {
+  using base = basic_dependency_graph_base_t<version_v, max_invalid_state_v>;
+
+protected:
+  std::vector<event_t> event_list{};
+
+  /*
+  multithread constraints:
+  if we want to multithread all work must be multithread done
+  between ignite begin and join end. any write to *this (the graph) must be
+  done exclusively, however if its read-only we can do that on all threads.
+  the time frame from   create begin to create end  MUST NOT be multithreaded.
+  also do NOT call into the run_resolution_queries! inside these.
+
+
+  almost always we want to defuse the node to trigger the next events ,
+  defuse is a graph mutating operation,
+  to have a syncronous after the last node ends (without writing destructor
+  boiler-plate) one can use defuse and call graph handle on it.
+
+  note:
+  btw theres a little qurirk in the engine and i love it :
+  trigger freedom , assuming we dont go backward, defuse
+  can launch a node from ast into code gen in 1 event, or make it stay in ast
+  , if it doesnt chage the current and puts trigger as next state of current ,
+  it will automatically retrigger itself in the next event ( becuze it
+  already was ready ) lol.
+  it will just spin us until were bored , but notice , this is as if were
+  waiting for an infinitley far behind dependency to catch us , so the
+  dependats are ok
+
+
+  note:
+  to effectively use this for parralel work,
+  we can do read-only work inside ignite to join in multithreaded batches ,
+  and flush the modification buffer of each batch in defuse,
+  this way no lock is introduced,
+  also , if any worker event does heavy work , it can yeild via my quirk of
+  trigger, this way each wave is bounded to end pridictably and the thread
+  pool will not be waiting that much. however this graph structure is thread
+  agnostic.
+
+  note:
+  each defuse costs us O(indeg(v)+outdeg(v)) , v being our node, so ,
+  each ignite to join should also cost at most O(deg(v)) , if it surpasses it
+  must yeild , this way the cost of each yeild is never more than the cost of
+  our work, and we can say , let K be the number of events in the wave, this
+  way the time complexity of each wave is O(K+E_K), where E_K is all edges of
+  the nodes in event K. while one might expect the cost of the defuse
+  micro-tick to dominate, i theorize that a lock-free/locked implementation of
+  this micro-tick will be slower than using a flush buffer, however this is
+  all just my view, i may be wrong.
+
+  */
+  MJZ_CX_FN bool execute_resolution_wave(auto &...pram) noexcept {
+    return base::run_one_callback([&](auto &&id_range) noexcept {
+      MJZ_RAII_RELEASE { event_list.clear(); };
+      asserts(!event_list.size());
+      event_list.reserve(std::ranges::size(id_range));
+      for (auto id : id_range) {
+        auto &node_forward = base::dependency(id, true);
+        auto &node_backward = base::dependency(id, false);
+        previous_states_t<version_v, max_invalid_state_v> signal{id};
+        signal.forward = node_forward.get_passive_trigger();
+        signal.backward = node_backward.get_passive_trigger();
+        const bool plese_optimize_emplaceback =
+            event_list.capacity() != event_list.size();
+
+        asserts(plese_optimize_emplaceback);
+        MJZ_JUST_ASSUME_(plese_optimize_emplaceback);
+        if (plese_optimize_emplaceback) {
+          if constexpr (requires() { event_t(std::move(signal), pram...); }) {
+            event_list.emplace_back(std::move(signal), pram...);
+          } else {
+            event_list.emplace_back(std::move(signal));
+          }
+        }
+      }
+
+      if constexpr (requires(std::span<event_t> ev) {
+                      { event_t::ignite_join_defuse_all(ev, pram...) } noexcept;
+                    }) {
+        std::span<event_t> ev = std::span(event_list);
+        event_t::ignite_join_defuse_all(ev, pram...);
+      } else {
+
+        if constexpr (requires(std::span<event_t> ev) {
+                        { event_t::ignite_all(ev, pram...) } noexcept;
+                      }) {
+          std::span<event_t> ev = std::span(event_list);
+          event_t::ignite_all(ev, pram...);
+        } else {
+          for (event_t &e : event_list) {
+            static_assert(requires() {
+              { e.ignite(pram...) } noexcept;
+            });
+            e.ignite(pram...);
+          };
+        }
+        if constexpr (requires(std::span<event_t> ev) {
+                        { event_t::join_all(ev, pram...) } noexcept;
+                      }) {
+          std::span<event_t> ev = std::span(event_list);
+          event_t::join_all(ev, pram...);
+        } else {
+          for (event_t &e : event_list | std::views::reverse) {
+            static_assert(requires() {
+              { e.join(pram...) } noexcept;
+            });
+            e.join(pram...);
+          };
+        }
+        if constexpr (requires(std::span<event_t> ev) {
+                        { event_t::defuse_all(*this, ev, pram...) } noexcept;
+                      }) {
+          std::span<event_t> ev = std::span(event_list);
+          event_t::defuse_all(*this, ev, pram...);
+        } else {
+          for (event_t &e : event_list | std::views::reverse) {
+            static_assert(requires() {
+              { std::move(e).defuse(*this, pram...) } noexcept;
+            });
+            std::move(e).defuse(*this, pram...);
+          };
+        }
+      }
+    });
+  }
+
+public:
+  MJZ_CX_FN void reserve(uintlen_t node_estimate,
+                         uintlen_t edge_estimate) noexcept {
+    base::reserve(node_estimate, edge_estimate);
+    event_list.reserve(node_estimate);
+  }
+  MJZ_CX_ND_FN bool run_one(auto &&...pram) noexcept {
+    return execute_resolution_wave(pram...);
+  }
+
+  MJZ_CX_FN uintlen_t run_all(uintlen_t limit, auto &&...pram) noexcept {
+    while (limit && execute_resolution_wave(pram...))
+      limit--;
+    return limit;
+  }
+};
+
 namespace states_ns {
 
 #define MJZ_MCC_SRC_DAG_STATES_ALL_                                            \

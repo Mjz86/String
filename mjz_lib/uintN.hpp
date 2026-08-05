@@ -832,11 +832,25 @@ MJZ_EXPORT namespace mjz {
       return sizeof(T) * 8;
     }
   }
+  template <class T> MJZ_CX_AL_FN T compl_uintn(T v) noexcept { return T(~v); }
+  template <class T>
+  MJZ_CX_AL_FN T shift_right_uintn(T v, uintlen_t offset) noexcept {
+    if (n_bit(v) <= offset)
+      return T();
+    return T(v >> offset);
+  }
+  template <class T>
+  MJZ_CX_AL_FN T shift_left_uintn(T v, uintlen_t offset) noexcept {
+    if (n_bit(v) <= offset)
+      return T();
+    return T(v << offset);
+  }
   MJZ_CX_AL_FN uintlen_t countr_zero(auto v, uintlen_t offset = 0) noexcept {
     if constexpr (requires() { std::countr_zero(v); }) {
       if (n_bit(v) <= offset)
         v = uintlen_t(-1);
-      return uintlen_t(std::countr_one((~v) >> offset));
+      return uintlen_t(
+          std::countr_one(shift_right_uintn(compl_uintn(v), offset)));
     } else {
       if (offset)
         return v.countr_zero(offset);
@@ -847,7 +861,8 @@ MJZ_EXPORT namespace mjz {
     if constexpr (requires() { std::countl_zero(v); }) {
       if (n_bit(v) <= offset)
         v = uintlen_t(-1);
-      return (uintlen_t)std::countl_one((~v) << offset);
+      return (uintlen_t)std::countl_one(
+          shift_left_uintn(compl_uintn(v), offset));
     } else {
 
       if (offset)
@@ -859,7 +874,7 @@ MJZ_EXPORT namespace mjz {
     if constexpr (requires() { std::countr_one(v); }) {
       if (n_bit(v) <= offset)
         v = 0;
-      return (uintlen_t)std::countr_one(v >> offset);
+      return (uintlen_t)std::countr_one(shift_right_uintn(v, offset));
     } else {
       if (offset)
         return v.countr_one(offset);
@@ -871,7 +886,7 @@ MJZ_EXPORT namespace mjz {
     if constexpr (requires() { std::countl_one(v); }) {
       if (n_bit(v) <= offset)
         v = 0;
-      return (uintlen_t)std::countl_one(v << offset);
+      return (uintlen_t)std::countl_one(shift_left_uintn(v, offset));
     } else {
       if (offset)
         return v.countl_one(offset);
@@ -886,7 +901,8 @@ MJZ_EXPORT namespace mjz {
         return 0;
       if (n_bit(v) < count)
         count = n_bit(v);
-      return (uintlen_t)std::popcount((v >> offset) << (n_bit(v) - count));
+      return (uintlen_t)std::popcount(
+          shift_left_uintn(shift_right_uintn(v, offset), n_bit(v) - count));
     } else {
       return v.popcount(offset, count);
     }

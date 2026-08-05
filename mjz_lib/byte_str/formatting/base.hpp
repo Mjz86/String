@@ -332,11 +332,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   MJZ_CX_FN success_t
   parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
     out_it_t output = format_ctx().out();
-    const uintlen_t feilds = base_ctx().number_of_cx_parse_storage_of_args;
-    const cx_formatter_storage_base_ref_t<version_v> *feild_arr =
+    const uintlen_t fields = base_ctx().number_of_cx_parse_storage_of_args;
+    const cx_formatter_storage_base_ref_t<version_v> *field_arr =
         base_ctx().cx_parse_storage_of_args;
-    for (uintlen_t i{}; i < feilds; i++) {
-      const cx_formatter_storage_base_ref_t<version_v> val = feild_arr[i];
+    for (uintlen_t i{}; i < fields; i++) {
+      const cx_formatter_storage_base_ref_t<version_v> val = field_arr[i];
       std::ignore = output.append_u_(
           main_ctx()
               .format_string(main_ctx().remaining_format_string_index,
@@ -412,7 +412,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     if (!charechter) {
       MJZ_IS_UNLIKELY {
         format_ctx().as_error(
-            "[Error]get_parse_filter_numeric:unexpected end of feild");
+            "[Error]get_parse_filter_numeric:unexpected end of field");
         return nullopt;
       }
     }
@@ -624,7 +624,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     format_ctx().as_error(
         "[Error]call_argument_formatter(): expected '}' at the end of "
-        "replacement feild ");
+        "replacement field ");
     return false;
   }
 

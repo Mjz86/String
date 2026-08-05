@@ -151,17 +151,38 @@ MJZ_EXPORT namespace mjz {
     }
   }
 
+  template <typename T>
+    requires std::is_enum_v<T>
+  MJZ_CX_FN std::underlying_type_t<T> to_underlying(T e) noexcept {
+    return static_cast<std::underlying_type_t<T>>(e);
+  }
+
   MJZ_CX_FN void mjz_prefetch_pimpl_(MJZ_MAYBE_UNUSED const void *p) noexcept {
     MJZ_IF_CONSTEVAL { return; }
-#if defined(__has_builtin) && __has_builtin(__builtin_prefetch)
-    __builtin_prefetch(p);
-#elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
+
+#if defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
     _mm_prefetch(static_cast<const char *>(p), _MM_HINT_T0);
+
+#define MJZ_has_mjz_prefetch_pimpl_ 1
 #elif defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
     __prefetch(p);
+
+#define MJZ_has_mjz_prefetch_pimpl_ 1
 #else
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_prefetch)
+    __builtin_prefetch(p);
+#define MJZ_has_mjz_prefetch_pimpl_ 1
+#else
+#define MJZ_has_mjz_prefetch_pimpl_ 0
+#endif
+#else
+#define MJZ_has_mjz_prefetch_pimpl_ 0
+#endif
 #endif
   }
+  MJZ_FCONSTANT(bool) mjz_do_prefetch_v = bool(MJZ_has_mjz_prefetch_pimpl_);
+#undef MJZ_has_mjz_prefetch_pimpl_
 
   MJZ_CX_FN void mjz_prefetch_p(const void *p) noexcept {
     // https://stackoverflow.com/questions/75166611/is-builtin-prefetch-safe-to-be-call-with-nullptr
@@ -322,6 +343,11 @@ MJZ_EXPORT namespace mjz {
           sizeof(T) * size_t(len)));
     }
     return memcpy_forward(dest, src, len);
+  }
+
+  template <std::integral T>
+  MJZ_CX_AL_FN T *memcpy_types(T * dest, const T *src, uintlen_t len) noexcept {
+    return memcpy(dest, src, len);
   }
 
   /*
@@ -583,6 +609,19 @@ MJZ_EXPORT namespace mjz {
     else {
       return cpy_aligned_bitcast(static_cast<void *>(dest), src);
     }
+  }
+
+  template <bitcastable_c T>
+  MJZ_CX_AL_ND_FN T(bit_branchless_teranary)(
+      std::same_as<bool> auto if_expression, const T &then_val,
+      const T &else_val) noexcept {
+    alignas(alignof(T)) std::array<char, sizeof(T)> buf{};
+    alignas(alignof(T)) const auto then_bytes = make_bitcast(then_val);
+    alignas(alignof(T)) const auto else_bytes = make_bitcast(else_val);
+    for (uintlen_t i{}; i < buf.size(); i++) {
+      buf[i] = branchless_teranary(if_expression, then_bytes[i], else_bytes[i]);
+    }
+    return std::bit_cast<T>(buf);
   }
 
   template <class Like_what_t_, class U>

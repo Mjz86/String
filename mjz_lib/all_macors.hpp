@@ -1012,6 +1012,331 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
   }                                                                            \
   MJZ_CX_ND_FN const_reverse_iterator crend() const noexcept { return rend(); }
 
+///
+
+#define MJZ_ENUM_MATH_FOR(TYPE_)                                               \
+  MJZ_CX_FN auto operator+(TYPE_ lhs) noexcept {                               \
+    return ::mjz::to_underlying(lhs);                                          \
+  }                                                                            \
+  MJZ_CX_FN TYPE_ operator~(TYPE_ lhs) noexcept { return TYPE_(~+lhs); }       \
+  MJZ_CX_FN bool operator!(TYPE_ lhs) noexcept { return !+lhs; }               \
+  MJZ_CX_FN TYPE_ operator^(TYPE_ lhs, TYPE_ rhs) noexcept {                   \
+    return TYPE_((+lhs) ^ (+rhs));                                             \
+  }                                                                            \
+  MJZ_CX_FN TYPE_ operator&(TYPE_ lhs, TYPE_ rhs) noexcept {                   \
+    return TYPE_((+lhs) & (+rhs));                                             \
+  }                                                                            \
+  MJZ_CX_FN TYPE_ operator|(TYPE_ lhs, TYPE_ rhs) noexcept {                   \
+    return TYPE_((+lhs) | (+rhs));                                             \
+  }                                                                            \
+  MJZ_CX_FN TYPE_ &operator^=(TYPE_ &lhs, TYPE_ rhs) noexcept {                \
+    return lhs = lhs ^ rhs;                                                    \
+  }                                                                            \
+  MJZ_CX_FN TYPE_ &operator&=(TYPE_ &lhs, TYPE_ rhs) noexcept {                \
+    return lhs = lhs & rhs;                                                    \
+  }                                                                            \
+  MJZ_CX_FN TYPE_ &operator|=(TYPE_ &lhs, TYPE_ rhs) noexcept {                \
+    return lhs = lhs | rhs;                                                    \
+  }                                                                            \
+  namespace namespace_DA5DEF7E949A2CE54837YJJFJsygi3ur_ {                      \
+  static_assert(std::is_enum_v<TYPE_>);                                        \
+  }
+
+/*
+
+mcc's coroutine ABI made in c++ with C style macro's "god forbid"
+use when "ccoro.hpp" is included
+
+
+
+
+
+
+*/
+
+#define MJZ_coroutine_frame_ret_t ::mjz::ccoro_ns::base_coroutine_handle_t
+
+#define MJZ_coroutine_frame_create_static(static_handle_of_func_)              \
+  static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)->set_handle(    \
+      static_cast<::mjz::ccoro_ns::base_coroutine_handle_t (*)(                \
+          ::mjz::ccoro_ns::base_coroutine_frame_ABI_t &) noexcept>(            \
+          static_handle_of_func_))
+
+#define MJZ_coroutine_frame_member_to_static(handle_of_func_)                  \
+  +[](::mjz::ccoro_ns::base_coroutine_frame_ABI_t                              \
+          &self_base_coroutine_frame_data_) noexcept                           \
+      -> ::mjz::ccoro_ns::base_coroutine_handle_t {                            \
+    return (self_base_coroutine_frame_data_.*                                  \
+            static_cast<typename ::mjz::ccoro_ns::base_coroutine_frame_ABI_t:: \
+                            state_machine_mfnp_t>(handle_of_func_))();         \
+  }
+
+#define MJZ_coroutine_frame_create(handle_of_func_)                            \
+  MJZ_coroutine_frame_create_static(                                           \
+      MJZ_coroutine_frame_member_to_static(handle_of_func_))
+
+#define MJZ_coroutine_frame_retry()                                            \
+  return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+      ->reached_retry()
+#define MJZ_coroutine_frame_fatal()                                            \
+  return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+      ->reached_fatal()
+
+#define MJZ_coroutine_frame_initial_suspend()                                  \
+                                                                               \
+  switch (static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)         \
+              ->suspend_counter()) {                                           \
+  case intptr_t(1):;                                                           \
+    do {                                                                       \
+    } while (0)
+
+#define MJZ_coroutine_frame_end_all_suspend_impl()                             \
+  }                                                                            \
+  ;                                                                            \
+  MJZ_coroutine_frame_fatal()
+
+#define MJZ_coroutine_frame_yield_to_nth_suspend(N)                            \
+  do {                                                                         \
+    static_assert(1 < intptr_t(N));                                            \
+    return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)        \
+        ->reached_nth_suspend(intptr_t(N));                                    \
+  } while (0)
+
+#define MJZ_coroutine_frame_yield_to_nth_transfer(N, Next_)                    \
+  do {                                                                         \
+    static_assert(1 < intptr_t(N));                                            \
+    return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)        \
+        ->reached_nth_transfer(intptr_t(N), (Next_));                          \
+  } while (0)
+
+#define MJZ_coroutine_frame_goto_nth_suspend(N)                                \
+  MJZ_coroutine_frame_yield_to_nth_transfer(                                   \
+      N, static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+             ->coro_handle())
+
+#define MJZ_coroutine_frame_nth_suspend(N)                                     \
+  do {                                                                         \
+    MJZ_coroutine_frame_yield_to_nth_suspend(N);                               \
+  case intptr_t(N):;                                                           \
+  } while (0)
+
+#define MJZ_coroutine_frame_nth_transfer(N, Next_)                             \
+  do {                                                                         \
+    MJZ_coroutine_frame_yield_to_nth_transfer(N, Next_);                       \
+  case intptr_t(N):;                                                           \
+  } while (0)
+
+#define MJZ_coroutine_frame_transfer(Next_)                                    \
+  MJZ_coroutine_frame_nth_transfer(MJZ_LINE_() + 2, Next_)
+
+#define MJZ_coroutine_frame_suspend()                                          \
+  MJZ_coroutine_frame_nth_suspend(MJZ_LINE_() + 2)
+
+#define MJZ_coroutine_frame_yield_to_final_suspend()                           \
+  return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+      ->achieved_final_suspend()
+
+#define MJZ_coroutine_frame_yield_to_final_transfer(Next_)                     \
+  return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+      ->achieved_final_transfer(Next_)
+
+#define MJZ_coroutine_frame_goto_final_suspend()                               \
+  MJZ_coroutine_frame_yield_to_final_transfer(                                 \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->coro_handle())
+
+#define MJZ_coroutine_frame_final_suspend()                                    \
+  do {                                                                         \
+    MJZ_coroutine_frame_yield_to_final_suspend();                              \
+  case 0:;                                                                     \
+  } while (0)
+
+#define MJZ_coroutine_frame_final_transfer(Next_)                              \
+  do {                                                                         \
+    MJZ_coroutine_frame_yield_to_final_transfer(Next_);                        \
+  case 0:;                                                                     \
+  } while (0)
+
+#define MJZ_coroutine_frame_destroy()                                          \
+  do {                                                                         \
+  } while (0);                                                                 \
+  return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+      ->end_final_suspend();                                                   \
+  default:                                                                     \
+    MJZ_coroutine_frame_fatal();                                               \
+    MJZ_coroutine_frame_end_all_suspend_impl()
+
+#define MJZ_coroutine_frame_destroy_transfer(Next_)                            \
+  do {                                                                         \
+  } while (0);                                                                 \
+  return static_cast<::mjz::ccoro_ns::base_coroutine_frame_t *>(this)          \
+      ->end_final_transfer(Next_);                                             \
+  default:                                                                     \
+    MJZ_coroutine_frame_fatal();                                               \
+    MJZ_coroutine_frame_end_all_suspend_impl()
+
+///
+
+#define MJZ_coroutine_stack_frame_cancel_propagate_up()                        \
+  static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)           \
+      ->request_cancel();                                                      \
+  static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)           \
+      ->caller.request_cancel();
+
+#define MJZ_coroutine_stack_frame_cancel_propagate(Callee_)                    \
+  MJZ_coroutine_stack_frame_cancel_propagate_up();                             \
+  ::mjz::ccoro_ns::base_coroutine_handle_t(Callee_).request_cancel();
+
+#define MJZ_coroutine_stack_frame_if_cancel_propagate(Callee_)                 \
+  if (static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->was_canceled() ||                                                  \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->caller.was_canceled() ||                                           \
+      ::mjz::ccoro_ns::base_coroutine_handle_t(Callee_).was_canceled()) {      \
+    MJZ_coroutine_stack_frame_cancel_propagate(Callee_);                       \
+  }
+
+#define MJZ_coroutine_stack_frame_if_cancel_propagate_up()                     \
+  if (static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->caller.was_canceled() ||                                           \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->was_canceled()) {                                                  \
+    MJZ_coroutine_stack_frame_cancel_propagate();                              \
+  }
+
+#define MJZ_coroutine_stack_frame_yield_to_return()                            \
+  MJZ_coroutine_frame_yield_to_final_transfer(                                 \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->caller)
+
+#define MJZ_coroutine_stack_frame_goto_return()                                \
+  MJZ_coroutine_frame_goto_final_suspend()
+
+#define MJZ_coroutine_stack_frame_enter()                                      \
+  MJZ_coroutine_frame_initial_suspend();                                       \
+  MJZ_coroutine_stack_frame_if_cancel_propagate_up();
+
+#define MJZ_coroutine_stack_frame_return()                                     \
+  MJZ_coroutine_frame_final_transfer(                                          \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->caller)
+
+#define MJZ_coroutine_stack_frame_exit()                                       \
+  MJZ_coroutine_frame_destroy_transfer(                                        \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->caller)
+
+#define MJZ_coroutine_stack_frame_nth_yield(N)                                 \
+  MJZ_coroutine_frame_nth_transfer(                                            \
+      N, static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)    \
+             ->caller);                                                        \
+  MJZ_coroutine_stack_frame_if_cancel_propagate_up();
+
+#define MJZ_coroutine_stack_frame_yield()                                      \
+  MJZ_coroutine_stack_frame_nth_yield(MJZ_LINE_() + 2)
+
+// pair with execute_stack to use safely
+#define MJZ_coroutine_stack_frame_nth_suspend(N)                               \
+  MJZ_coroutine_frame_nth_suspend(N);                                          \
+  MJZ_coroutine_stack_frame_if_cancel_propagate_up();
+
+// pair with execute_stack to use safely
+#define MJZ_coroutine_stack_frame_suspend()                                    \
+  MJZ_coroutine_stack_frame_nth_suspend(MJZ_LINE_() + 2)
+
+#define MJZ_coroutine_stack_frame_yield_to(Next_)                              \
+  MJZ_coroutine_frame_yield_to_nth_transfer(                                   \
+      Next_,                                                                   \
+      static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)       \
+          ->caller);                                                           \
+  MJZ_coroutine_stack_frame_if_cancel_propagate_up();
+
+#define MJZ_coroutine_stack_frame_goto(Next_)                                  \
+  MJZ_coroutine_frame_goto_nth_suspend(Next_)
+
+#define MJZ_coroutine_stack_frame_if_cancel_yield_to(Next_cancel_)             \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_if_cancel_propagate_up();                        \
+    if (static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)     \
+            ->was_canceled()) {                                                \
+                                                                               \
+      MJZ_coroutine_stack_frame_yield_to(Next_cancel_);                        \
+    }                                                                          \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_)                 \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_if_cancel_propagate_up();                        \
+    if (static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)     \
+            ->was_canceled()) {                                                \
+                                                                               \
+      MJZ_coroutine_stack_frame_goto(Next_cancel_);                            \
+    }                                                                          \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_call_one(Callee_)                            \
+  do {                                                                         \
+    if (::mjz::ccoro_ns::base_coroutine_handle_t(Callee_).can_exe()) {         \
+      ::mjz::ccoro_ns::base_coroutine_handle_t(Callee_)                        \
+          .promise<::mjz::ccoro_ns::base_coroutine_stack_frame_t>()            \
+          ->caller =                                                           \
+          static_cast<::mjz::ccoro_ns::base_coroutine_stack_frame_t *>(this)   \
+              ->coro_handle();                                                 \
+      MJZ_coroutine_frame_transfer(                                            \
+          ::mjz::ccoro_ns::base_coroutine_handle_t(Callee_));                  \
+      MJZ_coroutine_stack_frame_if_cancel_propagate(Callee_);                  \
+    }                                                                          \
+    ::mjz::ccoro_ns::base_coroutine_handle_t(Callee_)                          \
+        .promise<::mjz::ccoro_ns::base_coroutine_stack_frame_t>()              \
+        ->caller = ::mjz::ccoro_ns::base_coroutine_stack_frame_t::noop();      \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_call(Callee_)                                \
+  do {                                                                         \
+    while (::mjz::ccoro_ns::base_coroutine_handle_t(Callee_).can_exe()) {      \
+      MJZ_coroutine_stack_frame_call_one(Callee_);                             \
+    };                                                                         \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_call_one_or_cancel(Callee_, Next_cancel_)    \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_call_one(Callee_);                               \
+    MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_call_or_cancel(Callee_, Next_cancel_)        \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_call(Callee_);                                   \
+    MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_enter_or_cancel(Next_cancel_)                \
+  MJZ_coroutine_stack_frame_enter();                                           \
+  MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);
+
+#define MJZ_coroutine_stack_frame_nth_yield_or_cancel(N, Next_cancel_)         \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_nth_yield(N);                                    \
+    MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_yield_or_cancel(Next_cancel_)                \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_yield();                                         \
+    MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_nth_suspend_or_cancel(N, Next_cancel_)       \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_nth_suspend(N);                                  \
+    MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
+  } while (0)
+
+#define MJZ_coroutine_stack_frame_suspend_or_cancel(Next_cancel_)              \
+  do {                                                                         \
+    MJZ_coroutine_stack_frame_suspend();                                       \
+    MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
+  } while (0)
 }; // namespace mjz
 
 #endif // !MJZ_string_lib_macros_HPP_FILE_

@@ -201,10 +201,11 @@ MJZ_EXPORT namespace mjz {
           decltype(std::declval<const tuple_elem_storage_t<Ts, Is> &>() <=>
                    std::declval<const tuple_elem_storage_t<Ts, Is> &>())...>
           res{};
-      ((res = (*static_cast<tuple_elem_storage_t<Ts, Is> const *>(this) <=>
-               *static_cast<tuple_elem_storage_t<Ts, Is> const *>(&rhs)),
-        res != 0) ||
-       ...);
+      std::ignore =
+          ((res = (*static_cast<tuple_elem_storage_t<Ts, Is> const *>(this) <=>
+                   *static_cast<tuple_elem_storage_t<Ts, Is> const *>(&rhs)),
+            res != 0) ||
+           ...);
 
       return res;
     };

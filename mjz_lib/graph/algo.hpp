@@ -2,108 +2,10 @@
 #ifndef MJZ_SRC_GRAPH_algo_FILE_
 #define MJZ_SRC_GRAPH_algo_FILE_
 #include "../releasers.hpp"
+
+MJZ_EXPORT
+//
 namespace mjz::graph_ns {
-template <version_t version_v>
-struct MJZ_trivially_relocatable basic_index_range_t {
-  uintlen_t i{};
-  uintlen_t n{};
-  MJZ_CX_FN std::ranges::iota_view<uintlen_t, uintlen_t> iota() const noexcept {
-    return std::views::iota(i, i + n);
-  }
-  MJZ_CX_FN pair_t<uintlen_t, uintlen_t> bounds() const noexcept {
-    return {i, i + n};
-  }
-  MJZ_CX_FN static basic_index_range_t from_bounds(uintlen_t i,
-                                                   uintlen_t j) noexcept {
-    if (i > j)
-      i = j;
-    return {i, j - i};
-  }
-  MJZ_CX_FN static basic_index_range_t
-  from_union(const basic_index_range_t &j,
-             const basic_index_range_t &i) noexcept {
-    auto [small1, big1] = j.bounds();
-    auto [small2, big2] = i.bounds();
-    return from_bounds(std::min(small1, small2), std::max(big1, big2));
-  }
-  MJZ_CX_FN static basic_index_range_t
-  from_insersection(const basic_index_range_t &j,
-                    const basic_index_range_t &i) noexcept {
-    auto [small1, big1] = j.bounds();
-    auto [small2, big2] = i.bounds();
-    return from_bounds(std::max(small1, small2), std::min(big1, big2));
-  }
-  MJZ_CX_FN bool has_inside(uintlen_t canidate_node_index,
-                            bool empty_overlaps = false) const noexcept {
-    if (!empty_overlaps && !n)
-      return false;
-    return i <= canidate_node_index && canidate_node_index < i + n;
-  }
-  MJZ_CX_FN bool has_inside(const basic_index_range_t &r,
-                            bool empty_overlaps = false) const noexcept {
-    if (!empty_overlaps && (!n || !r.n))
-      return false;
-    return i <= r.i && r.i + r.n <= i + n;
-  }
-  MJZ_CX_FN bool overlaps(const basic_index_range_t &r,
-                          bool empty_overlaps = false) const noexcept {
-    if (!empty_overlaps && (!n || !r.n))
-      return false;
-    return has_inside(r.i, empty_overlaps) || r.has_inside(i, empty_overlaps) ||
-           r.i == i;
-  }
-
-  MJZ_CX_FN static std::partial_ordering
-  partial_compare_range(const basic_index_range_t &lhs,
-                        const basic_index_range_t &rhs,
-                        bool empty_overlaps = false) noexcept {
-    if (lhs.overlaps(rhs, empty_overlaps))
-      return std::partial_ordering::unordered;
-    return lhs.i <=> rhs.i;
-  };
-
-  MJZ_CX_FN std::strong_ordering
-  operator<=>(const basic_index_range_t &rhs) const noexcept = default;
-  MJZ_CX_FN bool
-  operator==(const basic_index_range_t &rhs) const noexcept = default;
-  MJZ_CX_FN explicit operator bool() const noexcept { return !!n; }
-};
-// a bloated reachability checker , it probably should never be used.
-template <version_t version_v>
-struct MJZ_maybe_trivially_relocatable reachability_graph_t {
-  std::vector<std::vector<bool>> reachable{};
-
-  MJZ_CX_FN uintlen_t add_node() noexcept {
-    uintlen_t i = reachable.size();
-    for (std::vector<bool> &behinds : reachable) {
-      behinds.push_back(false);
-    }
-    reachable.push_back(std::vector<bool>(i + 1, false));
-    reachable[i][i] = true;
-    return i;
-  }
-
-  MJZ_CX_FN bool has_directed_path(uintlen_t behind,
-                                   uintlen_t ahead) const noexcept {
-    return reachable[behind][ahead];
-  }
-  MJZ_CX_FN void add_directed_path(uintlen_t behind, uintlen_t ahead) noexcept {
-    std::vector<bool> &behinds = reachable[behind];
-    if (reachable[behind][ahead])
-      return;
-    behinds[ahead] = true;
-    uintlen_t sz = reachable.size();
-    for (uintlen_t i = 0; i < sz; ++i) {
-      if (reachable[i][behind]) {
-        for (uintlen_t j = 0; j < sz; ++j) {
-          if (reachable[ahead][j]) {
-            reachable[i][j] = true;
-          }
-        }
-      }
-    }
-  }
-};
 
 template <typename T, class U, version_t version_v>
 concept usable_type_range_exact_c =
@@ -114,11 +16,23 @@ concept usable_type_range_c =
     usable_type_range_exact_c<std::remove_cvref_t<T>, U, version_v>;
 
 template <typename T, version_t version_v>
+concept index_range_of_c =
+    std::ranges::range<T> &&
+    std::convertible_to<std::ranges::range_reference_t<T>, uintlen_t>;
+
+template <typename T, version_t version_v>
 concept usable_index_range_exact_c =
     usable_type_range_exact_c<T, uintlen_t, version_v>;
 template <typename T, version_t version_v>
 concept usable_index_range_c =
     usable_index_range_exact_c<std::remove_cvref_t<T>, version_v>;
+
+template <typename T, version_t version_v>
+concept mutable_index_range_exact_c =
+    usable_type_range_exact_c<T, uintlen_t &, version_v>;
+template <typename T, version_t version_v>
+concept mutable_index_range_c =
+    mutable_index_range_exact_c<std::remove_cvref_t<T>, version_v>;
 
 template <version_t version_v, usable_index_range_c<version_v> R>
 MJZ_CX_FN std::vector<uintlen_t> range_injective_inv(R &&index_range) noexcept {
@@ -189,6 +103,105 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
   // for scc
   MJZ_CX_FN auto acyclic_range() const noexcept { return batchy_range(0, 2); }
 };
+
+template <version_t version_v, mutable_index_range_c<version_v> range_t>
+struct disjoint_set_union_t {
+
+  // 2x the size of this bad boy and it will give you ranking
+  range_t parent_then_rank{};
+  intlen_t m_range_size{};
+
+  MJZ_CX_FN uintlen_t get_range_size() const noexcept {
+    return uintlen_t(std::max(m_range_size, -m_range_size));
+  }
+
+  MJZ_CX_FN bool has_ranks() const noexcept { return 0 < m_range_size; }
+  MJZ_CX_FN uintlen_t get_parent(uintlen_t i) const noexcept {
+    return parent_then_rank[i];
+  }
+  MJZ_CX_FN uintlen_t get_rank(uintlen_t i) const noexcept {
+    if (!has_ranks())
+      return 0;
+    return parent_then_rank[get_range_size() + i];
+  }
+  MJZ_CX_FN void set_parent(uintlen_t i, uintlen_t parent) noexcept {
+    parent_then_rank[i] = parent;
+  }
+
+  MJZ_CX_FN void set_rank(uintlen_t i, uintlen_t rank) noexcept {
+    if (!has_ranks())
+      return;
+    parent_then_rank[get_range_size() + i] = rank;
+  }
+  MJZ_CX_FN void init(uintlen_t range_size_) noexcept {
+    uintlen_t sz = std::ranges::size(parent_then_rank);
+    asserts(range_size_ <= sz && range_size_ < (uintlen_t(-1) >> 1));
+    m_range_size = range_size_ <= (sz >> 1) ? intlen_t(range_size_)
+                                            : -intlen_t(range_size_);
+    for (uintlen_t i : std::views::iota(uintlen_t(0), range_size_)) {
+      set_parent(i, i);
+      set_rank(i, 0);
+    }
+  }
+
+  MJZ_CX_FN uintlen_t find_and_cache_root(uintlen_t child) noexcept {
+    uintlen_t root_node = child;
+    while (true) {
+      uintlen_t parent = get_parent(root_node);
+      if (parent == std::exchange(root_node, parent))
+        break;
+    }
+    while (true) {
+      uintlen_t parent = get_parent(child);
+      set_parent(child, root_node);
+      if (parent == std::exchange(child, parent))
+        break;
+    };
+    return root_node;
+  }
+
+  MJZ_CX_FN bool find_and_unite_root(uintlen_t i, uintlen_t j) noexcept {
+    i = find_and_cache_root(i);
+    j = find_and_cache_root(j);
+    if (i == j) {
+      return false;
+    }
+
+    uintlen_t rank_i = get_rank(i);
+    uintlen_t rank_j = get_rank(j);
+
+    bool i_child = rank_i < rank_j;
+    bool tie = (rank_i == rank_j);
+
+    uintlen_t child = i_child ? i : j;
+    uintlen_t parent = i_child ? j : i;
+
+    set_parent(child, parent);
+
+    if (tie) {
+      set_rank(parent, rank_i + 1);
+    }
+
+    return true;
+  }
+
+  MJZ_CX_FN bool rankless_find_and_unite_root(uintlen_t parent,
+                                              uintlen_t child) noexcept {
+    asserts(!has_ranks());
+    parent = find_and_cache_root(parent);
+    child = find_and_cache_root(child);
+    if (parent == child) {
+      return false;
+    }
+    set_parent(child, parent);
+    return true;
+  }
+
+  MJZ_CX_FN bool is_united(uintlen_t parent, uintlen_t child) noexcept {
+    return find_and_cache_root(parent) == find_and_cache_root(child);
+  }
+};
+
 template <version_t version_v>
 using treversal_result_t = basic_forest_t<version_v, std::vector<uintlen_t>>;
 
@@ -268,34 +281,56 @@ make_basic_inv_forest(const auto &range_of_range) noexcept {
   }
   return ret;
 }
-template <version_t version_v, class R = std::span<const uintlen_t>>
-MJZ_CX_FN treversal_result_t<version_v> calculate_strongly_connected_components(
-    const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
-  // credit to
-  // https://www.geeksforgeeks.org/dsa/tarjan-algorithm-find-strongly-connected-components/
-  // i stil dont fully comprehend what i've optimized lol , maybe not?
-  std::vector<uintlen_t> active_nodes{};
-  treversal_result_t<version_v> ret{};
-  std::vector<std::pair<uintlen_t, uintlen_t>> call_stack{};
+
+template <version_t version_v, class R = std::span<const uintlen_t>,
+          index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN uintlen_t
+calculate_strongly_connected_components_with_order_get_scc_count(
+    std::vector<uintlen_t> &ret,
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    RIR_t &&entry_node_order) noexcept {
+
   auto edge_of_node = edge_of_node_.range();
   uintlen_t total_node_count = std::ranges::size(edge_of_node);
-  active_nodes.reserve(total_node_count);
-  call_stack.reserve(total_node_count);
-  ret.nodes_index.reserve(total_node_count);
-  ret.edges.reserve(total_node_count);
-  auto frozen_ordenal = std::vector<uintlen_t>(total_node_count, uintlen_t());
-  auto monotone_lowest_ahead =
-      std::vector<uintlen_t>(total_node_count, uintlen_t());
-  auto is_active_set = std::vector<bool>(total_node_count, false);
+  uintlen_t ret_append_entact_sz = ret.size();
+  uintlen_t max_size_total = total_node_count * 7;
+  asserts(total_node_count <= max_size_total);
+  asserts(max_size_total <= max_size_total + ret_append_entact_sz);
+  //
+  ret.resize(max_size_total + ret_append_entact_sz);
+  //
+  uintlen_t bumbp_alloc_ptr{ret_append_entact_sz};
+  auto alloc_storage_fn_ = [&](uintlen_t sz) noexcept {
+    bumbp_alloc_ptr += sz;
+    asserts(bumbp_alloc_ptr <= ret_append_entact_sz + max_size_total);
+    return bumbp_alloc_ptr - sz;
+  };
+
+  //
+  auto alloc_ptr_fn_ = [&](uintlen_t sz) noexcept {
+    return std::span(ret).subspan(alloc_storage_fn_(sz), sz);
+  };
+  //
+  auto ret_reserve_span = alloc_ptr_fn_(total_node_count * 2);
+  auto scc_index_span = ret_reserve_span.subspan(uintlen_t(), total_node_count);
+  auto scc_elem_span =
+      ret_reserve_span.subspan(total_node_count, total_node_count);
+  uintlen_t scc_count{};
+  uintlen_t scc_elem_count{};
+  //
+  auto frozen_ordenal = alloc_ptr_fn_(total_node_count);
+  auto monotone_lowest_ahead = alloc_ptr_fn_(total_node_count);
+  auto active_stack = alloc_ptr_fn_(total_node_count);
+  auto call_stack = alloc_ptr_fn_(total_node_count * 2);
+  uintlen_t call_stack_ptr{};
+  uintlen_t active_stack_ptr{};
   uintlen_t monotonic_ordenal_counter = 0;
 
-  // Call the recursive helper function to find SCCs
-  // in DFS tree with vertex i
-  for (uintlen_t j = 0; j < total_node_count; j++) {
-    if (frozen_ordenal[j] != uintlen_t())
+  for (uintlen_t parent_node_i : std::forward<RIR_t>(entry_node_order)) {
+    asserts(parent_node_i < total_node_count);
+    if (frozen_ordenal[parent_node_i] != uintlen_t())
       continue;
-    uintlen_t u = j;
-    // Initialize discovery time and monotone_lowest_ahead value
+    uintlen_t u = parent_node_i;
     bool fresh_call{true};
 
     uintlen_t i{};
@@ -303,188 +338,145 @@ MJZ_CX_FN treversal_result_t<version_v> calculate_strongly_connected_components(
       if (fresh_call) {
         frozen_ordenal[u] = monotone_lowest_ahead[u] =
             ++monotonic_ordenal_counter;
-        if (active_nodes.size() == active_nodes.capacity()) [[unlikely]] {
-          std::terminate();
-        }
-        // Push current vertex to stack and mark it as in stack
-        active_nodes.push_back(u);
-        is_active_set[u] = true;
+        active_stack[active_stack_ptr++] = u;
         i = 0;
       }
       fresh_call = false;
-      // Go through all vertices adjacent to this
       if (i < edge_of_node[u].size()) {
-        uintlen_t canidate_node_index = edge_of_node[u][i];
-        // If canidate_node_index is not visited yet, then recur for it
-        // Case 1: Tree edge
-        if (frozen_ordenal[canidate_node_index] == uintlen_t()) {
-          if (call_stack.size() == call_stack.capacity()) [[unlikely]] {
-            std::terminate();
-          }
-          call_stack.push_back({u, i});
-          u = canidate_node_index;
-          i = 0;
+        uintlen_t candidate_node_index = edge_of_node[u][intlen_t(i)];
+        if (frozen_ordenal[candidate_node_index] == uintlen_t()) {
+          call_stack[call_stack_ptr++] = u;
+          call_stack[call_stack_ptr++] = i;
+          u = candidate_node_index;
           fresh_call = true;
           continue;
-        }
-
-        // Update monotone_lowest_ahead value of u only if canidate_node_index
-        // is still in stack Case 2: Back edge (not cross edge)
-        else if (is_active_set[canidate_node_index]) {
+        } else if (0 < intlen_t(frozen_ordenal[candidate_node_index])) {
           monotone_lowest_ahead[u] = std::min(
-              monotone_lowest_ahead[u], frozen_ordenal[canidate_node_index]);
+              monotone_lowest_ahead[u], frozen_ordenal[candidate_node_index]);
         }
         i++;
+        fresh_call = false;
         continue;
       }
 
-      // If u is head node of SCC, pop the stack and store the SCC
       if (monotone_lowest_ahead[u] == frozen_ordenal[u]) {
-        auto rev = active_nodes | std::views::reverse;
-        auto scc_begin = std::ranges::find(rev, u);
-        uintlen_t scc_size = uintlen_t(++scc_begin - rev.begin());
-        auto scc_root_it = active_nodes.end() - ptrdiff_t(scc_size);
-        for (uintlen_t k :
-             std::ranges::subrange(scc_root_it, active_nodes.end()))
-          is_active_set[k] = false;
-        ret.nodes_index.push_back(ret.edges.size());
-        ret.edges.insert(ret.edges.end(), scc_root_it, active_nodes.end());
-        active_nodes.erase(scc_root_it, active_nodes.end());
-        // Pop all vertices from stack till u is found
-        // Store one strongly connected component
+        uintlen_t active_base_ptr = active_stack_ptr;
+        while (active_stack[--active_base_ptr] != u)
+          ;
+        scc_index_span[scc_count++] = scc_elem_count;
+        for (uintlen_t j = active_base_ptr; j < active_stack_ptr; j++) {
+          uintlen_t node = scc_elem_span[scc_elem_count++] = active_stack[j];
+          frozen_ordenal[node] = 1 + ~frozen_ordenal[node];
+        }
+        active_stack_ptr = active_base_ptr;
       }
-      if (!call_stack.size())
+      if (!call_stack_ptr)
         break;
-      u = call_stack.back().first;
-      i = call_stack.back().second;
-      call_stack.pop_back();
-      uintlen_t canidate_node_index = edge_of_node[u][i];
-      // Check if the subtree rooted with canidate_node_index has a
-      // connection to one of the ancestors of u
-      monotone_lowest_ahead[u] = std::min(
-          monotone_lowest_ahead[u], monotone_lowest_ahead[canidate_node_index]);
+      i = call_stack[--call_stack_ptr];
+      u = call_stack[--call_stack_ptr];
+      uintlen_t candidate_node_index = edge_of_node[u][intlen_t(i)];
+      monotone_lowest_ahead[u] =
+          std::min(monotone_lowest_ahead[u],
+                   monotone_lowest_ahead[candidate_node_index]);
       i++;
     } while (true);
   }
+  for (uintlen_t i{}; i < scc_elem_count; i++) {
+    ret_reserve_span[i + scc_count] = scc_elem_span[i];
+  }
 
+  ret_append_entact_sz += scc_count + scc_elem_count;
+  const bool plese_dont_emit_realoc = ret_append_entact_sz <= ret.size();
+  asserts(plese_dont_emit_realoc);
+  MJZ_JUST_ASSUME_(plese_dont_emit_realoc);
+  if (plese_dont_emit_realoc) {
+    ret.resize(ret_append_entact_sz);
+  }
+  return scc_count;
+}
+
+template <version_t version_v> struct basic_iota_forest_t {
+  basic_index_range_t<version_v> edges_index{};
+  basic_index_range_t<version_v> nodes_index_index{};
+};
+template <version_t version_v, class R = std::span<const uintlen_t>,
+          index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN basic_iota_forest_t<version_v>
+calculate_strongly_connected_components_with_order_iota(
+    std::vector<uintlen_t> &ret,
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    RIR_t &&entry_node_order) noexcept {
+  uintlen_t base_offset = ret.size();
+  uintlen_t scc_count =
+      calculate_strongly_connected_components_with_order_get_scc_count(
+          ret, edge_of_node_, std::forward<RIR_t>(entry_node_order));
+  uintlen_t elem_offset = base_offset + scc_count;
+  return basic_iota_forest_t{
+      .edges_index =
+          basic_index_range_t<version_v>::from_bounds(base_offset, elem_offset),
+      .nodes_index_index =
+          basic_index_range_t<version_v>::from_bounds(elem_offset, ret.size())};
+}
+
+template <version_t version_v, class R = std::span<const uintlen_t>,
+          index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_strongly_connected_components_with_order(
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    RIR_t &&entry_node_order) noexcept {
+  treversal_result_t<version_v> ret{};
+  uintlen_t base_offset = ret.nodes_index.size();
+  uintlen_t scc_count =
+      calculate_strongly_connected_components_with_order_get_scc_count(
+          ret.nodes_index, edge_of_node_,
+          std::forward<RIR_t>(entry_node_order));
+  uintlen_t elem_offset = base_offset + scc_count;
+  auto eds = std::span(ret.nodes_index).subspan(elem_offset);
+  ret.edges = std::vector(eds.begin(), eds.end());
+  ret.nodes_index.resize(elem_offset);
   return ret;
 }
 
 template <version_t version_v, class R = std::span<const uintlen_t>>
-MJZ_CX_FN pair_t<std::vector<intlen_t>, intlen_t>
-calculate_graph_sequenced_components(
-    const basic_forest_t<version_v, R> &scc_forest_,
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_strongly_connected_components_with_entry(
+    uintlen_t entry_node,
     const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
-  auto edge_of_node = edge_of_node_.range();
-  auto scc_forest = scc_forest_.range();
-  uintlen_t total_node_count = std::ranges::size(edge_of_node);
-  std::vector<uintlen_t> in_degree(std::ranges::size(scc_forest), uintlen_t(0));
-  // scc index
-  std::vector<uintlen_t> scc_indexies(total_node_count, uintlen_t(-1));
-  std::vector<intlen_t> sequence_number(total_node_count, intlen_t());
-  std::vector<uintlen_t> wave_stack{};
-  std::vector<uintlen_t> next_wave_stack{};
-  wave_stack.reserve(in_degree.size());
-  next_wave_stack.reserve(in_degree.size());
-  uintlen_t monotonic_id_counter{};
-  for (auto &&scc : scc_forest) {
-    for (uintlen_t node : scc) {
-      scc_indexies[node] = monotonic_id_counter;
-    }
-    monotonic_id_counter++;
-  }
-  monotonic_id_counter = 0;
-  for (auto &&nodes : edge_of_node) {
-    for (uintlen_t next : nodes) {
-      if (scc_indexies[monotonic_id_counter] == scc_indexies[next])
-        continue;
-      in_degree[scc_indexies[next]]++;
-    }
-    monotonic_id_counter++;
-  }
-  for (uintlen_t i{}; i < in_degree.size(); i++) {
-    if (!in_degree[i])
-      next_wave_stack.push_back(i);
-  }
-  intlen_t wave_index_sequence{};
-  while (next_wave_stack.size()) {
-    wave_index_sequence++;
-    wave_stack.clear();
-    std::swap(next_wave_stack, wave_stack);
-    for (uintlen_t i : wave_stack) {
-      bool was_self_sequencal = false;
-      for (uintlen_t node : scc_forest[i]) {
-        for (uintlen_t next : edge_of_node[node]) {
-          if (scc_indexies[node] == scc_indexies[next]) {
-            was_self_sequencal = true;
-            continue;
-          }
-          if (--in_degree[scc_indexies[next]])
-            continue;
-          next_wave_stack.push_back(scc_indexies[next]);
-        }
-      }
-      for (uintlen_t node : scc_forest[i]) {
-        sequence_number[node] =
-            was_self_sequencal ? -wave_index_sequence : wave_index_sequence;
-      }
-    }
-  };
-  return {std::move(sequence_number), wave_index_sequence};
+  uintlen_t total_node_count = std::ranges::size(edge_of_node_.range());
+  return calculate_strongly_connected_components_with_order(
+      edge_of_node_,
+      std::views::iota(entry_node, entry_node + total_node_count) |
+          std::views::transform([total_node_count](uintlen_t i) noexcept {
+            return i < total_node_count ? i : i - total_node_count;
+          }));
 }
 
 template <version_t version_v, class R = std::span<const uintlen_t>>
-MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t>
-calculate_acyclic_graph_sequenced_components(
+MJZ_CX_FN treversal_result_t<version_v> calculate_strongly_connected_components(
     const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
-  auto edge_of_node = edge_of_node_.range();
-  uintlen_t total_node_count = std::ranges::size(edge_of_node);
-  std::vector<uintlen_t> in_degree(total_node_count, uintlen_t(0));
-  // sequence_number of 0 means unsequenced
-  std::vector<uintlen_t> sequence_number(total_node_count, uintlen_t());
-  std::vector<uintlen_t> wave_stack{};
-  std::vector<uintlen_t> next_wave_stack{};
-  wave_stack.reserve(in_degree.size());
-  next_wave_stack.reserve(in_degree.size());
-  for (auto &&nodes : edge_of_node) {
-    for (uintlen_t next : nodes) {
-      in_degree[next]++;
-    }
-  }
-  for (uintlen_t i{}; i < in_degree.size(); i++) {
-    if (!in_degree[i])
-      next_wave_stack.push_back(i);
-  }
-  uintlen_t wave_index_sequence{};
-  while (next_wave_stack.size()) {
-    wave_index_sequence++;
-    wave_stack.clear();
-    std::swap(next_wave_stack, wave_stack);
-    for (uintlen_t node : wave_stack) {
-      for (uintlen_t next : edge_of_node[node]) {
-        if (--in_degree[next])
-          continue;
-        next_wave_stack.push_back(next);
-      }
-      sequence_number[node] = wave_index_sequence;
-    }
-  };
-  return {std::move(sequence_number), wave_index_sequence};
+  uintlen_t total_node_count = std::ranges::size(edge_of_node_.range());
+  return calculate_strongly_connected_components_with_order(
+      edge_of_node_,
+      std::views::iota(total_node_count ^ total_node_count, total_node_count));
 }
-
-template <version_t version_v, class R = std::span<const uintlen_t>>
-MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_from_entry_given_sccs(
-    uintlen_t entry_node, const basic_forest_t<version_v, R> &scc_forest,
-    const basic_forest_t<version_v, R> &preds_of_node) noexcept {
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_given_sccs_from_entry(
+    uintlen_t entry_node, const basic_forest_t<version_v, R1> &scc_forest,
+    const basic_forest_t<version_v, R2> &preds_of_node) noexcept {
   uintlen_t total_node_count = std::ranges::size(preds_of_node.range());
-  std::vector<uintlen_t> monotonic_dominator_ordenal(total_node_count,
+  std::vector<uintlen_t> monotonic_dominator_ordenal(total_node_count * 2,
                                                      uintlen_t(-1));
-  monotonic_dominator_ordenal[entry_node] = entry_node;
-  std::vector<uintlen_t> frozen_ordenal(total_node_count, uintlen_t(-1));
+  auto frozen_ordenal = std::span<uintlen_t>(monotonic_dominator_ordenal)
+                            .subspan(total_node_count);
   uintlen_t monotonic_ordenal_counter = 0;
+  monotonic_dominator_ordenal[entry_node] = entry_node;
+  frozen_ordenal[entry_node] = monotonic_ordenal_counter++;
   auto monotonic_scc_range = scc_forest.range() | std::views::reverse;
   for (auto &&scc : monotonic_scc_range) {
     for (uintlen_t node : scc) {
+      if (node == entry_node)
+        continue;
       frozen_ordenal[node] = monotonic_ordenal_counter++;
     }
   }
@@ -542,10 +534,953 @@ MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_from_entry_given_sccs(
       }
     } while (changed);
   }
+  monotonic_dominator_ordenal.resize(total_node_count);
 
   return monotonic_dominator_ordenal;
 }
 
+template <version_t version_v,
+          usable_index_range_c<version_v> immidiate_dominators_t>
+MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+make_dominator_forest_given_dominators(
+    immidiate_dominators_t &&immidiate_dominators) noexcept {
+  const uintlen_t total_node_count = std::ranges::size(immidiate_dominators);
+  treversal_result_t<version_v> ret{};
+  ret.nodes_index = std::vector<uintlen_t>(total_node_count);
+  uintlen_t node_index{};
+  for (uintlen_t immidiate_dominator : immidiate_dominators) {
+    if (immidiate_dominator < total_node_count &&
+        immidiate_dominator != node_index) {
+      ret.nodes_index[immidiate_dominator]++;
+    }
+    node_index++;
+  }
+
+  uintlen_t accumulate{};
+  for (uintlen_t &tree_index : ret.nodes_index) {
+    accumulate += tree_index;
+    tree_index = accumulate;
+  }
+
+  ret.edges = std::vector<uintlen_t>(accumulate);
+  node_index = 0;
+  for (uintlen_t immidiate_dominator : immidiate_dominators) {
+    if (immidiate_dominator < total_node_count &&
+        immidiate_dominator != node_index) {
+      ret.edges[--ret.nodes_index[immidiate_dominator]] = node_index;
+    }
+    node_index++;
+  }
+
+  return ret;
+}
+template <version_t version_v,
+          mutable_index_range_c<version_v> zero_init_interval_begin_t,
+          mutable_index_range_c<version_v> zero_init_interval_end_t,
+          mutable_index_range_c<version_v> uninit_dfs_parent_t,
+          class R = std::span<const uintlen_t>,
+          index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN uintlen_t calculate_depth_first_intervals(
+    zero_init_interval_begin_t &&zero_init_interval_begin,
+    zero_init_interval_end_t &&zero_init_interval_end,
+    uninit_dfs_parent_t &&uninit_dfs_parent,
+    const basic_forest_t<version_v, R> &edge_of_node_, RIR_t &&visit_order,
+    auto &&entry_callback, auto &&tree_edge_callback, auto &&back_edge_callback,
+    auto &&cross_edge_callback, auto &&forward_edge_callback,
+    auto &&exit_callback) noexcept
+  requires requires(uintlen_t parent, uintlen_t entry_time, uintlen_t exit_time,
+                    uintlen_t node, uintlen_t adj) {
+    { (void)entry_callback(+parent, +node, +entry_time) } noexcept;
+    { (void)tree_edge_callback(+node, +adj) } noexcept;
+    { (void)back_edge_callback(+node, +adj) } noexcept;
+    { (void)cross_edge_callback(+node, +adj) } noexcept;
+    { (void)forward_edge_callback(+node, +adj) } noexcept;
+    { (void)exit_callback(+parent, +node, +exit_time) } noexcept;
+  }
+{
+
+  auto adjs = edge_of_node_.range();
+  uintlen_t timer{};
+  for (uintlen_t graph_node : visit_order) {
+    if (zero_init_interval_begin[graph_node])
+      continue;
+    uninit_dfs_parent[graph_node] = uintlen_t(-1);
+    do {
+      uintlen_t graph_size = std::ranges::size(adjs[graph_node]);
+      uintlen_t next_leaf_index = ~--zero_init_interval_end[graph_node];
+      if (!next_leaf_index) {
+        zero_init_interval_begin[graph_node] = ++timer;
+        (void)entry_callback(+uninit_dfs_parent[graph_node], +graph_node,
+                             +timer);
+      }
+
+      if (next_leaf_index < graph_size) {
+        uintlen_t next_graph_node = adjs[graph_node][intlen_t(next_leaf_index)];
+        uintlen_t start_time_next = zero_init_interval_begin[next_graph_node];
+        if (start_time_next) {
+          if (~zero_init_interval_end[next_graph_node] <
+              std::ranges::size(adjs[next_graph_node])) {
+            (void)back_edge_callback(+graph_node, +next_graph_node);
+            continue;
+          }
+          if (zero_init_interval_begin[graph_node] <=
+              zero_init_interval_begin[next_graph_node]) {
+            (void)forward_edge_callback(+graph_node, +next_graph_node);
+            continue;
+          }
+          (void)cross_edge_callback(+graph_node, +next_graph_node);
+          continue;
+        }
+        (void)tree_edge_callback(+graph_node, +next_graph_node);
+        uninit_dfs_parent[next_graph_node] = graph_node;
+        graph_node = next_graph_node;
+        continue;
+      }
+
+      zero_init_interval_end[graph_node] = ++timer;
+      uintlen_t parent_graph = uninit_dfs_parent[graph_node];
+      (void)exit_callback(+parent_graph, +graph_node, +timer);
+      if (parent_graph == uintlen_t(-1))
+        break;
+      graph_node = parent_graph;
+
+      continue;
+    } while (true);
+  }
+  return timer;
+}
+template <version_t version_v,
+          mutable_index_range_c<version_v> zero_init_interval_begin_t,
+          mutable_index_range_c<version_v> zero_init_interval_end_t,
+          mutable_index_range_c<version_v> uninit_dfs_parent_t,
+          class R = std::span<const uintlen_t>,
+          index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN uintlen_t calculate_depth_first_intervals(
+    zero_init_interval_begin_t &&zero_init_interval_begin,
+    zero_init_interval_end_t &&zero_init_interval_end,
+    uninit_dfs_parent_t &&uninit_dfs_parent,
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    RIR_t &&visit_order) noexcept {
+  auto dummy_callback = [](auto &&...) noexcept {};
+  return calculate_depth_first_intervals(
+      zero_init_interval_begin, zero_init_interval_end, uninit_dfs_parent,
+      edge_of_node_, visit_order, dummy_callback, dummy_callback,
+      dummy_callback, dummy_callback, dummy_callback, dummy_callback);
+}
+
+template <version_t version_v,
+          mutable_index_range_c<version_v> zero_init_interval_begin_t,
+          mutable_index_range_c<version_v> zero_init_interval_end_t,
+          class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> immidiate_dominators_t,
+          index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN uintlen_t calculate_dominance_intervals_given_dominators_and_forest(
+    zero_init_interval_begin_t &&zero_init_interval_begin,
+    zero_init_interval_end_t &&zero_init_interval_end,
+    const basic_forest_t<version_v, R> &dominator_forest,
+    immidiate_dominators_t &&immidiate_dominators,
+    RIR_t &&visit_order) noexcept {
+
+  auto dom_tree_range = dominator_forest.range();
+  uintlen_t timer{};
+  for (uintlen_t tree_node :
+       visit_order | std::views::filter([&](uintlen_t i) noexcept -> bool {
+         return immidiate_dominators[i] == i ||
+                immidiate_dominators[i] == uintlen_t(-1);
+       })) {
+    uintlen_t parent_tree = immidiate_dominators[tree_node];
+    if (parent_tree == uintlen_t(-1)) {
+      zero_init_interval_begin[tree_node] = ++timer;
+      zero_init_interval_end[tree_node] = ++timer;
+      continue;
+    }
+    if (tree_node != parent_tree)
+      continue;
+    if (zero_init_interval_begin[tree_node])
+      continue;
+    do {
+      uintlen_t tree_size = std::ranges::size(dom_tree_range[tree_node]);
+      uintlen_t next_leaf_index = zero_init_interval_end[tree_node]++;
+      if (!next_leaf_index) {
+        zero_init_interval_begin[tree_node] = ++timer;
+      }
+
+      if (next_leaf_index < tree_size) {
+        tree_node = dom_tree_range[tree_node][intlen_t(next_leaf_index)];
+        continue;
+      }
+
+      zero_init_interval_end[tree_node] = ++timer;
+      parent_tree = immidiate_dominators[tree_node];
+      if (tree_node == parent_tree || parent_tree == uintlen_t(-1))
+        break;
+      tree_node = parent_tree;
+      continue;
+
+    } while (true);
+  }
+  return timer;
+}
+
+template <version_t version_v, class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> immidiate_dominators_t>
+MJZ_CX_FN pair_t<std::vector<uintlen_t>, std::vector<uintlen_t>>
+calculate_dominance_intervals_given_dominators_and_forest(
+    const basic_forest_t<version_v, R> &dominator_forest,
+    immidiate_dominators_t &&immidiate_dominatorsr) noexcept {
+  auto begin_interval = std::vector<uintlen_t>(immidiate_dominatorsr.size());
+  auto end_interval = std::vector<uintlen_t>(immidiate_dominatorsr.size());
+  calculate_dominance_intervals_given_dominators_and_forest(
+      begin_interval, end_interval, dominator_forest, immidiate_dominatorsr,
+      std::views::iota(uintlen_t(), uintlen_t(immidiate_dominatorsr.size())));
+  return {begin_interval, end_interval};
+}
+
+template <version_t version_v, usable_index_range_c<version_v> interval_begin_t,
+          usable_index_range_c<version_v> interval_end_t,
+          class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_natural_loops_given_dominance_intervals(
+    interval_begin_t &&interval_begin, interval_end_t &&interval_end,
+    const basic_forest_t<version_v, R1> &edge_of_node_,
+    const basic_forest_t<version_v, R2> &preds_of_node) noexcept {
+  auto adjs = edge_of_node_.range();
+  auto preds = preds_of_node.range();
+  treversal_result_t<version_v> ret{};
+
+  uintlen_t total_node_count = std::ranges::size(adjs);
+  uintlen_t max_natual_loop_count = std::ranges::size(edge_of_node_.edges);
+  ret.nodes_index.reserve(max_natual_loop_count);
+  ret.edges.reserve(total_node_count + max_natual_loop_count);
+
+  auto dominates = [&](uintlen_t dom, uintlen_t sub) noexcept -> bool {
+    if (interval_begin[dom] == 0 || interval_begin[sub] == 0)
+      return false;
+    return interval_begin[dom] <= interval_begin[sub] &&
+           interval_end[dom] >= interval_end[sub];
+  };
+
+  auto work_stack = std::vector<uintlen_t>(total_node_count);
+  uintlen_t work_stack_ptr{};
+  for (uintlen_t u = 0; u < total_node_count; ++u) {
+    for (uintlen_t v : adjs[u]) {
+      if (!dominates(v, u))
+        continue;
+      uintlen_t loop_start_offset = ret.edges.size();
+      ret.nodes_index.push_back(loop_start_offset);
+      ret.edges.push_back(v);
+
+      work_stack[v] |= 1;
+      if (u != v) {
+        work_stack[u] |= 1;
+        work_stack[work_stack_ptr++] |= u << 1;
+        ret.edges.push_back(u);
+      }
+      while (work_stack_ptr) {
+        uintlen_t curr = work_stack[--work_stack_ptr] >> 1;
+        work_stack[work_stack_ptr] &= 1;
+        for (uintlen_t pred : preds[curr]) {
+          if (work_stack[pred] & 1)
+            continue;
+          work_stack[pred] |= 1;
+          work_stack[work_stack_ptr++] |= (pred << 1);
+          ret.edges.push_back(pred);
+        }
+      }
+      for (uintlen_t i :
+           std::views::iota(loop_start_offset, ret.edges.size())) {
+        work_stack[ret.edges[i]] = 0;
+      }
+    }
+  }
+
+  return ret;
+}
+
+template <version_t version_v,
+          mutable_index_range_c<version_v> uninit_inner_most_loops_t,
+          mutable_index_range_c<version_v> uninit_outer_most_loop_of_loop_t,
+          mutable_index_range_c<version_v> uninit_nest_of_loop_t,
+          class R = std::span<const uintlen_t>>
+MJZ_CX_FN void calculate_nesting_of_natural_loops(
+    const basic_forest_t<version_v, R> &natural_loops_,
+    uninit_inner_most_loops_t &&inner_most_loops,
+    uninit_outer_most_loop_of_loop_t &&outer_most_loop_of_loop,
+    uninit_nest_of_loop_t &&uninit_nest_of_loop) noexcept {
+  uintlen_t node_count = std::ranges::size(inner_most_loops);
+  uintlen_t loop_count = std::ranges::size(outer_most_loop_of_loop);
+  std::vector<uintlen_t> temporary(loop_count + node_count + 1, uintlen_t(-1));
+  auto natural_loops = natural_loops_.range();
+  auto linked_list_next =
+      std::span<uintlen_t>(temporary).subspan(uintlen_t(), loop_count);
+  auto linked_list_head =
+      std::span<uintlen_t>(temporary).subspan(loop_count, node_count + 1);
+  uintlen_t max_loop_size{};
+  uintlen_t loop_index{};
+  std::ranges::fill(inner_most_loops, uintlen_t(-1));
+
+  for (auto &&loop : natural_loops) {
+    uintlen_t loop_size = std::ranges::size(loop);
+    uninit_nest_of_loop[loop_index] = 0;
+    outer_most_loop_of_loop[loop_index] = loop_index;
+    linked_list_next[loop_index] =
+        std::exchange(linked_list_head[loop_size], loop_index++);
+    max_loop_size = std::max(max_loop_size, loop_size);
+  }
+  uintlen_t current_loop_size{};
+  for (uintlen_t head : linked_list_head) {
+    if (max_loop_size < current_loop_size++)
+      break;
+    for (; head != uintlen_t(-1); head = linked_list_next[head]) {
+      for (uintlen_t block : natural_loops[head]) {
+        uintlen_t closest_loop = inner_most_loops[block];
+        if (closest_loop == uintlen_t(-1)) {
+          inner_most_loops[block] = head;
+          continue;
+        }
+        if (head == std::exchange(outer_most_loop_of_loop[closest_loop], head))
+          continue;
+        uninit_nest_of_loop[closest_loop]++;
+      }
+    }
+  }
+}
+
+template <version_t version_v,
+          usable_index_range_c<version_v> immidiate_dominators_t,
+          class R = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_inverse_dominance_frontiers_given_dominators(
+    immidiate_dominators_t &&immidiate_dominators,
+    const basic_forest_t<version_v, R> &preds_of_node) noexcept {
+  uintlen_t total_node_count = std::ranges::size(preds_of_node.range());
+  treversal_result_t<version_v> ret{};
+  ret.nodes_index.reserve(total_node_count);
+  ret.edges.reserve(total_node_count + std::ranges::size(preds_of_node.edges));
+
+  auto preds = preds_of_node.range();
+  auto current_inverse_frontiers =
+      std::vector<uintlen_t>(total_node_count, uintlen_t(-1));
+
+  for (uintlen_t y = 0; y < total_node_count; ++y) {
+    uintlen_t current_inverse_frontiers_head = uintlen_t(-1);
+    uintlen_t current_inverse_frontiers_count{};
+    auto pred_range = preds[y];
+    for (uintlen_t p : pred_range) {
+      uintlen_t runner = p;
+      while (runner != immidiate_dominators[y] && runner != uintlen_t(-1) &&
+             current_inverse_frontiers[runner] == uintlen_t(-1)) {
+        current_inverse_frontiers[runner] = current_inverse_frontiers_head;
+        current_inverse_frontiers_head = runner;
+        current_inverse_frontiers_count++;
+        runner = immidiate_dominators[runner];
+      }
+    }
+
+    uintlen_t offset_of_node = ret.edges.size();
+    ret.nodes_index.push_back(offset_of_node);
+    ret.edges.resize(offset_of_node + current_inverse_frontiers_count);
+    while (current_inverse_frontiers_head != uintlen_t(-1)) {
+      ret.edges[offset_of_node++] = current_inverse_frontiers_head;
+      current_inverse_frontiers_head = std::exchange(
+          current_inverse_frontiers[current_inverse_frontiers_head],
+          uintlen_t(-1));
+    }
+  }
+
+  return ret;
+}
+
+template <version_t version_v,
+          usable_index_range_c<version_v> immidiate_dominators_t,
+          class R = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_dominance_frontiers_given_dominators(
+    immidiate_dominators_t &&immidiate_dominators,
+    const basic_forest_t<version_v, R> &preds_of_node) noexcept {
+  return make_basic_inv_forest<version_v>(
+      calculate_inverse_dominance_frontiers_given_dominators(
+          std::forward<immidiate_dominators_t>(immidiate_dominators),
+          preds_of_node)
+          .range());
+}
+
+template <version_t version_v,
+          usable_index_range_c<version_v> immidiate_post_dominators_t,
+          class R = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_dominance_frontiers_given_post_dominators(
+    immidiate_post_dominators_t &&immidiate_post_dominators,
+    const basic_forest_t<version_v, R> &edges_of_node) noexcept {
+  return make_basic_inv_forest<version_v>(
+      calculate_inverse_dominance_frontiers_given_dominators(
+          std::forward<immidiate_post_dominators_t>(immidiate_post_dominators),
+          edges_of_node)
+          .range());
+}
+
+template <version_t version_v, class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> definion_range_t>
+MJZ_CX_FN uintlen_t
+calculate_iterated_dominance_frontiers_given_dominance_frontiers(
+    std::vector<uintlen_t> &ret,
+    const basic_forest_t<version_v, R> &dominance_frontiers_forest,
+    definion_range_t &&definion_range) noexcept {
+  auto dominance_frontiers_range = dominance_frontiers_forest.range();
+  uintlen_t total_node_count = std::ranges::size(dominance_frontiers_range);
+  if (!total_node_count) {
+    return 0;
+  }
+
+  uintlen_t ret_append_entact_sz = ret.size();
+  uintlen_t max_size_total = total_node_count * 2;
+  asserts(total_node_count <= max_size_total);
+  //
+  ret.resize(max_size_total + ret_append_entact_sz);
+  //
+  uintlen_t bump_alloc_ptr{ret_append_entact_sz};
+  auto alloc_ptr_fn_ = [&](uintlen_t sz) noexcept {
+    uintlen_t old = bump_alloc_ptr;
+    bump_alloc_ptr += sz;
+    asserts(bump_alloc_ptr <= ret_append_entact_sz + max_size_total);
+    return std::span(ret).subspan(old, sz);
+  };
+
+  auto iterated_dominance_frontiers = alloc_ptr_fn_(total_node_count);
+  auto work_que = alloc_ptr_fn_(total_node_count);
+
+  uintlen_t iterated_dominance_frontiers_count{};
+  uintlen_t work_head{};
+  uintlen_t work_tail{};
+
+  for (uintlen_t node : std::forward<definion_range_t>(definion_range)) {
+    if (node >= total_node_count || (work_que[node] & 1))
+      continue;
+    work_que[node] |= 1;
+    work_que[work_tail++] |= node << 1;
+  }
+
+  while (work_head < work_tail) {
+    for (uintlen_t node :
+         dominance_frontiers_range[work_que[work_head++] >> 1]) {
+      if ((iterated_dominance_frontiers[node] & 1))
+        continue;
+      iterated_dominance_frontiers[node] |= 1;
+      iterated_dominance_frontiers[iterated_dominance_frontiers_count++] |=
+          node << 1;
+
+      if (work_que[node] & 1)
+        continue;
+      work_que[node] |= 1;
+      work_que[work_tail++] |= node << 1;
+    }
+  }
+
+  for (uintlen_t i = 0; i < iterated_dominance_frontiers_count; ++i) {
+    ret[ret_append_entact_sz + i] = iterated_dominance_frontiers[i] >> 1;
+  }
+
+  ret_append_entact_sz += iterated_dominance_frontiers_count;
+  const bool please_dont_emit_realloc = ret_append_entact_sz <= ret.size();
+  asserts(please_dont_emit_realloc);
+  MJZ_JUST_ASSUME_(please_dont_emit_realloc);
+  if (please_dont_emit_realloc) {
+    ret.resize(ret_append_entact_sz);
+  }
+  return iterated_dominance_frontiers_count;
+}
+
+template <version_t version_v, class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> definion_range_t>
+MJZ_CX_FN std::vector<uintlen_t>
+calculate_iterated_dominance_frontiers_given_dominance_frontiers(
+    const basic_forest_t<version_v, R> &dominance_frontiers_forest,
+    definion_range_t &&definion_range) noexcept {
+  std::vector<uintlen_t> ret{};
+  calculate_iterated_dominance_frontiers_given_dominance_frontiers(
+      ret, dominance_frontiers_forest,
+      std::forward<definion_range_t>(definion_range));
+  return ret;
+}
+
+template <version_t version_v,
+          usable_index_range_c<version_v> dominance_interval_begin_t,
+          usable_index_range_c<version_v> dominance_interval_end_t,
+          usable_index_range_c<version_v> depth_first_interval_begin_t,
+          usable_index_range_c<version_v> depth_first_interval_end_t,
+          class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> visit_range_t>
+MJZ_CX_FN uintlen_t
+for_each_unreducibles_given_depth_first_and_dominance_intervals(
+    dominance_interval_begin_t &&dominance_interval_begin,
+    dominance_interval_end_t &&dominance_interval_end,
+    depth_first_interval_begin_t &&depth_first_interval_begin,
+    depth_first_interval_end_t &&depth_first_interval_end,
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    visit_range_t &&visit_range, auto &&call_back) noexcept {
+  auto dominates = [&](uintlen_t dom, uintlen_t sub) noexcept -> bool {
+    if (dominance_interval_begin[dom] == 0 ||
+        dominance_interval_begin[sub] == 0)
+      return false;
+    return dominance_interval_begin[dom] <= dominance_interval_begin[sub] &&
+           dominance_interval_end[dom] >= dominance_interval_end[sub];
+  };
+  auto is_dfs_ancestor = [&](uintlen_t dom, uintlen_t sub) noexcept -> bool {
+    if (depth_first_interval_begin[dom] == 0 ||
+        depth_first_interval_begin[sub] == 0)
+      return false;
+    return depth_first_interval_begin[dom] <= depth_first_interval_begin[sub] &&
+           depth_first_interval_end[dom] >= depth_first_interval_end[sub];
+  };
+
+  auto adjs = edge_of_node_.range();
+
+  uintlen_t unreducibles_count{};
+  for (uintlen_t node : visit_range) {
+    for (uintlen_t next : adjs[node]) {
+      if (!is_dfs_ancestor(next, node) || dominates(next, node))
+        continue;
+      unreducibles_count++;
+      call_back(node, next);
+    }
+  }
+  return unreducibles_count;
+}
+
+template <version_t version_v, mutable_index_range_c<version_v> range_t,
+          usable_index_range_c<version_v> dominance_interval_begin_t,
+          usable_index_range_c<version_v> dominance_interval_end_t,
+          usable_index_range_c<version_v> depth_first_interval_begin_t,
+          usable_index_range_c<version_v> depth_first_interval_end_t,
+          class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> visit_range_t>
+MJZ_CX_FN void union_unreducibles_given_depth_first_and_dominance_intervals(
+    disjoint_set_union_t<version_v, range_t> &ret,
+    dominance_interval_begin_t &&dominance_interval_begin,
+    dominance_interval_end_t &&dominance_interval_end,
+    depth_first_interval_begin_t &&depth_first_interval_begin,
+    depth_first_interval_end_t &&depth_first_interval_end,
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    visit_range_t &&visit_range) noexcept {
+  ret.init(std::ranges::size(edge_of_node_.range()));
+  for_each_unreducibles_given_depth_first_and_dominance_intervals(
+      dominance_interval_begin, dominance_interval_end,
+      depth_first_interval_begin, depth_first_interval_end, edge_of_node_,
+      visit_range, [&](uintlen_t node, uintlen_t adj) noexcept {
+        ret.find_and_unite_root(adj, node);
+      });
+}
+
+template <version_t version_v,
+          usable_index_range_c<version_v> dominance_interval_begin_t,
+          usable_index_range_c<version_v> dominance_interval_end_t,
+          usable_index_range_c<version_v> depth_first_interval_begin_t,
+          usable_index_range_c<version_v> depth_first_interval_end_t,
+          class R = std::span<const uintlen_t>,
+          usable_index_range_c<version_v> visit_range_t>
+MJZ_CX_FN uintlen_t count_unreducibles_given_scc_and_dominance_intervals(
+    dominance_interval_begin_t &&dominance_interval_begin,
+    dominance_interval_end_t &&dominance_interval_end,
+    depth_first_interval_begin_t &&depth_first_interval_begin,
+    depth_first_interval_end_t &&depth_first_interval_end,
+    const basic_forest_t<version_v, R> &edge_of_node_,
+    visit_range_t &&visit_range) noexcept {
+  return for_each_unreducibles_given_depth_first_and_dominance_intervals(
+      dominance_interval_begin, dominance_interval_end,
+      depth_first_interval_begin, depth_first_interval_end, edge_of_node_,
+      visit_range, [](auto &&...) noexcept {});
+}
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN void calculate_dominators_from_entry(
+    std::vector<uintlen_t> &ret, uintlen_t entry_node,
+    const basic_forest_t<version_v, R1> &edge_of_node_,
+    const basic_forest_t<version_v, R2> &pred_of_node_) noexcept {
+  auto adj = edge_of_node_.range();
+  uintlen_t total_node_count = std::ranges::size(adj);
+  uintlen_t ret_append_entact_sz = ret.size();
+  if (!total_node_count) {
+    return;
+  }
+  uintlen_t timer = 0;
+  uintlen_t max_size_total = total_node_count * 8;
+  asserts(total_node_count <= max_size_total);
+  asserts(max_size_total <= max_size_total + ret_append_entact_sz);
+  //
+  ret.reserve(max_size_total + ret_append_entact_sz);
+  ret.resize(total_node_count * 4 + ret_append_entact_sz, uintlen_t(-1));
+  ret.resize(max_size_total + ret_append_entact_sz);
+  //
+  uintlen_t bumbp_alloc_ptr{ret_append_entact_sz};
+  auto alloc_storage_fn_ = [&](uintlen_t sz) noexcept {
+    bumbp_alloc_ptr += sz;
+    asserts(bumbp_alloc_ptr <= ret_append_entact_sz + max_size_total);
+    return bumbp_alloc_ptr - sz;
+  };
+
+  auto alloc_ptr_fn_ = [&](uintlen_t sz) noexcept {
+    return std::span(ret).subspan(alloc_storage_fn_(sz), sz);
+  };
+  //
+  auto immidiate_dominators = alloc_ptr_fn_(total_node_count);
+  //
+  auto linked_list_head = alloc_ptr_fn_(total_node_count);
+  auto linked_list_next = alloc_ptr_fn_(total_node_count);
+  auto semi_dominator_discovery_ordinal = alloc_ptr_fn_(total_node_count);
+  //
+  auto inverse_depth_first_ordenal = alloc_ptr_fn_(total_node_count);
+  auto depth_first_parent = alloc_ptr_fn_(total_node_count);
+  auto disjoint_set_union_label_path = alloc_ptr_fn_(total_node_count);
+  auto disjoint_set_union_parent = alloc_ptr_fn_(total_node_count);
+  // lifetimes dont overlap
+  auto call_stack = disjoint_set_union_label_path;
+
+  const auto pred = pred_of_node_.range();
+
+  {
+    uintlen_t current_node = entry_node;
+    asserts(current_node < total_node_count);
+    immidiate_dominators[current_node] = current_node;
+    depth_first_parent[current_node] = uintlen_t(-1);
+    uintlen_t call_stack_ptr{};
+    bool fresh_call = true;
+    uintlen_t i = 0;
+    do {
+      if (fresh_call) {
+        inverse_depth_first_ordenal[timer] = current_node;
+        semi_dominator_discovery_ordinal[current_node] = timer;
+        i = 0;
+        timer++;
+      }
+      if (i < std::ranges::size(adj[current_node])) {
+        uintlen_t connection_node = adj[current_node][intlen_t(i)];
+        if (uintlen_t(-1) !=
+            semi_dominator_discovery_ordinal[connection_node]) {
+          i++;
+          fresh_call = false;
+          continue;
+        }
+        depth_first_parent[connection_node] = current_node;
+        call_stack[call_stack_ptr++] = i;
+        i = 0;
+        current_node = connection_node;
+        fresh_call = true;
+        continue;
+      }
+      if (!call_stack_ptr)
+        break;
+      i = call_stack[--call_stack_ptr];
+      current_node = depth_first_parent[current_node];
+      fresh_call = false;
+      i++;
+    } while (true);
+    i = 0;
+    for (i = 0; i < total_node_count; i++)
+      disjoint_set_union_label_path[i] = disjoint_set_union_parent[i] = i;
+  }
+
+  auto disjoint_set_union_path_find =
+      [&](const uintlen_t original_node) noexcept {
+        uintlen_t root_node = original_node;
+        uintlen_t prev_node = original_node;
+        while (disjoint_set_union_parent[root_node] != root_node) {
+          uintlen_t next = disjoint_set_union_parent[root_node];
+          disjoint_set_union_parent[root_node] = prev_node;
+          prev_node = root_node;
+          root_node = next;
+        }
+
+        if (prev_node == root_node) {
+          return disjoint_set_union_label_path[original_node];
+        }
+
+        while (prev_node != original_node) {
+          uintlen_t next_down = disjoint_set_union_parent[prev_node];
+          if (semi_dominator_discovery_ordinal
+                  [disjoint_set_union_label_path[prev_node]] <
+              semi_dominator_discovery_ordinal
+                  [disjoint_set_union_label_path[next_down]]) {
+            disjoint_set_union_label_path[next_down] =
+                disjoint_set_union_label_path[prev_node];
+          }
+          disjoint_set_union_parent[prev_node] = root_node;
+          prev_node = next_down;
+        }
+
+        disjoint_set_union_parent[original_node] = root_node;
+        return disjoint_set_union_label_path[original_node];
+      };
+  for (uintlen_t k = timer - 1; 0 < k; k--) {
+
+    uintlen_t current_ordered_node = inverse_depth_first_ordenal[k];
+
+    for (uintlen_t connection_node : pred[current_ordered_node]) {
+      if (uintlen_t(-1) == semi_dominator_discovery_ordinal[connection_node])
+        continue;
+      uintlen_t current_node = disjoint_set_union_path_find(connection_node);
+      if (semi_dominator_discovery_ordinal[current_node] <
+          semi_dominator_discovery_ordinal[current_ordered_node])
+        semi_dominator_discovery_ordinal[current_ordered_node] =
+            semi_dominator_discovery_ordinal[current_node];
+    }
+    linked_list_next[current_ordered_node] = std::exchange(
+        linked_list_head
+            [inverse_depth_first_ordenal
+                 [semi_dominator_discovery_ordinal[current_ordered_node]]],
+        +current_ordered_node);
+
+    disjoint_set_union_parent[current_ordered_node] =
+        depth_first_parent[current_ordered_node];
+    for (uintlen_t connection_node = std::exchange(
+             linked_list_head[depth_first_parent[current_ordered_node]],
+             uintlen_t(-1));
+         connection_node != uintlen_t(-1);
+         connection_node = linked_list_next[connection_node]) {
+      uintlen_t current_node = disjoint_set_union_path_find(connection_node);
+      immidiate_dominators[connection_node] =
+          semi_dominator_discovery_ordinal[current_node] <
+                  semi_dominator_discovery_ordinal[connection_node]
+              ? current_node
+              : depth_first_parent[current_ordered_node];
+    }
+  }
+
+  for (uintlen_t i = 1; i < timer; i++) {
+    uintlen_t current_ordered_node = inverse_depth_first_ordenal[i];
+
+    immidiate_dominators[current_ordered_node] =
+        immidiate_dominators[current_ordered_node] !=
+                inverse_depth_first_ordenal
+                    [semi_dominator_discovery_ordinal[current_ordered_node]]
+            ? immidiate_dominators[immidiate_dominators[current_ordered_node]]
+            : immidiate_dominators[current_ordered_node];
+  }
+  ret_append_entact_sz += total_node_count;
+  const bool plese_dont_emit_realoc = ret_append_entact_sz < ret.size();
+  asserts(plese_dont_emit_realoc);
+  MJZ_JUST_ASSUME_(plese_dont_emit_realoc);
+  if (plese_dont_emit_realoc) {
+    ret.resize(ret_append_entact_sz);
+  }
+  return;
+}
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN std::vector<uintlen_t> calculate_post_dominators_from_exit(
+    uintlen_t exit_node, const basic_forest_t<version_v, R1> &edge_of_node_,
+    const basic_forest_t<version_v, R2> &pred_of_node_) noexcept {
+  std::vector<uintlen_t> ret{};
+  calculate_dominators_from_entry(ret, exit_node, pred_of_node_, edge_of_node_);
+  return ret;
+}
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_from_entry(
+    uintlen_t entry_node, const basic_forest_t<version_v, R1> &edge_of_node_,
+    const basic_forest_t<version_v, R2> &pred_of_node_) noexcept {
+  std::vector<uintlen_t> ret{};
+  calculate_dominators_from_entry(ret, entry_node, edge_of_node_,
+                                  pred_of_node_);
+  return ret;
+}
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN pair_t<std::vector<intlen_t>, intlen_t>
+calculate_graph_sequenced_components(
+    const basic_forest_t<version_v, R1> &scc_forest_,
+    const basic_forest_t<version_v, R2> &edge_of_node_) noexcept {
+  auto edge_of_node = edge_of_node_.range();
+  auto scc_forest = scc_forest_.range();
+  uintlen_t total_node_count = std::ranges::size(edge_of_node);
+  uintlen_t total_scc_count = std::ranges::size(scc_forest);
+  std::vector<intlen_t> sequence_number(total_node_count * 2 +
+                                        total_scc_count * 3);
+  auto scc_indexies_compl =
+      std::span(sequence_number).subspan(total_node_count, total_node_count);
+  auto wave_stack =
+      std::span(sequence_number).subspan(total_node_count * 2, total_scc_count);
+  auto next_wave_stack =
+      std::span(sequence_number)
+          .subspan(total_node_count * 2 + total_scc_count, total_scc_count);
+  auto in_degree =
+      std::span(sequence_number)
+          .subspan(total_node_count * 2 + total_scc_count * 2, total_scc_count);
+  uintlen_t next_wave_stack_ptr{};
+  uintlen_t wave_stack_ptr{};
+
+  uintlen_t monotonic_id_counter{};
+  for (auto &&scc : scc_forest) {
+    for (uintlen_t node : scc) {
+      scc_indexies_compl[node] = intlen_t(~monotonic_id_counter);
+    }
+    monotonic_id_counter++;
+  }
+
+  monotonic_id_counter = 0;
+  for (auto &&nodes : edge_of_node) {
+    uintlen_t src_scc = ~uintlen_t(scc_indexies_compl[monotonic_id_counter++]);
+    if (src_scc == uintlen_t(-1)) {
+      continue;
+    }
+    for (uintlen_t next : nodes) {
+      uintlen_t dst_scc = ~uintlen_t(scc_indexies_compl[next]);
+      if (dst_scc == uintlen_t(-1) || src_scc == dst_scc) {
+        continue;
+      }
+      in_degree[dst_scc]++;
+    }
+  }
+
+  for (uintlen_t i{}; i < in_degree.size(); i++) {
+    if (!in_degree[i])
+      next_wave_stack[next_wave_stack_ptr++] = intlen_t(i);
+  }
+
+  intlen_t wave_index_sequence{};
+  while (next_wave_stack_ptr) {
+    wave_index_sequence++;
+    wave_stack_ptr = 0;
+    std::swap(wave_stack_ptr, next_wave_stack_ptr);
+    std::swap(next_wave_stack, wave_stack);
+    for (intlen_t si : wave_stack.subspan(uintlen_t(), wave_stack_ptr)) {
+      uintlen_t i = uintlen_t(si);
+      bool was_self_sequencal = std::ranges::size(scc_forest[i]) > 1;
+      for (uintlen_t node : scc_forest[i]) {
+        for (uintlen_t next : edge_of_node[node]) {
+          uintlen_t dst_scc = ~uintlen_t(scc_indexies_compl[next]);
+          if (dst_scc == uintlen_t(-1)) {
+            continue;
+          }
+          if (i == dst_scc) {
+            was_self_sequencal = true;
+            continue;
+          }
+          if (--in_degree[dst_scc])
+            continue;
+          next_wave_stack[next_wave_stack_ptr++] = intlen_t(dst_scc);
+        }
+        sequence_number[node] =
+            was_self_sequencal ? -wave_index_sequence : wave_index_sequence;
+      }
+    }
+  }
+  sequence_number.resize(total_node_count);
+  return {std::move(sequence_number), wave_index_sequence};
+}
+
+template <version_t version_v, class R = std::span<const uintlen_t>>
+MJZ_CX_FN pair_t<std::vector<intlen_t>, intlen_t>
+calculate_acyclic_graph_sequenced_components(
+    const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
+  auto edge_of_node = edge_of_node_.range();
+  uintlen_t total_node_count = std::ranges::size(edge_of_node);
+  std::vector<intlen_t> sequence_number(total_node_count * 4);
+  auto in_degree =
+      std::span(sequence_number).subspan(total_node_count, total_node_count);
+  auto wave_stack = std::span(sequence_number)
+                        .subspan(total_node_count * 2, total_node_count);
+  auto next_wave_stack = std::span(sequence_number)
+                             .subspan(total_node_count * 3, total_node_count);
+  uintlen_t next_wave_stack_ptr{};
+  uintlen_t wave_stack_ptr{};
+
+  for (auto &&nodes : edge_of_node) {
+    for (uintlen_t next : nodes) {
+      asserts(next < total_node_count);
+      in_degree[next]++;
+    }
+  }
+  for (uintlen_t i{}; i < in_degree.size(); i++) {
+    if (in_degree[i])
+      continue;
+    next_wave_stack[next_wave_stack_ptr++] = intlen_t(i);
+  }
+  intlen_t wave_index_sequence{};
+  while (next_wave_stack_ptr) {
+    wave_index_sequence++;
+    wave_stack_ptr = 0;
+    std::swap(wave_stack_ptr, next_wave_stack_ptr);
+    std::swap(next_wave_stack, wave_stack);
+    for (intlen_t si : wave_stack.subspan(uintlen_t(), wave_stack_ptr)) {
+      uintlen_t i = uintlen_t(si);
+      for (uintlen_t next : edge_of_node[i]) {
+        if (--in_degree[next])
+          continue;
+        next_wave_stack[next_wave_stack_ptr++] = intlen_t(next);
+      }
+      sequence_number[i] = wave_index_sequence;
+    }
+  }
+  sequence_number.resize(total_node_count);
+  return {std::move(sequence_number), wave_index_sequence};
+}
+
+template <version_t version_v> struct calculate_too_much_t {
+
+  std::vector<uintlen_t> immidiate_post_dominators{};
+  std::vector<uintlen_t> immidiate_dominators{};
+  treversal_result_t<version_v> edge_of_node{};
+  treversal_result_t<version_v> pred_of_node{};
+  treversal_result_t<version_v> strongly_connected_components{};
+  pair_t<std::vector<intlen_t>, intlen_t> sequenced_components{};
+
+  template <class R = std::span<const uintlen_t>,
+            index_range_of_c<version_v> RIR_t>
+  MJZ_CX_AL_FN static calculate_too_much_t
+  make_with_order(const auto &range_of_range,
+                  RIR_t &&entry_node_order) noexcept {
+    calculate_too_much_t ret{};
+    ret.edge_of_node = make_basic_forest<version_v>(range_of_range);
+    ret.pred_of_node =
+        make_basic_inv_forest<version_v>(ret.edge_of_node.range());
+    ret.strongly_connected_components =
+        calculate_strongly_connected_components_with_order(
+            ret.edge_of_node, std::forward<RIR_t>(entry_node_order));
+    ret.sequenced_components = calculate_graph_sequenced_components(
+        ret.strongly_connected_components, ret.edge_of_node);
+    uintlen_t total_node_count = std::ranges::size(ret.edge_of_node.range());
+
+    ret.edge_of_node.nodes_index.push_back(ret.edge_of_node.edges.size());
+    auto scc_range = ret.strongly_connected_components.range();
+
+    for (auto &&scc : scc_range) {
+      uintlen_t representative = scc[0];
+      intlen_t wave_num = ret.sequenced_components.first[representative];
+      if (wave_num == 1 || wave_num == -1) {
+        for (uintlen_t node : scc) {
+          ret.edge_of_node.edges.push_back(node);
+        }
+      }
+    }
+
+    ret.immidiate_dominators = calculate_dominators_from_entry(
+        total_node_count, ret.edge_of_node,
+        make_basic_inv_forest<version_v>(ret.edge_of_node.range()));
+    uintlen_t i{};
+    for (uintlen_t &id : ret.immidiate_dominators) {
+      if (id == total_node_count) {
+        id = i;
+      }
+      i++;
+    }
+    ret.edge_of_node.edges.resize(ret.edge_of_node.nodes_index.back());
+    ret.edge_of_node.nodes_index.pop_back();
+    ret.immidiate_dominators.pop_back();
+    return ret;
+  }
+  template <class R = std::span<const uintlen_t>>
+  MJZ_CX_FN static calculate_too_much_t
+  make(const auto &range_of_range) noexcept {
+    return make_with_order(
+        range_of_range,
+        std::views::iota(uintlen_t(), std::ranges::size(range_of_range)));
+  }
+};
 template <version_t version_v, usable_index_range_c<version_v> R>
 MJZ_CX_FN std::vector<uintlen_t> make_view_vector_range(R &&range_) noexcept {
   const uintlen_t sz = std::ranges::size(range_);
@@ -642,29 +1577,30 @@ color_graph_greedy_by_order(const basic_forest_t<version_v, T> &graph,
   auto adjs = graph.range();
   uintlen_t sz = std::ranges::size(adjs);
   std::vector<uintlen_t> graph_color(sz, uintlen_t(-1));
-  std::vector<bool> temp_colors(sz, false);
   for (uintlen_t i : std::forward<R>(order)) {
     uintlen_t selected_color{color_count};
     for (uintlen_t j : adjs[i]) {
-      if (graph_color[j] == uintlen_t(-1))
+      if ((graph_color[j] | 1) == uintlen_t(-1))
         continue;
-      temp_colors[graph_color[j]] = true;
+      graph_color[graph_color[j] >> 1] &= ~uintlen_t(1);
     }
 
     for (uintlen_t j{}; j < color_count; j++) {
-      if (temp_colors[j])
+      if (!(graph_color[j] & 1))
         continue;
       selected_color = j;
       break;
     }
     for (uintlen_t j : adjs[i]) {
-      if (graph_color[j] == uintlen_t(-1))
+      if ((graph_color[j] | 1) == uintlen_t(-1))
         continue;
-      temp_colors[graph_color[j]] = false;
+      graph_color[graph_color[j] >> 1] |= uintlen_t(1);
     }
-    graph_color[i] = selected_color;
+    graph_color[i] = (selected_color << 1) | 1;
     color_count = std::max(color_count, selected_color + 1);
   }
+  for (uintlen_t &c : graph_color)
+    c = uintlen_t(intlen_t(c) >> 1);
   return {graph_color, color_count};
 }
 
@@ -679,101 +1615,128 @@ color_graph_greedy(const basic_forest_t<version_v, T> &graph) noexcept {
 template <version_t version_v>
 MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t> color_timeline(
     std::span<const basic_index_range_t<version_v>> timelines) noexcept {
-  std::vector<uintlen_t> ret(timelines.size(), uintlen_t(-1));
-  std::vector<uintlen_t> free_list{};
+  std::vector<uintlen_t> ret(timelines.size() * 4, uintlen_t(-1));
+  uintlen_t bumbp_alloc_ptr{timelines.size()};
+  auto alloc_ptr_fn_ = [&](uintlen_t sz) noexcept {
+    bumbp_alloc_ptr += sz;
+    asserts(bumbp_alloc_ptr <= ret.size());
+    return std::span(ret).subspan(bumbp_alloc_ptr - sz, sz);
+  };
+  auto free_list = alloc_ptr_fn_(timelines.size());
+  auto intersected_time = alloc_ptr_fn_(timelines.size() * 2);
   uintlen_t color_count{};
-  std::vector<pair_t<uintlen_t, uintlen_t>> intersected_time;
-  intersected_time.reserve(timelines.size() * 2);
-  free_list.reserve(timelines.size());
+  uintlen_t free_list_ptr{};
+  uintlen_t intersected_time_ptr{};
+
   for (uintlen_t i{}; i < timelines.size(); i++) {
     auto [begi, endi] = timelines[i].bounds();
     // empty timelines get colored with  uintlen_t(-1)
     if (begi == endi)
       continue;
-    intersected_time.push_back({begi * 2 + 1, i});
-    intersected_time.push_back({endi * 2, i});
+    intersected_time[intersected_time_ptr++] = (i << 1) | 1;
+    intersected_time[intersected_time_ptr++] = (i << 1);
   }
-  std::ranges::sort(intersected_time);
-  for (auto &&[time_, index] : intersected_time) {
-    if (uintlen_t(-1) != ret[index]) {
-      free_list.push_back(ret[index]);
+
+  auto intersected_time_slice =
+      intersected_time.subspan(uintlen_t(), intersected_time_ptr);
+  std::ranges::sort(
+      intersected_time_slice, std::ranges::less{}, [&](uintlen_t i) noexcept {
+        auto [begi, endi] = timelines[i >> 1].bounds();
+        return (i & 1) ? pair_t{begi * 2 + 1, i} : pair_t{endi * 2, i};
+      });
+  for (uintlen_t index_and_bit : intersected_time_slice) {
+    uintlen_t index = index_and_bit >> 1;
+    if (!(index_and_bit & 1)) {
+      free_list[free_list_ptr++] = ret[index];
       continue;
     }
-    if (!free_list.size()) {
-      free_list.push_back(color_count++);
-    }
-    ret[index] = free_list.back();
-    free_list.pop_back();
+    free_list[free_list_ptr] = color_count;
+    color_count += !free_list_ptr;
+    free_list_ptr += !free_list_ptr;
+    ret[index] = free_list[--free_list_ptr];
   }
-  return {ret, color_count};
+  ret.resize(timelines.size());
+  return {std::move(ret), color_count};
 }
 template <version_t version_v, class T, usable_index_range_c<version_v> R>
-MJZ_CX_FN pair_t<std::vector<uintlen_t>, std::vector<intlen_t>>
-optimize_maximum_cardinality_search_ordering_pair(
+MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_cardinality_search_ordering(
     const basic_forest_t<version_v, T> &suboptimal_indexed_graph,
     R &&order) noexcept {
   auto adjs = suboptimal_indexed_graph.range();
   const uintlen_t sz = std::ranges::size(adjs);
-  std::vector<uintlen_t> ret(sz, uintlen_t(-1));
-  std::vector<intlen_t> priorities(sz, intlen_t(0));
+  std::vector<uintlen_t> ret(sz * 4, uintlen_t(-1));
   if (!sz)
-    return {ret, priorities};
-  uintlen_t edges_sz = std::ranges::size(suboptimal_indexed_graph.edges);
+    return ret;
+  auto priority_list_next = std::span<uintlen_t>(ret).subspan(sz, sz);
+  auto priority_list_head = std::span<uintlen_t>(ret).subspan(sz * 2, sz);
+  auto priority_of_node_compl = std::span<uintlen_t>(ret).subspan(sz * 3, sz);
 
-  struct linked_list_elem_t {
-    uintlen_t back_index = uintlen_t(-1);
-    uintlen_t elem_index = uintlen_t(-1);
-  };
-  std::vector<linked_list_elem_t> priority_ranks{};
-  priority_ranks.reserve(sz * 2 + edges_sz);
-  priority_ranks.resize(sz);
   for (uintlen_t i : std::forward<R>(order) | std::views::reverse) {
-    linked_list_elem_t prev = priority_ranks[0];
-    priority_ranks[0].back_index = priority_ranks.size();
-    priority_ranks[0].elem_index = i;
-    priority_ranks.push_back(prev);
+    priority_list_next[i] = std::exchange(priority_list_head[0], i);
   }
   uintlen_t highest_priority{};
   uintlen_t position_node_index{};
+  MJZ_RAII_RELEASE { ret.resize(position_node_index); };
   while (position_node_index != sz) {
-    while (priority_ranks[highest_priority].elem_index == uintlen_t(-1)) {
+    while (priority_list_head[highest_priority] == uintlen_t(-1)) {
       if (!highest_priority)
-        return {ret, priorities};
+        return (ret);
       --highest_priority;
     }
-    linked_list_elem_t canidate_node_index = priority_ranks[highest_priority];
-    priority_ranks[highest_priority] =
-        priority_ranks[canidate_node_index.back_index];
-    if (priorities[canidate_node_index.elem_index] < 0)
+    uintlen_t candidate_node_index = priority_list_head[highest_priority];
+    priority_list_head[highest_priority] =
+        priority_list_next[candidate_node_index];
+    if (!priority_of_node_compl[candidate_node_index])
       continue;
-    priorities[canidate_node_index.elem_index] =
-        ~priorities[canidate_node_index.elem_index];
-    ret[position_node_index++] = canidate_node_index.elem_index;
+    priority_of_node_compl[candidate_node_index] = 0;
+    ret[position_node_index++] = candidate_node_index;
     for (uintlen_t neighbor :
-         adjs[canidate_node_index.elem_index] | std::views::reverse) {
-      if (priorities[neighbor] < 0)
+         adjs[candidate_node_index] | std::views::reverse) {
+      if (!priority_of_node_compl[neighbor])
         continue;
-      priorities[neighbor]++;
-      highest_priority =
-          std::max(highest_priority, uintlen_t(priorities[neighbor]));
-      uintlen_t prio_index = uintlen_t(priorities[neighbor]);
-      linked_list_elem_t prev = priority_ranks[prio_index];
-      priority_ranks[prio_index].back_index = priority_ranks.size();
-      priority_ranks[prio_index].elem_index = neighbor;
-      priority_ranks.push_back(prev);
+      uintlen_t prio_index = ~--priority_of_node_compl[neighbor];
+      highest_priority = std::max(highest_priority, prio_index);
+      priority_list_next[neighbor] =
+          std::exchange(priority_list_head[prio_index], neighbor);
     }
   }
-  return {ret, priorities};
+  return (ret);
 }
 
-template <version_t version_v, class T>
-MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_cardinality_search_ordering(
-    const basic_forest_t<version_v, T> &graph) noexcept {
-  return optimize_maximum_cardinality_search_ordering_pair(
-             graph,
-             std::views::iota(uintlen_t(),
-                              uintlen_t(std::ranges::size(graph.range()))))
-      .first;
+template <version_t version_v, class T, usable_index_range_c<version_v> R>
+MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_bucket_ordering(
+    const basic_forest_t<version_v, T> &suboptimal_indexed_graph, R &&order,
+    auto &&bucket_fn, uintlen_t bucket_max) noexcept {
+  auto adjs = suboptimal_indexed_graph.range();
+  const uintlen_t sz = std::ranges::size(adjs);
+  std::vector<uintlen_t> ret(sz * 2 + 1 + bucket_max, uintlen_t(-1));
+  if (!sz)
+    return ret;
+  uintlen_t position_node_index{};
+  MJZ_RAII_RELEASE { ret.resize(position_node_index); };
+  auto priority_list_next = std::span<uintlen_t>(ret).subspan(sz, sz);
+  auto priority_list_head = std::span<uintlen_t>(ret).subspan(sz * 2);
+
+  uintlen_t max_deg{};
+  for (uintlen_t i : std::forward<R>(order) | std::views::reverse) {
+    uintlen_t deg = bucket_fn(i);
+    asserts(deg <= bucket_max);
+    max_deg = std::max(deg, max_deg);
+    priority_list_next[i] = std::exchange(priority_list_head[deg], i);
+  }
+  uintlen_t highest_priority{max_deg};
+  while (position_node_index != sz) {
+    while (priority_list_head[highest_priority] == uintlen_t(-1)) {
+      if (!highest_priority)
+        return ret;
+      --highest_priority;
+    }
+    uintlen_t candidate_node_index = priority_list_head[highest_priority];
+    priority_list_head[highest_priority] =
+        priority_list_next[candidate_node_index];
+    ret[position_node_index++] = candidate_node_index;
+  }
+  return ret;
 }
 
 template <version_t version_v, class T>
@@ -784,48 +1747,7 @@ color_chordal_graph(const basic_forest_t<version_v, T> &graph) noexcept {
 }
 
 template <version_t version_v, class T, usable_index_range_c<version_v> R>
-MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_bucket_ordering(
-    const basic_forest_t<version_v, T> &suboptimal_indexed_graph, R &&order,
-    auto &&bucket_fn, uintlen_t bucket_max) noexcept {
-  const uintlen_t sz = std::ranges::size(suboptimal_indexed_graph.range());
-  std::vector<uintlen_t> ret(sz, uintlen_t(-1));
-
-  if (!sz)
-    return ret;
-  struct linked_list_elem_t {
-    uintlen_t back_index = uintlen_t(-1);
-    uintlen_t elem_index = uintlen_t(-1);
-  };
-  std::vector<linked_list_elem_t> priority_ranks{};
-  priority_ranks.resize(1 + bucket_max);
-  uintlen_t max_deg{};
-  for (uintlen_t i : std::forward<R>(order) | std::views::reverse) {
-    uintlen_t deg = bucket_fn(i);
-    max_deg = std::max(deg, max_deg);
-    linked_list_elem_t prev = priority_ranks[deg];
-    priority_ranks[deg].back_index = priority_ranks.size();
-    priority_ranks[deg].elem_index = i;
-    priority_ranks.push_back(prev);
-  }
-  uintlen_t highest_priority{max_deg};
-  uintlen_t position_node_index{};
-  while (position_node_index != sz) {
-    while (priority_ranks[highest_priority].elem_index == uintlen_t(-1)) {
-      if (!highest_priority)
-        return ret;
-      --highest_priority;
-    }
-    linked_list_elem_t canidate_node_index = priority_ranks[highest_priority];
-    priority_ranks[highest_priority] =
-        priority_ranks[canidate_node_index.back_index];
-
-    ret[position_node_index++] = canidate_node_index.elem_index;
-  }
-  return ret;
-}
-
-template <version_t version_v, class T, usable_index_range_c<version_v> R>
-MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_dgree_ordering(
+MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_degree_ordering(
     const basic_forest_t<version_v, T> &suboptimal_indexed_graph,
     R &&order) noexcept {
   return optimize_maximum_bucket_ordering(
@@ -836,14 +1758,13 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_dgree_ordering(
 }
 
 template <version_t version_v, class T>
-MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_dgree_ordering(
+MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_degree_ordering(
     const basic_forest_t<version_v, T> &graph) noexcept {
-  return optimize_maximum_dgree_ordering(
+  return optimize_maximum_degree_ordering(
       graph, std::views::iota(uintlen_t(),
                               uintlen_t(std::ranges::size(graph.range()))));
 }
 
 ///////////
-
 }; // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_algo_FILE_
