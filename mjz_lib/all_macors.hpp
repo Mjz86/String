@@ -1337,6 +1337,21 @@ use when "ccoro.hpp" is included
     MJZ_coroutine_stack_frame_suspend();                                       \
     MJZ_coroutine_stack_frame_if_cancel_goto(Next_cancel_);                    \
   } while (0)
+/////////////////////////////////
+
+#define MJZ_MCC_ugly_cerr_assert_impl(expression_E, grace_G)                   \
+                                                                               \
+  ::mjz::asserts.ugly_cerr_assert_impl(                                        \
+      expression_E, grace_G,                                                   \
+      "Assertion failed:(" #expression_E                                       \
+      ") at " MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) "\n")
+
+#define MJZ_MCC_log_assert(expression_E)                                       \
+  MJZ_MCC_ugly_cerr_assert_impl(expression_E, true)
+
+#define MJZ_MCC_assert(expression_E)                                           \
+  MJZ_MCC_ugly_cerr_assert_impl(expression_E, false)
+
 }; // namespace mjz
 
 #endif // !MJZ_string_lib_macros_HPP_FILE_

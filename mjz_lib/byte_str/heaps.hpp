@@ -429,6 +429,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
         return *this;
       must_free();
       m = std::exchange(obj.m, m_t{obj.m.alloc_ptr(), obj.get_is_threaded()});
+      return *this;
     }
     MJZ_CX_AL_FN ~str_heap_manager_t() noexcept {
       if (!m.reduce_rc_on_manager_destruction) {

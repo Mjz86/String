@@ -229,6 +229,26 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_FN bool operator!() const noexcept = delete;
     MJZ_DEPRECATED_R("confusion")
     MJZ_CX_FN void operator&() const noexcept = delete;
+
+    MJZ_CX_FN void ugly_cerr_log_impl(auto &&arg) const noexcept {
+      MJZ_IF_CONSTEVAL { return; }
+      [&]() noexcept {
+        static std::mutex m;
+        std::lock_guard l{m};
+        std::ignore = l;
+        std::cerr << arg;
+      }();
+    }
+
+    MJZ_CX_FN void ugly_cerr_assert_impl(bool expr, bool graceful,
+                                         const char *msg) const noexcept {
+      if (expr)
+        return;
+      ugly_cerr_log_impl(msg);
+      if (graceful)
+        return;
+      panic(msg);
+    }
   };
   static_assert(std::is_empty_v<mjz_assert_t>);
   MJZ_FCONSTANT(mjz_assert_t) asserts{totally_empty_type};

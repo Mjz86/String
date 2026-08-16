@@ -1393,6 +1393,23 @@ struct recycling_inline_two_leveled_interning_vector_t {
     m_semi_flat_lvl_tree[i] = int_index_t(p);
   }
 
+  MJZ_CX_FN void ordered_iteration_impl(uintlen_t location_impl,
+                                        auto &visitor) const noexcept {
+    auto l = get_lvl_ref_impl(location_impl);
+    uintlen_t sz = l.size();
+    uintlen_t offset = l.population_lvl1_index();
+    if (auto o = l.leaf_index()) {
+      return visitor(*o);
+    }
+    for (uintlen_t virtual_i{}; virtual_i < sz; virtual_i++) {
+      ordered_iteration_impl(virtual_i + offset, visitor);
+    };
+  }
+
+  MJZ_CX_FN void ordered_iteration(auto &visitor) const noexcept {
+    return ordered_iteration_impl(0, visitor);
+  }
+
 private:
   MJZ_CX_FN void recycle_free(uint_index_t next_free_list_loc,
                               uint_index_t index_old) noexcept {

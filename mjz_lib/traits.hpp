@@ -27,6 +27,11 @@ SOFTWARE.
 #define MJZ_TRAIS_LIB_HPP_FILE_
 
 MJZ_EXPORT namespace mjz {
+
+  template <class R, class T>
+  concept conv_range_of_c =
+      std::ranges::range<R> &&
+      std::convertible_to<std::ranges::range_reference_t<R>, T>;
   using nullopt_t = std::nullopt_t;
   MJZ_FCONSTANT(nullopt_t) nullopt{std::nullopt};
   template <class T>

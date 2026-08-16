@@ -389,10 +389,10 @@ template <version_t version_v> struct reachability_checker_t {
     if (tighest_u != expected_u || tighest_v != expected_v)
       return may_bool_t::no;
 
-    if (reachability_cache.find(injective_mix(u, v)).has_value())
+    if (reachability_cache.find(bijective_mix(u, v)).has_value())
       return may_bool_t::yes;
 
-    if (reachability_cache.find(injective_mix(v, u)).has_value())
+    if (reachability_cache.find(bijective_mix(v, u)).has_value())
       return may_bool_t::no;
 
     if (traversed_roots[u] || traversed_roots[v])
@@ -662,10 +662,10 @@ template <version_t version_v> struct reachability_checker_t {
     if (mb != may_bool_t::idk)
       return;
 
-    reachability_cache.insert(injective_mix(u, v));
+    reachability_cache.insert(bijective_mix(u, v));
   }
 
-  MJZ_CX_FN static mjz_uint128_t_ injective_mix(uintlen_t u,
+  MJZ_CX_FN static mjz_uint128_t_ bijective_mix(uintlen_t u,
                                                 uintlen_t v) noexcept {
     mjz_uint128_t_ key = (mjz_uint128_t_(u) << 64) | mjz_uint128_t_(v);
     key ^= (key >> 64);

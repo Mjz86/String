@@ -700,5 +700,91 @@ MJZ_EXPORT namespace mjz {
   template <typename T, auto concept_fn>
   concept fn_concept_c = concept_fn.template operator()<T>();
 
+  template <uintlen_t align_v, class T = char> struct unbounded_stack_t {
+    static_assert(std::has_single_bit(align_v));
+    T *sp{};
+
+    MJZ_CX_FN static uintlen_t neg_align_sz(uintlen_t sz) noexcept {
+      return (~sz + 1) & ~(align_v - 1);
+    }
+    MJZ_CX_FN static uintlen_t normalize(uintlen_t sz) noexcept {
+      return ~neg_align_sz(sz) + 1;
+    }
+
+    //////////
+
+    MJZ_CX_FN T *push(uintlen_t sz) noexcept {
+      sp += neg_align_sz(sz);
+      return sp;
+    }
+
+    MJZ_CX_FN void pop(uintlen_t sz) noexcept { sp -= neg_align_sz(sz); }
+  };
+  template <std::unsigned_integral auto max_valid_adress_v,
+            std::unsigned_integral auto alignment_v>
+  struct cx_basic_bit_pack_uptr_t {
+  private:
+    using uptr_t = decltype(+max_valid_adress_v);
+    constexpr static inline uptr_t ptr_bit_count_v = sizeof(uptr_t) * 8;
+    constexpr static inline uptr_t bit_adress_space_v = std::min<uptr_t>(
+        ptr_bit_count_v, uptr_t(std::bit_width(max_valid_adress_v)));
+
+    constexpr static inline uptr_t upper_bits_v =
+        ptr_bit_count_v - bit_adress_space_v;
+    constexpr static inline uptr_t lower_bits_v =
+        uptr_t(std::countr_zero(uptr_t(alignment_v)));
+    constexpr static inline uptr_t total_bits_v = upper_bits_v + lower_bits_v;
+    static_assert(total_bits_v < bit_adress_space_v);
+    constexpr static inline uptr_t mask_ptr_v =
+        ~(uptr_t(alignment_v) - 1) & (uptr_t(-1) >> upper_bits_v);
+
+    constexpr static inline uptr_t mask_bits_v = ~(uptr_t(-1) << total_bits_v);
+
+  public:
+    uptr_t bit_packed_ptr{};
+
+    MJZ_CX_FN uptr_t get() const noexcept {
+      return bit_packed_ptr & mask_ptr_v;
+    }
+    MJZ_CX_FN uptr_t get_bits() const noexcept {
+      return std::rotl(bit_packed_ptr, int(upper_bits_v)) & mask_bits_v;
+    }
+    MJZ_CX_FN void set_bits(uptr_t bits) noexcept {
+      bits &= mask_bits_v;
+      bit_packed_ptr &= mask_ptr_v;
+      bit_packed_ptr |= std::rotr(bits, int(upper_bits_v));
+    }
+    MJZ_CX_FN void set(uptr_t ptr) noexcept {
+      uptr_t u = ptr & mask_ptr_v;
+      bit_packed_ptr &= ~mask_ptr_v;
+      bit_packed_ptr |= u;
+    }
+    MJZ_CX_FN static uptr_t max_bits() noexcept { return mask_bits_v; }
+  };
+
+  template <class T, uintptr_t max_valid_adress_v>
+  struct ncx_basic_bit_pack_ptr_t {
+    using base = cx_basic_bit_pack_uptr_t<max_valid_adress_v, alignof(T)>;
+    T *bit_packed_ptr{};
+    MJZ_NCX_FN T *get() const noexcept {
+      return reinterpret_cast<T *>(std::bit_cast<base>(*this).get());
+    }
+    MJZ_NCX_FN uintptr_t get_bits() const noexcept {
+      return std::bit_cast<base>(*this).get_bits();
+    }
+    MJZ_NCX_FN void set_bits(uintptr_t bits) noexcept {
+      base t = std::bit_cast<base>(*this);
+      t.set_bits(bits);
+      *this = std::bit_cast<ncx_basic_bit_pack_ptr_t>(t);
+    }
+    MJZ_NCX_FN void set(T *ptr) noexcept {
+      base t = std::bit_cast<base>(*this);
+      t.set(reinterpret_cast<uintptr_t>(ptr));
+      *this = std::bit_cast<ncx_basic_bit_pack_ptr_t>(t);
+    }
+
+    MJZ_CX_FN static uintptr_t max_bits() noexcept { return base::max_bits(); }
+  };
+
 } // namespace mjz
 #endif // MJZ_MEMORIES_LIB_HPP_FILE_

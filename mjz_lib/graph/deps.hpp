@@ -298,6 +298,16 @@ struct MJZ_trivially_relocatable directed_state_space_t
         intlen_t(active_connections), connection_count(),
         get_connections(connections_list));
   }
+  MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v>
+  format_node_state_direct_dot() const noexcept {
+    base direc = *this;
+    return mjz::bstr_ns::format_ns::format(
+        bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
+            version_v, "current:{}\ntrigger:{}\nactive:{}\nneeded:{}">(),
+        state_to_str_impl_<version_v>(direc.current),
+        state_to_str_impl_<version_v>(direc.trigger),
+        intlen_t(active_connections), connection_count());
+  }
   MJZ_CX_AL_FN std::span<const uintlen_t>
   get_connections(std::span<const uintlen_t> connections_list) const noexcept {
     auto cir_ = connection_index_ids();
@@ -379,6 +389,14 @@ protected:
         me.index(),
         dependency(me, true).format_node_state_direct(connections_list),
         dependency(me, false).format_node_state_direct(connections_list));
+  }
+  MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
+  format_node_state_dot(node_id_t me) const noexcept {
+    return mjz::bstr_ns::format_ns::format(
+        bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
+            version_v, "\"id:{}\nforward:\n{}\nbackward:\n{}\"">(),
+        me.index(), dependency(me, true).format_node_state_direct_dot(),
+        dependency(me, false).format_node_state_direct_dot());
   }
   MJZ_CX_AL_FN intlen_t
   connections_free_list_pop_impl(uintlen_t free_index) noexcept {
@@ -822,10 +840,48 @@ public:
             }));
   }
 
+  MJZ_CX_ND_FN mjz::bstr_ns::basic_str_t<version_v> format_graph_dot(
+      mjz::bstr_ns::basic_string_view_t<version_v> name =
+          mjz::bstr_ns::static_string_view_t<version_v>("G")) const noexcept {
+    return format_graph_dot(name, mjz::bstr_ns::static_string_view_t<version_v>(
+                                      "node [shape=circle, style=filled, "
+                                      "fillcolor=lightblue,fontname="
+                                      "\"Helvetica\"];edge [color=gray40];"));
+  }
+
+  MJZ_CX_ND_FN mjz::bstr_ns::basic_str_t<version_v> format_graph_dot(
+      mjz::bstr_ns::basic_string_view_t<version_v> name,
+      mjz::bstr_ns::basic_string_view_t<version_v> style) const noexcept {
+    return mjz::bstr_ns::format_ns::format(
+        bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<version_v,
+                                                          R"RAW(digraph {} {{
+            {}
+            {:s}
+                                                                }};)RAW">,
+        name, style,
+        std::views::iota(uintlen_t(), uintlen_t(node_count())) |
+            std::views::transform([this](uintlen_t i) noexcept {
+              auto itxt = format_node_state_dot(node_id_t(i));
+              return mjz::bstr_ns::format_ns::format(
+                  bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
+                      version_v, "{}; {:s:s}\n">,
+                  itxt,
+                  dependency(node_id_t(i), false)
+                          .get_connections(connections_list) |
+                      std::views::transform([&](uintlen_t child_i) noexcept {
+                        return tuple_t(
+                            itxt,
+                            bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
+                                version_v, " -> ">(),
+                            format_node_state_dot(node_id_t(child_i)), ';');
+                      }));
+            }));
+  }
+
 #if MJZ_WITH_iostream
   MJZ_NCX_FN friend std::ostream &
   operator<<(std::ostream &cout_v, const basic_dependency_graph_base_t &obj) {
-    return cout_v << obj.format_graph_state();
+    return cout_v << obj.format_graph_dot();
   }
 #endif
 

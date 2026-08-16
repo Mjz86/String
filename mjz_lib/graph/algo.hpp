@@ -7,6 +7,10 @@ MJZ_EXPORT
 //
 namespace mjz::graph_ns {
 
+template <typename T>
+concept random_access_iterator_c =
+    std::random_access_iterator<std::remove_cvref_t<T>>;
+
 template <typename T, class U, version_t version_v>
 concept usable_type_range_exact_c =
     std::ranges::random_access_range<T> && std::ranges::sized_range<T> &&
@@ -35,7 +39,7 @@ concept mutable_index_range_c =
     mutable_index_range_exact_c<std::remove_cvref_t<T>, version_v>;
 
 template <version_t version_v, usable_index_range_c<version_v> R>
-MJZ_CX_FN std::vector<uintlen_t> range_injective_inv(R &&index_range) noexcept {
+MJZ_CX_FN std::vector<uintlen_t> range_bijective_inv(R &&index_range) noexcept {
   uintlen_t sz = std::ranges::size(index_range);
   std::vector<uintlen_t> inverse_index_range(sz);
   for (uintlen_t i : std::views::iota(uintlen_t(0), sz)) {
@@ -44,11 +48,82 @@ MJZ_CX_FN std::vector<uintlen_t> range_injective_inv(R &&index_range) noexcept {
   return inverse_index_range;
 }
 
+template <version_t version_v, usable_index_range_c<version_v> index_range_t,
+          random_access_iterator_c it_t>
+MJZ_CX_FN std::vector<std::iter_value_t<it_t>>
+make_reorder_bijective_transform_indexies(index_range_t &&map,
+                                          it_t &&data) noexcept {
+  std::vector<std::iter_value_t<it_t>> ret{};
+  auto v =
+      map | std::views::transform([&](uintlen_t i) noexcept -> decltype(auto) {
+        return *(data + intlen_t(i));
+      });
+  ret.insert(ret.begin(), v.begin(), v.end());
+
+  return ret;
+}
+
+template <version_t version_v, usable_index_range_c<version_v> index_range_t,
+          random_access_iterator_c it_t>
+MJZ_CX_FN std::vector<std::iter_value_t<it_t>>
+make_reorder_inv_bijective_transform_indexies(index_range_t &&map,
+                                              it_t &&data) noexcept {
+  return make_reorder_bijective_transform_indexies<version_v>(
+      range_bijective_inv<version_v>(map), std::forward<it_t>(data));
+}
+
+template <version_t version_v, mutable_index_range_c<version_v> index_range_t,
+          random_access_iterator_c it_t>
+MJZ_CX_FN void
+reorder_range_bijective_transform_indexies(index_range_t &&map,
+                                           it_t &&data) noexcept {
+  intlen_t sz = intlen_t(std::ranges::distance(map));
+  auto mp = std::ranges::begin(map);
+  for (intlen_t i{}; i < sz; i++) {
+    intlen_t old_i = i;
+    intlen_t new_i = intlen_t(*(mp + old_i));
+    if (new_i == old_i)
+      continue;
+    std::remove_cvref_t<decltype(*data)> first = std::move(*(data + i));
+    do {
+      *(data + old_i) = std::move(*(data + new_i));
+      *(mp + old_i) = uintlen_t(old_i);
+      old_i = new_i;
+      new_i = intlen_t(*(mp + old_i));
+    } while (new_i != i);
+    *(data + old_i) = std::move(first);
+    *(mp + old_i) = uintlen_t(old_i);
+  }
+}
+template <std::ranges::random_access_range it_range_t>
+  requires std::random_access_iterator<std::ranges::range_value_t<it_range_t>>
+MJZ_CX_FN void reorder_range_bijective_transform_iterators(
+    it_range_t &&map,
+    std::ranges::range_value_t<it_range_t> begining) noexcept {
+  auto en = std::ranges::end(map);
+  auto bg = std::ranges::begin(map);
+  for (auto it = bg; it != en; ++it) {
+    auto i = it - bg;
+    auto old_i = i;
+    auto new_i = *(bg + old_i) - begining;
+    if (new_i == old_i)
+      continue;
+    auto first = std::move(*(begining + i));
+    do {
+      *(begining + old_i) = std::move(*(begining + new_i));
+      *(bg + old_i) = old_i + begining;
+      old_i = new_i;
+      new_i = *(bg + old_i) - begining;
+    } while (new_i != i);
+    *(begining + old_i) = std::move(first);
+    *(bg + old_i) = old_i + begining;
+  }
+}
+
 // the densest way i know to pack a graph
 template <version_t version_v, usable_index_range_c<version_v> T>
 struct MJZ_maybe_trivially_relocatable basic_forest_t {
   T edges{};
-  // index into node vector
   T nodes_index{};
 
   template <usable_index_range_c<version_v> R1,
@@ -60,12 +135,12 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
   MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
   transform(R &&index_range) const noexcept {
     return transform_impl_(index_range,
-                           range_injective_inv<version_v>(index_range));
+                           range_bijective_inv<version_v>(index_range));
   }
   template <usable_index_range_c<version_v> R>
   MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
   inv_transform(R &&index_range) const noexcept {
-    return transform_impl_(range_injective_inv<version_v>(index_range),
+    return transform_impl_(range_bijective_inv<version_v>(index_range),
                            index_range);
   }
 
@@ -76,9 +151,9 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
                                   edges_sz = uintlen_t(std::ranges::size(
                                       edges))](uintlen_t node_i) noexcept {
              uintlen_t begin_index = uintlen_t(nodes_index[node_i]);
-             uintlen_t end_index = (node_i + 1 < nodes_index_sz)
-                                       ? uintlen_t(nodes_index[node_i + 1])
-                                       : edges_sz;
+             bool in_node = node_i + 1 < nodes_index_sz;
+             uintlen_t end_index = uintlen_t(nodes_index[node_i + in_node]);
+             end_index = bit_branchless_teranary(in_node, end_index, edges_sz);
              auto it = std::ranges::begin(edges);
              return std::ranges::subrange(it + intlen_t(begin_index),
                                           it + intlen_t(end_index));
@@ -95,12 +170,9 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
   MJZ_CX_FN auto batchy_range(uintlen_t min, uintlen_t max) const noexcept {
     return range() | batchy_range_filter(min, max);
   }
-  // for scc
   MJZ_CX_FN auto cyclic_range() const noexcept {
     return batchy_range(2, uintlen_t(-1));
   }
-
-  // for scc
   MJZ_CX_FN auto acyclic_range() const noexcept { return batchy_range(0, 2); }
 };
 
@@ -574,6 +646,107 @@ make_dominator_forest_given_dominators(
 
   return ret;
 }
+
+template <
+    version_t version_v, mutable_index_range_c<version_v> zero_init_level_t,
+    mutable_index_range_c<version_v> uninit_bfs_order_t,
+    mutable_index_range_c<version_v> uninit_bfs_parent_t,
+    class R = std::span<const uintlen_t>, index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN pair_t<uintlen_t, uintlen_t>
+calculate_breadth_first_levels_and_parent(
+    zero_init_level_t &&zero_init_level, uninit_bfs_order_t &&uninit_bfs_order,
+    uninit_bfs_parent_t &&uninit_bfs_parent,
+    const basic_forest_t<version_v, R> &edge_of_node_, RIR_t &&visit_order,
+    auto &&entry_callback, auto &&tree_edge_callback,
+    auto &&visited_edge_callback) noexcept
+  requires requires(uintlen_t parent, uintlen_t entry_level, uintlen_t node,
+                    uintlen_t adj) {
+    { (void)entry_callback(+parent, +node, +entry_level) } noexcept;
+    { (void)tree_edge_callback(+node, +adj) } noexcept;
+    { (void)visited_edge_callback(+node, +adj) } noexcept;
+  }
+{
+
+  auto adjs = edge_of_node_.range();
+  uintlen_t head{};
+  uintlen_t tail{};
+  uintlen_t max_level{};
+  for (uintlen_t graph_node : visit_order) {
+    if (zero_init_level[graph_node])
+      continue;
+    uninit_bfs_parent[graph_node] = uintlen_t(-1);
+    zero_init_level[graph_node] = 1;
+    max_level = std::max(max_level, uintlen_t(1));
+    uninit_bfs_order[head++] = graph_node;
+
+    while (head != tail) {
+      graph_node = uninit_bfs_order[tail++];
+      uintlen_t level = zero_init_level[graph_node];
+      (void)entry_callback(+uninit_bfs_parent[graph_node], +graph_node, +level);
+      for (uintlen_t adj : adjs[graph_node]) {
+        if (zero_init_level[adj]) {
+          (void)visited_edge_callback(+graph_node, +adj);
+          continue;
+        }
+        uninit_bfs_parent[adj] = graph_node;
+        zero_init_level[adj] = level + 1;
+        uninit_bfs_order[head++] = adj;
+        max_level = std::max(max_level, level + 1);
+
+        (void)tree_edge_callback(+graph_node, +adj);
+      }
+    }
+  }
+  return {max_level, head};
+}
+
+template <
+    version_t version_v, mutable_index_range_c<version_v> zero_init_level_t,
+    mutable_index_range_c<version_v> uninit_bfs_order_t,
+    class R = std::span<const uintlen_t>, index_range_of_c<version_v> RIR_t>
+MJZ_CX_FN pair_t<uintlen_t, uintlen_t> calculate_breadth_first_levels_no_parent(
+    zero_init_level_t &&zero_init_level, uninit_bfs_order_t &&uninit_bfs_order,
+    const basic_forest_t<version_v, R> &edge_of_node_, RIR_t &&visit_order,
+    auto &&entry_callback, auto &&tree_edge_callback,
+    auto &&visited_edge_callback) noexcept
+  requires requires(uintlen_t entry_level, uintlen_t node, uintlen_t adj) {
+    { (void)entry_callback(+node, +entry_level) } noexcept;
+    { (void)tree_edge_callback(+node, +adj) } noexcept;
+    { (void)visited_edge_callback(+node, +adj) } noexcept;
+  }
+{
+
+  auto adjs = edge_of_node_.range();
+  uintlen_t head{};
+  uintlen_t tail{};
+  uintlen_t max_level{};
+  for (uintlen_t graph_node : visit_order) {
+    if (zero_init_level[graph_node])
+      continue;
+    zero_init_level[graph_node] = 1;
+    max_level = std::max(max_level, uintlen_t(1));
+    uninit_bfs_order[head++] = graph_node;
+
+    while (head != tail) {
+      graph_node = uninit_bfs_order[tail++];
+      uintlen_t level = zero_init_level[graph_node];
+      (void)entry_callback(+graph_node, +level);
+      for (uintlen_t adj : adjs[graph_node]) {
+        if (zero_init_level[adj]) {
+          (void)visited_edge_callback(+graph_node, +adj);
+          continue;
+        }
+        zero_init_level[adj] = level + 1;
+        uninit_bfs_order[head++] = adj;
+        max_level = std::max(max_level, level + 1);
+
+        (void)tree_edge_callback(+graph_node, +adj);
+      }
+    }
+  }
+  return {max_level, head};
+}
+
 template <version_t version_v,
           mutable_index_range_c<version_v> zero_init_interval_begin_t,
           mutable_index_range_c<version_v> zero_init_interval_end_t,
@@ -1420,6 +1593,87 @@ calculate_acyclic_graph_sequenced_components(
   return {std::move(sequence_number), wave_index_sequence};
 }
 
+template <version_t version_v, class R = std::span<const uintlen_t>>
+MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t>
+calculate_acyclic_graph_topological_sort_sequenced_components(
+    const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
+  auto edge_of_node = edge_of_node_.range();
+  uintlen_t total_node_count = std::ranges::size(edge_of_node);
+  std::vector<uintlen_t> sequence_number(total_node_count * 3 + 1);
+  auto wave_que = std::span(sequence_number)
+                      .subspan(total_node_count, total_node_count + 1);
+  auto in_degree = std::span(sequence_number)
+                       .subspan(total_node_count * 2 + 1, total_node_count);
+  uintlen_t tail{};
+  uintlen_t head{};
+  for (auto &&nodes : edge_of_node) {
+    for (uintlen_t next : nodes) {
+      asserts(next < total_node_count);
+      in_degree[next]++;
+    }
+  }
+  for (uintlen_t i{}; i < in_degree.size(); i++) {
+    wave_que[head] = i;
+    head += !in_degree[i];
+  }
+  uintlen_t wave_index_sequence{};
+  while (head != tail) {
+    wave_index_sequence++;
+    auto sp = wave_que.subspan(tail, head - tail);
+    tail = head;
+    for (uintlen_t i : sp) {
+      for (uintlen_t next : edge_of_node[i]) {
+        wave_que[head] = next;
+        head += !--in_degree[next];
+      }
+      sequence_number[i] = wave_index_sequence;
+    }
+  }
+  std::ranges::fill(wave_que.subspan(tail, total_node_count - tail),
+                    uintlen_t(-1));
+  sequence_number.resize(total_node_count * 2);
+  return {std::move(sequence_number), wave_index_sequence};
+}
+
+template <version_t version_v, class R = std::span<const uintlen_t>>
+MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t>
+calculate_acyclic_graph_topological_sort_components(
+    const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
+  auto edge_of_node = edge_of_node_.range();
+  uintlen_t total_node_count = std::ranges::size(edge_of_node);
+  std::vector<uintlen_t> wave_que(total_node_count * 2 + 1);
+  auto in_degree =
+      std::span(wave_que).subspan(total_node_count + 1, total_node_count);
+  uintlen_t tail{};
+  uintlen_t head{};
+  for (auto &&nodes : edge_of_node) {
+    for (uintlen_t next : nodes) {
+      asserts(next < total_node_count);
+      in_degree[next]++;
+    }
+  }
+  for (uintlen_t i{}; i < in_degree.size(); i++) {
+    wave_que[head] = i;
+    head += !in_degree[i];
+  }
+  uintlen_t wave_index_sequence{};
+  while (head != tail) {
+    wave_index_sequence++;
+    auto sp = std::span(wave_que).subspan(tail, head - tail);
+    tail = head;
+    for (uintlen_t i : sp) {
+      for (uintlen_t next : edge_of_node[i]) {
+        wave_que[head] = next;
+        head += !--in_degree[next];
+      }
+    }
+  }
+  std::ranges::fill(std::span(wave_que).subspan(tail, total_node_count - tail),
+                    uintlen_t(-1));
+  wave_que.resize(total_node_count);
+  return {std::move(wave_que), wave_index_sequence};
+}
+
 template <version_t version_v> struct calculate_too_much_t {
 
   std::vector<uintlen_t> immidiate_post_dominators{};
@@ -1615,6 +1869,7 @@ color_graph_greedy(const basic_forest_t<version_v, T> &graph) noexcept {
 template <version_t version_v>
 MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t> color_timeline(
     std::span<const basic_index_range_t<version_v>> timelines) noexcept {
+  // empty timelines get colored with  uintlen_t(-1)
   std::vector<uintlen_t> ret(timelines.size() * 4, uintlen_t(-1));
   uintlen_t bumbp_alloc_ptr{timelines.size()};
   auto alloc_ptr_fn_ = [&](uintlen_t sz) noexcept {
@@ -1629,9 +1884,7 @@ MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t> color_timeline(
   uintlen_t intersected_time_ptr{};
 
   for (uintlen_t i{}; i < timelines.size(); i++) {
-    auto [begi, endi] = timelines[i].bounds();
-    // empty timelines get colored with  uintlen_t(-1)
-    if (begi == endi)
+    if (!timelines[i].n)
       continue;
     intersected_time[intersected_time_ptr++] = (i << 1) | 1;
     intersected_time[intersected_time_ptr++] = (i << 1);

@@ -11,3 +11,6 @@
 #if __has_include("reach.hpp")
 #include "reach.hpp"
 #endif
+#if __has_include("dot.hpp")
+#include "dot.hpp"
+#endif

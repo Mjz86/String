@@ -18,3 +18,7 @@
 #if __has_include("counting_semaphore.hpp")
 #include "counting_semaphore.hpp"
 #endif
+
+#if __has_include("worker.hpp")
+#include "worker.hpp"
+#endif

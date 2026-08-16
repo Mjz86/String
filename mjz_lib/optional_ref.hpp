@@ -376,6 +376,22 @@ MJZ_EXPORT namespace mjz {
 
   template <class T>
   using optional_of_t = typename optioal_of_type_helper_t<T>::type;
+
+  template <class T> struct scope_switcher_t {
+    T &ref{};
+    T temp;
+    scope_switcher_t(auto &&) = delete;
+    MJZ_CX_FN scope_switcher_t(T &r, T &&val) noexcept
+        : ref{r}, temp{std::exchange(r, std::move(val))} {}
+
+    template <class... Us>
+    MJZ_CX_FN scope_switcher_t(T &r, Us &&...args) noexcept
+        : ref{r}, temp{std::exchange(r, T(std::forward<Us>(args)...))} {}
+    MJZ_CX_FN ~scope_switcher_t() noexcept { ref = std::move(temp); }
+  };
+
+  template <class T, class... Us>
+  scope_switcher_t(T &, Us &&...) -> scope_switcher_t<T>;
   }; // namespace optional_ref_ns
   using namespace optional_ref_ns;
 } // namespace mjz
