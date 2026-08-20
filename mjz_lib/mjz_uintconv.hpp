@@ -842,7 +842,7 @@ constexpr auto ivk =
     get_devide_inverse_and_shift<>(uint32_t(-1), 100000000, {});
 
   {{{{{5764607524Ui64, 0Ui64, 0Ui64}}}, {59Ui64}, {65Ui64}, {0U},
-{{{����3199999999Ui64, 0Ui64, 0Ui64}}}}}
+{{{ 3199999999Ui64, 0Ui64, 0Ui64}}}}}
 
 
 thankfully 5764607524 is 1441151881 *4  so all the inv_p10_b57 is usable beacuse
@@ -879,7 +879,7 @@ constexpr auto ivk =
     get_devide_inverse_and_shift<>(uint8_t(-1), 10, true);
 
     {{{{{205Ui64, 0Ui64, 0Ui64}}}, {11Ui64}, {16Ui64}, {0U}, {{{159Ui64,
-0U����i64, 0Ui64}}}}}
+0U i64, 0Ui64}}}}}
 
 
     (10*205>>11)-1 ==0.0009765625
@@ -2468,7 +2468,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     mjz_assume_impl_(num_ < 1000);
     //  constexpr auto ivk = get_devide_inverse_and_shift<>(999, 10, true);
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1639Ui64, 0Ui64,
-    // 0Ui64}}}, {14Ui64}, {21Ui64}, {0U}, {{{639Ui64, 0U����i64, 0Ui64}}}}}
+    // 0Ui64}}}, {14Ui64}, {21Ui64}, {0U}, {{{639Ui64, 0U i64, 0Ui64}}}}}
     //  also for 8 bit we have 255 as max
     // constexpr auto ivk = get_devide_inverse_and_shift<>(255, 10, true);
     constexpr uint32_t shift = sizeof(num_) == 1 ? 11 : 14;
@@ -2489,7 +2489,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     mjz_assume_impl_(num_ < 10000);
     // constexpr auto ivk = get_devide_inverse_and_shift<>(9999, 100, true);
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{5243Ui64, 0Ui64,
-    // 0Ui64}}}, {19Ui64}, {27Ui64}, {0U}, {{{12799Ui64, ����0Ui64, 0Ui64}}}}}
+    // 0Ui64}}}, {19Ui64}, {27Ui64}, {0U}, {{{12799Ui64,  0Ui64, 0Ui64}}}}}
     constexpr uint32_t shift = 19;
     constexpr uint32_t mul_inv10 = 5243;
     constexpr uint32_t mask = (uint32_t(1) << shift) - 1;
@@ -2508,14 +2508,14 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
       // first 2 digts
       // constexpr auto ivk = get_devide_inverse_and_shift<>(99999, 1000, true);
       // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{67109Ui64,
-      // 0Ui64, 0Ui64}}}, {26Ui64}, {34Ui64}, {0U}, {{{127999Ui64,����0Ui64,
+      // 0Ui64, 0Ui64}}}, {26Ui64}, {34Ui64}, {0U}, {{{127999Ui64, 0Ui64,
       // 0Ui64}}}}}
       //
       //
       //--------------------------
       // constexpr auto ivk = get_devide_inverse_and_shift<>(99999, 100, true);
       // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{167773Ui64,
-      // 0Ui64, 0Ui64}}}, {24Ui64}, {35Ui64}, {0U}, {{{102399Ui64����, 0Ui64,
+      // 0Ui64, 0Ui64}}}, {24Ui64}, {35Ui64}, {0U}, {{{102399Ui64 , 0Ui64,
       // 0Ui64}}}}}
       // last 2 digits
       //-----------
@@ -2595,12 +2595,12 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     mjz_assume_impl_(num_ < 1000000);
     // constexpr auto ivk = get_devide_inverse_and_shift<>(999999, 100, true);
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{671089Ui64,
-    // 0Ui64, 0Ui64}}}, {26Ui64}, {40Ui64}, {0U}, {{{819199Ui64����, 0Ui64,
+    // 0Ui64, 0Ui64}}}, {26Ui64}, {40Ui64}, {0U}, {{{819199Ui64 , 0Ui64,
     // 0Ui64}}}}}
     //------------
     // constexpr auto ivk = get_devide_inverse_and_shift<>(999999, 10000, true);
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1717987Ui64,
-    // 0Ui64, 0Ui64}}}, {34Ui64}, {41Ui64}, {0U}, {{{639999U����i64, 0Ui64,
+    // 0Ui64, 0Ui64}}}, {34Ui64}, {41Ui64}, {0U}, {{{639999U i64, 0Ui64,
     // 0Ui64}}}}}
     //-----------
     // so.... 26+41=67 ... we cant do our neet trick with 64 bit integers
@@ -2640,7 +2640,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
       // constexpr auto ivk = get_devide_inverse_and_shift<>(9'999'999, 100,
       // true);
       // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{21474837Ui64,
-      // 0Ui64, 0Ui64}}}, {31Ui64}, {49Ui64}, {0U}, {{{����13107199Ui64, 0Ui64,
+      // 0Ui64, 0Ui64}}}, {31Ui64}, {49Ui64}, {0U}, {{{ 13107199Ui64, 0Ui64,
       // 0Ui64}}}}}
       constexpr uint64_t inv100_val = 21474837;
       constexpr uint64_t shift_val = 31;
@@ -2658,7 +2658,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     // constexpr auto ivk =  get_devide_inverse_and_shift<>(9'999'999, 100000,
     // true);
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{21990233Ui64,
-    // 0Ui64, 0Ui64}}}, {41Ui64}, {49Ui64}, {0U}, {{{����12799999Ui64, 0Ui64,
+    // 0Ui64, 0Ui64}}}, {41Ui64}, {49Ui64}, {0U}, {{{ 12799999Ui64, 0Ui64,
     // 0Ui64}}}}}
     constexpr uint64_t inv100000_val = 21990233;
     constexpr uint64_t shift_val = 41;
@@ -2688,7 +2688,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
       // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'999, 1000,
       // true); C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
       // {{{{{68719477Ui64, 0Ui64, 0Ui64}}}, {36Ui64}, {54Ui64}, {0U},
-      // {{{����131071999Ui64, 0Ui64, 0Ui64}}}}}
+      // {{{ 131071999Ui64, 0Ui64, 0Ui64}}}}}
       constexpr uint64_t inv1000_val = 68719477;
       constexpr uint64_t shift_val = 36;
       constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
@@ -2710,7 +2710,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'999, 1000000,
     // true); C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
     // {{{{{140737489Ui64, 0Ui64, 0Ui64}}}, {47Ui64}, {55Ui64}, {0U},
-    // {{{����127999999Ui64, 0Ui64, 0Ui64}}}}}
+    // {{{ 127999999Ui64, 0Ui64, 0Ui64}}}}}
     constexpr uint64_t inv1000000_val = 140737489;
     constexpr uint64_t shift_val = 47;
     constexpr uint64_t mask_val = (uint64_t(1) << shift_val) - 1;
@@ -2735,7 +2735,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
       //  constexpr auto ivk = get_devide_inverse_and_shift<>(999'999'999,
       //  10000, true);
       // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1759218605Ui64,
-      // 0Ui64, 0Ui64}}}, {44Ui64}, {61Ui64}, {0U}, {{{����655359999Ui64, 0Ui64,
+      // 0Ui64, 0Ui64}}}, {44Ui64}, {61Ui64}, {0U}, {{{ 655359999Ui64, 0Ui64,
       // 0Ui64}}}}}
       // so we can get either 5x2 muls or 6muls with this trick! ( or 5 seq muls
       // , but thats too much i think)
@@ -2766,7 +2766,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     // constexpr auto ivk = get_devide_inverse_and_shift<>(99'999'9999,
     // 10000000, true);
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1801439851Ui64,
-    // 0Ui64, 0Ui64}}}, {54Ui64}, {61Ui64}, {0U}, {{{����639999999Ui64, 0Ui64,
+    // 0Ui64, 0Ui64}}}, {54Ui64}, {61Ui64}, {0U}, {{{ 639999999Ui64, 0Ui64,
     // 0Ui64}}}}}
     constexpr uint64_t inv10000000_val = 1801439851;
     constexpr uint64_t shift_val = 54;
@@ -2792,13 +2792,13 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     if constexpr (prefer_less_seq_muls || sizeof(num_) != 4) {
       // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
       // {{{{{22517998137Ui64, 0Ui64, 0Ui64}}}, {51Ui64}, {69Ui64}, {0U},
-      // {{{����13107199999Ui64, 0Ui64, 0Ui64}}}}} i ran out of 64 bits :(
+      // {{{ 13107199999Ui64, 0Ui64, 0Ui64}}}}} i ran out of 64 bits :(
       // also
       //  constexpr auto ivk = get_devide_inverse_and_shift<>(9'999'999'999,
       //  100000000, true);
       // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk =
       // {{{{{23058430093Ui64, 0Ui64, 0Ui64}}}, {61Ui64}, {69Ui64}, {0U},
-      // {{{����12799999999Ui64, 0Ui64, 0Ui64}}}}} , :(
+      // {{{ 12799999999Ui64, 0Ui64, 0Ui64}}}}} , :(
       //  (64<69)
       //  i now need to do it with compiler magic
       //  128 bit ints or just let the compiler do its thing.
@@ -2814,7 +2814,7 @@ uint_to_dec_par_impl_exact_(char *const buffer, const T_ num_) noexcept {
     }
 
     // C++ constexpr mjz::tuple_t<...> used_mjz_ns::ivk = {{{{{1441151881Ui64,
-    // 0Ui64, 0Ui64}}}, {57Ui64}, {63Ui64}, {0U}, {{{����3199999999Ui64, 0Ui64,
+    // 0Ui64, 0Ui64}}}, {57Ui64}, {63Ui64}, {0U}, {{{ 3199999999Ui64, 0Ui64,
     // 0Ui64}}}}} constexpr auto ivk
     // =get_devide_inverse_and_shift<>(uint32_t(-1), 100000000, true);
     constexpr uint64_t inv100000000_val = 1441151881;

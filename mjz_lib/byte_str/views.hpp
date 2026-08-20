@@ -697,6 +697,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return sview_t::operator bool() && this->length();
     }
     MJZ_CX_FN sview_t sview() const noexcept { return *this; }
+    
   };
 
 }; // namespace mjz::bstr_ns

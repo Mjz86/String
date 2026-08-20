@@ -188,22 +188,28 @@ struct disjoint_set_union_t {
   }
 
   MJZ_CX_FN bool has_ranks() const noexcept { return 0 < m_range_size; }
+  MJZ_CX_FN uintlen_t get_impl(uintlen_t i) const noexcept {
+    return *(std::ranges::begin(parent_then_rank) + intlen_t(i));
+  }
+  MJZ_CX_FN void set_impl(uintlen_t i, uintlen_t v) noexcept {
+    *(std::ranges::begin(parent_then_rank) + intlen_t(i)) = v;
+  }
   MJZ_CX_FN uintlen_t get_parent(uintlen_t i) const noexcept {
-    return parent_then_rank[i];
+    return get_impl(i);
   }
   MJZ_CX_FN uintlen_t get_rank(uintlen_t i) const noexcept {
     if (!has_ranks())
       return 0;
-    return parent_then_rank[get_range_size() + i];
+    return get_impl(get_range_size() + i);
   }
   MJZ_CX_FN void set_parent(uintlen_t i, uintlen_t parent) noexcept {
-    parent_then_rank[i] = parent;
+    set_impl(i, parent);
   }
 
   MJZ_CX_FN void set_rank(uintlen_t i, uintlen_t rank) noexcept {
     if (!has_ranks())
       return;
-    parent_then_rank[get_range_size() + i] = rank;
+    set_impl(get_range_size() + i, rank);
   }
   MJZ_CX_FN void init(uintlen_t range_size_) noexcept {
     uintlen_t sz = std::ranges::size(parent_then_rank);
@@ -216,13 +222,21 @@ struct disjoint_set_union_t {
     }
   }
 
-  MJZ_CX_FN uintlen_t find_and_cache_root(uintlen_t child) noexcept {
+  MJZ_CX_FN uintlen_t find_no_cache_root(uintlen_t child) const noexcept {
     uintlen_t root_node = child;
     while (true) {
       uintlen_t parent = get_parent(root_node);
       if (parent == std::exchange(root_node, parent))
         break;
     }
+    return root_node;
+  }
+  MJZ_CX_FN bool is_cache_root_of_found_valid(uintlen_t root_node,
+                                              uintlen_t child) const noexcept {
+    return root_node == get_parent(child) && get_parent(root_node) == root_node;
+  }
+  MJZ_CX_FN uintlen_t cache_root_of_found(uintlen_t root_node,
+                                          uintlen_t child) noexcept {
     while (true) {
       uintlen_t parent = get_parent(child);
       set_parent(child, root_node);
@@ -230,6 +244,9 @@ struct disjoint_set_union_t {
         break;
     };
     return root_node;
+  }
+  MJZ_CX_FN uintlen_t find_and_cache_root(uintlen_t child) noexcept {
+    return cache_root_of_found(find_no_cache_root(child), child);
   }
 
   MJZ_CX_FN bool find_and_unite_root(uintlen_t i, uintlen_t j) noexcept {
@@ -1191,7 +1208,8 @@ for_each_unreducibles_given_depth_first_and_dominance_intervals(
     depth_first_interval_begin_t &&depth_first_interval_begin,
     depth_first_interval_end_t &&depth_first_interval_end,
     const basic_forest_t<version_v, R> &edge_of_node_,
-    visit_range_t &&visit_range, auto &&call_back) noexcept {
+    visit_range_t &&visit_range, auto &&call_back_unreducibles,
+    auto &&call_back_reducibles) noexcept {
   auto dominates = [&](uintlen_t dom, uintlen_t sub) noexcept -> bool {
     if (dominance_interval_begin[dom] == 0 ||
         dominance_interval_begin[sub] == 0)
@@ -1212,10 +1230,15 @@ for_each_unreducibles_given_depth_first_and_dominance_intervals(
   uintlen_t unreducibles_count{};
   for (uintlen_t node : visit_range) {
     for (uintlen_t next : adjs[node]) {
-      if (!is_dfs_ancestor(next, node) || dominates(next, node))
+      const bool is_dfs_ancestor_ = is_dfs_ancestor(next, node);
+      const bool is_dominator_ = dominates(next, node);
+      if (!is_dfs_ancestor_ || is_dominator_) {
+        (void)call_back_reducibles(+node, +next, is_dfs_ancestor_,
+                                   is_dominator_);
         continue;
+      }
       unreducibles_count++;
-      call_back(node, next);
+      (void)call_back_unreducibles(+node, +next);
     }
   }
   return unreducibles_count;
@@ -1240,9 +1263,11 @@ MJZ_CX_FN void union_unreducibles_given_depth_first_and_dominance_intervals(
   for_each_unreducibles_given_depth_first_and_dominance_intervals(
       dominance_interval_begin, dominance_interval_end,
       depth_first_interval_begin, depth_first_interval_end, edge_of_node_,
-      visit_range, [&](uintlen_t node, uintlen_t adj) noexcept {
+      visit_range,
+      [&](uintlen_t node, uintlen_t adj) noexcept {
         ret.find_and_unite_root(adj, node);
-      });
+      },
+      [](auto &&...) noexcept {});
 }
 
 template <version_t version_v,
@@ -1262,7 +1287,7 @@ MJZ_CX_FN uintlen_t count_unreducibles_given_scc_and_dominance_intervals(
   return for_each_unreducibles_given_depth_first_and_dominance_intervals(
       dominance_interval_begin, dominance_interval_end,
       depth_first_interval_begin, depth_first_interval_end, edge_of_node_,
-      visit_range, [](auto &&...) noexcept {});
+      visit_range, [](auto &&...) noexcept {}, [](auto &&...) noexcept {});
 }
 
 template <version_t version_v, class R1 = std::span<const uintlen_t>,

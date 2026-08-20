@@ -482,12 +482,16 @@ using void_struct_t = totally_empty_type_t;
 #endif
 
 #if MJZ_TRUST_LEVEL_OF_BELIEVE_ < MJZ_TRUST_LEVEL_
+#ifndef MJZ_FORCED_INLINE
 #define MJZ_FORCED_INLINE MJZ_JUST_FORCED_INLINE_
+#endif
 #define MJZ_NO_INLINE MJZ_JUST_NO_INLINE_
 #define MJZ_BELIEVE_(X_expression_) MJZ_JUST_ASSUME_(X_expression_)
 #else
 #define MJZ_BELIEVE_(X_expression_)
+#ifndef MJZ_FORCED_INLINE
 #define MJZ_FORCED_INLINE inline
+#endif
 #define MJZ_NO_INLINE
 #endif
 #if MJZ_TRUST_LEVEL_OF_EXPECT_ < MJZ_TRUST_LEVEL_
