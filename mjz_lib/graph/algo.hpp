@@ -594,10 +594,10 @@ calculate_strongly_connected_components_with_order_iota(
           ret, edge_of_node_, std::forward<RIR_t>(entry_node_order));
   uintlen_t elem_offset = base_offset + scc_count;
   return basic_iota_forest_t{
-      .edges_index =
-          basic_index_range_t<version_v>::from_bounds(base_offset, elem_offset),
-      .nodes_index_index =
-          basic_index_range_t<version_v>::from_bounds(elem_offset, ret.size())};
+      .edges_index = basic_index_range_t<version_v>::from_the_iota_bounds(
+          base_offset, elem_offset),
+      .nodes_index_index = basic_index_range_t<version_v>::from_the_iota_bounds(
+          elem_offset, ret.size())};
 }
 
 template <version_t version_v, class R = std::span<const uintlen_t>,
@@ -720,41 +720,56 @@ MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_given_sccs_from_entry(
 
   return monotonic_dominator_ordenal;
 }
+template <version_t version_v, usable_index_range_c<version_v> parents_t>
+MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+make_forest_given_parents_inludes(parents_t &&parents,
+                                  auto &&inludes_edge_fn) noexcept {
+  const uintlen_t total_node_count = std::ranges::size(parents);
+  treversal_result_t<version_v> ret{};
+  ret.nodes_index = std::vector<uintlen_t>(total_node_count);
+  uintlen_t node_index{};
+  for (uintlen_t parent : parents) {
+    if (inludes_edge_fn(+parent, +node_index)) {
+      ret.nodes_index[parent]++;
+    }
+    node_index++;
+  }
+
+  uintlen_t accumulate{};
+  for (uintlen_t &index_ : ret.nodes_index) {
+    accumulate += index_;
+    index_ = accumulate;
+  }
+
+  ret.edges = std::vector<uintlen_t>(accumulate);
+  node_index = 0;
+  for (uintlen_t parent : parents) {
+    if (inludes_edge_fn(+parent, +node_index)) {
+      ret.edges[--ret.nodes_index[parent]] = node_index;
+    }
+    node_index++;
+  }
+  return ret;
+}
+
+template <version_t version_v, usable_index_range_c<version_v> parents_t>
+MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+make_forest_given_parents(parents_t &&parents) noexcept {
+  return make_forest_given_parents_inludes<version_v>(
+      parents, [](auto &&...) noexcept { return true; });
+}
 
 template <version_t version_v,
           usable_index_range_c<version_v> immidiate_dominators_t>
 MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
 make_dominator_forest_given_dominators(
     immidiate_dominators_t &&immidiate_dominators) noexcept {
-  const uintlen_t total_node_count = std::ranges::size(immidiate_dominators);
-  treversal_result_t<version_v> ret{};
-  ret.nodes_index = std::vector<uintlen_t>(total_node_count);
-  uintlen_t node_index{};
-  for (uintlen_t immidiate_dominator : immidiate_dominators) {
-    if (immidiate_dominator < total_node_count &&
-        immidiate_dominator != node_index) {
-      ret.nodes_index[immidiate_dominator]++;
-    }
-    node_index++;
-  }
-
-  uintlen_t accumulate{};
-  for (uintlen_t &tree_index : ret.nodes_index) {
-    accumulate += tree_index;
-    tree_index = accumulate;
-  }
-
-  ret.edges = std::vector<uintlen_t>(accumulate);
-  node_index = 0;
-  for (uintlen_t immidiate_dominator : immidiate_dominators) {
-    if (immidiate_dominator < total_node_count &&
-        immidiate_dominator != node_index) {
-      ret.edges[--ret.nodes_index[immidiate_dominator]] = node_index;
-    }
-    node_index++;
-  }
-
-  return ret;
+  return make_forest_given_parents_inludes<version_v>(
+      immidiate_dominators,
+      [](uintlen_t immidiate_dominator, uintlen_t node) noexcept {
+        return immidiate_dominator != node &&
+               immidiate_dominator != uintlen_t(-1);
+      });
 }
 
 template <
@@ -2149,17 +2164,27 @@ MJZ_CX_FN auto calculate_shortest_positive_path_distanced(
   auto edge_node = [&](uintlen_t edge_i) noexcept {
     return *(it_edge_node + intlen_t(edge_i));
   };
-  using uintdist_t = std::remove_cvref_t<decltype(edge_weight(0))>;
+  using dist_t = std::remove_cvref_t<decltype(edge_weight(0))>;
 
-  static_assert(std::unsigned_integral<uintdist_t> || requires() {
-    typename uintdist_t::mjz_uintN_t_id_val_t_2354675648764874753789;
-  });
+  static_assert(std::floating_point<dist_t> || std::unsigned_integral<dist_t> ||
+                requires() {
+                  typename dist_t::mjz_uintN_t_id_val_t_2354675648764874753789;
+                });
   asserts(esz == std::ranges::size(weight_of_adjust) && entry_index < nsz);
   auto ret = make_index_vector_range<version_v>(nsz + esz);
-  std::vector<uintdist_t> distance_metic_(nsz + esz, uintdist_t(~uintdist_t()));
-  auto node_distance = std::span<uintdist_t>(distance_metic_).subspan(0, nsz);
-  auto edge_distance = std::span<uintdist_t>(distance_metic_).subspan(nsz, esz);
-  node_distance[entry_index] = uintdist_t();
+
+  dist_t max_value{};
+  if constexpr (std::floating_point<dist_t>) {
+    max_value = std::numeric_limits<dist_t>::infinity();
+    static_assert(std::numeric_limits<dist_t>::has_infinity);
+  } else {
+    max_value = dist_t(~dist_t());
+  }
+
+  std::vector<dist_t> distance_metic_(nsz + esz, max_value);
+  auto node_distance = std::span<dist_t>(distance_metic_).subspan(0, nsz);
+  auto edge_distance = std::span<dist_t>(distance_metic_).subspan(nsz, esz);
+  node_distance[entry_index] = dist_t();
   uintlen_t heap_count{};
   std::span<uintlen_t> parents = std::span(ret).subspan(0, nsz);
   std::span<uintlen_t> heap = std::span(ret).subspan(nsz, esz);
@@ -2169,10 +2194,15 @@ MJZ_CX_FN auto calculate_shortest_positive_path_distanced(
   uintlen_t node_i{entry_index};
   while (true) {
     for (uintlen_t edge_i : edge_indexies[node_i]) {
-      const uintdist_t edge_dist = edge_distance[edge_i] =
-          uintdist_t(edge_weight(edge_i) + node_distance[node_i]);
-      asserts(node_distance[node_i] <= edge_dist,
-              "no overflow , use bigger uints if this happens");
+      const dist_t edge_weight_ = edge_weight(edge_i);
+      const dist_t edge_dist = edge_distance[edge_i] =
+          dist_t(edge_weight_ + node_distance[node_i]);
+      if constexpr (std::floating_point<dist_t>) {
+        asserts(dist_t() <= edge_weight_, "no negative / NAN weight ");
+      } else {
+        asserts(node_distance[node_i] <= edge_dist,
+                "no overflow , use bigger uints if this happens");
+      }
       uintlen_t target_node = edge_node(edge_i);
       if (node_distance[target_node] <= edge_dist)
         continue;

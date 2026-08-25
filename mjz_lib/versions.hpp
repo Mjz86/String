@@ -175,26 +175,31 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_FN pair_t<uintlen_t, uintlen_t> bounds() const noexcept {
       return {i, ending()};
     }
-
-    MJZ_CX_FN static basic_index_range_t from_bounds(uintlen_t i,
-                                                     uintlen_t j) noexcept {
-      if (i > j)
-        i = j;
+    MJZ_CX_FN static basic_index_range_t
+    from_the_iota_bounds(uintlen_t i, uintlen_t j) noexcept {
       return {i, j - i};
+    }
+    MJZ_CX_FN static basic_index_range_t
+    from_iota_bounds(uintlen_t i, uintlen_t j) noexcept {
+      return from_the_iota_bounds(std::min(j, i), j);
+    }
+    MJZ_CX_FN static basic_index_range_t
+    from_minmax_bounds(uintlen_t i, uintlen_t j) noexcept {
+      return from_the_iota_bounds(std::min(i, j), std::max(i, j));
     }
     MJZ_CX_FN static basic_index_range_t
     from_union(const basic_index_range_t &j,
                const basic_index_range_t &i) noexcept {
       auto [small1, big1] = j.bounds();
       auto [small2, big2] = i.bounds();
-      return from_bounds(std::min(small1, small2), std::max(big1, big2));
+      return from_the_iota_bounds(std::min(small1, small2), std::max(big1, big2));
     }
     MJZ_CX_FN static basic_index_range_t
     from_insersection(const basic_index_range_t &j,
                       const basic_index_range_t &i) noexcept {
       auto [small1, big1] = j.bounds();
       auto [small2, big2] = i.bounds();
-      return from_bounds(std::max(small1, small2), std::min(big1, big2));
+      return from_the_iota_bounds(std::max(small1, small2), std::min(big1, big2));
     }
     MJZ_CX_FN bool has_inside(uintlen_t canidate_node_index,
                               bool empty_overlaps = false) const noexcept {
