@@ -1048,6 +1048,19 @@ public:
         !!(flags_e::unresolved_fail_bit & direction));
   }
 
+  struct MJZ_trivially_relocatable previous_states_t {
+    node_id_t id{};
+    std::optional<states_e> forward{};
+    std::optional<states_e> backward{};
+  };
+  MJZ_CX_ND_FN previous_states_t passive_trigger(node_id_t id) noexcept {
+    asserts(is_inbounds(id));
+    auto &node_forward = dependency(id, true);
+    auto &node_backward = dependency(id, false);
+    return previous_states_t{.id = id,
+                             .forward = node_forward.get_passive_trigger(),
+                             .backward = node_backward.get_passive_trigger()};
+  }
   template <class execute_resolution_wave_fnt>
   MJZ_CX_ND_FN bool run_one_callback(
       execute_resolution_wave_fnt &&execute_resolution_wave_fn) noexcept {
@@ -1079,6 +1092,11 @@ public:
       e = 0;
   }
 };
+
+template <version_t version_v,
+          dependency_state_c<version_v> auto max_invalid_state_v>
+using previous_states_t = typename basic_dependency_graph_base_t<
+    version_v, max_invalid_state_v>::previous_states_t;
 }; // namespace mjz::graph_ns
 
 #endif // MJZ_SRC_GRAPH_deps_FILE_

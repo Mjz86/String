@@ -11,9 +11,12 @@ template <typename T>
 concept random_access_iterator_c =
     std::random_access_iterator<std::remove_cvref_t<T>>;
 
+template <typename T, version_t version_v>
+concept usable_range_exact_c =
+    std::ranges::random_access_range<T> && std::ranges::sized_range<T>;
 template <typename T, class U, version_t version_v>
 concept usable_type_range_exact_c =
-    std::ranges::random_access_range<T> && std::ranges::sized_range<T> &&
+    usable_range_exact_c<T, version_v> &&
     std::convertible_to<std::ranges::range_reference_t<T>, U>;
 template <typename T, class U, version_t version_v>
 concept usable_type_range_c =
@@ -143,8 +146,7 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
     return transform_impl_(range_bijective_inv<version_v>(index_range),
                            index_range);
   }
-
-  MJZ_CX_FN auto range() const noexcept {
+  MJZ_CX_FN auto basic_index_range() const noexcept {
     uintlen_t nodes_index_sz = std::ranges::size(nodes_index);
     return std::views::iota(uintlen_t(0), nodes_index_sz) |
            std::views::transform([this, nodes_index_sz,
@@ -154,10 +156,28 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
              bool in_node = node_i + 1 < nodes_index_sz;
              uintlen_t end_index = uintlen_t(nodes_index[node_i + in_node]);
              end_index = bit_branchless_teranary(in_node, end_index, edges_sz);
-             auto it = std::ranges::begin(edges);
-             return std::ranges::subrange(it + intlen_t(begin_index),
-                                          it + intlen_t(end_index));
+             return basic_index_range_t<version_v>{
+                 .i = begin_index, .n = end_index - begin_index};
            });
+  }
+
+  MJZ_CX_FN auto index_range() const noexcept {
+    return basic_index_range() |
+           std::views::transform(
+               [](basic_index_range_t<version_v> bir_) noexcept {
+                 return bir_.iota();
+               });
+  }
+
+  MJZ_CX_FN auto range() const noexcept {
+    return basic_index_range() |
+           std::views::transform(
+               [it = std::ranges::begin(edges)](
+                   basic_index_range_t<version_v> iotaview) noexcept {
+                 auto [begin_index, end_index] = iotaview.bounds();
+                 return std::ranges::subrange(it + intlen_t(begin_index),
+                                              it + intlen_t(end_index));
+               });
   }
 
   MJZ_CX_FN static auto batchy_range_filter(uintlen_t min,
@@ -316,28 +336,6 @@ make_basic_forest(const auto &range_of_range) noexcept {
   }
   return ret;
 }
-template <version_t version_v, usable_index_range_c<version_v> T>
-template <usable_index_range_c<version_v> R1,
-          usable_index_range_c<version_v> R2>
-MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
-basic_forest_t<version_v, T>::transform_impl_(
-    R1 &&index_range, R2 &&inverse_index_range) const noexcept {
-  treversal_result_t<version_v> ret{};
-  ret.nodes_index.reserve(std::ranges::size(nodes_index));
-  ret.edges.reserve(std::ranges::size(edges));
-  auto edge_view = range();
-  for (uintlen_t i : std::forward<R1>(index_range)) {
-    ret.nodes_index.push_back(ret.edges.size());
-    auto range_ =
-        edge_view[i] | std::views::transform([&](uintlen_t j) noexcept {
-          return inverse_index_range[j];
-        });
-    ret.edges.insert(ret.edges.end(), std::ranges::begin(range_),
-                     std::ranges::end(range_));
-  }
-  return ret;
-}
-
 template <version_t version_v>
 MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
 make_basic_inv_forest(const auto &range_of_range) noexcept {
@@ -367,6 +365,101 @@ make_basic_inv_forest(const auto &range_of_range) noexcept {
       ret.edges[--ret.nodes_index[edge]] = node_index;
     }
     node_index++;
+  }
+  return ret;
+}
+
+template <version_t version_v, typename T>
+MJZ_CX_FN pair_t<treversal_result_t<version_v>, std::vector<T>>
+map_basic_forest_edges_data(const auto &range_of_range,
+                            auto &&range_of_edge_datas) noexcept {
+  pair_t<treversal_result_t<version_v>, std::vector<T>> ret_{};
+  auto &[ret, dret] = ret_;
+  if constexpr (requires() {
+                  { range_of_range } -> std::ranges::sized_range;
+                }) {
+    ret.nodes_index.reserve(std::ranges::size(range_of_range));
+  }
+
+  uintlen_t accumulate{};
+  for (auto &&range : range_of_range) {
+    accumulate += std::ranges::size(range);
+  }
+  dret.reserve(accumulate);
+  ret.edges.reserve(accumulate);
+  auto &&itd = std::ranges::begin(range_of_edge_datas);
+  for (auto &&range : range_of_range) {
+    auto &&drange = *itd;
+    ret.nodes_index.push_back(ret.edges.size());
+    ret.edges.insert(ret.edges.end(), std::ranges::begin(range),
+                     std::ranges::end(range));
+    dret.insert(dret.end(), std::ranges::begin(drange),
+                std::ranges::end(drange));
+    (void)++itd;
+  }
+  return ret_;
+}
+template <version_t version_v, typename T>
+MJZ_CX_FN pair_t<treversal_result_t<version_v>, std::vector<T>>
+map_make_basic_inv_forest_edges_data(const auto &range_of_range,
+                                     auto &&range_of_edge_datas) noexcept {
+  pair_t<treversal_result_t<version_v>, std::vector<T>> ret_{};
+  auto &[ret, dret] = ret_;
+
+  static_assert(requires() {
+    { range_of_range } -> std::ranges::sized_range;
+  });
+  ret.nodes_index =
+      std::vector<uintlen_t>(std::ranges::size(range_of_range), 0);
+
+  for (auto &&range : range_of_range) {
+    for (uintlen_t edge : range) {
+      ret.nodes_index[edge]++;
+    }
+  }
+  uintlen_t accumulate{};
+  for (uintlen_t &node_index : ret.nodes_index) {
+    accumulate += node_index;
+    node_index = accumulate;
+  }
+  ret.edges = std::vector<uintlen_t>(accumulate, 0);
+  dret = std::vector<T>(accumulate);
+  uintlen_t node_index{};
+
+  auto itd = std::ranges::begin(range_of_edge_datas);
+  for (auto &&range : range_of_range) {
+    auto &&drange = *itd;
+    auto &&ititd = std::ranges::begin(drange);
+    for (uintlen_t edge : range) {
+      uintlen_t rindex = --ret.nodes_index[edge];
+      ret.edges[rindex] = node_index;
+      dret[rindex] = std::ranges::iter_move(ititd);
+      (void)++ititd;
+    }
+    node_index++;
+    (void)++itd;
+  }
+  return ret_;
+}
+
+template <version_t version_v, usable_index_range_c<version_v> T>
+template <usable_index_range_c<version_v> R1,
+          usable_index_range_c<version_v> R2>
+MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+basic_forest_t<version_v, T>::transform_impl_(
+    R1 &&index_range, R2 &&inverse_index_range) const noexcept {
+  treversal_result_t<version_v> ret{};
+  ret.nodes_index.reserve(std::ranges::size(nodes_index));
+  ret.edges.reserve(std::ranges::size(edges));
+  auto edge_view = range();
+  for (uintlen_t i : std::forward<R1>(index_range)) {
+    ret.nodes_index.push_back(ret.edges.size());
+    auto range_ =
+        edge_view[i] | std::views::transform([&](uintlen_t j) noexcept {
+          return inverse_index_range[j];
+        });
+    ret.edges.insert(ret.edges.end(), std::ranges::begin(range_),
+                     std::ranges::end(range_));
   }
   return ret;
 }
@@ -1762,13 +1855,8 @@ template <version_t version_v> struct calculate_too_much_t {
 };
 template <version_t version_v, usable_index_range_c<version_v> R>
 MJZ_CX_FN std::vector<uintlen_t> make_view_vector_range(R &&range_) noexcept {
-  const uintlen_t sz = std::ranges::size(range_);
-  std::vector<uintlen_t> ret{};
-  ret.reserve(sz);
-  for (uintlen_t val : range_) {
-    ret.push_back(val);
-  }
-  return ret;
+  return std::vector<uintlen_t>(std::ranges::begin(range_),
+                                std::ranges::end(range_));
 }
 
 template <version_t version_v, usable_index_range_c<version_v> R>
@@ -2044,5 +2132,83 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_degree_ordering(
 }
 
 ///////////
+
+template <version_t version_v, class T,
+          usable_range_exact_c<version_v> edge_wights_t>
+MJZ_CX_FN auto calculate_shortest_positive_path_distanced(
+    uintlen_t entry_index, const basic_forest_t<version_v, T> &graph,
+    edge_wights_t &&weight_of_adjust) noexcept {
+  uintlen_t esz = std::ranges::size(graph.edges);
+  uintlen_t nsz = std::ranges::size(graph.nodes_index);
+  auto it_edge_node = std::ranges::begin(graph.edges);
+  auto it_weights = std::ranges::begin(weight_of_adjust);
+  auto edge_indexies = graph.index_range();
+  auto edge_weight = [&](uintlen_t edge_i) noexcept -> decltype(auto) {
+    return *(it_weights + intlen_t(edge_i));
+  };
+  auto edge_node = [&](uintlen_t edge_i) noexcept {
+    return *(it_edge_node + intlen_t(edge_i));
+  };
+  using uintdist_t = std::remove_cvref_t<decltype(edge_weight(0))>;
+
+  static_assert(std::unsigned_integral<uintdist_t> || requires() {
+    typename uintdist_t::mjz_uintN_t_id_val_t_2354675648764874753789;
+  });
+  asserts(esz == std::ranges::size(weight_of_adjust) && entry_index < nsz);
+  auto ret = make_index_vector_range<version_v>(nsz + esz);
+  std::vector<uintdist_t> distance_metic_(nsz + esz, uintdist_t(~uintdist_t()));
+  auto node_distance = std::span<uintdist_t>(distance_metic_).subspan(0, nsz);
+  auto edge_distance = std::span<uintdist_t>(distance_metic_).subspan(nsz, esz);
+  node_distance[entry_index] = uintdist_t();
+  uintlen_t heap_count{};
+  std::span<uintlen_t> parents = std::span(ret).subspan(0, nsz);
+  std::span<uintlen_t> heap = std::span(ret).subspan(nsz, esz);
+  auto comp = [&](uintlen_t edge_il, uintlen_t edge_ir) noexcept {
+    return edge_distance[edge_il] > edge_distance[edge_ir];
+  };
+  uintlen_t node_i{entry_index};
+  while (true) {
+    for (uintlen_t edge_i : edge_indexies[node_i]) {
+      const uintdist_t edge_dist = edge_distance[edge_i] =
+          uintdist_t(edge_weight(edge_i) + node_distance[node_i]);
+      asserts(node_distance[node_i] <= edge_dist,
+              "no overflow , use bigger uints if this happens");
+      uintlen_t target_node = edge_node(edge_i);
+      if (node_distance[target_node] <= edge_dist)
+        continue;
+      parents[target_node] = node_i;
+      node_distance[target_node] = edge_dist;
+      heap[heap_count++] = edge_i;
+      std::ranges::push_heap(heap.subspan(0, heap_count), comp);
+    }
+    uintlen_t edge_i{};
+    if (!heap_count)
+      break;
+
+    bool stale{};
+    do {
+      std::ranges::pop_heap(heap.subspan(0, heap_count), comp);
+      edge_i = heap[--heap_count];
+      node_i = edge_node(edge_i);
+      stale = edge_distance[edge_i] != node_distance[node_i];
+    } while (stale && heap_count);
+    if (stale)
+      break;
+  }
+  ret.resize(nsz);
+  return tuple_t{std::move(ret), std::move(distance_metic_)};
+}
+
+template <version_t version_v, class T,
+          usable_range_exact_c<version_v> edge_wights_t>
+MJZ_CX_FN std::vector<uintlen_t>
+calculate_shortest_positive_path(uintlen_t entry_index,
+                                 const basic_forest_t<version_v, T> &graph,
+                                 edge_wights_t &&edge_wight_) noexcept {
+  auto [ret, dist] = calculate_shortest_positive_path_distanced(
+      entry_index, graph, edge_wight_);
+  return (std::move(ret));
+}
+
 }; // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_algo_FILE_

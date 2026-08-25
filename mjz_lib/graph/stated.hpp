@@ -37,15 +37,6 @@ data structure, i recommened using 'basic_dependency_graph_t' instead of
 
 */
 
-template <version_t version_v,
-          dependency_state_c<version_v> auto max_invalid_state_v>
-struct MJZ_trivially_relocatable previous_states_t {
-  using states_e =
-      typename base_state_space_t<version_v, max_invalid_state_v>::states_e;
-  base_node_id_t<version_v> id{};
-  std::optional<states_e> forward{};
-  std::optional<states_e> backward{};
-};
 template <version_t version_v, class event_t, auto max_invalid_state_v>
 struct basic_dependency_graph_t
     : basic_dependency_graph_base_t<version_v, max_invalid_state_v> {
@@ -108,11 +99,8 @@ protected:
       asserts(!event_list.size());
       event_list.reserve(std::ranges::size(id_range));
       for (auto id : id_range) {
-        auto &node_forward = base::dependency(id, true);
-        auto &node_backward = base::dependency(id, false);
-        previous_states_t<version_v, max_invalid_state_v> signal{id};
-        signal.forward = node_forward.get_passive_trigger();
-        signal.backward = node_backward.get_passive_trigger();
+        previous_states_t<version_v, max_invalid_state_v> signal{
+            base::passive_trigger(id)};
         const bool plese_optimize_emplaceback =
             event_list.capacity() != event_list.size();
 
@@ -189,6 +177,37 @@ public:
 
   MJZ_CX_FN uintlen_t run_all(uintlen_t limit, auto &&...pram) noexcept {
     while (limit && execute_resolution_wave(pram...))
+      limit--;
+    return limit;
+  }
+};
+
+template <version_t version_v, auto max_invalid_state_v>
+struct signal_dependency_graph_t
+    : basic_dependency_graph_base_t<version_v, max_invalid_state_v> {
+  using base = basic_dependency_graph_base_t<version_v, max_invalid_state_v>;
+
+protected:
+  MJZ_CX_FN bool execute_resolution_wave(auto &resolve_one_callback) noexcept {
+    static_assert(
+        requires(previous_states_t<version_v, max_invalid_state_v> signal) {
+          { (void)resolve_one_callback(*this, std::move(signal)) } noexcept;
+        });
+    return base::run_one_callback([&](auto &&id_range) noexcept {
+      for (auto id : id_range) {
+        (void)resolve_one_callback(*this, base::passive_trigger(id));
+      }
+    });
+  }
+
+public:
+  MJZ_CX_ND_FN bool run_one(auto &&resolve_one_callback) noexcept {
+    return execute_resolution_wave(resolve_one_callback);
+  }
+
+  MJZ_CX_FN uintlen_t run_all(uintlen_t limit,
+                              auto &&resolve_one_callback) noexcept {
+    while (limit && execute_resolution_wave(resolve_one_callback))
       limit--;
     return limit;
   }

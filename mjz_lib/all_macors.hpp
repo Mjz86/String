@@ -920,10 +920,12 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
 }
 #define MJZ_DEBUG_LOCATION_                                                    \
   MJZ_EXPAND_(__FILE__ MJZ_TO_STRING_V( : MJZ_LINE_()))
+
+#define MJZ_DEBUG_LOCATION MJZ_EXPAND_(MJZ_DEBUG_LOCATION_)
+
 #define MJZ_BAD_DEBUG_0_                                                       \
   MJZ_IFN_CONSTEVAL {                                                          \
-    std::cout << MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) " hereeeeeeeeeeeeeeee!"      \
-              << std::endl;                                                    \
+    std::cout << MJZ_DEBUG_LOCATION " hereeeeeeeeeeeeeeee!" << std::endl;      \
   }
 
 //-V:MJZ_ASSUME_ALIGNESV_GET: 3546 , 2571,1080
@@ -1345,10 +1347,9 @@ use when "ccoro.hpp" is included
 
 #define MJZ_MCC_ugly_cerr_assert_impl(expression_E, grace_G)                   \
                                                                                \
-  ::mjz::asserts.ugly_cerr_assert_impl(                                        \
-      expression_E, grace_G,                                                   \
-      "Assertion failed:(" #expression_E                                       \
-      ") at " MJZ_EXPAND_(MJZ_DEBUG_LOCATION_) "\n")
+  ::mjz::asserts.ugly_cerr_assert_impl(expression_E, grace_G,                  \
+                                       "Assertion failed:(" #expression_E      \
+                                       ") at " MJZ_DEBUG_LOCATION "\n")
 
 #define MJZ_MCC_log_assert(expression_E)                                       \
   MJZ_MCC_ugly_cerr_assert_impl(expression_E, true)
