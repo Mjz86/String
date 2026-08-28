@@ -689,6 +689,7 @@ MJZ_EXPORT namespace mjz {
       x.negate();
       return x;
     }
+    MJZ_CX_AL_FN uintN_t operator+() const noexcept { return *this; }
 
     MJZ_CX_AL_FN friend uintN_t operator+(uintN_t x,
                                           const uintN_t &y) noexcept {

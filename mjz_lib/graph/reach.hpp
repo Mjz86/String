@@ -1,6 +1,7 @@
 #ifndef MJZ_SRC_GRAPH_reach_FILE_
 #define MJZ_SRC_GRAPH_reach_FILE_
 #include "../unordered_vector.hpp"
+#include "algo.hpp"
 
 MJZ_EXPORT
 namespace mjz::graph_ns {
