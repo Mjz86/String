@@ -160,13 +160,11 @@ template <version_t version_v> struct reachability_checker_t {
     lhs = rotl(lhs, 64);
   }
 
-  template <class R = std::span<const uintlen_t>,
-            index_range_of_c<version_v> RIR_t>
-  MJZ_CX_FN explicit reachability_checker_t(const auto &range_of_range,
-                                            RIR_t &&entry_node_order) noexcept {
+  template <class R = std::span<const uintlen_t>>
+  MJZ_CX_FN explicit reachability_checker_t(const auto &range_of_range) noexcept {
 
-    auto too_much = calculate_too_much_t<version_v>::make_with_order(
-        range_of_range, entry_node_order);
+    auto too_much = calculate_too_much_t<version_v>::make(
+        range_of_range);
 
     m_node_to_edge_ = std::move(too_much.edge_of_node);
     m_node_to_pred_ = std::move(too_much.pred_of_node);
@@ -317,12 +315,7 @@ template <version_t version_v> struct reachability_checker_t {
         depth_first_interval_begin, depth_first_interval_end, parent_temp,
         m_node_to_edge_, structural_root_view);
   }
-
-  template <class R = std::span<const uintlen_t>>
-  MJZ_CX_FN explicit reachability_checker_t(const auto &range_of_range) noexcept
-      : reachability_checker_t(
-            range_of_range,
-            std::views::iota(uintlen_t(), std::ranges::size(range_of_range))) {}
+ 
 
   MJZ_CX_FN static uintlen_t
   maximizer_compress_pass_fn(auto &range_, uintlen_t start) noexcept {

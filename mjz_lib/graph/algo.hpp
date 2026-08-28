@@ -52,17 +52,18 @@ template <version_t version_v> struct calculate_too_much_t {
   template <class R = std::span<const uintlen_t>,
             index_range_of_c<version_v> RIR_t>
   MJZ_CX_AL_FN static calculate_too_much_t
-  make_with_order(const auto &range_of_range,
-                  RIR_t &&entry_node_order) noexcept {
+  make(const auto &range_of_range) noexcept {
     calculate_too_much_t ret{};
     ret.edge_of_node = make_basic_forest<version_v>(range_of_range);
     ret.pred_of_node =
         make_basic_inv_forest<version_v>(ret.edge_of_node.range());
     ret.strongly_connected_components =
-        calculate_strongly_connected_components_with_order(
-            ret.edge_of_node, std::forward<RIR_t>(entry_node_order));
-    ret.sequenced_components = calculate_graph_sequenced_components(
-        ret.strongly_connected_components, ret.edge_of_node);
+        calculate_strongly_connected_components(ret.edge_of_node);
+    auto [scc_ordered, sec, wc] =
+        calculate_graph_toposorted_sequenced_components(
+            ret.strongly_connected_components, ret.edge_of_node);
+    ret.strongly_connected_components = std::move(scc_ordered);
+    ret.sequenced_components = pair_t{std::move(sec), wc};
     uintlen_t total_node_count = std::ranges::size(ret.edge_of_node.range());
 
     ret.edge_of_node.nodes_index.push_back(ret.edge_of_node.edges.size());
@@ -92,13 +93,6 @@ template <version_t version_v> struct calculate_too_much_t {
     ret.edge_of_node.nodes_index.pop_back();
     ret.immidiate_dominators.pop_back();
     return ret;
-  }
-  template <class R = std::span<const uintlen_t>>
-  MJZ_CX_FN static calculate_too_much_t
-  make(const auto &range_of_range) noexcept {
-    return make_with_order(
-        range_of_range,
-        std::views::iota(uintlen_t(), std::ranges::size(range_of_range)));
   }
 };
 

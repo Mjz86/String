@@ -376,7 +376,7 @@ template <version_t version_v,
           usable_index_range_c<version_v> depth_first_interval_end_t,
           class R = std::span<const uintlen_t>,
           usable_index_range_c<version_v> visit_range_t>
-MJZ_CX_FN uintlen_t count_unreducibles_given_scc_and_dominance_intervals(
+MJZ_CX_FN uintlen_t count_unreducibles_given_dfs_and_dominance_intervals(
     dominance_interval_begin_t &&dominance_interval_begin,
     dominance_interval_end_t &&dominance_interval_end,
     depth_first_interval_begin_t &&depth_first_interval_begin,

@@ -537,5 +537,53 @@ calculate_acyclic_graph_topological_sort_events(
   wave_que.resize(total_node_count);
   return {std::move(wave_que), wave_index_sequence};
 }
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN
+    tuple_t<treversal_result_t<version_v>, std::vector<intlen_t>, intlen_t>
+    calculate_graph_topo_sequenced_components(
+        const basic_forest_t<version_v, R1> &scc_forest_,
+        const basic_forest_t<version_v, R2> &edge_of_node_) noexcept {
+  uintlen_t total_node_count = std::ranges::size(edge_of_node_);
+  uintlen_t total_scc_count = std::ranges::size(scc_forest_);
+  auto [sequence_number, wave_count] =
+      calculate_graph_sequenced_components(scc_forest_, edge_of_node_);
+  auto scc_indexies_compl =
+      std::span(sequence_number).subspan(total_node_count, total_node_count);
+  auto scc_order =
+      std::span(sequence_number).subspan(total_node_count * 2, total_scc_count);
+  auto ordered = scc_forest_.transform(
+      scc_order |
+      std::views::transform([](intlen_t i) noexcept { return uintlen_t(i); }));
+  sequence_number.resize(total_node_count);
+  return {std::move(ordered), std::move(sequence_number), wave_count};
+}
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v> calculate_graph_topo_scc_order(
+    const basic_forest_t<version_v, R1> &scc_forest_,
+    const basic_forest_t<version_v, R2> &edge_of_node_) noexcept {
+  auto [scc_ordered, _0, _1] = calculate_graph_toposorted_sequenced_components(
+      scc_forest_, edge_of_node_);
+  return std::move(scc_ordered);
+}
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          mutable_index_range_c<version_v> uninit_index_range_t>
+MJZ_CX_FN void
+node_to_scc_map(uninit_index_range_t &&uninit_scc_indexies,
+                const basic_forest_t<version_v, R1> &scc_forest_) noexcept {
+  uintlen_t scc_index{};
+  auto uninit_scc_indexies_it = std::ranges::begin(uninit_scc_indexies);
+  for (auto &&scc : scc_forest_.range()) {
+    for (uintlen_t node : scc) {
+      *(uninit_scc_indexies_it + intlen_t(node)) = scc_index;
+    }
+    scc_index++;
+  }
+}
+
 } // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_sequence_FILE_
