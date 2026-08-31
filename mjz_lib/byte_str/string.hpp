@@ -621,9 +621,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!m.template has_room_for<when_v>(1, true)) {
         m.destruct_all();
       }
-      char *p = m.u_get_mut_begin();
-      p[0] = c;
-      as_substring(0, 1);
+      *m.u_get_mut_begin() = c;
+      m.set_length(1);
       return;
     }
 
@@ -1993,7 +1992,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       };
       set_encoding(dont_mess_up, encodings_e::ascii);
-      return as_substring_<when_t::own_relax>(0, new_len);
+      m.set_length(new_len);
+      return true;
     }
 
   private:
@@ -2079,7 +2079,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       };
       set_encoding(dont_mess_up, encodings_e::ascii);
-      return as_substring_<when_t::own_relax>(0, new_len);
+      m.set_length(new_len);
+      return true;
     }
 
     using bview = base_string_view_t<version_v>;

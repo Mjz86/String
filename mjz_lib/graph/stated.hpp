@@ -92,6 +92,26 @@ protected:
   this micro-tick will be slower than using a flush buffer, however this is
   all just my view, i may be wrong.
 
+
+  important note :
+
+   - AND parallezim:
+     MCC's scheduler loves this , its built for it .
+
+   - OR parallezim:
+     for the love all all determinism ,
+     ban anything atomic related other than refrence counting and or deterministic OS-independant atomic operations.
+     
+     instead , use the yeild mechanism , while a tiny change in the algo can cause order divergance , its far more deterministic and OS independant,
+     what i mean is :
+     we need OR ( A1,A2,...)
+     we do and (ASP1,ASP2,...)
+     where ASP is a minimal suspention point ,
+     during defuse ,
+     if sibling tasks got done , we know at suspention that were unneded ,
+     and tell childs to cancel as well,
+     while this needs every node to be chopped up into fine grained suspention cancel checks , it is the way i found to manage OR parrallel semi-determinism ( OS independant ).
+
   */
   MJZ_CX_FN bool execute_resolution_wave(auto &...pram) noexcept {
     return base::run_one_callback([&](auto &&id_range) noexcept {

@@ -123,6 +123,13 @@ MJZ_EXPORT namespace mjz {
       panic_handler();
     }
 
+    MJZ_CX_AL_FN const mjz_assert_t &
+    panic_unless(success_t value, const char *str = "assert") const noexcept {
+      if (value)
+        return *this;
+      panic();
+    }
+
     MJZ_NORETURN MJZ_NCX_AL_FN void not_implemented_yet(
         MJZ_UNUSED const char *const str = "assert") const noexcept {
       panic(str);

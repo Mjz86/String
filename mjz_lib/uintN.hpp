@@ -584,6 +584,29 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN uintN_t byteswap() const noexcept { return byteswap(*this); }
     MJZ_CX_AL_FN uintN_t bitswap() const noexcept { return bitswap(*this); }
 
+    MJZ_CX_AL_FN std::array<char, n_bits / 8> native_bitcast() const noexcept {
+      return make_bitcast(*this);
+    }
+    MJZ_CX_AL_FN std::array<char, n_bits / 8>
+    other_endian_bitcast() const noexcept {
+      return byteswap().native_bitcast();
+    }
+    MJZ_CX_AL_FN std::array<char, n_bits / 8>
+    little_endian_bitcast() const noexcept {
+      if constexpr (std::endian::big == std::endian::native) {
+        return other_endian_bitcast();
+      } else {
+        return native_bitcast();
+      }
+    }
+    MJZ_CX_AL_FN std::array<char, n_bits / 8>
+    big_endian_bitcast() const noexcept {
+      if constexpr (std::endian::big == std::endian::native) {
+        return native_bitcast();
+      } else {
+        return other_endian_bitcast();
+      }
+    }
     template <uintlen_t n>
     using uintn_t_ = uintN_t<version_v, ((n + 63) & ~uintlen_t(63))>;
     template <uintlen_t n> MJZ_CX_AL_FN uintn_t_<n_bits * n> pow() {
