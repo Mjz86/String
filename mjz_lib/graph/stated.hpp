@@ -123,8 +123,8 @@ protected:
        all of the nodes that depend on U must be cancelled,
        this can be enforced by local cancel counter and local propagation , similar to the active counter.
        however becuz canclation is heavily state machine dependant, i will not make it a native node construct. 
-       also, a node that has all of its dependancies canceled can get canceled , 
-       canclation will make it complete , so no one will be able depend on it anymore. 
+       also, a node that has all of its dependancies complete-canceled can get complete-canceled , 
+       complete-canclation will make it complete , so no one will be able depend on it anymore. 
 
 
 
