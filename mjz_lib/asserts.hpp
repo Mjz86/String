@@ -127,7 +127,7 @@ MJZ_EXPORT namespace mjz {
     panic_unless(success_t value, const char *str = "assert") const noexcept {
       if (value)
         return *this;
-      panic();
+      panic(str);
     }
 
     MJZ_NORETURN MJZ_NCX_AL_FN void not_implemented_yet(
