@@ -100,17 +100,33 @@ protected:
 
    - OR parallezim:
      for the love all all determinism ,
-     ban anything atomic related other than refrence counting and or deterministic OS-independant atomic operations.
+     ban anything atomic related other than refrence counting and or deterministic OS-independant atomic operations 
+     ( A and B share a wave ,   A happens before B, vs B happens before A, i.e aquire relese  , 
+     it must be  equivlent. imagine somthing like , f(A,B) == f(B,A) ,  f(f(A,B),C) == f(A,f(B,C)) ,
+      and so on , the order of execution shall not matter in a wave, 
+      even the sequencial defuse order is icky(tho technically OS-independant ) to rely on  ).
      
      instead , use the yeild mechanism , while a tiny change in the algo can cause order divergance , its far more deterministic and OS independant,
      what i mean is :
      we need OR ( A1,A2,...)
      we do and (ASP1,ASP2,...)
-     where ASP is a minimal suspention point ,
+     where ASP is a minimal suspention point ( a yeild/defuse at a node is a suspention point of that node  ),
      during defuse ,
      if sibling tasks got done , we know at suspention that were unneded ,
      and tell childs to cancel as well,
      while this needs every node to be chopped up into fine grained suspention cancel checks , it is the way i found to manage OR parrallel semi-determinism ( OS independant ).
+
+
+      - inner note :
+       explicit cancel is logic driven , for example the OR thing from above,
+       however, for a node U to be considered transitivly cancelled ,
+       all of the nodes that depend on U must be cancelled,
+       this can be enforced by local cancel counter and local propagation , similar to the active counter.
+       however becuz canclation is heavily state machine dependant, i will not make it a native node construct. 
+       also, a node that has all of its dependancies canceled can get canceled , 
+       canclation will make it complete , so no one will be able depend on it anymore. 
+
+
 
   */
   MJZ_CX_FN bool execute_resolution_wave(auto &...pram) noexcept {
