@@ -33,8 +33,10 @@ namespace mjz::graph_ns {
 
 template <version_t version_v, class R1 = std::span<const uintlen_t>,
           class R2 = std::span<const uintlen_t>>
-MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_given_sorted_sccs_from_entry(
-    uintlen_t entry_node, const basic_forest_t<version_v, R1> &scc_forest_with_topological_sequnce,
+MJZ_CX_FN std::vector<uintlen_t>
+calculate_dominators_given_sorted_sccs_from_entry(
+    uintlen_t entry_node,
+    const basic_forest_t<version_v, R1> &scc_forest_with_topological_sequnce,
     const basic_forest_t<version_v, R2> &preds_of_node) noexcept {
   uintlen_t total_node_count = std::ranges::size(preds_of_node.range());
   std::vector<uintlen_t> monotonic_dominator_ordenal(total_node_count * 2,
@@ -44,7 +46,8 @@ MJZ_CX_FN std::vector<uintlen_t> calculate_dominators_given_sorted_sccs_from_ent
   uintlen_t monotonic_ordenal_counter = 0;
   monotonic_dominator_ordenal[entry_node] = entry_node;
   frozen_ordenal[entry_node] = monotonic_ordenal_counter++;
-  auto monotonic_scc_range = scc_forest_with_topological_sequnce.range() | std::views::reverse;
+  auto monotonic_scc_range =
+      scc_forest_with_topological_sequnce.range() | std::views::reverse;
   for (auto &&scc : monotonic_scc_range) {
     for (uintlen_t node : scc) {
       if (node == entry_node)

@@ -23,36 +23,10 @@ SOFTWARE.
 
 #ifndef MJZ_SRC_GRAPH_deps_FILE_
 #define MJZ_SRC_GRAPH_deps_FILE_
-#include "../byte_str/formatting/basic_formatters.hpp"
-#include "../byte_str/formatting/format.hpp"
+#include "bdeps.hpp"
 MJZ_EXPORT
 //
 namespace mjz::graph_ns {
-template <version_t version_v> struct MJZ_trivially_relocatable base_node_id_t {
-
-  constexpr static inline uintlen_t sentinel_v = uintlen_t(-1);
-
-private:
-  uintlen_t value = sentinel_v;
-
-public:
-  MJZ_CX_FN explicit operator bool() const noexcept {
-    return value != sentinel_v;
-  }
-  MJZ_CX_FN bool operator!() const noexcept { return value == sentinel_v; }
-  MJZ_CX_FN std::strong_ordering
-  operator<=>(const base_node_id_t &) const noexcept = default;
-  MJZ_CX_FN bool operator==(const base_node_id_t &) const noexcept = default;
-
-  MJZ_CX_FN base_node_id_t() = default;
-  MJZ_CX_FN uintlen_t index() const noexcept { return value; };
-  MJZ_CX_FN explicit base_node_id_t(uintlen_t i) noexcept : value{i} {}
-  MJZ_CX_FN uintlen_t
-  basic_format_specs_formatted_pv_fn_(auto &&) const noexcept {
-    return this->value;
-  };
-};
-
 template <class T, version_t version_v>
 concept dependency_state_c = requires(std::remove_cvref_t<T> s) {
   requires std::is_enum_v<std::remove_cvref_t<T>>;
@@ -81,7 +55,7 @@ struct MJZ_trivially_relocatable base_state_space_t {
   static_assert(!!to_underlying(max_invalid_state_v));
   states_e current{};
   states_e trigger{};
-  MJZ_CX_ND_FN bool is_asleep() const noexcept {
+  MJZ_CX_FN bool is_asleep() const noexcept {
     /*
     is_unrecoverable : latch forever error
     not is_incomplete: latch forever sucsuss
@@ -91,19 +65,26 @@ struct MJZ_trivially_relocatable base_state_space_t {
     */
     return !(!is_incomplete() || is_triggered() || is_unrecoverable());
   }
-  MJZ_CX_ND_FN bool is_unrecoverable() const noexcept {
+  MJZ_CX_FN bool is_unrecoverable() const noexcept {
     return operator_and(operator_or(max_invalid_state_v <= current,
                                     max_invalid_state_v < trigger),
                         is_incomplete());
   };
-  MJZ_CX_ND_FN bool is_incomplete() const noexcept {
+  MJZ_CX_FN bool is_incomplete() const noexcept {
     return std::min(trigger, current) < max_invalid_state_v;
   };
   // a latch state
-  MJZ_CX_ND_FN bool is_triggered() const noexcept {
+  MJZ_CX_FN bool is_triggered() const noexcept {
     return trigger <= current && current < max_invalid_state_v;
   }
-  MJZ_CX_ND_FN
+  MJZ_CX_FN void canonicalize() noexcept {
+    bool u = is_unrecoverable();
+    current = std::min(max_invalid_state_v, current);
+    trigger =
+        std::min(u ? trigger : std::max(trigger, current), max_invalid_state_v);
+  }
+
+  MJZ_CX_FN
   bool operator==(const base_state_space_t &) const noexcept = default;
   MJZ_CX_FN success_t refresh(base_state_space_t fresh) noexcept {
     base_state_space_t me = *this;
@@ -114,13 +95,11 @@ struct MJZ_trivially_relocatable base_state_space_t {
     *this = bit_branchless_teranary(me.is_unrecoverable(), me, cpy);
     return !is_unrecoverable();
   }
-  MJZ_CX_ND_FN bool error(auto &&) noexcept {
+  MJZ_CX_FN bool error(auto &&) noexcept {
     //  A then B is solved , but we suddenly changed A under B's feet to
     //  be for example C then A , but we have sent a signal already that A
     //  is ready
-    trigger = std::min(
-        std::min(trigger, states_e(to_underlying(max_invalid_state_v) - 1)),
-        current);
+    trigger = states_e(to_underlying(max_invalid_state_v) - 1);
     current = max_invalid_state_v;
     return false;
   }
@@ -133,7 +112,8 @@ struct MJZ_trivially_relocatable base_state_space_t {
 template <version_t version_v,
           dependency_state_c<version_v> auto max_invalid_state_v>
 struct MJZ_trivially_relocatable directed_state_space_t
-    : base_state_space_t<version_v, max_invalid_state_v> {
+    : base_state_space_t<version_v, max_invalid_state_v>,
+      base_edges_ids_t<version_v> {
   using base = base_state_space_t<version_v, max_invalid_state_v>;
   using self_t = directed_state_space_t;
   using states_e = typename base::states_e;
@@ -141,50 +121,11 @@ struct MJZ_trivially_relocatable directed_state_space_t
 
   constexpr static inline uintlen_t active_trigger_tag_v = uintlen_t(-1);
   constexpr static inline uintlen_t passive_trigger_tag_v = uintlen_t(-2);
-  // it cant be a "Compressed Sparse Row", my graph evolves dynamically.
-  intlen_t m_connections_begin_index{};
-  intlen_t m_connections_length{};
-  //
+
   // active_connections is latched to one of -2 or -1  when is_triggered,
   // no amount of connection_count()  will go up to uintlen_t(-3).
   // active_connections grows until reinitilized.
   uintlen_t active_connections{};
-
-  //
-
-  MJZ_CX_AL_FN uintlen_t connection_count() const noexcept {
-    return uintlen_t(std::max(m_connections_length, -m_connections_length));
-  }
-  MJZ_CX_AL_FN basic_index_range_t<version_v>
-  connection_index_ids() const noexcept {
-    return {.i = uintlen_t(std::max(m_connections_begin_index,
-                                    -m_connections_begin_index)),
-            .n = connection_count()};
-  }
-  MJZ_CX_AL_FN uintlen_t emplace_back_valid_impl() noexcept {
-    uintlen_t i = connection_index_ids().ending();
-    m_connections_length = bit_branchless_teranary<intlen_t>(
-        m_connections_length < 0, m_connections_length - 1,
-        m_connections_length + 1);
-
-    return i;
-  }
-  MJZ_CX_AL_FN bool has_capacity_field() const noexcept {
-    return m_connections_begin_index < 0;
-  }
-  MJZ_CX_AL_FN uintlen_t capacity_field_index() const noexcept {
-    return uintlen_t(~m_connections_begin_index);
-  }
-  MJZ_CX_AL_FN bool has_implicit_capacity() const noexcept {
-    return m_connections_length <= 0;
-  }
-
-  MJZ_CX_AL_FN uintlen_t implicit_capacity() const noexcept {
-    return bit_branchless_teranary(
-        !!m_connections_length,
-        uintlen_t(std::bit_ceil(uintlen_t(-m_connections_length))),
-        uintlen_t());
-  }
 
   MJZ_CX_AL_FN bool refresh_dependency_triggers(base old, base fresh) noexcept {
     base t = old;
@@ -239,11 +180,11 @@ struct MJZ_trivially_relocatable directed_state_space_t
     dec_zero_in_dgree();
     return true;
   }
-  MJZ_CX_ND_FN bool is_actively_triggered() const noexcept {
+  MJZ_CX_FN bool is_actively_triggered() const noexcept {
     return active_connections == active_trigger_tag_v &&
            (asserts(this->is_triggered()), true);
   }
-  MJZ_CX_ND_FN bool is_passively_triggered() const noexcept {
+  MJZ_CX_FN bool is_passively_triggered() const noexcept {
     return active_connections == passive_trigger_tag_v &&
            (asserts(this->is_triggered()), true);
   }
@@ -252,14 +193,14 @@ struct MJZ_trivially_relocatable directed_state_space_t
     this->trigger = this->current;
   }
 
-  MJZ_CX_ND_FN bool passively_trigger() noexcept {
+  MJZ_CX_FN bool passively_trigger() noexcept {
     bool can_do = is_actively_triggered();
     active_connections = bit_branchless_teranary(can_do, passive_trigger_tag_v,
                                                  active_connections);
     return can_do;
   }
 
-  MJZ_CX_ND_FN std::optional<states_e> get_passive_trigger() const noexcept {
+  MJZ_CX_FN std::optional<states_e> get_passive_trigger() const noexcept {
     return bit_branchless_teranary<std::optional<states_e>>(
         is_passively_triggered(), this->trigger, std::nullopt);
   }
@@ -308,24 +249,6 @@ struct MJZ_trivially_relocatable directed_state_space_t
         state_to_str_impl_<version_v>(direc.trigger),
         intlen_t(active_connections), connection_count());
   }
-  MJZ_CX_AL_FN std::span<const uintlen_t>
-  get_connections(std::span<const uintlen_t> connections_list) const noexcept {
-    auto cir_ = connection_index_ids();
-    if (!basic_index_range_t<version_v>{.i = 0, .n = connections_list.size()}
-             .has_inside(cir_))
-      return {};
-    return connections_list.subspan(cir_.i, cir_.n);
-  }
-
-  MJZ_CX_AL_FN uintlen_t
-  get_capacity(std::span<const uintlen_t> connections_list) const noexcept {
-    if (has_implicit_capacity())
-      return implicit_capacity();
-    uintlen_t capacity_field_index_ = capacity_field_index();
-    if (capacity_field_index_ < connections_list.size())
-      return connections_list[capacity_field_index_];
-    return connection_count();
-  }
 
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   basic_format_specs_formatted_pv_fn_(auto &&) const noexcept {
@@ -373,14 +296,10 @@ public:
   static_assert(std::is_trivially_destructible_v<dependency_node_t>);
 
 protected:
-  std::array<intlen_t, std::bit_width(uintlen_t(-1))>
-      connections_free_list_heads{};
-  uintlen_t connections_free_list_mask{};
-  uintlen_t expected_edges_per_node_v{0};
   std::vector<dependency_node_t> nodes{};
   std::vector<uintlen_t> applied_list{};
   std::vector<uintlen_t> apply_list{};
-  std::vector<uintlen_t> connections_list{};
+  base_edge_connections_list_t<version_v> connections_list{};
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state(node_id_t me) const noexcept {
     return mjz::bstr_ns::format_ns::format(
@@ -398,78 +317,7 @@ protected:
         me.index(), dependency(me, true).format_node_state_direct_dot(),
         dependency(me, false).format_node_state_direct_dot());
   }
-  MJZ_CX_AL_FN intlen_t
-  connections_free_list_pop_impl(uintlen_t free_index) noexcept {
-    intlen_t index = connections_free_list_heads[free_index];
-    asserts(asserts.assume_rn, !!index);
-    if (0 < index)
-      index--;
-    intlen_t old =
-        intlen_t(connections_list[uintlen_t(std::max(index, -index))]);
-    connections_free_list_heads[free_index] = old;
-    connections_free_list_mask &=
-        old ? connections_free_list_mask : ~(uintlen_t(1) << free_index);
-    return index;
-  }
-  MJZ_CX_AL_FN void connections_free_list_push_impl(uintlen_t free_index,
-                                                    intlen_t index) noexcept {
-    intlen_t old = connections_free_list_heads[free_index];
-    connections_list[uintlen_t(std::max(index, -index))] = uintlen_t(old);
-    connections_free_list_heads[free_index] = index < 0 ? index : index + 1;
-    connections_free_list_mask |= uintlen_t(1) << free_index;
-  }
-  MJZ_CX_AL_FN void deallocate_connections(intlen_t index,
-                                           uintlen_t capacity) noexcept {
-    if (index < 0) {
-      index = ~index;
-      capacity++;
-    }
-    if (!capacity)
-      return;
-    uintlen_t cap_floor = std::bit_floor(capacity);
-    uintlen_t free_index = uintlen_t(std::bit_width(cap_floor) - 1);
 
-    if (cap_floor != capacity) {
-      connections_list[uintlen_t(index)] = --capacity;
-      index = ~index;
-    }
-    connections_free_list_push_impl(free_index, index);
-  }
-
-  MJZ_CX_AL_FN intlen_t allocate_connections(uintlen_t &capacity,
-                                             bool implicit_field) noexcept {
-    asserts(asserts.assume_rn, !!capacity);
-    uintlen_t exact_cap = capacity;
-    if (!implicit_field)
-      exact_cap++;
-    uintlen_t cap_ceil = std::bit_ceil(exact_cap);
-    intlen_t index{};
-    if (connections_free_list_mask < cap_ceil) {
-      uintlen_t uindex = connections_list.size();
-      connections_list.resize(uindex + exact_cap);
-      asserts(asserts.assume_rn,
-              0 < intlen_t(uintlen_t(connections_list.size() + 1)));
-      index = intlen_t(uindex);
-      if (!implicit_field) {
-        connections_list[uintlen_t(index)] = capacity;
-        index = ~index;
-        return index;
-      }
-    } else {
-      uintlen_t free_index = uintlen_t(std::countr_zero(
-          connections_free_list_mask & ~uintlen_t(cap_ceil - 1)));
-      index = connections_free_list_pop_impl(free_index);
-      if (index < 0) {
-        capacity = connections_list[uintlen_t(~index)];
-        return index;
-      }
-      capacity = uintlen_t(1) << free_index;
-    }
-    if (implicit_field && exact_cap == capacity)
-      return index;
-    connections_list[uintlen_t(index)] = --capacity;
-    return ~index;
-  }
   MJZ_CX_AL_FN dependency_node_data_t &dependency_node(node_id_t me) noexcept {
     return assume_aligned<std::bit_floor(sizeof(dependency_node_data_t))>(
                &nodes[me.index()])
@@ -551,10 +399,10 @@ protected:
     const state_space_t fresh{node_dependency};
     for (uintlen_t i{}; i < connections_span.size(); i++) {
       prefetch_elem_at_fn(connections_span, i + prefetch_batch_v);
-
       auto dep_i = node_id_t(connections_span[i]);
       node_dependency.refresh_dependency_defuse(dependency(dep_i, direction));
-    };
+    }
+
     uintlen_t size_real_apply_list_size{apply_list.size()};
     uintlen_t size_reserve_apply_list{
         uintlen_t(query_me) +
@@ -635,57 +483,17 @@ protected:
 
     return events_running();
   };
-  MJZ_CX_AL_FN void
-  reserve_edge_connection_impl(bool direction, node_id_t id,
-                               uintlen_t new_capacity,
-                               bool &implicit_field) noexcept {
-    node_direction_t &new_direct = dependency(id, direction);
-    node_direction_t old_direct = new_direct;
-    uintlen_t old_capacity = old_direct.get_capacity(connections_list);
 
-    if (new_capacity <= old_capacity)
-      return;
-    uintlen_t prefer_cap = new_capacity;
-    intlen_t new_connections_begin_index =
-        allocate_connections(new_capacity, implicit_field);
-    new_direct.m_connections_begin_index = new_connections_begin_index;
-    new_direct.m_connections_length = 0;
-    for (uintlen_t i : old_direct.connection_index_ids().iota()) {
-      connections_list[new_direct.emplace_back_valid_impl()] =
-          connections_list[i];
-    }
-    implicit_field &= prefer_cap == new_capacity;
-    deallocate_connections(old_direct.m_connections_begin_index, old_capacity);
-  }
   MJZ_CX_FN success_t make_edge_impl2(bool direction, node_id_t dependency_i,
                                       node_id_t dependant_i,
                                       uintlen_t extra_later) noexcept {
     if (!dependency(dependant_i, direction)
              .make_dependency(dependency(dependency_i, direction)))
       return false;
-
-    uintlen_t count_sz = dependency(dependant_i, direction).connection_count();
-
-    uintlen_t cap =
-        dependency(dependant_i, direction).get_capacity(connections_list);
-    if (count_sz < cap) {
-      connections_list[dependency(dependant_i, direction)
-                           .emplace_back_valid_impl()] = dependency_i.index();
-      return true;
-    }
-
-    uintlen_t geo_cap = std::bit_ceil(count_sz + 1);
-    extra_later = std::max(std::max(expected_edges_per_node_v, geo_cap),
-                           count_sz + std::max<uintlen_t>(extra_later, 1));
-    bool implicit_field = geo_cap == extra_later;
-    reserve_edge_connection_impl(direction, dependant_i, extra_later,
-                                 implicit_field);
-    connections_list[dependency(dependant_i, direction)
-                         .emplace_back_valid_impl()] = dependency_i.index();
-
-    if (implicit_field)
-      dependency(dependant_i, direction).m_connections_length =
-          -dependency(dependant_i, direction).m_connections_length;
+    auto dependant = dependency(dependant_i, direction);
+    connections_list.edge_list_push_back(dependant, dependency_i.index(),
+                                         extra_later);
+    dependency(dependant_i, direction) = dependant;
     return true;
   }
 
@@ -717,12 +525,7 @@ protected:
   }
 
   MJZ_CX_FN void edge_reserve_impl(uintlen_t extra_later) noexcept {
-    extra_later = extra_later * 2 + 2;
-    if (connections_list.size() + extra_later < connections_list.capacity())
-      return;
-    connections_list.reserve(
-        connections_list.size() +
-        std::max(connections_list.capacity(), extra_later));
+    return connections_list.reserve_edge_list(extra_later);
   }
 
   MJZ_CX_FN dependency_node_t make_node_temp_impl(
@@ -733,9 +536,9 @@ protected:
     return {.directions = node};
   }
 
-  MJZ_CX_ND_FN node_id_t
-  make_nodes_impl(uintlen_t count_nodes, state_space_t forward_space,
-                  state_space_t backward_space) noexcept {
+  MJZ_CX_FN node_id_t make_nodes_impl(uintlen_t count_nodes,
+                                      state_space_t forward_space,
+                                      state_space_t backward_space) noexcept {
     uintlen_t i = node_count();
     nodes.resize(i + count_nodes,
                  make_node_temp_impl(forward_space, backward_space));
@@ -748,16 +551,17 @@ protected:
     nodes.reserve(1 + node_estimate);
     applied_list.reserve(1 + node_estimate);
     apply_list.reserve(1 + node_estimate);
-    connections_list.reserve((16 + node_estimate + edge_estimate) * 2);
+    connections_list.reserve_connections_list(2 *
+                                              (node_estimate + edge_estimate));
   }
 
-  MJZ_CX_ND_FN success_t query_bimpl(node_id_t id, bool direction) noexcept {
+  MJZ_CX_FN success_t query_bimpl(node_id_t id, bool direction) noexcept {
     return make_resolution_query(id, direction);
   }
 
-  MJZ_CX_ND_FN success_t defuse_bimpl(node_id_t id, state_space_t fresh,
-                                      bool direction, bool query_me,
-                                      bool query_deps) noexcept {
+  MJZ_CX_FN success_t defuse_bimpl(node_id_t id, state_space_t fresh,
+                                   bool direction, bool query_me,
+                                   bool query_deps) noexcept {
     return defuse_resolution(id, tuple_t{direction, query_me, query_deps},
                              fresh);
   }
@@ -779,26 +583,25 @@ protected:
     return {forward_seeds, backward_seeds, invalid_states};
   }
 
-  MJZ_CX_ND_FN bool is_unrecoverable_bimpl(node_id_t i, bool forward_,
-                                           bool backward_) const noexcept {
+  MJZ_CX_FN bool is_unrecoverable_bimpl(node_id_t i, bool forward_,
+                                        bool backward_) const noexcept {
 
     return (backward_ && dependency_node(i)[1].is_unrecoverable()) ||
            (forward_ && dependency_node(i)[0].is_unrecoverable());
   }
-  MJZ_CX_ND_FN bool is_unresolved_bimpl(node_id_t i, bool forward_,
-                                        bool backward_) const noexcept {
+  MJZ_CX_FN bool is_unresolved_bimpl(node_id_t i, bool forward_,
+                                     bool backward_) const noexcept {
     auto &node = nodes[i.index()];
     return (backward_ && dependency_node(i)[1].is_incomplete()) ||
            (forward_ && dependency_node(i)[0].is_incomplete());
   }
-  MJZ_CX_ND_FN bool is_failed_bimpl(node_id_t i, bool forward_, bool backward_,
-                                    bool unresolved_fail_) const noexcept {
+  MJZ_CX_FN bool is_failed_bimpl(node_id_t i, bool forward_, bool backward_,
+                                 bool unresolved_fail_) const noexcept {
     return is_unrecoverable_bimpl(i, forward_, backward_) ||
            (unresolved_fail_ && is_unresolved_bimpl(i, forward_, backward_));
   }
-  MJZ_CX_ND_FN auto
-  view_all_fail_ids_bimpl(bool forward_, bool backward_,
-                          bool unresolved_fail_) const noexcept {
+  MJZ_CX_FN auto view_all_fail_ids_bimpl(bool forward_, bool backward_,
+                                         bool unresolved_fail_) const noexcept {
     return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
            std::views::transform(
                [](uintlen_t i) noexcept { return node_id_t(i); }) |
@@ -810,27 +613,27 @@ protected:
 
 public:
   MJZ_CX_FN void reserve_per_node(uintlen_t edges_per_node_estimate) noexcept {
-    expected_edges_per_node_v = edges_per_node_estimate;
+    connections_list.edge_reserve_all(edges_per_node_estimate);
   }
   MJZ_CX_FN void reserve(uintlen_t node_estimate,
                          uintlen_t edge_estimate) noexcept {
     return reserve_impl(node_estimate, edge_estimate);
   }
 
-  MJZ_CX_ND_FN std::optional<dependency_node_t>
+  MJZ_CX_FN std::optional<dependency_node_t>
   get_node(node_id_t i) const noexcept {
     if (!is_inbounds(i))
       return {};
     return nodes[i.index()];
   }
-  MJZ_CX_ND_FN optional_ref_t<const dependency_node_t>
+  MJZ_CX_FN optional_ref_t<const dependency_node_t>
   get_node_cref(node_id_t i) const noexcept {
     if (!is_inbounds(i))
       return {};
     return nodes[i.index()];
   }
 
-  MJZ_CX_ND_FN mjz::bstr_ns::basic_str_t<version_v>
+  MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   format_graph_state() const noexcept {
     return mjz::bstr_ns::format_ns::format(
         bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<version_v, "{}">,
@@ -840,7 +643,7 @@ public:
             }));
   }
 
-  MJZ_CX_ND_FN mjz::bstr_ns::basic_str_t<version_v> format_graph_dot(
+  MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v> format_graph_dot(
       mjz::bstr_ns::basic_string_view_t<version_v> name =
           mjz::bstr_ns::static_string_view_t<version_v>("G")) const noexcept {
     return format_graph_dot(name, mjz::bstr_ns::static_string_view_t<version_v>(
@@ -849,7 +652,7 @@ public:
                                       "\"Helvetica\"];edge [color=gray40];"));
   }
 
-  MJZ_CX_ND_FN mjz::bstr_ns::basic_str_t<version_v> format_graph_dot(
+  MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v> format_graph_dot(
       mjz::bstr_ns::basic_string_view_t<version_v> name,
       mjz::bstr_ns::basic_string_view_t<version_v> style) const noexcept {
     return mjz::bstr_ns::format_ns::format(
@@ -885,8 +688,8 @@ public:
   }
 #endif
 
-  MJZ_CX_ND_FN success_t
-  make_edges(node_id_t id, std::span<const node_id_t> child_is) noexcept {
+  MJZ_CX_FN success_t make_edges(node_id_t id,
+                                 std::span<const node_id_t> child_is) noexcept {
     uintlen_t extra_later = child_is.size();
     edge_reserve_impl(extra_later);
     if (!is_inbounds(id))
@@ -900,8 +703,8 @@ public:
     }
     return true;
   }
-  MJZ_CX_ND_FN success_t make_edges(std::span<const node_id_t> ids,
-                                    node_id_t child_i) noexcept {
+  MJZ_CX_FN success_t make_edges(std::span<const node_id_t> ids,
+                                 node_id_t child_i) noexcept {
     if (!is_inbounds(child_i))
       return false;
     uintlen_t extra_later = ids.size();
@@ -915,7 +718,7 @@ public:
     }
     return true;
   }
-  MJZ_CX_ND_FN success_t make_edge(node_id_t id, node_id_t child_i) noexcept {
+  MJZ_CX_FN success_t make_edge(node_id_t id, node_id_t child_i) noexcept {
     if (!is_inbounds(child_i))
       return false;
     if (!is_inbounds(id))
@@ -923,19 +726,26 @@ public:
     edge_reserve_impl(1);
     return make_edge_impl(true, id, child_i, 0, 0);
   }
-  MJZ_CX_ND_FN node_id_t make_node(state_space_t forward_space,
-                                   state_space_t backward_space) noexcept {
+  MJZ_CX_FN node_id_t make_node(state_space_t forward_space,
+                                state_space_t backward_space) noexcept {
+    backward_space.canonicalize();
+    forward_space.canonicalize();
     return make_nodes_impl(1, forward_space, backward_space);
   }
 
-  MJZ_CX_ND_FN node_id_t
+  MJZ_CX_FN node_id_t
   make_nodes_get_first(uintlen_t count, state_space_t forward_space,
                        state_space_t backward_space) noexcept {
+    backward_space.canonicalize();
+    forward_space.canonicalize();
     return make_nodes_impl(count, forward_space, backward_space);
   }
   MJZ_CX_FN void make_nodes(std::span<node_id_t> out_is,
                             state_space_t forward_space,
                             state_space_t backward_space) noexcept {
+
+    backward_space.canonicalize();
+    forward_space.canonicalize();
     uintlen_t i =
         make_nodes_impl(out_is.size(), forward_space, backward_space).index();
     for (node_id_t &id_ : out_is)
@@ -946,7 +756,7 @@ public:
   MJZ_CX_AL_FN bool is_inbounds(node_id_t id) const noexcept {
     return id.index() < node_count();
   }
-  MJZ_CX_ND_FN success_t query(node_id_t id, flags_e direction) noexcept {
+  MJZ_CX_FN success_t query(node_id_t id, flags_e direction) noexcept {
     if (!is_inbounds(id))
       return false;
     bool good = true;
@@ -961,8 +771,9 @@ public:
     return good;
   }
 
-  MJZ_CX_ND_FN success_t defuse(node_id_t id, state_space_t fresh,
-                                flags_e direction) noexcept {
+  MJZ_CX_FN success_t defuse(node_id_t id, state_space_t fresh,
+                             flags_e direction) noexcept {
+    fresh.canonicalize();
     if (!is_inbounds(id))
       return false;
     bool good = true;
@@ -978,28 +789,28 @@ public:
     }
     return good;
   }
-  MJZ_CX_ND_FN success_t query_forward(node_id_t id) noexcept {
+  MJZ_CX_FN success_t query_forward(node_id_t id) noexcept {
     return query(id, flags_e::forward);
   }
-  MJZ_CX_ND_FN success_t query_backward(node_id_t id) noexcept {
+  MJZ_CX_FN success_t query_backward(node_id_t id) noexcept {
     return query(id, flags_e::backward);
   }
-  MJZ_CX_ND_FN success_t query_bidirectional(node_id_t id) noexcept {
+  MJZ_CX_FN success_t query_bidirectional(node_id_t id) noexcept {
     return query(id, flags_e::bidirectional);
   }
   constexpr static inline state_space_t resolved_state_v =
       state_space_t{max_invalid_state_v, max_invalid_state_v};
 
-  MJZ_CX_ND_FN success_t defuse_forward(
+  MJZ_CX_FN success_t defuse_forward(
       node_id_t id, state_space_t fresh = resolved_state_v) noexcept {
     return defuse(id, fresh, flags_e::forward);
   }
-  MJZ_CX_ND_FN success_t defuse_backward(
+  MJZ_CX_FN success_t defuse_backward(
       node_id_t id, state_space_t fresh = resolved_state_v) noexcept {
     return defuse(id, fresh, flags_e::backward);
   }
 
-  MJZ_CX_ND_FN success_t
+  MJZ_CX_FN success_t
   defuse_bidirectional(node_id_t id, state_space_t fresh_forward,
                        state_space_t fresh_backward) noexcept {
     return operator_or(defuse_forward(id, fresh_forward),
@@ -1012,7 +823,7 @@ public:
                                 !!(flags_e::backward_bit & direction));
   }
 
-  MJZ_CX_ND_FN bool
+  MJZ_CX_FN bool
   is_unrecoverable(node_id_t i,
                    flags_e direction = flags_e::bidirectional) const noexcept {
     if (!is_inbounds(i))
@@ -1021,7 +832,7 @@ public:
                                   !!(flags_e::backward_bit & direction));
   }
 
-  MJZ_CX_ND_FN bool
+  MJZ_CX_FN bool
   is_failed(node_id_t i,
             flags_e direction = flags_e::bidirectional) const noexcept {
     if (!is_inbounds(i))
@@ -1031,7 +842,7 @@ public:
                            !!(flags_e::unresolved_fail_bit & direction));
   }
 
-  MJZ_CX_ND_FN bool
+  MJZ_CX_FN bool
   is_unresolved(node_id_t i,
                 flags_e direction = flags_e::bidirectional) const noexcept {
     if (!is_inbounds(i))
@@ -1040,7 +851,7 @@ public:
                                !!(flags_e::backward_bit & direction));
   }
 
-  MJZ_CX_ND_FN auto
+  MJZ_CX_FN auto
   view_all_fail_ids(flags_e direction = flags_e::bidirectional) const noexcept {
     return view_all_fail_ids_bimpl(
         !!(flags_e::forward_bit & direction),
@@ -1053,7 +864,7 @@ public:
     std::optional<states_e> forward{};
     std::optional<states_e> backward{};
   };
-  MJZ_CX_ND_FN previous_states_t passive_trigger(node_id_t id) noexcept {
+  MJZ_CX_FN previous_states_t passive_trigger(node_id_t id) noexcept {
     asserts(is_inbounds(id));
     auto &node_forward = dependency(id, true);
     auto &node_backward = dependency(id, false);
@@ -1062,7 +873,7 @@ public:
                              .backward = node_backward.get_passive_trigger()};
   }
   template <class execute_resolution_wave_fnt>
-  MJZ_CX_ND_FN bool run_one_callback(
+  MJZ_CX_FN bool run_one_callback(
       execute_resolution_wave_fnt &&execute_resolution_wave_fn) noexcept {
     return run_resolution_queries(
         std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn));
@@ -1083,13 +894,9 @@ public:
   MJZ_CX_FN void clear() noexcept {
     asserts(asserts.assume_rn, !events_running());
     nodes.clear();
-    expected_edges_per_node_v = 0;
     applied_list.clear();
     apply_list.clear();
     connections_list.clear();
-    connections_free_list_mask = 0;
-    for (auto &e : connections_free_list_heads)
-      e = 0;
   }
 };
 
@@ -1097,6 +904,7 @@ template <version_t version_v,
           dependency_state_c<version_v> auto max_invalid_state_v>
 using previous_states_t = typename basic_dependency_graph_base_t<
     version_v, max_invalid_state_v>::previous_states_t;
+
 }; // namespace mjz::graph_ns
 
 #endif // MJZ_SRC_GRAPH_deps_FILE_
