@@ -887,7 +887,27 @@ public:
       limit--;
     return limit;
   }
+  MJZ_CX_FN std::span<const uintlen_t> get_connections_view() const noexcept {
+    return connections_list;
+  }
+  MJZ_CX_FN auto get_range_index_view() const noexcept {
+    return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
+           std::views::transform(
+               [this](uintlen_t i) noexcept -> std::span<const uintlen_t> {
+                 return dependency(node_id_t(i), false)
+                     .get_connections(connections_list);
+               });
+  }
 
+  MJZ_CX_FN auto get_range_id_view() const noexcept {
+    return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
+           std::views::transform([this](uintlen_t i) noexcept {
+             return dependency(node_id_t(i), false)
+                        .get_connections(connections_list) |
+                    std::views::transform(
+                        [](uintlen_t j) noexcept { return node_id_t(j); });
+           });
+  }
   MJZ_CX_FN auto basic_format_specs_formatted_pv_fn_(auto &&) const noexcept {
     return format_graph_state();
   };

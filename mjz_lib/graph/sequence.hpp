@@ -585,5 +585,45 @@ node_to_scc_map(uninit_index_range_t &&uninit_scc_indexies,
   }
 }
 
+template <version_t version_v, class R = std::span<const uintlen_t>>
+MJZ_CX_FN treversal_result_t<version_v>
+calculate_acyclic_graph_topological_sort_waves(
+    const basic_forest_t<version_v, R> &edge_of_node_) noexcept {
+  auto edge_of_node = edge_of_node_.range();
+  treversal_result_t<version_v> ret{};
+  uintlen_t total_node_count = std::ranges::size(edge_of_node);
+  ret.edges.resize(total_node_count * 2 + 1, uintlen_t(-1));
+  ret.nodes_index.reserve(total_node_count);
+  auto wave_que =
+      std::span(ret.edges).subspan(uintlen_t(), total_node_count + 1);
+  auto in_degree =
+      std::span(ret.edges).subspan(total_node_count + 1, total_node_count);
+  uintlen_t tail{};
+  uintlen_t head{};
+  for (auto &&nodes : edge_of_node) {
+    for (uintlen_t next : nodes) {
+      asserts(next < total_node_count);
+      in_degree[next]++;
+    }
+  }
+  for (uintlen_t i{}; i < in_degree.size(); i++) {
+    wave_que[head] = i;
+    head += !in_degree[i];
+  }
+  while (head != tail) {
+    ret.nodes_index.push_back(tail);
+    auto sp = wave_que.subspan(tail, head - tail);
+    tail = head;
+    for (uintlen_t i : sp) {
+      for (uintlen_t next : edge_of_node[i]) {
+        wave_que[head] = next;
+        head += !--in_degree[next];
+      }
+    }
+  }
+  ret.edges.resize(tail);
+  return ret;
+}
+
 } // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_sequence_FILE_

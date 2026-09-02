@@ -29,8 +29,7 @@ MJZ_EXPORT
 namespace mjz::graph_ns {
 
 template <version_t version_v>
-struct MJZ_trivially_relocatable uni_dependency_dependancy_node_t
-    : base_edges_ids_t<version_v> {
+struct MJZ_trivially_relocatable uni_dependancy_node_base_t {
   enum state_mask_e : uintlen_t {
     sentinel_v = 0b00,
     ready_v = 0b01,
@@ -72,19 +71,37 @@ struct MJZ_trivially_relocatable uni_dependency_dependancy_node_t
     return state() == active_v;
   }
   MJZ_CX_FN bool can_trigger() const noexcept {
-    return !in_dgree() && is_ready();
+    return operator_and(!in_dgree(), is_ready());
   }
   MJZ_CX_FN bool is_complete() const noexcept {
-    return !in_dgree() && is_sentinel();
+    return operator_and(!in_dgree(), is_sentinel());
   }
   MJZ_CX_FN bool is_unrecoverable() const noexcept {
-    return in_dgree() && is_sentinel();
+    return operator_and(in_dgree(), is_sentinel());
   }
 
   MJZ_CX_AL_FN void actively_trigger() noexcept {
     asserts(asserts.assume_rn, can_trigger());
     set_state(active_v);
     asserts(asserts.assume_rn, is_actively_triggered());
+  }
+  MJZ_CX_AL_FN uintlen_t speculative_dec_dgree(bool &exeute) noexcept {
+    exeute &= !is_sentinel();
+    node_in_dgree_and_mask -=
+        bit_branchless_teranary(exeute, mask_v + 1, uintlen_t());
+    return in_dgree();
+  }
+
+  MJZ_CX_AL_FN bool speculative_actively_trigger(bool exeute) noexcept {
+    exeute &= can_trigger();
+    set_state(bit_branchless_teranary(exeute, active_v, state()));
+    return exeute;
+  }
+  MJZ_CX_FN bool speculative_error(bool exeute, auto &&) noexcept {
+    node_in_dgree_and_mask += bit_branchless_teranary(
+        operator_and(exeute, !in_dgree()), mask_v + 1, uintlen_t());
+    set_state(bit_branchless_teranary(exeute, sentinel_v, state()));
+    return !exeute;
   }
 
   MJZ_CX_AL_FN void passively_trigger() noexcept {
@@ -108,7 +125,12 @@ struct MJZ_trivially_relocatable uni_dependency_dependancy_node_t
     set_state(is_completed ? sentinel_v : ready_v);
     return !is_unrecoverable();
   }
+};
 
+template <version_t version_v>
+struct MJZ_trivially_relocatable uni_dependancy_node_t
+    : base_edges_ids_t<version_v>,
+      uni_dependancy_node_base_t<version_v> {
   MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v> format_node_state_direct(
       std::span<const uintlen_t> connections_list) const noexcept {
     return mjz::bstr_ns::format_ns::format(
@@ -132,7 +154,9 @@ struct MJZ_trivially_relocatable uni_dependency_dependancy_node_t
 template <version_t version_v>
 struct MJZ_maybe_trivially_relocatable basic_uni_dependency_graph_base_t {
   using node_id_t = base_node_id_t<version_v>;
-  using dependency_node_t = uni_dependency_dependancy_node_t<version_v>;
+  using dependency_node_t = uni_dependancy_node_t<version_v>;
+  using dependency_base_t = uni_dependancy_node_base_t<version_v>;
+  using dependency_edges_t = base_edges_ids_t<version_v>;
 
 protected:
   static_assert(std::is_trivially_move_constructible_v<dependency_node_t>);
@@ -151,12 +175,26 @@ protected:
   dependency(node_id_t me) const noexcept {
     return nodes[me.index()];
   }
+
+  MJZ_CX_AL_FN dependency_base_t &dependency_base(node_id_t me) noexcept {
+    return nodes[me.index()];
+  }
+  MJZ_CX_AL_FN const dependency_base_t &
+  dependency_base(node_id_t me) const noexcept {
+    return nodes[me.index()];
+  }
   MJZ_CX_AL_FN void prefetch_dependency(node_id_t me) const noexcept {
     if constexpr (!mjz_do_prefetch_v)
       return;
     const dependency_node_t &d = dependency(me);
-    mjz_prefetch(d.node_in_dgree_and_mask);
+    const dependency_base_t &b = d;
+    mjz_prefetch(b);
     mjz_prefetch(d);
+  }
+  MJZ_CX_AL_FN void prefetch_dependency_base(node_id_t me) const noexcept {
+    if constexpr (!mjz_do_prefetch_v)
+      return;
+    mjz_prefetch(dependency_base(me));
   }
 
   MJZ_CX_AL_FN bool make_resolution_query(node_id_t id) noexcept {
@@ -172,39 +210,71 @@ protected:
   defuse_resolution(node_id_t id,
                     tuple_t<bool, bool, bool> flag_args) noexcept {
     const auto [as_complete, query_me, query_deps] = flag_args;
-    dependency_node_t &node = dependency(id);
-    if (!node.is_passively_triggered() || !node.defuse(as_complete)) {
-      return false;
+    auto dependency_ptrs = nodes.data();
+    dependency_base_t base_node = dependency_base(id);
+    const auto connections_span =
+        dependency(id).get_connections(connections_list);
+    uintlen_t *apply_list_ptr{};
+    {
+      uintlen_t real_size = apply_list.size();
+      apply_list.resize(
+          apply_list.size() +
+          (uintlen_t(query_deps && as_complete) * connections_span.size()) + 1);
+      apply_list_ptr = apply_list.data() + real_size;
     }
-    if (query_me)
-      make_resolution_query(id);
+    MJZ_RAII_RELEASE {
+      uintlen_t real_size = apply_list_ptr - apply_list.data();
+      const bool plese_optimize_ = real_size < apply_list.size();
+      asserts(plese_optimize_);
+      MJZ_JUST_ASSUME_(plese_optimize_);
+      if (plese_optimize_) {
+        apply_list.resize(real_size);
+      }
+    };
+    constexpr uintlen_t prefetch_batch_v = 8;
+    for (uintlen_t prefetch_count =
+                       std::min(connections_span.size(), prefetch_batch_v),
+                   i{};
+         query_deps && as_complete && i < prefetch_count; i++) {
+      if constexpr (mjz_do_prefetch_v) {
+        mjz_prefetch_p(static_cast<dependency_base_t *>(dependency_ptrs +
+                                                        connections_span[i]));
+      }
+    }
+    {
+      MJZ_RAII_RELEASE { dependency_base(id) = base_node; };
+      if (!base_node.is_passively_triggered() || !base_node.defuse(as_complete))
+        MJZ_IS_UNLIKELY { return false; }
+      *apply_list_ptr = id.index();
+      apply_list_ptr += base_node.speculative_actively_trigger(query_me);
+      if (base_node.is_unrecoverable())
+        MJZ_IS_UNLIKELY { return false; }
+    }
     if (!as_complete)
       return true;
-
-    const auto connections_span = node.get_connections(connections_list);
-
-    constexpr uintlen_t prefetch_batch_v = 8;
-
-    for (uintlen_t i{}; i < std::min(connections_span.size(), prefetch_batch_v);
-         i++) {
-      prefetch_dependency(node_id_t(connections_span[i]));
-    }
     for (uintlen_t i{}; i < connections_span.size(); i++) {
-      prefetch_dependency(node_id_t(connections_span[std::min(
-          connections_span.size() - 1, i + prefetch_batch_v)]));
-      node_id_t dep_id{connections_span[i]};
-      dependency_node_t &dep_node = dependency(dep_id);
-      if (dep_node.is_sentinel()) {
-        dep_node.error("premature completion");
-        continue;
+      if constexpr (mjz_do_prefetch_v) {
+        mjz_prefetch_p(static_cast<dependency_base_t *>(
+            dependency_ptrs +
+            connections_span[std::min(connections_span.size() - 1,
+                                      i + prefetch_batch_v)]));
       }
-      if (dep_node.dec_dgree() != 0)
-        continue;
-      if (!query_deps)
-        continue;
-      make_resolution_query(dep_id);
+      node_id_t dep_id{connections_span[i]};
+
+      dependency_base_t &dep_node_ref =
+          *static_cast<dependency_base_t *>(dependency_ptrs + dep_id.index());
+      dependency_base_t dep_node = dep_node_ref;
+      bool exeute = dep_node.speculative_error(dep_node.is_sentinel(),
+                                               "premature completion");
+      exeute &= dep_node.speculative_dec_dgree(exeute) == 0;
+      if (query_deps) {
+        exeute = dep_node.speculative_actively_trigger(exeute);
+        *apply_list_ptr = dep_id.index();
+        apply_list_ptr += exeute;
+      }
+      dep_node_ref = dep_node;
     }
-    return !node.is_unrecoverable();
+    return true;
   }
 
   MJZ_CX_FN dependency_node_t make_node_temp_impl(bool complete) noexcept {
@@ -524,6 +594,25 @@ public:
     return limit;
   }
 
+  MJZ_CX_FN std::span<const uintlen_t> get_connections_view() const noexcept {
+    return connections_list;
+  }
+  MJZ_CX_FN auto get_range_index_view() const noexcept {
+    return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
+           std::views::transform([this](uintlen_t i) noexcept
+                                     -> std::span<const uintlen_t> {
+             return dependency(node_id_t(i)).get_connections(connections_list);
+           });
+  }
+
+  MJZ_CX_FN auto get_range_id_view() const noexcept {
+    return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
+           std::views::transform([this](uintlen_t i) noexcept {
+             return dependency(node_id_t(i)).get_connections(connections_list) |
+                    std::views::transform(
+                        [](uintlen_t j) noexcept { return node_id_t(j); });
+           });
+  }
   MJZ_CX_FN auto basic_format_specs_formatted_pv_fn_(auto &&) const noexcept {
     return format_graph_state();
   }
