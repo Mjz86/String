@@ -136,18 +136,19 @@ struct MJZ_trivially_relocatable uni_dependancy_node_t
     return mjz::bstr_ns::format_ns::format(
         bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
             version_v, "state({}),in_degree({}),connections({})">(),
-        intlen_t(state()), in_dgree(), this->get_connections(connections_list));
+        intlen_t(this->state()), this->in_dgree(),
+        this->get_connections(connections_list));
   }
   MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state_direct_dot() const noexcept {
     return mjz::bstr_ns::format_ns::format(
         bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
             version_v, "state:{}\nin_degree:{}">(),
-        intlen_t(state()), in_dgree());
+        intlen_t(this->state()), this->in_dgree());
   }
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   basic_format_specs_formatted_pv_fn_(auto &&) const noexcept {
-    return format_node_state_direct({});
+    return this->format_node_state_direct({});
   }
 };
 

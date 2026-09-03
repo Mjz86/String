@@ -140,7 +140,7 @@ struct MJZ_trivially_relocatable directed_state_space_t
   MJZ_CX_AL_FN bool can_trigger() const noexcept {
     return operator_and(
         operator_and(!this->is_unrecoverable(), !this->is_triggered()),
-        operator_and(active_connections == connection_count(),
+        operator_and(this->active_connections == this->connection_count(),
                      this->is_incomplete()));
   }
 
@@ -236,7 +236,7 @@ struct MJZ_trivially_relocatable directed_state_space_t
                        "connections({})">(),
         state_to_str_impl_<version_v>(direc.current),
         state_to_str_impl_<version_v>(direc.trigger),
-        intlen_t(active_connections), connection_count(),
+        intlen_t(active_connections), this-> connection_count(),
         get_connections(connections_list));
   }
   MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v>
@@ -247,7 +247,7 @@ struct MJZ_trivially_relocatable directed_state_space_t
             version_v, "current:{}\ntrigger:{}\nactive:{}\nneeded:{}">(),
         state_to_str_impl_<version_v>(direc.current),
         state_to_str_impl_<version_v>(direc.trigger),
-        intlen_t(active_connections), connection_count());
+        intlen_t(active_connections),this-> connection_count());
   }
 
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
@@ -591,7 +591,6 @@ protected:
   }
   MJZ_CX_FN bool is_unresolved_bimpl(node_id_t i, bool forward_,
                                      bool backward_) const noexcept {
-    auto &node = nodes[i.index()];
     return (backward_ && dependency_node(i)[1].is_incomplete()) ||
            (forward_ && dependency_node(i)[0].is_incomplete());
   }
