@@ -699,7 +699,7 @@ public:
         return false;
       if (!make_edge_impl(true, id, child_i, extra_later, 0))
         return false;
-      extra_later = 0;
+      extra_later--;
     }
     return true;
   }
@@ -714,7 +714,7 @@ public:
         return false;
       if (!make_edge_impl(false, child_i, id, extra_later, 0))
         return false;
-      extra_later = 0;
+      extra_later--;
     }
     return true;
   }

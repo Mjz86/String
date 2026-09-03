@@ -71,14 +71,18 @@ struct MJZ_trivially_relocatable base_edges_ids_t {
                                     -m_connections_begin_index)),
             .n = connection_count()};
   }
-  MJZ_CX_AL_FN uintlen_t emplace_back_valid_impl() noexcept {
+  MJZ_CX_AL_FN uintlen_t expand_valid_impl(uintlen_t count) noexcept {
     uintlen_t i = connection_index_ids().ending();
     m_connections_length = bit_branchless_teranary<intlen_t>(
-        m_connections_length < 0, m_connections_length - 1,
-        m_connections_length + 1);
-
+        m_connections_length < 0, m_connections_length - intlen_t(count),
+        m_connections_length + intlen_t(count));
     return i;
   }
+
+  MJZ_CX_AL_FN uintlen_t emplace_back_valid_impl() noexcept {
+    return expand_valid_impl(1);
+  }
+
   MJZ_CX_AL_FN bool has_capacity_field() const noexcept {
     return m_connections_begin_index < 0;
   }
@@ -211,6 +215,9 @@ struct MJZ_maybe_trivially_relocatable base_edge_connections_list_t {
   MJZ_CX_FN void edge_reserve_all(uintlen_t v) noexcept {
     expected_edges_per_node_v = v;
   }
+  MJZ_CX_FN uintlen_t get_expected_edges_per_node() const noexcept {
+    return expected_edges_per_node_v;
+  }
 
   MJZ_CX_AL_FN void reserve_edge_list_impl(edges_ids_t &new_direct,
                                            uintlen_t new_capacity,
@@ -232,23 +239,35 @@ struct MJZ_maybe_trivially_relocatable base_edge_connections_list_t {
     implicit_field &= prefer_cap == new_capacity;
     deallocate_connections(old_direct.m_connections_begin_index, old_capacity);
   }
+  MJZ_CX_FN uintlen_t edge_list_expand(edges_ids_t &new_direct,
+                                       uintlen_t add_count) noexcept {
+    uintlen_t count_sz = new_direct.connection_count();
+    uintlen_t cap = new_direct.get_capacity(connections_list);
+    if (cap >= count_sz + add_count)
+      return new_direct.expand_valid_impl(add_count);
+    uintlen_t geo_cap = std::bit_ceil(count_sz + add_count);
+    uintlen_t extra_later = std::max(expected_edges_per_node_v, geo_cap);
+    bool implicit_field = geo_cap == extra_later;
+    reserve_edge_list_impl(new_direct, extra_later, implicit_field);
+    uintlen_t r = new_direct.expand_valid_impl(add_count);
+    if (implicit_field)
+      new_direct.m_connections_length = -new_direct.m_connections_length;
+    return r;
+  }
+
+  MJZ_CX_FN void edge_list_push_back(edges_ids_t &new_direct,
+                                     uintlen_t push_val) noexcept {
+    connections_list[edge_list_expand(new_direct, 1)] = push_val;
+  }
   MJZ_CX_FN void edge_list_push_back(edges_ids_t &new_direct,
                                      uintlen_t push_val,
                                      uintlen_t extra_later) noexcept {
-    uintlen_t count_sz = new_direct.connection_count();
-    uintlen_t cap = new_direct.get_capacity(connections_list);
-    if (count_sz < cap) {
-      connections_list[new_direct.emplace_back_valid_impl()] = push_val;
-      return;
-    }
-    uintlen_t geo_cap = std::bit_ceil(count_sz + 1);
-    extra_later = std::max(std::max(expected_edges_per_node_v, geo_cap),
-                           count_sz + std::max<uintlen_t>(extra_later, 1));
-    bool implicit_field = geo_cap == extra_later;
-    reserve_edge_list_impl(new_direct, extra_later, implicit_field);
-    connections_list[new_direct.emplace_back_valid_impl()] = push_val;
-    if (implicit_field)
-      new_direct.m_connections_length = new_direct.m_connections_length;
+    extra_later =
+        std::exchange(expected_edges_per_node_v,
+                      std::max(expected_edges_per_node_v,
+                               new_direct.connection_count() + extra_later));
+    edge_list_push_back(new_direct, push_val);
+    expected_edges_per_node_v = extra_later;
   }
   MJZ_CX_FN void clear() noexcept {
     connections_list.clear();
@@ -261,7 +280,6 @@ struct MJZ_maybe_trivially_relocatable base_edge_connections_list_t {
     return connections_list;
   }
 };
-
 }; // namespace mjz::graph_ns
 
 #endif // MJZ_SRC_GRAPH_bdeps_FILE_

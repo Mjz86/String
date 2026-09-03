@@ -440,7 +440,7 @@ public:
         return false;
       if (!make_edge_impl(dependency_i, dependant_i, extra_later))
         return false;
-      extra_later = 0;
+      extra_later--;
     }
     return true;
   }
@@ -449,8 +449,7 @@ public:
                                  node_id_t dependant_i) noexcept {
     if (!is_inbounds(dependant_i))
       return false;
-    uintlen_t extra_later = dependency_ids.size();
-    edge_reserve_impl(extra_later);
+    edge_reserve_impl(dependency_ids.size());
     for (node_id_t dependency_i : dependency_ids) {
       if (!is_inbounds(dependency_i))
         return false;
