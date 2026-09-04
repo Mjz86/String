@@ -240,10 +240,11 @@ struct MJZ_maybe_trivially_relocatable base_edge_connections_list_t {
     deallocate_connections(old_direct.m_connections_begin_index, old_capacity);
   }
   MJZ_CX_FN uintlen_t edge_list_expand(edges_ids_t &new_direct,
-                                       uintlen_t add_count) noexcept {
+                                       uintlen_t add_count,
+                                       bool force_realloc = false) noexcept {
     uintlen_t count_sz = new_direct.connection_count();
     uintlen_t cap = new_direct.get_capacity(connections_list);
-    if (cap >= count_sz + add_count)
+    if (cap >= count_sz + add_count && !force_realloc)
       return new_direct.expand_valid_impl(add_count);
     uintlen_t geo_cap = std::bit_ceil(count_sz + add_count);
     uintlen_t extra_later = std::max(expected_edges_per_node_v, geo_cap);
@@ -256,17 +257,42 @@ struct MJZ_maybe_trivially_relocatable base_edge_connections_list_t {
   }
 
   MJZ_CX_FN void edge_list_push_back(edges_ids_t &new_direct,
-                                     uintlen_t push_val) noexcept {
-    connections_list[edge_list_expand(new_direct, 1)] = push_val;
+                                     uintlen_t push_val,
+                                     bool force_realloc = false) noexcept {
+    uintlen_t push_i{};
+    uintlen_t count_sz = new_direct.connection_count();
+    if (!new_direct.has_implicit_capacity() &&
+        new_direct.get_capacity(connections_list) == count_sz &&
+        std::has_single_bit(count_sz + 1) && !force_realloc) {
+      new_direct.m_connections_begin_index =
+          ~new_direct.m_connections_begin_index;
+      new_direct.emplace_back_valid_impl();
+      new_direct.m_connections_length = -new_direct.m_connections_length;
+      push_i = new_direct.connection_index_ids().begining();
+    } else {
+      push_i = edge_list_expand(new_direct, 1, force_realloc);
+    }
+    connections_list[push_i] = push_val;
+  } 
+  MJZ_CX_FN void edge_list_delete(edges_ids_t old_direct) noexcept {
+    deallocate_connections(old_direct.m_connections_begin_index,
+                           old_direct.get_capacity(connections_list));
   }
+  
   MJZ_CX_FN void edge_list_push_back(edges_ids_t &new_direct,
                                      uintlen_t push_val,
                                      uintlen_t extra_later) noexcept {
+
+    bool force_realloc = new_direct.get_capacity(connections_list) -
+                                 new_direct.connection_count() <
+                             extra_later &&
+                         2 < extra_later;
     extra_later =
         std::exchange(expected_edges_per_node_v,
                       std::max(expected_edges_per_node_v,
                                new_direct.connection_count() + extra_later));
-    edge_list_push_back(new_direct, push_val);
+    force_realloc &= extra_later;
+    edge_list_push_back(new_direct, push_val, force_realloc);
     expected_edges_per_node_v = extra_later;
   }
   MJZ_CX_FN void clear() noexcept {

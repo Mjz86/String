@@ -228,7 +228,7 @@ struct MJZ_trivially_relocatable directed_state_space_t
     return !bad && good;
   }
   MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v> format_node_state_direct(
-      std::span<const uintlen_t> connections_list) const noexcept {
+      std::span<const uintlen_t> connections_list_) const noexcept {
     base direc = *this;
     return mjz::bstr_ns::format_ns::format(
         bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
@@ -236,8 +236,8 @@ struct MJZ_trivially_relocatable directed_state_space_t
                        "connections({})">(),
         state_to_str_impl_<version_v>(direc.current),
         state_to_str_impl_<version_v>(direc.trigger),
-        intlen_t(active_connections), this-> connection_count(),
-        get_connections(connections_list));
+        intlen_t(active_connections), this->connection_count(),
+        get_connections(connections_list_));
   }
   MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state_direct_dot() const noexcept {
@@ -247,7 +247,7 @@ struct MJZ_trivially_relocatable directed_state_space_t
             version_v, "current:{}\ntrigger:{}\nactive:{}\nneeded:{}">(),
         state_to_str_impl_<version_v>(direc.current),
         state_to_str_impl_<version_v>(direc.trigger),
-        intlen_t(active_connections),this-> connection_count());
+        intlen_t(active_connections), this->connection_count());
   }
 
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
@@ -271,7 +271,7 @@ enum class basic_dependency_graph_flags_e : uint8_t {
 MJZ_ENUM_MATH_FOR(basic_dependency_graph_flags_e);
 
 template <version_t version_v, auto max_invalid_state_v>
-struct MJZ_maybe_trivially_relocatable basic_dependency_graph_base_t {
+struct MJZ_maybe_trivially_relocatable basic_dependency_graph_base_impl_t {
 public:
   using flags_e = basic_dependency_graph_flags_e;
   using state_space_t = base_state_space_t<version_v, max_invalid_state_v>;
@@ -294,20 +294,21 @@ public:
   static_assert(std::is_trivially_move_constructible_v<dependency_node_t>);
   static_assert(std::is_trivially_copy_constructible_v<dependency_node_t>);
   static_assert(std::is_trivially_destructible_v<dependency_node_t>);
-
-protected:
-  std::vector<dependency_node_t> nodes{};
-  std::vector<uintlen_t> applied_list{};
-  std::vector<uintlen_t> apply_list{};
-  base_edge_connections_list_t<version_v> connections_list{};
+  struct m_t {
+    std::vector<dependency_node_t> m_nodes{};
+    std::vector<uintlen_t> m_applied_list{};
+    std::vector<uintlen_t> m_apply_list{};
+    base_edge_connections_list_t<version_v> m_connections_list{};
+  };
+  m_t m{};
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state(node_id_t me) const noexcept {
     return mjz::bstr_ns::format_ns::format(
         bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
             version_v, "[id({}),forward:({}),backward:({})]\n">(),
         me.index(),
-        dependency(me, true).format_node_state_direct(connections_list),
-        dependency(me, false).format_node_state_direct(connections_list));
+        dependency(me, true).format_node_state_direct(m.m_connections_list),
+        dependency(me, false).format_node_state_direct(m.m_connections_list));
   }
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state_dot(node_id_t me) const noexcept {
@@ -320,13 +321,13 @@ protected:
 
   MJZ_CX_AL_FN dependency_node_data_t &dependency_node(node_id_t me) noexcept {
     return assume_aligned<std::bit_floor(sizeof(dependency_node_data_t))>(
-               &nodes[me.index()])
+               &m.m_nodes[me.index()])
         ->directions;
   }
   MJZ_CX_AL_FN const dependency_node_data_t &
   dependency_node(node_id_t me) const noexcept {
     return assume_aligned<std::bit_floor(sizeof(dependency_node_data_t))>(
-               &nodes[me.index()])
+               &m.m_nodes[me.index()])
         ->directions;
   }
   MJZ_CX_AL_FN node_direction_t &dependency(node_id_t me,
@@ -351,27 +352,16 @@ protected:
     return can_trigger_ && !duplicate_event_request;
   }
 
-  MJZ_CX_AL_FN bool make_resolution_query(node_id_t id,
-                                          bool direction) noexcept {
-    bool can_trigger_{true};
-    node_direction_t &node_dependency = dependency(id, direction);
-    node_direction_t &node_opposite = dependency(id, !direction);
-    if (make_resolution_query_impl_(can_trigger_, node_dependency,
-                                    node_opposite))
-      apply_list.emplace_back(id.index());
-    return can_trigger_;
-  }
-
-  MJZ_CX_FN bool defuse_resolution(node_id_t id,
-                                   tuple_t<bool, bool, bool> flag_args,
-                                   state_space_t space) noexcept {
+  MJZ_CX_FN bool defuse_resolution_impl1(node_id_t id,
+                                         tuple_t<bool, bool, bool> flag_args,
+                                         state_space_t space) noexcept {
     const auto [direction, query_me, query_deps] = flag_args;
     node_direction_t node_dependency = dependency(id, direction);
     const node_direction_t node_opposite = dependency(id, !direction);
     const auto connections_span =
-        node_dependency.get_connections(connections_list);
+        node_dependency.get_connections(m.m_connections_list);
     const auto opposite_connections_span =
-        node_opposite.get_connections(connections_list);
+        node_opposite.get_connections(m.m_connections_list);
     auto prefetch_elem_at_fn =
         [&, my_i = uintlen_t(id.index())](std::span<const uintlen_t> range,
                                           uintlen_t i) noexcept {
@@ -403,22 +393,22 @@ protected:
       node_dependency.refresh_dependency_defuse(dependency(dep_i, direction));
     }
 
-    uintlen_t size_real_apply_list_size{apply_list.size()};
+    uintlen_t size_real_apply_list_size{m.m_apply_list.size()};
     uintlen_t size_reserve_apply_list{
         uintlen_t(query_me) +
         uintlen_t(query_deps) * opposite_connections_span.size() + 1};
-    apply_list.resize(apply_list.size() + size_reserve_apply_list);
+    m.m_apply_list.resize(m.m_apply_list.size() + size_reserve_apply_list);
 
     MJZ_RAII_RELEASE {
       const bool plese_optimize_ =
-          size_real_apply_list_size < apply_list.size();
+          size_real_apply_list_size < m.m_apply_list.size();
       asserts(plese_optimize_);
       MJZ_JUST_ASSUME_(plese_optimize_);
       if (plese_optimize_) {
-        apply_list.resize(size_real_apply_list_size);
+        m.m_apply_list.resize(size_real_apply_list_size);
       }
     };
-    auto speculitive_apply_list = std::span(apply_list);
+    auto speculitive_apply_list = std::span(m.m_apply_list);
 
     bool can_trigger_{query_me};
     can_trigger_ = make_resolution_query_impl_(can_trigger_, node_dependency,
@@ -451,24 +441,24 @@ protected:
     return !node_dependency.is_unrecoverable();
   }
   MJZ_CX_AL_FN bool events_running() const noexcept {
-    return !!applied_list.size();
+    return !!this->m.m_applied_list.size();
   }
   template <class execute_resolution_wave_fnt>
   MJZ_CX_FN bool run_resolution_queries(
       execute_resolution_wave_fnt &&execute_resolution_wave_fn) noexcept {
     asserts(asserts.assume_rn, !events_running());
     MJZ_RAII_RELEASE {
-      applied_list.clear();
+      m.m_applied_list.clear();
       asserts(asserts.assume_rn, !events_running());
     };
-    std::swap(applied_list, apply_list);
-    for (uintlen_t j : applied_list) {
+    std::swap(m.m_applied_list, m.m_apply_list);
+    for (uintlen_t j : m.m_applied_list) {
       node_id_t id = node_id_t(j);
       bool forward_active = dependency(id, true).passively_trigger();
       bool backward_active = dependency(id, false).passively_trigger();
       asserts(asserts.assume_rn, forward_active || backward_active);
     }
-    auto id_view = applied_list |
+    auto id_view = m.m_applied_list |
                    std::views::transform([](uintlen_t j) noexcept -> node_id_t {
                      return node_id_t(j);
                    });
@@ -491,8 +481,8 @@ protected:
              .make_dependency(dependency(dependency_i, direction)))
       return false;
     auto dependant = dependency(dependant_i, direction);
-    connections_list.edge_list_push_back(dependant, dependency_i.index(),
-                                         extra_later);
+    m.m_connections_list.edge_list_push_back(dependant, dependency_i.index(),
+                                             extra_later);
     dependency(dependant_i, direction) = dependant;
     return true;
   }
@@ -506,13 +496,13 @@ protected:
 
     if constexpr (mjz_do_prefetch_v) {
       auto &&a1 = mjz_prefetch(dependency(dependant_i, true))
-                      .get_connections(connections_list);
+                      .get_connections(m.m_connections_list);
       auto &&a2 = mjz_prefetch(dependency(dependant_i, false))
-                      .get_connections(connections_list);
+                      .get_connections(m.m_connections_list);
       auto &&a3 = mjz_prefetch(dependency(dependency_i, true))
-                      .get_connections(connections_list);
+                      .get_connections(m.m_connections_list);
       auto &&a4 = mjz_prefetch(dependency(dependency_i, false))
-                      .get_connections(connections_list);
+                      .get_connections(m.m_connections_list);
       mjz_prefetch_p(a1.data() + a1.size());
       mjz_prefetch_p(a2.data() + a2.size());
       mjz_prefetch_p(a3.data() + a3.size());
@@ -525,7 +515,7 @@ protected:
   }
 
   MJZ_CX_FN void edge_reserve_impl(uintlen_t extra_later) noexcept {
-    return connections_list.reserve_edge_list(extra_later);
+    return m.m_connections_list.reserve_edge_list(extra_later);
   }
 
   MJZ_CX_FN dependency_node_t make_node_temp_impl(
@@ -540,47 +530,36 @@ protected:
                                       state_space_t forward_space,
                                       state_space_t backward_space) noexcept {
     uintlen_t i = node_count();
-    nodes.resize(i + count_nodes,
-                 make_node_temp_impl(forward_space, backward_space));
+    m.m_nodes.resize(i + count_nodes,
+                     make_node_temp_impl(forward_space, backward_space));
     return node_id_t(i);
   }
 
   MJZ_CX_FN void reserve_impl(uintlen_t node_estimate,
                               uintlen_t edge_estimate) noexcept {
 
-    nodes.reserve(1 + node_estimate);
-    applied_list.reserve(1 + node_estimate);
-    apply_list.reserve(1 + node_estimate);
-    connections_list.reserve_connections_list(2 *
-                                              (node_estimate + edge_estimate));
+    m.m_nodes.reserve(1 + node_estimate);
+    m.m_applied_list.reserve(1 + node_estimate);
+    m.m_apply_list.reserve(1 + node_estimate);
+    m.m_connections_list.reserve_connections_list(
+        2 * (node_estimate + edge_estimate));
   }
 
   MJZ_CX_FN success_t query_bimpl(node_id_t id, bool direction) noexcept {
-    return make_resolution_query(id, direction);
+    bool can_trigger_{true};
+    node_direction_t &node_dependency = dependency(id, direction);
+    node_direction_t &node_opposite = dependency(id, !direction);
+    if (make_resolution_query_impl_(can_trigger_, node_dependency,
+                                    node_opposite))
+      m.m_apply_list.emplace_back(id.index());
+    return can_trigger_;
   }
 
   MJZ_CX_FN success_t defuse_bimpl(node_id_t id, state_space_t fresh,
                                    bool direction, bool query_me,
                                    bool query_deps) noexcept {
-    return defuse_resolution(id, tuple_t{direction, query_me, query_deps},
-                             fresh);
-  }
-  MJZ_CX_FN tuple_t<uintlen_t, uintlen_t, uintlen_t>
-  seed_all_nodes_bimpl(bool forward_, bool backward_) noexcept {
-    uintlen_t backward_seeds = 0;
-    uintlen_t forward_seeds = 0;
-    uintlen_t invalid_states = 0;
-    for (uintlen_t i = 0; i < node_count(); ++i) {
-      if (backward_) {
-        backward_seeds += query_backward(node_id_t(i));
-      }
-      if (forward_) {
-        forward_seeds += query_forward(node_id_t(i));
-      }
-      invalid_states +=
-          is_unrecoverable_bimpl(node_id_t(i), forward_, backward_);
-    }
-    return {forward_seeds, backward_seeds, invalid_states};
+    return defuse_resolution_impl1(id, tuple_t{direction, query_me, query_deps},
+                                   fresh);
   }
 
   MJZ_CX_FN bool is_unrecoverable_bimpl(node_id_t i, bool forward_,
@@ -610,26 +589,36 @@ protected:
            });
   }
 
-public:
+  MJZ_CX_AL_FN uintlen_t node_count() const noexcept {
+    return m.m_nodes.size();
+  }
+
+#if MJZ_WITH_iostream
+  MJZ_NCX_FN friend std::ostream &
+  operator<<(std::ostream &cout_v, const basic_dependency_graph_base_t &obj) {
+    return cout_v << obj.format_graph_dot();
+  }
+#endif
+
   MJZ_CX_FN void reserve_per_node(uintlen_t edges_per_node_estimate) noexcept {
-    connections_list.edge_reserve_all(edges_per_node_estimate);
+    this->m.m_connections_list.edge_reserve_all(edges_per_node_estimate);
   }
   MJZ_CX_FN void reserve(uintlen_t node_estimate,
                          uintlen_t edge_estimate) noexcept {
-    return reserve_impl(node_estimate, edge_estimate);
+    return this->reserve_impl(node_estimate, edge_estimate);
   }
 
   MJZ_CX_FN std::optional<dependency_node_t>
   get_node(node_id_t i) const noexcept {
     if (!is_inbounds(i))
       return {};
-    return nodes[i.index()];
+    return this->m.m_nodes[i.index()];
   }
   MJZ_CX_FN optional_ref_t<const dependency_node_t>
   get_node_cref(node_id_t i) const noexcept {
     if (!is_inbounds(i))
       return {};
-    return nodes[i.index()];
+    return this->m.m_nodes[i.index()];
   }
 
   MJZ_CX_FN mjz::bstr_ns::basic_str_t<version_v>
@@ -638,7 +627,7 @@ public:
         bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<version_v, "{}">,
         std::views::iota(uintlen_t(), uintlen_t(node_count())) |
             std::views::transform([this](uintlen_t i) noexcept {
-              return format_node_state(node_id_t(i));
+              return this->format_node_state(node_id_t(i));
             }));
   }
 
@@ -663,40 +652,34 @@ public:
         name, style,
         std::views::iota(uintlen_t(), uintlen_t(node_count())) |
             std::views::transform([this](uintlen_t i) noexcept {
-              auto itxt = format_node_state_dot(node_id_t(i));
+              auto itxt = this->format_node_state_dot(node_id_t(i));
               return mjz::bstr_ns::format_ns::format(
                   bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
                       version_v, "{}; {:s:s}\n">,
                   itxt,
-                  dependency(node_id_t(i), false)
-                          .get_connections(connections_list) |
+                  this->dependency(node_id_t(i), false)
+                          .get_connections(get_connections_view()) |
                       std::views::transform([&](uintlen_t child_i) noexcept {
                         return tuple_t(
                             itxt,
                             bstr_ns::format_ns::fmt_litteral_ns::operator_fmt<
                                 version_v, " -> ">(),
-                            format_node_state_dot(node_id_t(child_i)), ';');
+                            this->format_node_state_dot(node_id_t(child_i)),
+                            ';');
                       }));
             }));
   }
 
-#if MJZ_WITH_iostream
-  MJZ_NCX_FN friend std::ostream &
-  operator<<(std::ostream &cout_v, const basic_dependency_graph_base_t &obj) {
-    return cout_v << obj.format_graph_dot();
-  }
-#endif
-
   MJZ_CX_FN success_t make_edges(node_id_t id,
                                  std::span<const node_id_t> child_is) noexcept {
     uintlen_t extra_later = child_is.size();
-    edge_reserve_impl(extra_later);
+    this->edge_reserve_impl(extra_later);
     if (!is_inbounds(id))
       return false;
     for (node_id_t child_i : child_is) {
       if (!is_inbounds(child_i))
         return false;
-      if (!make_edge_impl(true, id, child_i, extra_later, 0))
+      if (!this->make_edge_impl(true, id, child_i, extra_later, 0))
         return false;
       extra_later--;
     }
@@ -707,11 +690,11 @@ public:
     if (!is_inbounds(child_i))
       return false;
     uintlen_t extra_later = ids.size();
-    edge_reserve_impl(extra_later);
+    this->edge_reserve_impl(extra_later);
     for (node_id_t id : ids) {
       if (!is_inbounds(id))
         return false;
-      if (!make_edge_impl(false, child_i, id, extra_later, 0))
+      if (!this->make_edge_impl(false, child_i, id, extra_later, 0))
         return false;
       extra_later--;
     }
@@ -722,14 +705,14 @@ public:
       return false;
     if (!is_inbounds(id))
       return false;
-    edge_reserve_impl(1);
-    return make_edge_impl(true, id, child_i, 0, 0);
+    this->edge_reserve_impl(1);
+    return this->make_edge_impl(true, id, child_i, 0, 0);
   }
   MJZ_CX_FN node_id_t make_node(state_space_t forward_space,
                                 state_space_t backward_space) noexcept {
     backward_space.canonicalize();
     forward_space.canonicalize();
-    return make_nodes_impl(1, forward_space, backward_space);
+    return this->make_nodes_impl(1, forward_space, backward_space);
   }
 
   MJZ_CX_FN node_id_t
@@ -737,7 +720,7 @@ public:
                        state_space_t backward_space) noexcept {
     backward_space.canonicalize();
     forward_space.canonicalize();
-    return make_nodes_impl(count, forward_space, backward_space);
+    return this->make_nodes_impl(count, forward_space, backward_space);
   }
   MJZ_CX_FN void make_nodes(std::span<node_id_t> out_is,
                             state_space_t forward_space,
@@ -746,12 +729,12 @@ public:
     backward_space.canonicalize();
     forward_space.canonicalize();
     uintlen_t i =
-        make_nodes_impl(out_is.size(), forward_space, backward_space).index();
+        this->make_nodes_impl(out_is.size(), forward_space, backward_space)
+            .index();
     for (node_id_t &id_ : out_is)
       id_ = node_id_t(i++);
   }
 
-  MJZ_CX_AL_FN uintlen_t node_count() const noexcept { return nodes.size(); }
   MJZ_CX_AL_FN bool is_inbounds(node_id_t id) const noexcept {
     return id.index() < node_count();
   }
@@ -760,11 +743,11 @@ public:
       return false;
     bool good = true;
     if (+(flags_e::forward_bit & direction)) {
-      if (!query_bimpl(id, true))
+      if (!this->query_bimpl(id, true))
         good = false;
     }
     if (+(flags_e::backward_bit & direction)) {
-      if (!query_bimpl(id, false))
+      if (!this->query_bimpl(id, false))
         good = false;
     }
     return good;
@@ -779,11 +762,11 @@ public:
     bool query_me = !!(flags_e::query_me_bit & direction);
     bool query_deps = !!(flags_e::query_deps_bit & direction);
     if (+(flags_e::forward_bit & direction)) {
-      if (!defuse_bimpl(id, fresh, true, query_me, query_deps))
+      if (!this->defuse_bimpl(id, fresh, true, query_me, query_deps))
         good = false;
     }
     if (+(flags_e::backward_bit & direction)) {
-      if (!defuse_bimpl(id, fresh, false, query_me, query_deps))
+      if (!this->defuse_bimpl(id, fresh, false, query_me, query_deps))
         good = false;
     }
     return good;
@@ -815,11 +798,24 @@ public:
     return operator_or(defuse_forward(id, fresh_forward),
                        defuse_backward(id, fresh_backward));
   }
-
   MJZ_CX_FN tuple_t<uintlen_t, uintlen_t, uintlen_t>
   seed_all_nodes(flags_e direction = flags_e::bidirectional) noexcept {
-    return seed_all_nodes_bimpl(!!(flags_e::forward_bit & direction),
-                                !!(flags_e::backward_bit & direction));
+    bool forward_ = !!(flags_e::forward_bit & direction);
+    bool backward_ = !!(flags_e::backward_bit & direction);
+    uintlen_t backward_seeds = 0;
+    uintlen_t forward_seeds = 0;
+    uintlen_t invalid_states = 0;
+    for (uintlen_t i = 0; i < node_count(); ++i) {
+      if (backward_) {
+        backward_seeds += query_backward(node_id_t(i));
+      }
+      if (forward_) {
+        forward_seeds += query_forward(node_id_t(i));
+      }
+      invalid_states +=
+          this->is_unrecoverable_bimpl(node_id_t(i), forward_, backward_);
+    }
+    return {forward_seeds, backward_seeds, invalid_states};
   }
 
   MJZ_CX_FN bool
@@ -827,8 +823,8 @@ public:
                    flags_e direction = flags_e::bidirectional) const noexcept {
     if (!is_inbounds(i))
       return true;
-    return is_unrecoverable_bimpl(i, !!(flags_e::forward_bit & direction),
-                                  !!(flags_e::backward_bit & direction));
+    return this->is_unrecoverable_bimpl(i, !!(flags_e::forward_bit & direction),
+                                        !!(flags_e::backward_bit & direction));
   }
 
   MJZ_CX_FN bool
@@ -836,9 +832,9 @@ public:
             flags_e direction = flags_e::bidirectional) const noexcept {
     if (!is_inbounds(i))
       return true;
-    return is_failed_bimpl(i, !!(flags_e::forward_bit & direction),
-                           !!(flags_e::backward_bit & direction),
-                           !!(flags_e::unresolved_fail_bit & direction));
+    return this->is_failed_bimpl(i, !!(flags_e::forward_bit & direction),
+                                 !!(flags_e::backward_bit & direction),
+                                 !!(flags_e::unresolved_fail_bit & direction));
   }
 
   MJZ_CX_FN bool
@@ -846,13 +842,13 @@ public:
                 flags_e direction = flags_e::bidirectional) const noexcept {
     if (!is_inbounds(i))
       return true;
-    return is_unresolved_bimpl(i, !!(flags_e::forward_bit & direction),
-                               !!(flags_e::backward_bit & direction));
+    return this->is_unresolved_bimpl(i, !!(flags_e::forward_bit & direction),
+                                     !!(flags_e::backward_bit & direction));
   }
 
   MJZ_CX_FN auto
   view_all_fail_ids(flags_e direction = flags_e::bidirectional) const noexcept {
-    return view_all_fail_ids_bimpl(
+    return this->view_all_fail_ids_bimpl(
         !!(flags_e::forward_bit & direction),
         !!(flags_e::backward_bit & direction),
         !!(flags_e::unresolved_fail_bit & direction));
@@ -865,8 +861,8 @@ public:
   };
   MJZ_CX_FN previous_states_t passive_trigger(node_id_t id) noexcept {
     asserts(is_inbounds(id));
-    auto &node_forward = dependency(id, true);
-    auto &node_backward = dependency(id, false);
+    auto &node_forward = this->dependency(id, true);
+    auto &node_backward = this->dependency(id, false);
     return previous_states_t{.id = id,
                              .forward = node_forward.get_passive_trigger(),
                              .backward = node_backward.get_passive_trigger()};
@@ -874,7 +870,7 @@ public:
   template <class execute_resolution_wave_fnt>
   MJZ_CX_FN bool run_one_callback(
       execute_resolution_wave_fnt &&execute_resolution_wave_fn) noexcept {
-    return run_resolution_queries(
+    return this->run_resolution_queries(
         std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn));
   }
 
@@ -882,27 +878,27 @@ public:
   MJZ_CX_FN uintlen_t run_all_callback(
       uintlen_t limit,
       execute_resolution_wave_fnt &&execute_resolution_wave_fn) noexcept {
-    while (limit && run_resolution_queries(execute_resolution_wave_fn))
+    while (limit && this->run_resolution_queries(execute_resolution_wave_fn))
       limit--;
     return limit;
   }
   MJZ_CX_FN std::span<const uintlen_t> get_connections_view() const noexcept {
-    return connections_list;
+    return this->m.m_connections_list;
   }
   MJZ_CX_FN auto get_range_index_view() const noexcept {
     return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
            std::views::transform(
                [this](uintlen_t i) noexcept -> std::span<const uintlen_t> {
-                 return dependency(node_id_t(i), false)
-                     .get_connections(connections_list);
+                 return this->dependency(node_id_t(i), false)
+                     .get_connections(get_connections_view());
                });
   }
 
   MJZ_CX_FN auto get_range_id_view() const noexcept {
     return std::views::iota(uintlen_t(), uintlen_t(node_count())) |
            std::views::transform([this](uintlen_t i) noexcept {
-             return dependency(node_id_t(i), false)
-                        .get_connections(connections_list) |
+             return this->dependency(node_id_t(i), false)
+                        .get_connections(get_connections_view()) |
                     std::views::transform(
                         [](uintlen_t j) noexcept { return node_id_t(j); });
            });
@@ -910,12 +906,13 @@ public:
   MJZ_CX_FN auto basic_format_specs_formatted_pv_fn_(auto &&) const noexcept {
     return format_graph_state();
   };
+
   MJZ_CX_FN void clear() noexcept {
     asserts(asserts.assume_rn, !events_running());
-    nodes.clear();
-    applied_list.clear();
-    apply_list.clear();
-    connections_list.clear();
+    this->m.m_nodes.clear();
+    this->m.m_applied_list.clear();
+    this->m.m_apply_list.clear();
+    this->m.m_connections_list.clear();
   }
 };
 

@@ -6,6 +6,9 @@
 #if __has_include("udeps.hpp")
 #include "udeps.hpp"
 #endif
+#if __has_include("rdeps.hpp")
+#include "rdeps.hpp"
+#endif
 #if __has_include("algo.hpp")
 #include "algo.hpp"
 #endif

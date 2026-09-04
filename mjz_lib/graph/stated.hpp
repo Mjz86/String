@@ -24,7 +24,9 @@ SOFTWARE.
 #ifndef MJZ_SRC_GRAPH_stated_FILE_
 #define MJZ_SRC_GRAPH_stated_FILE_
 #include "deps.hpp"
+#include "rdeps.hpp"
 #include "udeps.hpp"
+
 namespace mjz::graph_ns {
 /////////////////////////////// from my compiler project
 
@@ -258,10 +260,8 @@ public:
   }
 };
 
-template <version_t version_v, class event_t>
-struct basic_uni_dependency_graph_t
-    : basic_uni_dependency_graph_base_t<version_v> {
-  using base = basic_uni_dependency_graph_base_t<version_v>;
+template <class base, version_t version_v, class event_t>
+struct basic_uni_dependency_graph_of_t : base {
 
 protected:
   std::vector<event_t> event_list{};
@@ -308,10 +308,8 @@ public:
   }
 };
 
-template <version_t version_v>
-struct signal_uni_dependency_graph_t
-    : basic_uni_dependency_graph_base_t<version_v> {
-  using base = basic_uni_dependency_graph_base_t<version_v>;
+template <class base, version_t version_v>
+struct signal_uni_dependency_graph_of_t : base {
 
 protected:
   MJZ_CX_FN bool execute_resolution_wave(auto &resolve_one_callback) noexcept {
@@ -339,6 +337,22 @@ public:
     return limit;
   }
 };
+
+template <version_t version_v, class event_t>
+using basic_uni_dependency_graph_t = basic_uni_dependency_graph_of_t<
+    basic_uni_dependency_graph_base_t<version_v>, version_v, event_t>;
+
+template <version_t version_v>
+using signal_uni_dependency_graph_t = signal_uni_dependency_graph_of_t<
+    basic_uni_dependency_graph_base_t<version_v>, version_v>;
+
+template <version_t version_v, class event_t>
+using basic_unsafe_uni_dependency_graph_t = basic_uni_dependency_graph_of_t<
+    basic_unsafe_uni_dependency_graph_base_t<version_v>, version_v, event_t>;
+
+template <version_t version_v>
+using signal_unsafe_uni_dependency_graph_t = signal_uni_dependency_graph_of_t<
+    basic_unsafe_uni_dependency_graph_base_t<version_v>, version_v>;
 
 namespace states_ns {
 
