@@ -237,7 +237,7 @@ struct MJZ_trivially_relocatable directed_state_space_t
         state_to_str_impl_<version_v>(direc.current),
         state_to_str_impl_<version_v>(direc.trigger),
         intlen_t(active_connections), this->connection_count(),
-        get_connections(connections_list_));
+        this->get_connections(connections_list_));
   }
   MJZ_CX_AL_FN mjz::bstr_ns::basic_str_t<version_v>
   format_node_state_direct_dot() const noexcept {
@@ -271,7 +271,7 @@ enum class basic_dependency_graph_flags_e : uint8_t {
 MJZ_ENUM_MATH_FOR(basic_dependency_graph_flags_e);
 
 template <version_t version_v, auto max_invalid_state_v>
-struct MJZ_maybe_trivially_relocatable basic_dependency_graph_base_impl_t {
+struct MJZ_maybe_trivially_relocatable basic_dependency_graph_base_t {
 public:
   using flags_e = basic_dependency_graph_flags_e;
   using state_space_t = base_state_space_t<version_v, max_invalid_state_v>;
