@@ -152,13 +152,13 @@ its work list.
 
 
  let there exist an undirected graph G,
- let the set of all nodes in the graph be a one to one map of each memory region
-, as in , each node represents a memory region.
+ let the set of all nodes in the graph be a one to one map of each operation
+, as in , each node represents an operation.
 
  let the set of edges be constructed by the following:
 for each memory region M-i with the set of its worklost [N1,N2,...]
-each node in the worklist has an edge to each other node in the worklist.
-( duplicate edges are deduplicated )
+each node/operation in the worklist has an edge to each other node/operation in
+the worklist. ( duplicate edges are deduplicated )
 
 
 
@@ -169,12 +169,12 @@ coloring algoritm we wish to use.
 
 and finally ,
 for each color C we used ,
-for the set of all nodes with color C,
+for the set of all nodes/operations with color C,
 we run them in parrelel,
 then we do the same for C+1 , until we run out of colors.
 
 
-and for the non parrelel defuse operation , we just run them in a deterministic
+and for the non parrelel defuse operations , we just run them in a deterministic
 sequence.
 
 
