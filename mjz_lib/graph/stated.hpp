@@ -128,6 +128,68 @@ data structure, i recommened using 'basic_dependency_graph_t' instead of
 
  */
 
+/*
+ technical way to make the defuse phase be as parrellel as pssible, however it
+has some overhead , so use at your on expense:
+
+
+
+ let the set of all memory regions in the compiler represent  [M1,M2,...]
+
+ a parrellel defuse operation is a defuse function that can be unsequenced
+inside a wave with a deterministic mutation on a set of memory regions
+[OM1,OM2,...]
+
+ let the set of all these operations represent [O1,O2,...]
+
+
+
+ given a memory region M-i , its worklist is defined as:
+ the node N  has M-i in its mutation list if and only if M-i has the node N in
+its work list.
+
+
+
+
+ let there exist an undirected graph G,
+ let the set of all nodes in the graph be a one to one map of each memory region
+, as in , each node represents a memory region.
+
+ let the set of edges be constructed by the following:
+for each memory region M-i with the set of its worklost [N1,N2,...]
+each node in the worklist has an edge to each other node in the worklist.
+( duplicate edges are deduplicated )
+
+
+
+now with the graph in hand we can now color the graph with any deterministic
+coloring algoritm we wish to use.
+
+
+
+and finally ,
+for each color C we used ,
+for the set of all nodes with color C,
+we run them in parrelel,
+then we do the same for C+1 , until we run out of colors.
+
+
+and for the non parrelel defuse operation , we just run them in a deterministic
+sequence.
+
+
+
+
+
+
+
+
+
+
+
+
+*/
+
 template <version_t version_v, class event_t>
 MJZ_CX_FN void ignite_join_defuse_all_impl(auto &self_, std::span<event_t> ev,
                                            auto &...pram) noexcept {

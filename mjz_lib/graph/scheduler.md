@@ -91,6 +91,9 @@ https://github.com/Mjz86/String/blob/main/mjz_lib/graph/scheduler.md
 
 references:
 
+for how i handle deterministic  parrelelism read:
+
+https://github.com/Mjz86/String/blob/main/mjz_lib/graph/stated.hpp
 
 https://github.com/Mjz86/String/blob/main/mjz_lib/graph/deps.hpp
 
