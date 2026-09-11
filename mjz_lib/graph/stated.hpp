@@ -174,8 +174,12 @@ we run them in parrelel,
 then we do the same for C+1 , until we run out of colors.
 
 
-and for the non parrelel defuse operations , we just run them in a deterministic
-sequence.
+and for the non parrelel defuse operations (eg, the actual graph updates) , we
+just run them in a deterministic sequence.
+
+note that in a custom implementation of defuse_all ,
+the event defuse operation will be split to as many diffrent fine grained
+operations as it can. a one-to-many mapping.
 
 
 
