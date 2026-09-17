@@ -337,6 +337,18 @@ using void_struct_t = totally_empty_type_t;
  *add other compiler specific macro definitions.
  */
 
+#if __has_cpp_attribute(clang::musttail)
+#define MJZ_musttail [[clang::musttail]]
+#elif __has_cpp_attribute(gnu::musttail)
+#define MJZ_musttail [[gnu::musttail]]
+#elif __has_attribute(musttail)
+#define MJZ_musttail __attribute__((musttail))
+#else
+#define MJZ_musttail ::mjz::asserts.panic("no tail call is supported  ");
+#endif
+
+#define MJZ_retail MJZ_musttail return
+
 #define MJZ_MSVC_ONLY_PRAGMA_(X)
 #define MJZ_GCC_ONLY_PRAGMA_(X)
 #define MJZ_MSVC_ONLY_CODE_(X)

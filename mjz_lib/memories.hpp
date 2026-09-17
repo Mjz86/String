@@ -612,6 +612,28 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <bitcastable_c T>
+  MJZ_CX_AL_ND_FN T(force_bit_branchless_teranary)(
+      std::same_as<bool> auto if_expression, const T &then_val,
+      const T &else_val) noexcept {
+    alignas(alignof(T)) std::array<char, sizeof(T)> buf{};
+    alignas(alignof(T)) auto then_bytes = make_bitcast(then_val);
+    alignas(alignof(T)) auto else_bytes = make_bitcast(else_val);
+
+    char mask = char(uint8_t((~uint8_t(if_expression)) + 1));
+
+    for (uintlen_t i{}; i < buf.size(); i++) {
+      then_bytes[i] &= mask;
+    }
+    mask = ~mask;
+    for (uintlen_t i{}; i < buf.size(); i++) {
+      else_bytes[i] &= mask;
+    }
+    for (uintlen_t i{}; i < buf.size(); i++) {
+      buf[i] = then_bytes[i] | else_bytes[i];
+    }
+    return std::bit_cast<T>(buf);
+  }
+  template <bitcastable_c T>
   MJZ_CX_AL_ND_FN T(bit_branchless_teranary)(
       std::same_as<bool> auto if_expression, const T &then_val,
       const T &else_val) noexcept {

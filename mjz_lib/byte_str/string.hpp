@@ -1498,150 +1498,144 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
   private:
     template <when_t when_v>
-    MJZ_CX_FN success_t replace_data_with_none_impl_(
+    MJZ_CX_AL_FN success_t replace_data_with_none_impl_(
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
         bool choose_front = true, bool choose_back = true,
         align_direction_e align = props_v.align,
         bool avoid_alloc_has_room = true) noexcept {
-      if (max_size() < fill_len) {
-        return false;
+      const auto cnt8_o = m.get_cntrl_u8();
+      const bool is_heap_o = m.is_heap();
+      if constexpr (when_v.no_destroy()) {
+        asserts(asserts.assume_rn, !is_heap_o);
       }
+      const bool sso_mode_o = m.is_sso();
+      const bool is_threaded_o = m.is_threaded();
+      const bool is_ownerized_o = m.is_ownerized();
+      const bool is_sharable_o = m.is_sharable();
+      const auto [beg_o, len_o] = m.get_begin_len();
+      const uintlen_t cap_o = m.get_capacity();
+      char *const buf_o = m.get_buffer_ptr();
       make_right_then_give_has_null(offset, byte_count);
-      uintlen_t new_len{fill_len + m.get_length() - byte_count};
-      if (max_size() < new_len) {
-        return false;
-      }
+      const uintlen_t new_len{fill_len + len_o - byte_count};
       uintlen_t malloc_minimum_request_ = uintlen_t(props_v.has_null) + new_len;
-      bool looped_once{};
-      do {
-        bool has_room{};
+      const uintlen_t front_del = uintlen_t(beg_o - buf_o);
+      const uintlen_t back_del = cap_o - front_del - len_o;
+      const intlen_t del_o = intlen_t(new_len) - intlen_t(len_o);
+      const bool sso_mode_ = sso_mode_o;
+      choose_back |= sso_mode_;
+      choose_front &= !sso_mode_;
+      choose_back &= std::cmp_less_equal(del_o, back_del);
+      choose_front &= std::cmp_less_equal(del_o, front_del);
+      avoid_alloc_has_room |= sso_mode_;
+      {
+        bool choose_both = choose_back;
+        choose_both &= choose_front;
+        bool temp_choose_front = offset + byte_count < len_o - offset;
+        choose_front =
+            branchless_teranary(!choose_both, choose_front, temp_choose_front);
+      }
+      const bool has_room =
+          m.template has_room_for<when_v>(new_len, props_v.has_null);
+      if (max_size() < std::max(fill_len, new_len))
+        MJZ_IS_UNLIKELY { return false; }
 
-        if (!looped_once) {
-          has_room |=
-              m.template has_room_for<when_v>(new_len, props_v.has_null);
-        }
-        has_room |= looped_once;
-
-        if (has_room) {
-          char *beg = m.u_get_mut_begin();
-          char *buf = m.get_buffer_ptr();
-          uintlen_t cap = m.get_capacity();
-          uintlen_t len = m.get_length();
-          uintlen_t front_del = uintlen_t(beg - buf);
-          uintlen_t back_del = cap - front_del - len;
-          intlen_t del = intlen_t(new_len) - intlen_t(len);
-          const bool sso_mode_ = m.is_sso();
-          choose_back &= std::cmp_less_equal(del, back_del);
-          choose_front &= std::cmp_less_equal(del, front_del);
-          choose_front &= !sso_mode_;
-          avoid_alloc_has_room |= sso_mode_;
-          avoid_alloc_has_room |= looped_once;
-          bool the_alloc_path{};
-          MJZ_RAII_RELEASE {
-            if (the_alloc_path)
-              return;
-            if (!sso_mode_) {
-              m.set_invalid_to_non_sso_begin(
-                  beg, new_len, buf, cap, m.is_sharable(), false, m.is_heap());
-            } else {
-              m.set_sso_length(new_len);
-            }
-            asserts(asserts.assume_rn,
-                    !props_v.has_null ||
-                        add_null_impl_<when_t::own_relax, false, true, true>());
-          };
-          bool choose_both = choose_back;
-          choose_both &= choose_front;
-          bool temp_choose_front = offset + byte_count < len - offset;
-          choose_front = branchless_teranary(!choose_both, choose_front,
-                                             temp_choose_front);
-          if (choose_front) {
-            beg = memomve_overlap(beg - del, beg, offset);
-            return true;
+      if (has_room) {
+        char *beg = const_cast<char *>(beg_o);
+        char *buf = buf_o;
+        bool the_alloc_path{};
+        MJZ_RAII_RELEASE {
+          if (the_alloc_path)
+            return;
+          if (!sso_mode_) {
+            m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap_o,
+                                           is_sharable_o, false, is_heap_o);
+          } else {
+            m.set_sso_length(new_len);
           }
-          if (choose_back) {
-            memomve_overlap(beg + offset + fill_len, beg + offset + byte_count,
-                            len - (offset + byte_count));
-            return true;
-          }
-          if (avoid_alloc_has_room) {
-            uintlen_t delta_count =
-                m.s_buffer_offset(m.get_capacity(), new_len, align);
-            delta_count =
-                branchless_teranary<uintlen_t>(!m.is_sso(), delta_count, 0);
-            char *old_beg{beg};
-            beg = buf + delta_count;
-            bool shift_begin_first{beg <= old_beg};
-            if (shift_begin_first) {
-              memomve_overlap(beg, old_beg, offset);
-            }
-            memomve_overlap(beg + offset + fill_len,
-                            old_beg + offset + byte_count,
-                            len - (offset + byte_count));
-            if (shift_begin_first) {
-              return true;
-            }
-            memomve_overlap(beg, old_beg, offset);
-            return true;
-          }
-          the_alloc_path = true;
-          if (max_size() < malloc_minimum_request_ + len)
-            return false;
-          malloc_minimum_request_ += len;
-        }
-
-        MJZ_RAII_RELEASE { looped_once = true; };
-        if (new_len <= sso_cap) {
-          m_t temp{};
-          asserts(asserts.assume_rn, !m.is_sso());
-          temp.u_set_cntrl_u8(m.get_cntrl_u8());
-          temp.non_sso() = std::exchange(m.non_sso(), {});
-          if constexpr (when_v) {
-            if constexpr (props_v.has_alloc) {
-              *temp.get_alloc_ptr() = std::move(*m.get_alloc_ptr());
-            }
-          }
-          m.invalid_to_empty();
-          char *buf = m.get_buffer_ptr();
-          const char *old_ptr = temp.get_begin();
-          uintlen_t old_len = temp.get_length();
-          memcpy(buf, old_ptr, offset);
-          memcpy(buf + offset + fill_len, old_ptr + offset + byte_count,
-                 old_len - (offset + byte_count));
-          byte_count = fill_len;
-          m.set_sso_length(new_len);
-          if constexpr (when_v) {
-            temp.destruct_to_invalid();
-            if constexpr (props_v.has_alloc) {
-              *m.get_alloc_ptr() = std::move(*temp.get_alloc_ptr());
-            }
-          }
+          asserts(asserts.assume_rn,
+                  !props_v.has_null ||
+                      add_null_impl_<when_t::own_relax, false, true, true>());
+        };
+        if (choose_front) {
+          beg = memomve_overlap(beg - del_o, beg, offset);
           return true;
         }
-        str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-        if (!hm.u_malloc(malloc_minimum_request_))
-          MJZ_IS_UNLIKELY {
-            hm.unsafe_clear();
-            return false;
-          }
-        uintlen_t cap = hm.get_heap_cap();
-        char *buf = hm.get_heap_begin();
-        const char *old_ptr = m.get_begin();
-        uintlen_t old_len = m.get_length();
-        uintlen_t offset_of_beg = m.s_buffer_offset(cap, new_len, align);
-        char *beg = buf + offset_of_beg;
-        memcpy(beg, old_ptr, offset);
-        memcpy(beg + offset + fill_len, old_ptr + offset + byte_count,
-               old_len - (offset + byte_count));
-        byte_count = fill_len;
-        if constexpr (when_v) {
-          m.destruct_to_invalid();
+        if (choose_back) {
+          memomve_overlap(beg + offset + fill_len, beg + offset + byte_count,
+                          len_o - (offset + byte_count));
+          return true;
         }
-        m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap, hm.might_share(),
-                                       false, true);
-        hm.unsafe_clear();
-      } while (true);
-      return false;
+        if (avoid_alloc_has_room) {
+          uintlen_t delta_count = m_t::s_buffer_offset(cap_o, new_len, align);
+          delta_count =
+              branchless_teranary<uintlen_t>(!sso_mode_o, delta_count, 0);
+          char *old_beg{beg};
+          beg = buf + delta_count;
+          bool shift_begin_first{beg <= old_beg};
+          if (shift_begin_first) {
+            memomve_overlap(beg, old_beg, offset);
+          }
+          memomve_overlap(beg + offset + fill_len,
+                          old_beg + offset + byte_count,
+                          len_o - (offset + byte_count));
+          if (shift_begin_first) {
+            return true;
+          }
+          memomve_overlap(beg, old_beg, offset);
+          return true;
+        }
+        the_alloc_path = true;
+        if (max_size() < malloc_minimum_request_ + len_o)
+          MJZ_IS_UNLIKELY { return false; }
+        malloc_minimum_request_ += len_o;
+      }
+
+      if (new_len <= sso_cap) {
+        m_t temp{};
+        asserts(asserts.assume_rn, !sso_mode_o);
+        temp.u_set_cntrl_u8(cnt8_o);
+        temp.non_sso() = std::exchange(m.non_sso(), {});
+        if constexpr (when_v) {
+          if constexpr (props_v.has_alloc) {
+            *temp.get_alloc_ptr() = std::move(*m.get_alloc_ptr());
+          }
+        }
+        m.invalid_to_empty();
+        char *buf = m.get_buffer_ptr();
+        memcpy(buf, beg_o, offset);
+        memcpy(buf + offset + fill_len, beg_o + offset + byte_count,
+               len_o - (offset + byte_count));
+        byte_count = fill_len;
+        m.set_sso_length(new_len);
+        if constexpr (when_v) {
+          temp.destruct_to_invalid();
+          if constexpr (props_v.has_alloc) {
+            *m.get_alloc_ptr() = std::move(*temp.get_alloc_ptr());
+          }
+        }
+        return true;
+      }
+      str_heap_manager hm{m.get_alloc(), is_threaded_o, is_ownerized_o};
+      if (!hm.u_malloc(malloc_minimum_request_))
+        MJZ_IS_UNLIKELY {
+          hm.unsafe_clear();
+          return false;
+        }
+      uintlen_t cap = hm.get_heap_cap();
+      char *buf = hm.get_heap_begin();
+      uintlen_t offset_of_beg = m_t::s_buffer_offset(cap, new_len, align);
+      char *beg = buf + offset_of_beg;
+      memcpy(beg, beg_o, offset);
+      memcpy(beg + offset + fill_len, beg_o + offset + byte_count,
+             len_o - (offset + byte_count));
+      byte_count = fill_len;
+      if constexpr (when_v) {
+        m.destruct_to_invalid();
+      }
+      m.set_invalid_to_non_sso_begin(beg, new_len, buf, cap, hm.might_share(),
+                                     false, true);
+      hm.unsafe_clear();
+      return true;
     }
 
   public:
