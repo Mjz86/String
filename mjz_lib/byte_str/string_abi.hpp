@@ -478,10 +478,22 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return true;
       }
 
-      MJZ_NCX_AL_FN const char *ncx_nsso_get_begin() const noexcept {
-        return cpy_aligned_bitcast<const char *>(
-            reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
-            offsetof(non_sso_t, begin_ptr));
+      MJZ_CX_AL_FN const char *get_buffer_ptr() const noexcept {
+        MJZ_IF_CONSTEVAL {
+          if (!is_sso()) {
+            return m_v().raw_data.non_sso.data_block;
+          }
+          return m_sso_buffer_();
+        }
+
+        /* UB? na , just branchless */
+        const char *const sso_p = m_sso_buffer_();
+        return *forced_branchless_teranary(
+            !is_sso(),
+            reinterpret_cast<const char *const *>(
+                reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
+                offsetof(non_sso_t, data_block)),
+            &sso_p);
       }
 
       MJZ_CX_AL_FN const char *cx_nsso_get_begin() const noexcept {
@@ -497,10 +509,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return {m_sso_buffer_(), get_sso_length()};
         }
         /* UB? na , just branchless */
-        return {forced_branchless_teranary(is_sso(), m_sso_buffer_(),
-                                           ncx_nsso_get_begin()),
-                forced_branchless_teranary(is_sso(), get_sso_length(),
-                                           uu_nsso_len())};
+        const char *const sso_p = m_sso_buffer_();
+        return {
+            *forced_branchless_teranary(
+                is_sso(), &sso_p,
+                reinterpret_cast<const char *const *>(
+                    reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
+                    offsetof(non_sso_t, begin_ptr))),
+            forced_branchless_teranary(is_sso(), get_sso_length(),
+                                       uu_nsso_len())};
       }
       MJZ_CX_AL_FN const char *get_begin() const noexcept {
         return get_begin_len().first;
@@ -715,23 +732,6 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return;
         }
         set_sso_length(new_len);
-      }
-
-      MJZ_CX_AL_FN const char *get_buffer_ptr() const noexcept {
-        MJZ_IF_CONSTEVAL {
-          if (!is_sso()) {
-            return m_v().raw_data.non_sso.data_block;
-          }
-          return m_sso_buffer_();
-        }
-        /* UB? na , just branchless */ return force_bit_branchless_teranary(
-            !is_sso(),
-            cpy_aligned_bitcast<const char *>(
-                reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
-                offsetof(non_sso_t, data_block)),
-            m_sso_buffer_());
-
-        ;
       }
 
       MJZ_CX_AL_FN char *get_buffer_ptr() noexcept {

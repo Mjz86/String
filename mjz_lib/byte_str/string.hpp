@@ -1498,7 +1498,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
   private:
     template <when_t when_v>
-    MJZ_CX_AL_FN success_t replace_data_with_none_impl_(
+    MJZ_CX_AL_FN success_t replace_data_with_none_impl2_(
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
         bool choose_front = true, bool choose_back = true,
         align_direction_e align = props_v.align,
@@ -1638,19 +1638,39 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
 
+    template <when_t when_v>
+    MJZ_CX_AL_FN success_t replace_data_with_none_impl_(
+        uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
+        bool choose_front = true, bool choose_back = true,
+        align_direction_e align = props_v.align,
+        bool avoid_alloc_has_room = true) noexcept {
+      asserts(asserts.assume_rn, !when_v.no_destroy() || m.no_destroy());
+      asserts(asserts.assume_rn, !when_v.is_sso() || m.is_sso());
+      if (m.no_destroy()) {
+        if (m.is_sso()) {
+          return replace_data_with_none_impl2_<when_t::as_sso>(
+              offset, byte_count, fill_len, choose_front, choose_back, align,
+              avoid_alloc_has_room);
+        } else {
+          return replace_data_with_none_impl2_<when_t::no_heap>(
+              offset, byte_count, fill_len, choose_front, choose_back, align,
+              avoid_alloc_has_room);
+        }
+      }
+      return replace_data_with_none_impl2_<when_v>(offset, byte_count, fill_len,
+                                                   choose_front, choose_back,
+                                                   align, avoid_alloc_has_room);
+    }
+
   public:
     MJZ_CX_FN success_t replace_data_with_none(
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
         bool choose_front = true, bool choose_back = true,
         align_direction_e align_direction = align_direction_e{},
         bool avoid_alloc_has_room = true) noexcept {
-      return no_heap_route()
-                 ? replace_data_with_none_impl_<when_t::no_heap>(
-                       offset, byte_count, fill_len, choose_front, choose_back,
-                       align_direction, avoid_alloc_has_room)
-                 : replace_data_with_none_impl_<when_t::relax>(
-                       offset, byte_count, fill_len, choose_front, choose_back,
-                       align_direction, avoid_alloc_has_room);
+      return replace_data_with_none_impl_<when_t::relax>(
+          offset, byte_count, fill_len, choose_front, choose_back,
+          align_direction, avoid_alloc_has_room);
     }
     /*
      * replacas the data in range [offset,offset+byte_count) with other.
