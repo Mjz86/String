@@ -157,7 +157,6 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
                 return ref.fetch_sub(1, std::memory_order_acq_rel);
               },
               [](auto &ref) noexcept -> uintlen_t { return ref--; }) == 1) {
-        asserts(asserts.assume_rn, !get_is_threaded());
         return true;
       }
       return false;
@@ -348,7 +347,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       asserts(asserts.assume_rn, !m.is_owenrized);
       temp_layout_t{m}.perform_ref(
           [](auto &ref) noexcept {
-            ref.fetch_add(1, std::memory_order_acquire);
+            ref.fetch_add(1, std::memory_order_relaxed);
           },
           [](auto &ref) noexcept { ++ref; });
       return true;
@@ -364,9 +363,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
   private:
     MJZ_CX_AL_FN bool is_owner_heap() const noexcept {
       char_storage_as_temp_t<uintlen_t> var{
-          m.heap_data_ptr, non_threaded_rf_block, non_threaded_rf_block};
-      if (!var)
+          m.heap_rc_ptr, non_threaded_rf_block, non_threaded_rf_block};
+      if (!var) {
         return false;
+      }
 
       uintlen_t rc_val{get_is_threaded()
                            ? refcr_t{*var}.load(std::memory_order_acquire)
