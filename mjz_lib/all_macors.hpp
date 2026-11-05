@@ -341,10 +341,10 @@ using void_struct_t = totally_empty_type_t;
 #define MJZ_musttail [[clang::musttail]]
 #elif __has_cpp_attribute(gnu::musttail)
 #define MJZ_musttail [[gnu::musttail]]
-#elif __has_attribute(musttail)
-#define MJZ_musttail __attribute__((musttail))
-#else
-#define MJZ_musttail ::mjz::asserts.panic("no tail call is supported  ");
+#elif __has_attribute(musttail) 
+#define MJZ_musttail __attribute__((musttail)) 
+#else 
+#define MJZ_musttail ::mjz::asserts.panic("no tail call is supported  "); 
 #endif
 
 #define MJZ_retail MJZ_musttail return
@@ -1032,20 +1032,18 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
 
 ///
 
-#define MJZ_ENUM_MATH_FOR(TYPE_)                                               \
-  MJZ_CX_FN auto operator+(TYPE_ lhs) noexcept {                               \
-    return ::mjz::to_underlying(lhs);                                          \
+#define MJZ_ENUM_LIKE_MATH_FOR(TYPE_)                                          \
+  MJZ_CX_FN TYPE_ operator~(TYPE_ lhs) noexcept {                              \
+    return TYPE_(decltype(+std::declval<TYPE_>())(~+lhs));                     \
   }                                                                            \
-  MJZ_CX_FN TYPE_ operator~(TYPE_ lhs) noexcept { return TYPE_(~+lhs); }       \
-  MJZ_CX_FN bool operator!(TYPE_ lhs) noexcept { return !+lhs; }               \
   MJZ_CX_FN TYPE_ operator^(TYPE_ lhs, TYPE_ rhs) noexcept {                   \
-    return TYPE_((+lhs) ^ (+rhs));                                             \
+    return TYPE_(decltype(+std::declval<TYPE_>())((+lhs) ^ (+rhs)));           \
   }                                                                            \
   MJZ_CX_FN TYPE_ operator&(TYPE_ lhs, TYPE_ rhs) noexcept {                   \
-    return TYPE_((+lhs) & (+rhs));                                             \
+    return TYPE_(decltype(+std::declval<TYPE_>())((+lhs) & (+rhs)));           \
   }                                                                            \
   MJZ_CX_FN TYPE_ operator|(TYPE_ lhs, TYPE_ rhs) noexcept {                   \
-    return TYPE_((+lhs) | (+rhs));                                             \
+    return TYPE_(decltype(+std::declval<TYPE_>())((+lhs) | (+rhs)));           \
   }                                                                            \
   MJZ_CX_FN TYPE_ &operator^=(TYPE_ &lhs, TYPE_ rhs) noexcept {                \
     return lhs = lhs ^ rhs;                                                    \
@@ -1055,7 +1053,14 @@ template <size_t align_v> MJZ_CX_FN auto *assume_aligned(auto *ptr) noexcept {
   }                                                                            \
   MJZ_CX_FN TYPE_ &operator|=(TYPE_ &lhs, TYPE_ rhs) noexcept {                \
     return lhs = lhs | rhs;                                                    \
+  }
+
+#define MJZ_ENUM_MATH_FOR(TYPE_)                                               \
+  MJZ_CX_FN auto operator+(TYPE_ lhs) noexcept {                               \
+    return ::mjz::to_underlying(lhs);                                          \
   }                                                                            \
+  MJZ_CX_FN bool operator!(TYPE_ lhs) noexcept { return !bool(+lhs); }         \
+  MJZ_ENUM_LIKE_MATH_FOR(TYPE_)                                                \
   namespace namespace_DA5DEF7E949A2CE54837YJJFJsygi3ur_ {                      \
   static_assert(std::is_enum_v<TYPE_>);                                        \
   }

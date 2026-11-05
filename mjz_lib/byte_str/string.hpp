@@ -517,7 +517,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       cant |= props_v.has_null && !has_null_;
       cant |= m.is_ownerized();
       cant |= obj.m.is_ownerized();
-      bool unmached_threaded = m.is_threaded() != m.is_threaded();
+      bool unmached_threaded = m.is_threaded() != obj.m.is_threaded();
       unmached_threaded &= obj.m.has_mut();
       cant |= unmached_threaded;
       if constexpr (need_to_check_alloc_equality) {
