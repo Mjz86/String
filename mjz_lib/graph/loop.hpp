@@ -82,7 +82,7 @@ calculate_natural_loops_with_header_given_dominance_intervals(
       for (uintlen_t pred : preds[curr]) {
         if (work_stack[pred] & 1)
           continue;
-        if (!dominates(pred, pred))
+        if (!dominates(v, pred))
           continue;
         work_stack[pred] |= 1;
         work_stack[work_stack_ptr++] |= (pred << 1);
