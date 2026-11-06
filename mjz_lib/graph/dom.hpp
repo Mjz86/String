@@ -33,89 +33,6 @@ namespace mjz::graph_ns {
 
 template <version_t version_v, class R1 = std::span<const uintlen_t>,
           class R2 = std::span<const uintlen_t>>
-MJZ_CX_FN std::vector<uintlen_t>
-calculate_dominators_given_sorted_sccs_from_entry(
-    uintlen_t entry_node,
-    const basic_forest_t<version_v, R1> &scc_forest_with_topological_sequnce,
-    const basic_forest_t<version_v, R2> &preds_of_node) noexcept {
-  uintlen_t total_node_count = std::ranges::size(preds_of_node.range());
-  std::vector<uintlen_t> monotonic_dominator_ordenal(total_node_count * 2,
-                                                     uintlen_t(-1));
-  auto frozen_ordenal = std::span<uintlen_t>(monotonic_dominator_ordenal)
-                            .subspan(total_node_count);
-  uintlen_t monotonic_ordenal_counter = 0;
-  monotonic_dominator_ordenal[entry_node] = entry_node;
-  frozen_ordenal[entry_node] = monotonic_ordenal_counter++;
-  auto monotonic_scc_range =
-      scc_forest_with_topological_sequnce.range() | std::views::reverse;
-  for (auto &&scc : monotonic_scc_range) {
-    for (uintlen_t node : scc) {
-      if (node == entry_node)
-        continue;
-      frozen_ordenal[node] = monotonic_ordenal_counter++;
-    }
-  }
-  auto preds = preds_of_node.range();
-  for (auto &&scc : monotonic_scc_range) {
-    bool changed = false;
-    bool has_no_monotonic_progression = 1 < std::ranges::size(scc);
-    do {
-      changed = false;
-      for (uintlen_t node_index : scc) {
-        if (node_index == entry_node)
-          continue;
-
-        uintlen_t monotonic_dominator_ordenal_behind = uintlen_t(-1);
-
-        for (uintlen_t behind_index : preds[node_index]) {
-          bool behind_has_no_ordenal =
-              monotonic_dominator_ordenal[behind_index] == uintlen_t(-1);
-          if (behind_has_no_ordenal)
-            continue;
-          uintlen_t first_index_behind_monotonic_ordenal = behind_index;
-          uintlen_t second_index_behind_monotonic_ordenal =
-              monotonic_dominator_ordenal_behind;
-          if (first_index_behind_monotonic_ordenal == uintlen_t(-1)) {
-            monotonic_dominator_ordenal_behind =
-                second_index_behind_monotonic_ordenal;
-            continue;
-          }
-          if (second_index_behind_monotonic_ordenal == uintlen_t(-1)) {
-            monotonic_dominator_ordenal_behind =
-                first_index_behind_monotonic_ordenal;
-            continue;
-          }
-          while (first_index_behind_monotonic_ordenal !=
-                 second_index_behind_monotonic_ordenal) {
-            while (frozen_ordenal[first_index_behind_monotonic_ordenal] >
-                   frozen_ordenal[second_index_behind_monotonic_ordenal])
-              first_index_behind_monotonic_ordenal = monotonic_dominator_ordenal
-                  [first_index_behind_monotonic_ordenal];
-            while (frozen_ordenal[second_index_behind_monotonic_ordenal] >
-                   frozen_ordenal[first_index_behind_monotonic_ordenal])
-              second_index_behind_monotonic_ordenal =
-                  monotonic_dominator_ordenal
-                      [second_index_behind_monotonic_ordenal];
-          }
-          monotonic_dominator_ordenal_behind =
-              first_index_behind_monotonic_ordenal;
-        }
-        if (monotonic_dominator_ordenal[node_index] !=
-            monotonic_dominator_ordenal_behind) {
-          monotonic_dominator_ordenal[node_index] =
-              monotonic_dominator_ordenal_behind;
-          changed = has_no_monotonic_progression;
-        }
-      }
-    } while (changed);
-  }
-  monotonic_dominator_ordenal.resize(total_node_count);
-
-  return monotonic_dominator_ordenal;
-}
-
-template <version_t version_v, class R1 = std::span<const uintlen_t>,
-          class R2 = std::span<const uintlen_t>>
 MJZ_CX_FN void calculate_dominators_from_entry(
     std::vector<uintlen_t> &ret, uintlen_t entry_node,
     const basic_forest_t<version_v, R1> &edge_of_node_,
@@ -322,5 +239,92 @@ make_dominator_forest_given_dominators(
                immidiate_dominator != uintlen_t(-1);
       });
 }
+
+template <version_t version_v, class R1 = std::span<const uintlen_t>,
+          class R2 = std::span<const uintlen_t>>
+MJZ_DEPRECATED_R("SCC entry and order requirements that are not required in "
+                 "calculate_dominators_from_entry")
+MJZ_CX_FN
+    std::vector<uintlen_t> calculate_dominators_given_sorted_sccs_from_entry(
+        uintlen_t entry_node,
+        const basic_forest_t<version_v, R1>
+            &scc_forest_with_topological_sequnce,
+        const basic_forest_t<version_v, R2> &preds_of_node) noexcept {
+  uintlen_t total_node_count = std::ranges::size(preds_of_node.range());
+  std::vector<uintlen_t> monotonic_dominator_ordenal(total_node_count * 2,
+                                                     uintlen_t(-1));
+  auto frozen_ordenal = std::span<uintlen_t>(monotonic_dominator_ordenal)
+                            .subspan(total_node_count);
+  uintlen_t monotonic_ordenal_counter = 0;
+  monotonic_dominator_ordenal[entry_node] = entry_node;
+  frozen_ordenal[entry_node] = monotonic_ordenal_counter++;
+  auto monotonic_scc_range =
+      scc_forest_with_topological_sequnce.range() | std::views::reverse;
+  for (auto &&scc : monotonic_scc_range) {
+    for (uintlen_t node : scc) {
+      if (node == entry_node)
+        continue;
+      frozen_ordenal[node] = monotonic_ordenal_counter++;
+    }
+  }
+  auto preds = preds_of_node.range();
+  for (auto &&scc : monotonic_scc_range) {
+    bool changed = false;
+    bool has_no_monotonic_progression = 1 < std::ranges::size(scc);
+    do {
+      changed = false;
+      for (uintlen_t node_index : scc) {
+        if (node_index == entry_node)
+          continue;
+
+        uintlen_t monotonic_dominator_ordenal_behind = uintlen_t(-1);
+
+        for (uintlen_t behind_index : preds[node_index]) {
+          bool behind_has_no_ordenal =
+              monotonic_dominator_ordenal[behind_index] == uintlen_t(-1);
+          if (behind_has_no_ordenal)
+            continue;
+          uintlen_t first_index_behind_monotonic_ordenal = behind_index;
+          uintlen_t second_index_behind_monotonic_ordenal =
+              monotonic_dominator_ordenal_behind;
+          if (first_index_behind_monotonic_ordenal == uintlen_t(-1)) {
+            monotonic_dominator_ordenal_behind =
+                second_index_behind_monotonic_ordenal;
+            continue;
+          }
+          if (second_index_behind_monotonic_ordenal == uintlen_t(-1)) {
+            monotonic_dominator_ordenal_behind =
+                first_index_behind_monotonic_ordenal;
+            continue;
+          }
+          while (first_index_behind_monotonic_ordenal !=
+                 second_index_behind_monotonic_ordenal) {
+            while (frozen_ordenal[first_index_behind_monotonic_ordenal] >
+                   frozen_ordenal[second_index_behind_monotonic_ordenal])
+              first_index_behind_monotonic_ordenal = monotonic_dominator_ordenal
+                  [first_index_behind_monotonic_ordenal];
+            while (frozen_ordenal[second_index_behind_monotonic_ordenal] >
+                   frozen_ordenal[first_index_behind_monotonic_ordenal])
+              second_index_behind_monotonic_ordenal =
+                  monotonic_dominator_ordenal
+                      [second_index_behind_monotonic_ordenal];
+          }
+          monotonic_dominator_ordenal_behind =
+              first_index_behind_monotonic_ordenal;
+        }
+        if (monotonic_dominator_ordenal[node_index] !=
+            monotonic_dominator_ordenal_behind) {
+          monotonic_dominator_ordenal[node_index] =
+              monotonic_dominator_ordenal_behind;
+          changed = has_no_monotonic_progression;
+        }
+      }
+    } while (changed);
+  }
+  monotonic_dominator_ordenal.resize(total_node_count);
+
+  return monotonic_dominator_ordenal;
+}
+
 }; // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_dom_FILE_
