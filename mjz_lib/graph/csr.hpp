@@ -45,7 +45,7 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
     asserts(asserts.assume_rn,
             std::ranges::size(index_range) == std::ranges::size(range()));
     basic_forest_t<version_v, std::vector<uintlen_t>> ordered{};
-    ordered.nodes_index.reserve(total_scc_count);
+    ordered.nodes_index.reserve(nodes_index.size());
     ordered.edges.reserve(edges.size());
     auto rows = range();
     for (uintlen_t i : std::forward<R>(index_range)) {
