@@ -31,21 +31,19 @@ MJZ_EXPORT
 //
 namespace mjz::graph_ns {
 
+
 template <version_t version_v, usable_index_range_c<version_v> interval_begin_t,
           usable_index_range_c<version_v> interval_end_t,
-          class R1 = std::span<const uintlen_t>,
           class R2 = std::span<const uintlen_t>>
 MJZ_CX_FN treversal_result_t<version_v>
-calculate_natural_loops_given_dominance_intervals(
+calculate_natural_loops_with_header_given_dominance_intervals(
     interval_begin_t &&interval_begin, interval_end_t &&interval_end,
-    const basic_forest_t<version_v, R1> &edge_of_node_,
-    const basic_forest_t<version_v, R2> &preds_of_node) noexcept {
-  auto adjs = edge_of_node_.range();
+    const basic_forest_t<version_v, R2> &preds_of_node,
+    bool count_zero_sized_headers) noexcept {
   auto preds = preds_of_node.range();
   treversal_result_t<version_v> ret{};
-
-  uintlen_t total_node_count = std::ranges::size(adjs);
-  uintlen_t max_natual_loop_count = std::ranges::size(edge_of_node_.edges);
+  uintlen_t total_node_count = std::ranges::size(preds);
+  uintlen_t max_natual_loop_count = std::ranges::size(preds_of_node.edges);
   ret.nodes_index.reserve(max_natual_loop_count);
   ret.edges.reserve(total_node_count + max_natual_loop_count);
 
@@ -58,35 +56,44 @@ calculate_natural_loops_given_dominance_intervals(
 
   auto work_stack = std::vector<uintlen_t>(total_node_count);
   uintlen_t work_stack_ptr{};
-  for (uintlen_t u = 0; u < total_node_count; ++u) {
-    for (uintlen_t v : adjs[u]) {
+  for (uintlen_t v = 0; v < total_node_count; ++v) {
+    uintlen_t loop_start_offset = ret.edges.size();
+    std::ignore =
+        R"raw(each non empty loop is structured as:
+                  [header]|[ all preds of header that are dominated by header, forming the back edges]|[other parts of the loop]"
+                  size=1  |            size= count(preds |filter dom(header,pred)),                   |    the rest.)raw";
+    for (uintlen_t u : preds[v]) {
       if (!dominates(v, u))
         continue;
-      uintlen_t loop_start_offset = ret.edges.size();
+      if (ret.edges.size() == loop_start_offset) {
+        ret.nodes_index.push_back(loop_start_offset);
+        ret.edges.push_back(v);
+        work_stack[v] |= 1;
+      }
+      if (work_stack[u] & 1)
+        continue;
+      work_stack[u] |= 1;
+      work_stack[work_stack_ptr++] |= u << 1;
+      ret.edges.push_back(u);
+    }
+    while (work_stack_ptr) {
+      uintlen_t curr = work_stack[--work_stack_ptr] >> 1;
+      work_stack[work_stack_ptr] &= 1;
+      for (uintlen_t pred : preds[curr]) {
+        if (work_stack[pred] & 1)
+          continue;
+        if (!dominates(pred, pred))
+          continue;
+        work_stack[pred] |= 1;
+        work_stack[work_stack_ptr++] |= (pred << 1);
+        ret.edges.push_back(pred);
+      }
+    }
+    if (ret.edges.size() == loop_start_offset && count_zero_sized_headers) {
       ret.nodes_index.push_back(loop_start_offset);
-      ret.edges.push_back(v);
-
-      work_stack[v] |= 1;
-      if (u != v) {
-        work_stack[u] |= 1;
-        work_stack[work_stack_ptr++] |= u << 1;
-        ret.edges.push_back(u);
-      }
-      while (work_stack_ptr) {
-        uintlen_t curr = work_stack[--work_stack_ptr] >> 1;
-        work_stack[work_stack_ptr] &= 1;
-        for (uintlen_t pred : preds[curr]) {
-          if (work_stack[pred] & 1)
-            continue;
-          work_stack[pred] |= 1;
-          work_stack[work_stack_ptr++] |= (pred << 1);
-          ret.edges.push_back(pred);
-        }
-      }
-      for (uintlen_t i :
-           std::views::iota(loop_start_offset, ret.edges.size())) {
-        work_stack[ret.edges[i]] = 0;
-      }
+    }
+    for (uintlen_t i : std::views::iota(loop_start_offset, ret.edges.size())) {
+      work_stack[ret.edges[i]] = 0;
     }
   }
 
@@ -98,7 +105,7 @@ template <version_t version_v,
           mutable_index_range_c<version_v> uninit_outer_most_loop_of_loop_t,
           mutable_index_range_c<version_v> uninit_nest_of_loop_t,
           class R = std::span<const uintlen_t>>
-MJZ_CX_FN void calculate_nesting_of_natural_loops(
+MJZ_CX_FN void calculate_nesting_of_natural_loop_headers(
     const basic_forest_t<version_v, R> &natural_loops_,
     uninit_inner_most_loops_t &&inner_most_loops,
     uninit_outer_most_loop_of_loop_t &&outer_most_loop_of_loop,
@@ -114,7 +121,6 @@ MJZ_CX_FN void calculate_nesting_of_natural_loops(
   uintlen_t max_loop_size{};
   uintlen_t loop_index{};
   std::ranges::fill(inner_most_loops, uintlen_t(-1));
-
   for (auto &&loop : natural_loops) {
     uintlen_t loop_size = std::ranges::size(loop);
     uninit_nest_of_loop[loop_index] = 0;
@@ -142,5 +148,6 @@ MJZ_CX_FN void calculate_nesting_of_natural_loops(
     }
   }
 }
+
 }; // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_loop_FILE_

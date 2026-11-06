@@ -66,10 +66,10 @@ MJZ_EXPORT namespace mjz {
     hash_bytes(const char *ptr, uintlen_t len,
                uinthash_t seed = uinthash_t(0xc70f6907UL)) noexcept {
       constexpr auto load_bytes =
-          [](const char *p, uint8_t len = sizeof(uinthash_t)) noexcept {
-            asserts(asserts.assume_rn, len <= sizeof(uinthash_t));
+          [](const char *p, uint8_t len_ = sizeof(uinthash_t)) noexcept {
+            asserts(asserts.assume_rn, len_ <= sizeof(uinthash_t));
             std::array<char, sizeof(uinthash_t)> buf{};
-            for (uinthash_t i{}; i < len; i++)
+            for (uinthash_t i{}; i < len_; i++)
               buf[(size_t)i] = p[(size_t)i];
             return std::bit_cast<uinthash_t>(buf);
           };
