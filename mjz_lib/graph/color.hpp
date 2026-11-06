@@ -75,9 +75,10 @@ color_graph_greedy(const basic_forest_t<version_v, T> &graph) noexcept {
                               uintlen_t(std::ranges::size(graph.range()))));
 }
 
-template <version_t version_v>
+template <version_t version_v, bool packed_keys = false>
 MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t> color_timeline(
     std::span<const basic_index_range_t<version_v>> timelines) noexcept {
+
   // empty timelines get colored with  uintlen_t(-1)
   std::vector<uintlen_t> ret(timelines.size() * 4, uintlen_t(-1));
   uintlen_t bumbp_alloc_ptr{timelines.size()};
@@ -91,24 +92,46 @@ MJZ_CX_FN pair_t<std::vector<uintlen_t>, uintlen_t> color_timeline(
   uintlen_t color_count{};
   uintlen_t free_list_ptr{};
   uintlen_t intersected_time_ptr{};
-
-  for (uintlen_t i{}; i < timelines.size(); i++) {
-    if (!timelines[i].n)
-      continue;
-    intersected_time[intersected_time_ptr++] = (i << 1) | 1;
-    intersected_time[intersected_time_ptr++] = (i << 1);
+  if constexpr (!packed_keys) {
+    for (uintlen_t i{}; i < timelines.size(); i++) {
+      if (!timelines[i].n)
+        continue;
+      intersected_time[intersected_time_ptr++] = (i << 1) | 1;
+      intersected_time[intersected_time_ptr++] = (i << 1);
+    }
+  } else {
+    for (uintlen_t i{}; i < timelines.size(); i++) {
+      if (!timelines[i].n)
+        continue;
+      auto [begi, endi] = timelines[i].bounds();
+      asserts(asserts.assume_rn, endi < (uintlen_t(1) << 31));
+      asserts(asserts.assume_rn, uint32_t(i) == i);
+      intersected_time[intersected_time_ptr++] =
+          (begi << 33) | (uintlen_t(1) << 32) | i;
+      intersected_time[intersected_time_ptr++] = (endi << 33) | i;
+    }
+    static_assert(!packed_keys || sizeof(uintlen_t) >= 8);
   }
 
   auto intersected_time_slice =
       intersected_time.subspan(uintlen_t(), intersected_time_ptr);
-  std::ranges::sort(
-      intersected_time_slice, std::ranges::less{}, [&](uintlen_t i) noexcept {
-        auto [begi, endi] = timelines[i >> 1].bounds();
-        return (i & 1) ? pair_t{begi * 2 + 1, i} : pair_t{endi * 2, i};
-      });
+  if constexpr (packed_keys) {
+    std::ranges::sort(intersected_time_slice);
+  } else {
+    std::ranges::sort(
+        intersected_time_slice, std::ranges::less{}, [&](uintlen_t i) noexcept {
+          auto [begi, endi] = timelines[i >> 1].bounds();
+          return (i & 1) ? pair_t{begi * 2 + 1, i} : pair_t{endi * 2, i};
+        });
+  }
   for (uintlen_t index_and_bit : intersected_time_slice) {
     uintlen_t index = index_and_bit >> 1;
-    if (!(index_and_bit & 1)) {
+    bool is_end = !(index_and_bit & 1);
+    if constexpr (packed_keys) {
+      index = uint32_t(index_and_bit);
+      is_end = !(index_and_bit & (uintlen_t(1) << 32));
+    }
+    if (is_end) {
       free_list[free_list_ptr++] = ret[index];
       continue;
     }
