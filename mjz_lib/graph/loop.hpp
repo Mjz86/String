@@ -120,7 +120,8 @@ MJZ_CX_FN void calculate_nesting_of_natural_loops(
     uninit_nest_of_loop[loop_index] = 0;
     outer_most_loop_of_loop[loop_index] = loop_index;
     linked_list_next[loop_index] =
-        std::exchange(linked_list_head[loop_size], loop_index++);
+        std::exchange(linked_list_head[loop_size], loop_index);
+    loop_index++;
     max_loop_size = std::max(max_loop_size, loop_size);
   }
   uintlen_t current_loop_size{};

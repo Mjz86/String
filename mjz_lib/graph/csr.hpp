@@ -39,18 +39,62 @@ struct MJZ_maybe_trivially_relocatable basic_forest_t {
             usable_index_range_c<version_v> R2>
   MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
   transform_impl_(R1 &&index_range, R2 &&inv_index_range) const noexcept;
+  template <usable_index_range_c<version_v> R>
+  MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+  transform_node_only(R &&index_range) const noexcept {
+    asserts(asserts.assume_rn,
+            std::ranges::size(index_range) == std::ranges::size(range()));
+    basic_forest_t<version_v, std::vector<uintlen_t>> ordered{};
+    ordered.nodes_index.reserve(total_scc_count);
+    ordered.edges.reserve(edges.size());
+    auto rows = range();
+    for (uintlen_t i : std::forward<R>(index_range)) {
+      ordered.nodes_index.push_back(uintlen_t(ordered.edges.size()));
+      ordered.edges.insert(ordered.edges.end(), rows[i].begin(), rows[i].end());
+    }
+    return ordered;
+  }
+  template <usable_index_range_c<version_v> R>
+  MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+  transform_edge_only(R &&index_range) const noexcept {
+    asserts(asserts.assume_rn,
+            std::ranges::size(index_range) == std::ranges::size(range()));
+    basic_forest_t<version_v, std::vector<uintlen_t>> ret{};
+    ret.nodes_index = nodes_index;
+    auto v = edges | std::views::transform(
+                         [&](uintlen_t i) noexcept { return index_range[i]; });
+    ret.edges = std::vector<uintlen_t>(v.begin(), v.end());
+    return ret;
+  }
+
+  template <usable_index_range_c<version_v> R>
+  MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+  inv_transform_edge_only(R &&index_range) const noexcept {
+    return transform_edge_only(
+        range_bijective_inv<version_v>(std::forward<R>(index_range)));
+  }
+  template <usable_index_range_c<version_v> R>
+  MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
+  inv_transform_node_only(R &&index_range) const noexcept {
+    return transform_node_only(
+        range_bijective_inv<version_v>(std::forward<R>(index_range)));
+  }
 
   template <usable_index_range_c<version_v> R>
   MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
   transform(R &&index_range) const noexcept {
-    return transform_impl_(index_range,
-                           range_bijective_inv<version_v>(index_range));
+    auto inv = range_bijective_inv<version_v>(index_range);
+    asserts(asserts.assume_rn,
+            std::ranges::size(inv) == std::ranges::size(range()));
+    return transform_impl_(index_range, std::move(inv));
   }
   template <usable_index_range_c<version_v> R>
   MJZ_CX_FN basic_forest_t<version_v, std::vector<uintlen_t>>
   inv_transform(R &&index_range) const noexcept {
-    return transform_impl_(range_bijective_inv<version_v>(index_range),
-                           index_range);
+    auto inv = range_bijective_inv<version_v>(index_range);
+    asserts(asserts.assume_rn,
+            std::ranges::size(inv) == std::ranges::size(range()));
+    return transform_impl_(std::move(inv), index_range);
   }
   MJZ_CX_FN auto basic_index_range() const noexcept {
     uintlen_t nodes_index_sz = std::ranges::size(nodes_index);

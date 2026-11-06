@@ -197,10 +197,10 @@ MJZ_EXPORT namespace mjz {
             std::declval<const tuple_elem_storage_t<Ts, Is> &>();
       } && ...)
     {
-      std::common_comparison_category_t<
+      using cmp_t = std::common_comparison_category_t<
           decltype(std::declval<const tuple_elem_storage_t<Ts, Is> &>() <=>
-                   std::declval<const tuple_elem_storage_t<Ts, Is> &>())...>
-          res{};
+                   std::declval<const tuple_elem_storage_t<Ts, Is> &>())...>;
+      cmp_t res = cmp_t(0 <=> 0);
       std::ignore =
           ((res = (*static_cast<tuple_elem_storage_t<Ts, Is> const *>(this) <=>
                    *static_cast<tuple_elem_storage_t<Ts, Is> const *>(&rhs)),

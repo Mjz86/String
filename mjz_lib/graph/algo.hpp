@@ -49,8 +49,6 @@ template <version_t version_v> struct calculate_too_much_t {
   treversal_result_t<version_v> strongly_connected_components{};
   pair_t<std::vector<intlen_t>, intlen_t> sequenced_components{};
 
-  template <class R = std::span<const uintlen_t>,
-            index_range_of_c<version_v> RIR_t>
   MJZ_CX_AL_FN static calculate_too_much_t
   make(const auto &range_of_range) noexcept {
     calculate_too_much_t ret{};
@@ -59,10 +57,8 @@ template <version_t version_v> struct calculate_too_much_t {
         make_basic_inv_forest<version_v>(ret.edge_of_node.range());
     ret.strongly_connected_components =
         calculate_strongly_connected_components(ret.edge_of_node);
-    auto [scc_ordered, sec, wc] =
-        calculate_graph_toposorted_sequenced_components(
-            ret.strongly_connected_components, ret.edge_of_node);
-    ret.strongly_connected_components = std::move(scc_ordered);
+    auto [sec, wc] = calculate_graph_sequenced_components(
+        ret.strongly_connected_components, ret.edge_of_node);
     ret.sequenced_components = pair_t{std::move(sec), wc};
     uintlen_t total_node_count = std::ranges::size(ret.edge_of_node.range());
 

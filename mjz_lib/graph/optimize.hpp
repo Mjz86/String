@@ -92,16 +92,41 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_cardinality_search_ordering(
     R &&order) noexcept {
   auto adjs = suboptimal_indexed_graph.range();
   const uintlen_t sz = std::ranges::size(adjs);
-  std::vector<uintlen_t> ret(sz * 4, uintlen_t(-1));
+
+  std::vector<uintlen_t> ret(sz * 5, uintlen_t(-1));
   if (!sz)
     return ret;
   auto priority_list_next = std::span<uintlen_t>(ret).subspan(sz, sz);
-  auto priority_list_head = std::span<uintlen_t>(ret).subspan(sz * 2, sz);
-  auto priority_of_node_compl = std::span<uintlen_t>(ret).subspan(sz * 3, sz);
+  auto priority_list_prev = std::span<uintlen_t>(ret).subspan(sz * 2, sz);
+  auto priority_list_head = std::span<uintlen_t>(ret).subspan(sz * 3, sz);
+  auto priority_of_node_compl = std::span<uintlen_t>(ret).subspan(sz * 4, sz);
 
   for (uintlen_t i : std::forward<R>(order) | std::views::reverse) {
-    priority_list_next[i] = std::exchange(priority_list_head[0], i);
+    priority_list_next[i] = priority_list_head[0];
+    priority_list_prev[i] = uintlen_t(-1);
+    if (priority_list_head[0] != uintlen_t(-1))
+      priority_list_prev[priority_list_head[0]] = i;
+    priority_list_head[0] = i;
   }
+
+  auto unlink_node_fn_ = [&](uintlen_t i, uintlen_t bucket) noexcept {
+    uintlen_t next = priority_list_next[i];
+    uintlen_t prev = priority_list_prev[i];
+    if (next != uintlen_t(-1))
+      priority_list_prev[next] = prev;
+    if (prev != uintlen_t(-1))
+      priority_list_next[prev] = next;
+    else
+      priority_list_head[bucket] = next;
+  };
+  auto link_node_fn_ = [&](uintlen_t i, uintlen_t bucket) noexcept {
+    priority_list_next[i] = priority_list_head[bucket];
+    priority_list_prev[i] = uintlen_t(-1);
+    if (priority_list_head[bucket] != uintlen_t(-1))
+      priority_list_prev[priority_list_head[bucket]] = i;
+    priority_list_head[bucket] = i;
+  };
+
   uintlen_t highest_priority{};
   uintlen_t position_node_index{};
   MJZ_RAII_RELEASE { ret.resize(position_node_index); };
@@ -112,8 +137,7 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_cardinality_search_ordering(
       --highest_priority;
     }
     uintlen_t candidate_node_index = priority_list_head[highest_priority];
-    priority_list_head[highest_priority] =
-        priority_list_next[candidate_node_index];
+    unlink_node_fn_(candidate_node_index, highest_priority);
     if (!priority_of_node_compl[candidate_node_index])
       continue;
     priority_of_node_compl[candidate_node_index] = 0;
@@ -122,13 +146,22 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_cardinality_search_ordering(
          adjs[candidate_node_index] | std::views::reverse) {
       if (!priority_of_node_compl[neighbor])
         continue;
-      uintlen_t prio_index = ~--priority_of_node_compl[neighbor];
-      highest_priority = std::max(highest_priority, prio_index);
-      priority_list_next[neighbor] =
-          std::exchange(priority_list_head[prio_index], neighbor);
+      uintlen_t prio_index = ~priority_of_node_compl[neighbor];
+      unlink_node_fn_(neighbor, prio_index);
+      --priority_of_node_compl[neighbor];
+      link_node_fn_(neighbor, prio_index + 1);
+      highest_priority = std::max(highest_priority, prio_index + 1);
     }
   }
   return (ret);
+}
+
+template <version_t version_v, class T>
+MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_cardinality_search_ordering(
+    const basic_forest_t<version_v, T> &graph) noexcept {
+  return optimize_maximum_cardinality_search_ordering(
+      graph, std::views::iota(uintlen_t(),
+                              uintlen_t(std::ranges::size(graph.range()))));
 }
 
 template <version_t version_v, class T, usable_index_range_c<version_v> R>

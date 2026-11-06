@@ -50,12 +50,18 @@ calculate_inverse_dominance_frontiers_given_dominators(
   for (uintlen_t y = 0; y < total_node_count; ++y) {
     uintlen_t current_inverse_frontiers_head = uintlen_t(-1);
     uintlen_t current_inverse_frontiers_count{};
+    uintlen_t stop_node = (immidiate_dominators[y] == y)
+                              ? uintlen_t(-1)
+                              : immidiate_dominators[y];
     auto pred_range = preds[y];
     for (uintlen_t p : pred_range) {
       uintlen_t runner = p;
-      while (runner != immidiate_dominators[y] && runner != uintlen_t(-1) &&
+      while (runner != stop_node && runner != uintlen_t(-1) &&
              current_inverse_frontiers[runner] == uintlen_t(-1)) {
-        current_inverse_frontiers[runner] = current_inverse_frontiers_head;
+        current_inverse_frontiers[runner] =
+            (current_inverse_frontiers_head == uintlen_t(-1))
+                ? uintlen_t(-2)
+                : current_inverse_frontiers_head;
         current_inverse_frontiers_head = runner;
         current_inverse_frontiers_count++;
         runner = immidiate_dominators[runner];
@@ -65,7 +71,8 @@ calculate_inverse_dominance_frontiers_given_dominators(
     uintlen_t offset_of_node = ret.edges.size();
     ret.nodes_index.push_back(offset_of_node);
     ret.edges.resize(offset_of_node + current_inverse_frontiers_count);
-    while (current_inverse_frontiers_head != uintlen_t(-1)) {
+    while (current_inverse_frontiers_head != uintlen_t(-1) &&
+           current_inverse_frontiers_head != uintlen_t(-2)) {
       ret.edges[offset_of_node++] = current_inverse_frontiers_head;
       current_inverse_frontiers_head = std::exchange(
           current_inverse_frontiers[current_inverse_frontiers_head],
