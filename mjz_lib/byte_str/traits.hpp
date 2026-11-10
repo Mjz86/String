@@ -421,9 +421,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       bool is_neg{};
 
       if (*ptr == '-' || *ptr == '+') {
+        is_neg = *ptr == '-';
         ptr++;
         len--;
-        is_neg = *ptr == '-';
         if (!len)
           return std::nullopt;
       }
@@ -453,7 +453,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           temp[i] <<= i;
         }
         for (uintlen_t i{}; i < len; i++) {
+          UT prev = var;
           var += temp[i];
+          if (var < prev) {
+            return std::nullopt;
+          }
         }
         for (uintlen_t i{}; i < len; i++) {
           temp[i] >>= i;
@@ -546,9 +550,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return std::nullopt;
       bool is_neg{};
       if (*ptr == '-' || *ptr == '+') {
+        is_neg = *ptr == '-';
         ptr++;
         len--;
-        is_neg = *ptr == '-';
         if (!len)
           return std::nullopt;
       }
@@ -619,7 +623,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           uintlen_t i{};
           for (; i < length && begin[i] == '0'; i++)
             ;
-          ;
+          if (i == length && i) {
+            return 0;
+          }
           begin += i;
           length -= i;
           i = 0;
@@ -811,10 +817,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       bool is_neg{};
       bool had_sign{};
       if (*ptr == '-' || *ptr == '+') {
+        is_neg = *ptr == '-';
         ptr++;
         len--;
         had_sign = true;
-        is_neg = *ptr == '-';
         if (!len)
           return std::nullopt;
       }
@@ -1656,22 +1662,17 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         ptr++;
         len--;
       }
-      if (len && *ptr != '0') {
-        return to_real_floating_pv<T>(ptr, len, 10, is_point_fn);
+      if (len && *ptr == '0' && len > 1 && (ptr[1] == 'x' || ptr[1] == 'X')) {
+        ptr += 2;
+        len -= 2;
+        std::optional<T> ret =
+            to_real_floating_pv<T>(ptr, len, uint8_t(16), is_point_fn);
+        if (ret)
+          *ret = is_neg ? -*ret : *ret;
+        return ret;
       }
-      if (len) {
-        ptr++;
-        len--;
-      }
-      raidex_ = 10;
-      if (len && (*ptr == 'X' || *ptr == 'x')) {
-        raidex_ = 16;
-        ptr++;
-        len--;
-      }
-
       std::optional<T> ret =
-          to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
+          to_real_floating_pv<T>(ptr, len, uint8_t(10), is_point_fn);
       if (ret)
         *ret = is_neg ? -*ret : *ret;
       return ret;
@@ -1694,22 +1695,17 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         ptr++;
         len--;
       }
-      if (len && *ptr != '0') {
-        return to_floating_pv<T>(ptr, len, is_point_fn);
-      }
-      if (len) {
-        ptr++;
-        len--;
-      }
-      raidex_ = 10;
-      if (len && (*ptr == 'X' || *ptr == 'x')) {
+      if (len > 1 && *ptr == '0' && (ptr[1] == 'x' || ptr[1] == 'X')) {
+        ptr += 2;
+        len -= 2;
         raidex_ = 16;
-        ptr++;
-        len--;
+        std::optional<T> ret =
+            to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
+        if (ret)
+          *ret = is_neg ? -*ret : *ret;
+        return ret;
       }
-
-      std::optional<T> ret =
-          to_real_floating_pv<T>(ptr, len, raidex_, is_point_fn);
+      std::optional<T> ret = to_floating_pv<T>(ptr, len, is_point_fn);
       if (ret)
         *ret = is_neg ? -*ret : *ret;
       return ret;
@@ -1720,19 +1716,31 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN static std::optional<T>
     to_integral(const char *ptr, uintlen_t len, uint8_t raidex_ = 0) noexcept {
       bool is_neg{};
-      auto do_ret = [&](std::optional<T> ret) noexcept -> std::optional<T> {
+      using UT = std::make_unsigned_t<T>;
+      auto do_ret = [&](std::optional<UT> ret) noexcept -> std::optional<T> {
         if constexpr (std::signed_integral<T>) {
-          if (ret)
-            *ret = is_neg ? -*ret : *ret;
+          if (!ret)
+            return nullopt;
+          T p = T(*ret);
+          T n = T(UT(1) + ~*ret);
+          if (is_neg) {
+            if (0 < n)
+              return nullopt;
+            return n;
+          } else {
+            if (0 > p)
+              return nullopt;
+            return p;
+          }
         } else {
           if (is_neg) {
             return nullopt;
           }
+          return ret;
         }
-        return ret;
       };
       if (raidex_) {
-        return do_ret(to_integral_pv<T>(ptr, len, raidex_));
+        return do_ret(to_integral_pv<UT>(ptr, len, raidex_));
       }
       while (len && *ptr == ' ') {
         ptr++;
@@ -1744,7 +1752,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         len--;
       }
       if (len && *ptr != '0') {
-        return do_ret(to_integral_pv<T>(ptr, len, 10));
+        return do_ret(to_integral_pv<UT>(ptr, len, 10));
       }
       if (len) {
         ptr++;
@@ -1758,7 +1766,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         ptr++;
         len--;
       }
-      return do_ret(to_integral_pv<T>(ptr, len, raidex_));
+      return do_ret(to_integral_pv<UT>(ptr, len, raidex_));
     }
     static constexpr uintlen_t max_pow_pow10_double = 9;
 

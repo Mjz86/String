@@ -31,7 +31,6 @@ MJZ_EXPORT
 //
 namespace mjz::graph_ns {
 
-
 template <version_t version_v, usable_index_range_c<version_v> interval_begin_t,
           usable_index_range_c<version_v> interval_end_t,
           class R2 = std::span<const uintlen_t>>

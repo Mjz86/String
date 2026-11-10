@@ -827,13 +827,14 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     MJZ_CX_FN
     static void good_cache_impl_(const alloc_base &ref) noexcept {
       const fast_alloc_chache_t<version_v> &cr = ref.alloc_chache;
+      uintlen_t stk_len =
+          uintlen_t(cr.stack_left + cr.stack_ptr - cr.stack_begin);
+      uintlen_t mono_len =
+          uintlen_t(cr.monotonic_left + cr.monotonic_ptr - cr.monotonic_begin);
       asserts(asserts.assume_rn,
-              !memory_is_inside(
-                  cr.stack_begin,
-                  uintlen_t(cr.stack_left + cr.stack_ptr - cr.stack_begin),
-                  cr.monotonic_begin,
-                  uintlen_t(cr.monotonic_left + cr.monotonic_ptr -
-                            cr.monotonic_begin)));
+              (!mono_len && !stk_len) ||
+                  !memory_is_inside(cr.stack_begin, stk_len, cr.monotonic_begin,
+                                    mono_len));
     }
     MJZ_CX_FN
     static block_info allocate_bytes_impl_(alloc_base *ref, uintlen_t minsize,
@@ -855,6 +856,9 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         if (success) {
           return blk;
         }
+      }
+      if (ref) {
+        allocate_fn = ref->vtable.allocate;
       }
       if (!allocate_fn) {
         return global_allocator_t<version_v>::global_alloc(minsize, ai);
@@ -878,6 +882,10 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         if (success) {
           return;
         }
+      }
+      if (ref) {
+        allocate_fn = ref->vtable.allocate;
+        deallocate_fn = ref->vtable.deallocate;
       }
       if (deallocate_fn) {
         return local_dealloc(*ref, blk, ai);

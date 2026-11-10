@@ -75,6 +75,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     constexpr static bool double_route_v_ = false;
 
+    constexpr static bool O1plus_time_push_v =
+        align_direction_e::center == props_v.align;
+
     MJZ_CX_FN bool no_heap_route() const noexcept {
       if constexpr (double_route_v_)
         return m.no_destroy();
@@ -1436,19 +1439,35 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       return u_consider_stack(where);
     }
-    MJZ_CX_FN success_t shrink_to_fit(bool force_ownership = false) noexcept {
-      if (!force_ownership && !m.is_owner())
+    MJZ_CX_FN success_t shrink_to_fit() noexcept {
+      if (!m.is_heap() || !m.is_owner())
         return true;
-      if (!m.is_heap())
-        return true; // we werent on heap to begin with
+      const auto [beg_o, len_o] = m.get_begin_len();
+      if (len_o <= sso_cap) {
+        m_t temp{};
+        temp.u_set_cntrl_u8(m.get_cntrl_u8());
+        temp.non_sso() = std::exchange(m.non_sso(), {});
+        if constexpr (props_v.has_alloc) {
+          *temp.get_alloc_ptr() = std::move(*m.get_alloc_ptr());
+        }
+        m.invalid_to_empty();
+        memcpy(m.get_buffer_ptr(), beg_o, len_o);
+        m.set_sso_length(len_o);
+        temp.destruct_to_invalid();
+        if constexpr (props_v.has_alloc) {
+          *m.get_alloc_ptr() = std::move(*temp.get_alloc_ptr());
+        }
+        return true;
+      }
+
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-      if (!hm.u_malloc(uintlen_t(props_v.has_null) + m.get_length(), false))
+      if (!hm.u_malloc(uintlen_t(props_v.has_null) + len_o, false))
         MJZ_IS_UNLIKELY {
           hm.unsafe_clear();
           return false;
         }
       m.template memcpy_to_non_sso<when_t::relax>(
-          m.get_begin(), m.get_length(), hm.get_heap_begin(), hm.get_heap_cap(),
+          beg_o, len_o, hm.get_heap_begin(), hm.get_heap_cap(),
           hm.might_share(), true);
       hm.unsafe_clear();
       return true;
@@ -1502,7 +1521,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
         bool choose_front = true, bool choose_back = true,
         align_direction_e align = props_v.align,
-        bool avoid_alloc_has_room = true) noexcept {
+        bool avoid_alloc_has_room = !O1plus_time_push_v) noexcept {
       const auto cnt8_o = m.get_cntrl_u8();
       const bool is_heap_o = m.is_heap();
       if constexpr (when_v.no_destroy()) {
@@ -1643,7 +1662,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
         bool choose_front = true, bool choose_back = true,
         align_direction_e align = props_v.align,
-        bool avoid_alloc_has_room = true) noexcept {
+        bool avoid_alloc_has_room = !O1plus_time_push_v) noexcept {
       asserts(asserts.assume_rn, !when_v.no_destroy() || m.no_destroy());
       asserts(asserts.assume_rn, !when_v.is_sso() || m.is_sso());
       if (m.no_destroy()) {
@@ -1667,7 +1686,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uintlen_t offset, uintlen_t byte_count, uintlen_t fill_len,
         bool choose_front = true, bool choose_back = true,
         align_direction_e align_direction = align_direction_e{},
-        bool avoid_alloc_has_room = true) noexcept {
+        bool avoid_alloc_has_room = !O1plus_time_push_v) noexcept {
       return replace_data_with_none_impl_<when_t::relax>(
           offset, byte_count, fill_len, choose_front, choose_back,
           align_direction, avoid_alloc_has_room);
@@ -1679,17 +1698,26 @@ MJZ_EXPORT namespace mjz::bstr_ns {
      * if allocation fails
      */
 
-    MJZ_CX_ND_FN success_t replace_data_with_char(
-        uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
-        std::optional<char> val) noexcept {
+    MJZ_CX_ND_FN success_t replace_data_with_char(uintlen_t offset,
+                                                  uintlen_t byte_count,
+                                                  uintlen_t length_of_val,
+                                                  char val) noexcept {
       make_right_then_give_has_null(offset, byte_count);
       if (!replace_data_with_none(offset, byte_count, length_of_val)) {
         return false;
       }
-      if (!length_of_val || !val)
+      if (!length_of_val)
         return true;
-      memset(m.u_get_mut_begin() + offset, length_of_val, *val);
+      memset(m.u_get_mut_begin() + offset, length_of_val, val);
       return true;
+    }
+    MJZ_CX_ND_FN success_t replace_data_with_char(
+        uintlen_t offset, uintlen_t byte_count, uintlen_t length_of_val,
+        std::optional<char> val) noexcept {
+      if (val)
+        return replace_data_with_char(offset, byte_count, length_of_val, *val);
+      else
+        return replace_data_with_none(offset, byte_count, length_of_val);
     }
     MJZ_CX_ND_FN char *
     reserve_data_with_char_unsafe_impl_(uintlen_t length_of_val,
@@ -2160,7 +2188,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       make_right_then_give_has_null(offset, byte_count);
       if (!replace_data_with_none(offset, byte_count, other.size())) {
-        return true;
+        return false;
       }
       memcpy(m.u_get_mut_begin() + offset, other.data(), other.size());
       return true;

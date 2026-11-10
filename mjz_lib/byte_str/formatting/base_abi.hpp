@@ -1044,6 +1044,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_CX_FN success_t parse_formating_string_nocache() noexcept;
     MJZ_CX_FN success_t parse_formating_string_cache() noexcept;
     MJZ_CX_FN success_t append_text(view_t) noexcept;
+    MJZ_CX_FN success_t append_unescaped_text(view_t) noexcept;
     MJZ_CX_FN std::optional<pair_t<uintlen_t /*index*/, uintlen_t /*length*/>>
     get_slice_parse_filter(bool check_after_slice = true) noexcept;
     MJZ_CX_FN std::optional<uintlen_t>

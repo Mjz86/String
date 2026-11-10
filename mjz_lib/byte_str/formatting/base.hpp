@@ -329,6 +329,38 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     return output && !base_ctx().err_content;
   }
   template <version_t version_v>
+  MJZ_CX_FN success_t parse_and_format_data_t<version_v>::append_unescaped_text(
+      view_t view) noexcept {
+    const char *const beg_p{view.data()};
+    const char *const end_p{view.size() + beg_p};
+    const char *pos_p{beg_p};
+    while (pos_p < end_p) {
+      const char *cur_p{pos_p};
+      while (cur_p < end_p && *cur_p != '{' && *cur_p != '}')
+        cur_p++;
+      uintlen_t count = uintlen_t(cur_p - pos_p);
+      uintlen_t offset = uintlen_t(pos_p - beg_p);
+      std::optional<char> curs[2]{};
+      for (std::optional<char> &curi : curs) {
+        if (cur_p < end_p) {
+          curi = *cur_p;
+          cur_p++;
+        }
+      }
+      if (curs[0] != curs[1])
+        MJZ_IS_UNLIKELY {
+          this->fctx_.as_error(
+              "[Error]append_unescaped_text: excpected '{{' or '}}' "
+              " got '{' or '}' ");
+          return false;
+        }
+      std::ignore = this->output.append_u_(
+          view.make_subview(offset, count + uintlen_t(curs[0].has_value()))
+              .unsafe_handle());
+      pos_p = cur_p;
+    };
+  }
+  template <version_t version_v>
   MJZ_CX_FN success_t
   parse_and_format_data_t<version_v>::parse_formating_string_cache() noexcept {
     out_it_t output = format_ctx().out();
@@ -337,18 +369,18 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         base_ctx().cx_parse_storage_of_args;
     for (uintlen_t i{}; i < fields; i++) {
       const cx_formatter_storage_base_ref_t<version_v> val = field_arr[i];
-      std::ignore = output.append_u_(
-          main_ctx()
-              .format_string(main_ctx().remaining_format_string_index,
-                             val.formatting_str_index_begin)
-              .unsafe_handle());
+      if (!append_unescaped_text(
+              main_ctx().format_string(main_ctx().remaining_format_string_index,
+                                       val.formatting_str_index_begin)))
+        return false;
       main_ctx().remaining_format_string_index = val.formatting_str_index_end;
       if (!base_ctx().cache_format_call_at(
               val.index_of_element, val.formatter_ptr, uint8_t(val.type))) {
         return false;
       }
     }
-    std::ignore = output.append_u_(parse_ctx().view().unsafe_handle());
+    if (!append_unescaped_text(parse_ctx().view().unsafe_handle()))
+      return false;
     main_ctx().remaining_format_string_index =
         base_ctx().format_string.length();
     return !!output;

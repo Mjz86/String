@@ -294,8 +294,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if constexpr (!has_null_v_) {
           MJZ_control_layout_cast_helper_in(has_null);
         } else {
-
-          asserts(asserts.assume_rn, !!input.has_null);
+          asserts(asserts.assume_rn, input.is_sso || !!input.has_null);
         }
 #undef MJZ_control_layout_cast_helper_in
         return std::bit_cast<str_data_bytes_t>(ret);
@@ -509,15 +508,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return {m_sso_buffer_(), get_sso_length()};
         }
         /* UB? na , just branchless */
-        const char *const sso_p = m_sso_buffer_();
-        return {
-            *forced_branchless_teranary(
-                is_sso(), &sso_p,
-                reinterpret_cast<const char *const *>(
-                    reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
-                    offsetof(non_sso_t, begin_ptr))),
-            forced_branchless_teranary(is_sso(), get_sso_length(),
-                                       uu_nsso_len())};
+        const char *p = m_sso_buffer_();
+        p = *forced_branchless_teranary(
+            is_sso(), &p,
+            reinterpret_cast<const char *const *>(
+                reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
+                offsetof(non_sso_t, begin_ptr)));
+        uintlen_t l = forced_branchless_teranary(is_sso(), get_sso_length(),
+                                                 uu_nsso_len());
+        asserts(asserts.assume_rn, l <= byte_traits_t<version_v>::npos - 1);
+        return {p, l};
       }
       MJZ_CX_AL_FN const char *get_begin() const noexcept {
         return get_begin_len().first;
@@ -609,7 +609,6 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         } else {
           ret = cpy_aligned_bitcast<uintlen_t>(ptr_);
         }
-        asserts(asserts.assume_rn, ret <= byte_traits_t<version_v>::npos - 1);
         return ret;
       }
 
@@ -696,7 +695,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                                       all_fields_are_fully_sized>(
             uu_nsso_capp());
       }
-      MJZ_CX_AL_FN uintlen_t get_capacity() const noexcept {
+      MJZ_CX_AL_FN uintlen_t get_capacity_impl_() const noexcept {
         MJZ_IF_CONSTEVAL {
           if (is_sso()) {
             return sso_cap;
@@ -707,7 +706,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return force_bit_branchless_teranary(!is_sso(), get_non_sso_capacity(),
                                              sso_cap);
       }
-
+      MJZ_CX_AL_FN uintlen_t get_capacity() const noexcept {
+        uintlen_t ret = get_capacity_impl_();
+        asserts(asserts.assume_rn, ret <= byte_traits_t<version_v>::npos - 1);
+        return ret;
+      }
       MJZ_CX_AL_FN char *u_set_invalid_to_inactive_sso(uintlen_t len) noexcept {
         asserts(asserts.assume_rn, len <= sso_cap);
         {
@@ -890,7 +893,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       MJZ_CX_AL_FN const char *uu_nsso_lenp() const noexcept {
         const char *ptr{};
         auto optr = &m_v().raw_data.non_sso;
-        MJZ_IF_CONSTEVAL {
+        MJZ_IF_CONSTEVAL_ {
           // the field values should not be relevant in sso mode.
           asserts(!is_sso());
           ptr = optr->raw_lencap;

@@ -427,8 +427,45 @@ MJZ_EXPORT namespace mjz {
       return std::strong_ordering::equal;
     }
 
+
     MJZ_CX_AL_FN uintlen_t n_bit() const noexcept { return words.size() * 64; }
     MJZ_CX_AL_FN uintlen_t n_word() const noexcept { return words.size(); }
+
+    MJZ_CX_AL_FN auto word_uindex_range() const noexcept {
+      return std::views::iota(uintlen_t(), uintlen_t(n_word()));
+    }
+    MJZ_CX_AL_FN auto word_iindex_range() const noexcept {
+      return std::views::iota(intlen_t(), intlen_t(n_word()));
+    }
+    MJZ_CX_AL_FN auto word_range() const noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [*this](uintlen_t i) noexcept { return +nth_word(i); });
+    }
+    MJZ_CX_AL_FN auto word_span() const noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [this](uintlen_t i) noexcept -> const uint64_t & {
+                   return nth_word(i);
+                 });
+    }
+    MJZ_CX_AL_FN auto bit_view() const noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [this](uintlen_t i) noexcept -> bool { return nth_bit(i); });
+    }
+    MJZ_CX_AL_FN auto bit_range() const noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [*this](uintlen_t i) noexcept -> bool { return nth_bit(i); });
+    }
+
+    MJZ_CX_AL_FN auto word_span() noexcept {
+      return word_uindex_range() |
+             std::views::transform([this](uintlen_t i) noexcept -> uint64_t & {
+               return nth_word(i);
+             });
+    }
     MJZ_CX_AL_FN bool operator==(const uintN_t &rhs) const noexcept = default;
 
     MJZ_CX_AL_FN std::optional<uintlen_t> floor_log2() const noexcept {
@@ -742,19 +779,29 @@ MJZ_EXPORT namespace mjz {
       return x;
     }
 
-    MJZ_CX_AL_FN uintN_t &operator--() noexcept { return *this -= 1; }
+    MJZ_CX_AL_FN uintN_t &operator--() noexcept {
+      for (auto &w : word_span())
+        if (w--)
+          break;
+      return *this;
+    }
 
-    MJZ_CX_AL_FN uintN_t &operator++() noexcept { return *this += 1; }
+    MJZ_CX_AL_FN uintN_t &operator++() noexcept {
+      for (auto &w : word_span())
+        if (++w)
+          break;
+      return *this;
+    }
 
     MJZ_CX_AL_FN uintN_t operator++(int) noexcept {
       uintN_t temp{*this};
-      *this -= 1;
+      ++*this;
       return temp;
     }
 
     MJZ_CX_AL_FN uintN_t operator--(int) noexcept {
       uintN_t temp{*this};
-      *this += 1;
+      --*this;
       return temp;
     }
     MJZ_CX_AL_FN explicit operator bool() const noexcept {
