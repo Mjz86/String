@@ -402,7 +402,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     template <typename UT>
     static constexpr const auto floor5_table_ = []() {
-      std::array<UT, max_len_of_integral_table_<UT>[10]> ret {};
+      std::array<UT, max_len_of_integral_table_<UT>[10]> ret{};
       for (uintlen_t i{}; i < ret.size(); i++) {
         ret[i] = details_ns::floor10_table[i] >> i;
       }
@@ -410,9 +410,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }();
 
     template <std::integral T>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN
-        static std::optional<T> to_integral_pv(const char *ptr, uintlen_t len,
-                                               uint8_t raidex) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static std::optional<T>
+    to_integral_pv(const char *ptr, uintlen_t len, uint8_t raidex) noexcept {
       if (36 < raidex || !ptr || !len || !raidex)
         return std::nullopt;
       using UT = std::make_unsigned_t<T>;
@@ -437,7 +437,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return std::nullopt;
       UT var{};
       if (raidex == 10) {
-        std::array<UT, max_len_of_integral_table_<UT>[10]> temp {};
+        std::array<UT, max_len_of_integral_table_<UT>[10]> temp{};
         const auto temp0 = temp;
         if (temp.size() < len)
           return std::nullopt;
@@ -784,7 +784,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       int32_t power{exponent};
 
       if (exponent_base == 16) {
-        coeffient.m_exponent += int64_t(power) << 4;
+        coeffient.m_exponent += int64_t(power) << 2;
+      } else if (exponent_base == 2) {
+        coeffient.m_exponent += int64_t(power);
       } else {
         constexpr auto pow5o9_v = mjz_float_t::float_from_i(int32_t(1953125));
         constexpr auto invpow5o9_v = mjz_float_t::float_from_i(1) / pow5o9_v;
@@ -838,7 +840,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (!len)
           return std::nullopt;
       }
-      auto is_eq = [len, ptr]<uintlen_t N>(const char(&str)[N]) noexcept {
+      auto is_eq = [len, ptr]<uintlen_t N>(const char (&str)[N]) noexcept {
         uintlen_t i{};
         while (i < len && i < N - 1 &&
                ascii_to_num(str[i]) == ascii_to_num(ptr[i])) {
@@ -859,8 +861,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return std::nullopt;
     }
     template <std::integral T>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN static uintlen_t
-        from_integral_len(T val, const uint8_t raidex) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static uintlen_t
+    from_integral_len(T val, const uint8_t raidex) noexcept {
       using UT = std::make_unsigned_t<T>;
       UT v = UT(val);
       if (!val)
@@ -873,17 +876,19 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return std::max(uintlen_t(1), len);
     }
     template <std::integral T>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN static uintlen_t
-        from_integral_max_len(const uint8_t raidex) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static uintlen_t
+    from_integral_max_len(const uint8_t raidex) noexcept {
       using UT = std::make_unsigned_t<T>;
       return from_integral_len<T>(
           T(std::same_as<T, UT> ? UT(-1) : (UT(-1) >> 1) + 1), raidex);
     }
     template <std::integral T>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN
-        static std::optional<uintlen_t> from_integral_fill_backwards(
-            char *buf, uintlen_t len, T val_rg_, bool upper_case,
-            const uint8_t raidex) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static std::optional<uintlen_t>
+    from_integral_fill_backwards(char *buf, uintlen_t len, T val_rg_,
+                                 bool upper_case,
+                                 const uint8_t raidex) noexcept {
       if (!buf || !len || 36 < raidex || !raidex)
         return std::nullopt;
       using UT = std::make_unsigned_t<T>;
@@ -1021,7 +1026,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       } /*else if constexpr (2 == sizeof(T) && use_parralel_integer_conv_v) {
         return details_ns::uint_to_dec_par<version_v>(out_buf, out_len,
       number_); } else*/
-      { return int_to_dec(out_buf, out_len, number_); }
+      {
+        return int_to_dec(out_buf, out_len, number_);
+      }
     }
 
     template <size_t min_cap = 0, size_t min_align = 1,
@@ -1113,10 +1120,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return uintlen_t(buf - old);
     }
     template <std::integral T, size_t min_cap = 0, size_t min_align = 1>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN
-        static std::optional<uintlen_t> from_integral_fill(
-            char *buf, uintlen_t len, T val_rg_, bool upper_case,
-            const uint8_t raidex) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static std::optional<uintlen_t>
+    from_integral_fill(char *buf, uintlen_t len, T val_rg_, bool upper_case,
+                       const uint8_t raidex) noexcept {
       using UT = std::make_unsigned_t<T>;
 #if MJZ_USE_cpp_lib_to_chars_int
 #if MJZ_CAN_USE_LIB_STD_charconv_
@@ -1195,9 +1202,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using big_buff2_t =
         pair_t<std::array<char, sizeof(T) * 8>, std::optional<uintlen_t>>;
     template <std::integral T>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN
-        static big_buff_t<T> from_integral(T val_rg_, bool upper_case,
-                                           const uint8_t raidex) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static big_buff_t<T>
+    from_integral(T val_rg_, bool upper_case, const uint8_t raidex) noexcept {
       big_buff_t<T> ret{};
       ret.second = from_integral_fill(&ret.first[0], ret.first.size(), val_rg_,
                                       upper_case, raidex);
@@ -1720,9 +1727,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <std::integral T>
-    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN
-        static std::optional<T> to_integral(const char *ptr, uintlen_t len,
-                                            uint8_t raidex_ = 0) noexcept {
+      requires(!std::same_as<T, bool>)
+    MJZ_CX_ND_FN static std::optional<T>
+    to_integral(const char *ptr, uintlen_t len, uint8_t raidex_ = 0) noexcept {
       bool is_neg{};
       using UT = std::make_unsigned_t<T>;
       auto do_ret = [&](std::optional<UT> ret) noexcept -> std::optional<T> {
@@ -1864,9 +1871,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using uint1024_t = uintN_t<version_v, 1024>;
     MJZ_CX_FN big_float_t<version_v> static data_table_to_bf_impl_(
         uint64_t u64_val) noexcept {
+      constexpr uint64_t b53 = uint64_t(1) << 53;
       big_float_t<version_v> ret{};
       ret.m_exponent = (int64_t(u64_val) >> 53) - 53;
-      ret.m_coeffient = ((u64_val << 53) >> 53) | (uint64_t(1) << 53);
+      ret.m_coeffient = (u64_val & (b53 - 1)) | b53;
       return ret;
     }
     MJZ_CX_FN static uint64_t
