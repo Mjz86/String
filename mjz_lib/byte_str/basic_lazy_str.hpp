@@ -177,17 +177,19 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
         lazy_ref_t<version_v> *ptr_{};
         if (move_construct) {
           basic_lazy_str_t &ref_ = const_cast<basic_lazy_str_t &>(src);
+          vtable = src.vtable;
           ref_.vtable = nullptr;
           ptr_ = std::construct_at(&storage.lazy_ref,
                                    std::move(ref_.storage.lazy_ref));
         } else {
+          vtable = src.vtable;
           ptr_ = std::construct_at(&storage.lazy_ref, src.storage.lazy_ref);
-        }
-        if (ptr_->is_threaded) {
-          threads_ns::atomic_ref_t<uintlen_t>(ptr_->object->reference_count)
-              .fetch_add(1, std::memory_order_acquire);
-        } else {
-          ptr_->object->reference_count++;
+          if (ptr_->is_threaded) {
+            threads_ns::atomic_ref_t<uintlen_t>(ptr_->object->reference_count)
+                .fetch_add(1, std::memory_order_acquire);
+          } else {
+            ptr_->object->reference_count++;
+          }
         }
         return *this;
       }
@@ -369,8 +371,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
         this->trivial_copy = std::is_trivially_copy_constructible_v<T>;
         this->trivial_destructive_move = is_trivially_relocatable_v<T>;
         this->is_small = small_enough;
-        this->obj_size = sizeof(T);
-        this->obj_align_log2 = log2_ceil_of_val_create(alignof(T));
+        this->obj_size = sizeof(hs_t);
+        this->obj_align_log2 = log2_ceil_of_val_create(alignof(hs_t));
       }
     };
 

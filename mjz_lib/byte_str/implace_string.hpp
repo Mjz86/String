@@ -217,11 +217,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return *this;
     }
     MJZ_CX_FN implace_str_t &operator_assign(str_t &&source_) noexcept {
-      m_str().reset_to_error_on_fail(reinit_stack(source_) &&
-                                         m_str().move_init(std::move(source_)),
-                                     "[Error]implace_str_t::implace_str_t "
-                                     "&operator_assign(str_t&&):  failed "
-                                     "string assign");
+      if (!source_.is_stable()) {
+        m_str() = source_;
+      } else {
+        m_str() = std::move(source_);
+      }
       return *this;
     }
     template <class U>
@@ -258,9 +258,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         uintlen_t byte_offset, uintlen_t byte_count) const noexcept {
       implace_str_t ret{};
       str_t &str = ret.m_str();
-      m_str().reset_to_error_on_fail(
-          str.copy_assign(m_str(), false, byte_offset, byte_count) &&
-              ret.reinit_stack(str),
+      str.reset_to_error_on_fail(
+          str.copy_assign_<when_t_impl_<version_v>::relax>(m_str(), false,
+                                                        byte_offset,
+                                                        byte_count) &&
+              ret.init_stack(str),
           "[Error]implace_str_t::make_substring: cannot init string");
       return ret;
     }

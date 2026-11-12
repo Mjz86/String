@@ -50,24 +50,24 @@ SOFTWARE.
 #else
 #endif
 MJZ_EXPORT namespace mjz{
-    inline namespace uint_to_ascci_ns0{namespace details_ns{
+inline namespace uint_to_ascci_ns0 {
+namespace details_ns {
 
-        constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
-          std::array<uint64_t, 9> ret{};
-          uint64_t p10_{1};
-          for (size_t i{}; i < 9; i++) {
-            ret[i] =
-                ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
-            p10_ *= 10;
-          }
-          return ret;
-        }(); /*
-         constexpr   inline std::array<uint64_t, 21> floor10_table = []()
-         noexcept { std::array<uint64_t, 21> ret{}; ret[0] = 1; for (size_t
-         i{1}; i < 20; i++) { ret[i] = ret[i - 1] * 10;
-           }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we
-         know that this is correct ret[20] = uint64_t(-1); return ret;
-         }(); */
+constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
+  std::array<uint64_t, 9> ret{};
+  uint64_t p10_{1};
+  for (size_t i{}; i < 9; i++) {
+    ret[i] = ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
+    p10_ *= 10;
+  }
+  return ret;
+}(); /*
+ constexpr   inline std::array<uint64_t, 21> floor10_table = []()
+ noexcept { std::array<uint64_t, 21> ret{}; ret[0] = 1; for (size_t
+ i{1}; i < 20; i++) { ret[i] = ret[i - 1] * 10;
+   }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we
+ know that this is correct ret[20] = uint64_t(-1); return ret;
+ }(); */
 constexpr inline const auto floor10_table =
     std::array<uint64_t, 21>{1ull,
                              10ull,
@@ -999,24 +999,6 @@ template <> struct inv10p_i_table_t_<uint64_t> {
   };
 };
 
-constexpr const inline size_t lookup_dbl_pow5_table_len_ = 325;
-template <int = 0>
-constexpr auto const inline lookup_dbl_pow5_table_ = []() noexcept {
-  constexpr auto len_ = lookup_dbl_pow5_table_len_;
-  std::array<double, len_ * 2> ret{};
-  ret[len_] = 1;
-  ret[len_ - 1] = 0.2;
-  for (size_t i{1}; i < len_; i++) {
-    ret[i + len_] = ret[i + len_ - 1] * 5;
-    ret[len_ - i - 1] = ret[len_ - i] * 0.2;
-  }
-  return ret;
-}();
-
-template <int i = 0>
-inline constexpr const double *const lookup_dbl_pow5_table_ptr_ =
-    lookup_dbl_pow5_table_<i>.data() + lookup_dbl_pow5_table_len_;
-
 constexpr auto simd_8digit_conv_u64(auto n) noexcept {
   constexpr uint64_t inv10p4_b40 = 109951163;
   constexpr uint64_t inv10p2_b19 = 5243;
@@ -1578,8 +1560,7 @@ uint_to_dec_forward(char *buffer, size_t cap, uint64_t number_0_) noexcept {
   uint_to_dec_forward_less1e11(buffer, count - 10, low);
   return count;
 }
-}
-; // namespace details_ns
+}; // namespace details_ns
 
 [[maybe_unused]] inline size_t
 uint_to_dec_less1e9(char *buffer, size_t cap, uint32_t number_0_) noexcept {
@@ -2355,92 +2336,6 @@ constexpr inline size_t integral_to_dec_impl_unchecked_(char *buffer,
                              buffer, size_t(width_), u_t(abs_n)));
 }
 
-struct double_64_t_impl_ {
-  constexpr inline double_64_t_impl_() noexcept {};
-
-  uint64_t m_coeffient{};
-  int64_t m_exponent{};
-  [[maybe_unused]] constexpr inline std::strong_ordering
-  operator<=>(const double_64_t_impl_ &rhs) const noexcept {
-    int const lhs_w = std::countl_zero(m_coeffient);
-    int const rhs_w = std::countl_zero(rhs.m_coeffient);
-    std::strong_ordering ret = m_exponent + rhs_w <=> rhs.m_exponent + lhs_w;
-    std::strong_ordering ret2 =
-        (m_coeffient << (63 & (lhs_w))) <=> (rhs.m_coeffient << (63 & (rhs_w)));
-    return ret != ret.equal ? ret : ret2;
-  }
-
-  [[maybe_unused]] constexpr inline std::weak_ordering
-  operator_spaceship_idk_has_bug(
-      double_64_t_impl_ lhs, double_64_t_impl_ rhs,
-      uint64_t relative_epsilon = uint64_t(1 << 16)) noexcept {
-    int const lhs_w = 63 & std::countl_zero(lhs.m_coeffient);
-    int const rhs_w = 63 & std::countl_zero(rhs.m_coeffient);
-    lhs.m_exponent -= rhs_w;
-    rhs.m_exponent -= lhs_w;
-    uint64_t &lhs_i = lhs.m_coeffient <<= lhs_w;
-    uint64_t &rhs_i = rhs.m_coeffient <<= rhs_w;
-    bool swapped{lhs.m_exponent < rhs.m_exponent};
-    std::swap(lhs, swapped ? rhs : lhs);
-    const uint32_t delta_exp = uint32_t(lhs.m_exponent - rhs.m_exponent);
-    std::weak_ordering ret = delta_exp <=> 1;
-    std::weak_ordering ret2 = lhs_i <=> rhs_i;
-    int64_t delta =
-        int64_t((lhs_i >> 1) - (rhs_i >> (1 + (ret == ret.equivalent))));
-    delta = std::max(delta, -delta);
-    ret2 = (uint64_t(delta) < relative_epsilon) ? std::weak_ordering::equivalent
-                                                : ret2;
-    ret = ret == ret.greater ? ret : ret2;
-    ret2 = 0 <=> ret;
-    ret = swapped ? ret2 : ret;
-    return ret;
-  }
-
-  [[maybe_unused]] constexpr double_64_t_impl_(double val) noexcept
-      : double_64_t_impl_() {
-    // In the IEEE 754 standard binary64
-    const uint64_t u64_val = std::bit_cast<uint64_t>(val);
-    constexpr uint64_t exp_mask = ((uint64_t(1) << 11) - 1) << 52;
-    constexpr uint64_t mantisa_mask = ((uint64_t(1) << 52) - 1);
-    mjz_assume_impl_(!(u64_val >> 63));
-    // no nanny or infs
-    mjz_assume_impl_((u64_val & exp_mask) != exp_mask);
-    const bool is_subnormal = !(u64_val & exp_mask);
-    const int64_t exponent = int64_t(u64_val >> 52) - 1023 - 52 + is_subnormal;
-    const uint64_t coeffient =
-        uint64_t((mantisa_mask & u64_val) | (uint64_t(!is_subnormal) << 52));
-    double_64_t_impl_ ret{};
-    ret.m_coeffient = coeffient;
-    ret.m_exponent = exponent & -(coeffient != 0);
-    *this = ret;
-  };
-};
-
-// 1+floor(log_10(x)) , x=0 -> 0
-template <int I_0_ = 0>
-constexpr MJZ_JUST_FORCED_INLINE_ int
-dec_width_dbl_(const double_64_t_impl_ x_pos_real_) noexcept {
-  uint64_t x = uint64_t(x_pos_real_.m_coeffient);
-  const int32_t log2_exp = int32_t(x_pos_real_.m_exponent);
-  const bool had_1bit = std::has_single_bit(x);
-  const int32_t log2_ceil = int32_t(std::bit_width(x)) - had_1bit + log2_exp;
-  const int32_t log10_2_bx = 19729;
-  const int32_t bx = 16;
-  bool is_neg_log = log2_ceil < 0;
-  const int32_t correct_or_1_plus_correct_abs =
-      int32_t((uint32_t(is_neg_log ? +(!had_1bit) - log2_ceil : log2_ceil) *
-               log10_2_bx) >>
-              bx);
-  const int32_t correct_or_1_plus_correct = is_neg_log
-                                                ? -correct_or_1_plus_correct_abs
-                                                : correct_or_1_plus_correct_abs;
-  double_64_t_impl_ dbl = *(details_ns::lookup_dbl_pow5_table_ptr_<I_0_> +
-                            correct_or_1_plus_correct);
-  dbl.m_exponent += correct_or_1_plus_correct;
-
-  const bool is_correct = dbl <= x_pos_real_;
-  return correct_or_1_plus_correct + is_correct;
-}
 template <size_t final_dec_width, std::unsigned_integral T_,
           bool prefer_less_seq_muls = false>
 constexpr MJZ_JUST_FORCED_INLINE_ size_t

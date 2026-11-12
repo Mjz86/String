@@ -178,45 +178,10 @@ MJZ_EXPORT namespace mjz {
 
   }; // namespace raw_string_object_laoyouts_maybe_
 
-  template <std::integral T>
-    requires(sizeof(T) <= 16)
-
-  MJZ_CX_AL_FN uint8_t get_end_bit_index(T mask) noexcept {
-    int16_t index{};
-    while (mask) {
-      mask >>= 1;
-      index++;
-    }
-    return static_cast<uint8_t>(index);
-  }
-  template <std::integral T>
-    requires(sizeof(T) <= 16)
-  MJZ_CX_AL_FN uint8_t get_begin_bit_index(T mask) noexcept {
-    int16_t index{(sizeof(T) * 8) - 1};
-    while (static_cast<bool>(static_cast<T &>(mask <<= 1))) { //-V2561
-      index--;
-    }
-    return static_cast<uint8_t>(index);
-  }
-
   struct bit_rotate_t {
     template <std::integral T>
     MJZ_CX_FN static T rotate_left(T x, const uintlen_t how_much_) noexcept {
-      MJZ_FCONSTANT(intlen_t) nbits = intlen_t(sizeof(T) * 8);
-      MJZ_FCONSTANT(T) all_one{~T{}};
-      const intlen_t how_much = intlen_t(how_much_ % nbits);
-#ifdef __cpp_lib_bitops
-      if constexpr (true) {
-        return std::rotl(x, int(how_much));
-      }
-#endif
-      const intlen_t neg_how_much = nbits - how_much;
-      const T mask{to_left(all_one, -how_much)};
-      const T neg_mask{to_left(all_one, -neg_how_much)};
-      const T val{to_left((mask & x), how_much)};
-      const T neg_val{neg_mask & to_left(x, -neg_how_much)};
-      T ret{val | neg_val};
-      return ret;
+      return std::rotl(x, int(how_much_ % intlen_t(sizeof(T) * 8)));
     }
     MJZ_CX_FN static auto rotate_right(std::integral auto x,
                                        const uintlen_t how_much_) noexcept {
@@ -242,23 +207,6 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_FN bit_rotate_t(uintlen_t r) noexcept : amount{r} {}
     MJZ_CX_FN bit_rotate_t() noexcept {}
-
-  private:
-    template <std::integral T>
-    MJZ_CX_FN static T to_left(T x, intlen_t how_much_) noexcept {
-      bool neg{};
-      if (how_much_ < 0) {
-        neg = true;
-        how_much_ = -how_much_;
-      }
-      if ((neg &&
-           sizeof(T) * 8 <= uintlen_t(how_much_) + get_begin_bit_index(x)) ||
-          (!neg &&
-           sizeof(T) * 8 <= uintlen_t(how_much_) + get_end_bit_index(x))) {
-        return 0;
-      }
-      return neg ? x >> how_much_ : x << how_much_;
-    }
   };
 
 } // namespace mjz

@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-#include "mjz_uintconv.hpp"
+
 #include "traits.hpp"
 #include "tuple.hpp"
 #include "versions.hpp"
@@ -47,6 +47,161 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_FN uintlen_t to_ascii_impl_pv_uintN_conv(
       std::span<uint64_t, n_bits / 64> var, char *output, uintlen_t len,
       uintlen_t bw) noexcept;
+
+  template <class T> MJZ_CX_AL_FN uintlen_t n_bit(const T &v) noexcept {
+    if constexpr (requires() { v.n_bit(); }) {
+      return v.n_bit();
+    } else {
+      static_assert(std::unsigned_integral<T>);
+      return sizeof(T) * 8;
+    }
+  }
+  template <class T> MJZ_CX_AL_FN T compl_uintn(T v) noexcept { return T(~v); }
+  template <class T>
+  MJZ_CX_AL_FN T shift_right_uintn(T v, uintlen_t offset) noexcept {
+    if (n_bit(v) <= offset)
+      return T();
+    return T(v >> offset);
+  }
+  template <class T>
+  MJZ_CX_AL_FN T shift_left_uintn(T v, uintlen_t offset) noexcept {
+    if (n_bit(v) <= offset)
+      return T();
+    return T(v << offset);
+  }
+  MJZ_CX_AL_FN uintlen_t countr_zero(auto v, uintlen_t offset = 0) noexcept {
+    if constexpr (requires() { std::countr_zero(v); }) {
+      if (n_bit(v) <= offset)
+        v = uintlen_t(-1);
+      return uintlen_t(
+          std::countr_one(shift_right_uintn(compl_uintn(v), offset)));
+    } else {
+      if (offset)
+        return v.countr_zero(offset);
+      return v.countr_zero();
+    }
+  }
+  MJZ_CX_AL_FN uintlen_t countl_zero(auto v, uintlen_t offset = 0) noexcept {
+    if constexpr (requires() { std::countl_zero(v); }) {
+      if (n_bit(v) <= offset)
+        v = uintlen_t(-1);
+      return (uintlen_t)std::countl_one(
+          shift_left_uintn(compl_uintn(v), offset));
+    } else {
+
+      if (offset)
+        return v.countl_zero(offset);
+      return v.countl_zero();
+    }
+  }
+  MJZ_CX_AL_FN uintlen_t countr_one(auto v, uintlen_t offset = 0) noexcept {
+    if constexpr (requires() { std::countr_one(v); }) {
+      if (n_bit(v) <= offset)
+        v = 0;
+      return (uintlen_t)std::countr_one(shift_right_uintn(v, offset));
+    } else {
+      if (offset)
+        return v.countr_one(offset);
+      return v.countr_one();
+    }
+  }
+
+  MJZ_CX_AL_FN uintlen_t countl_one(auto v, uintlen_t offset = 0) noexcept {
+    if constexpr (requires() { std::countl_one(v); }) {
+      if (n_bit(v) <= offset)
+        v = 0;
+      return (uintlen_t)std::countl_one(shift_left_uintn(v, offset));
+    } else {
+      if (offset)
+        return v.countl_one(offset);
+      return v.countl_one();
+    }
+  }
+
+  MJZ_CX_AL_FN uintlen_t popcount(auto v, uintlen_t offset = 0,
+                                  uintlen_t count = uintlen_t(-1)) noexcept {
+    if constexpr (requires() { std::popcount(v); }) {
+      if (n_bit(v) <= offset || !count)
+        return 0;
+      if (n_bit(v) < count)
+        count = n_bit(v);
+      return (uintlen_t)std::popcount(
+          shift_left_uintn(shift_right_uintn(v, offset), n_bit(v) - count));
+    } else {
+      return v.popcount(offset, count);
+    }
+  }
+
+  MJZ_CX_AL_FN bool has_single_bit(auto v) noexcept {
+    if constexpr (requires() { std::has_single_bit(v); }) {
+      return std::has_single_bit(v);
+    } else {
+      return v.has_single_bit();
+    }
+  }
+  MJZ_CX_AL_FN bool nth_bit(auto v, auto i) noexcept {
+    if (n_bit(v) <= i)
+      return false;
+    if constexpr (requires() { v.nth_bit(i); }) {
+      return v.nth_bit(i);
+    } else {
+      using T = std::remove_cvref_t<decltype(v)>;
+
+      const T mask = T(1) << i;
+      return bool(v & mask);
+    }
+  }
+  MJZ_CX_AL_FN auto make_set_nth_bit(auto v, auto i, bool val) noexcept {
+    if (n_bit(v) <= i)
+      return v;
+    if constexpr (requires() { v.set_nth_bit(i, val); }) {
+      v.set_nth_bit(i, val);
+      return v;
+    } else {
+      using T = std::remove_cvref_t<decltype(v)>;
+      const T mask = T(1) << i;
+      v &= ~mask;
+      v |= val ? mask : T();
+      return v;
+    }
+  }
+
+  MJZ_CX_AL_FN auto bit_ceil(auto v) noexcept {
+    if constexpr (requires() { std::bit_ceil(v); }) {
+      return std::bit_ceil(v);
+    } else {
+      return v.bit_ceil();
+    }
+  }
+  MJZ_CX_AL_FN auto bit_floor(auto v) noexcept {
+    if constexpr (requires() { std::bit_floor(v); }) {
+      return std::bit_floor(v);
+    } else {
+      return v.bit_floor();
+    }
+  }
+  MJZ_CX_AL_FN uintlen_t bit_width(auto v) noexcept {
+    if constexpr (requires() { std::bit_width(v); }) {
+      return (uintlen_t)std::bit_width(v);
+    } else {
+      return v.bit_width();
+    }
+  }
+  MJZ_CX_AL_FN auto rotr(auto v, intlen_t r) noexcept {
+    if constexpr (requires() { std::rotr(v, int(r)); }) {
+      return std::rotr(v, int(uint8_t(r)));
+    } else {
+      return v.rotr(r);
+    }
+  }
+  MJZ_CX_AL_FN auto rotl(auto v, intlen_t r) noexcept {
+    if constexpr (requires() { std::rotl(v, int(r)); }) {
+      return std::rotl(v, int(uint8_t(r)));
+    } else {
+      return v.rotl(r);
+    }
+  }
+
   template <version_t version_v, uintlen_t n_bits>
     requires(64 * (n_bits / 64) == n_bits && !!n_bits)
   struct uintN_t {
@@ -427,7 +582,6 @@ MJZ_EXPORT namespace mjz {
       return std::strong_ordering::equal;
     }
 
-
     MJZ_CX_AL_FN uintlen_t n_bit() const noexcept { return words.size() * 64; }
     MJZ_CX_AL_FN uintlen_t n_word() const noexcept { return words.size(); }
 
@@ -598,22 +752,29 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uintlen_t
     popcount(uintlen_t offset, uintlen_t count = uintlen_t(-1)) const noexcept {
-      offset = std::min(n_bits, offset);
-      uintlen_t end_bits =
-          std::min(offset + std::min(count, n_bits), n_bits) - offset;
       uintlen_t ret{};
-      uintlen_t leftover = offset & 64;
-      if (leftover) {
-        ret += uintlen_t(std::popcount(nth_word(offset / 64) >> leftover));
-      }
-      for (uint64_t n :
-           std::views::iota(uintlen_t((offset + 63) / 64), (end_bits) / 64)) {
-        ret += uintlen_t(std::popcount(nth_word(n)));
-      }
-      leftover = end_bits & 63;
-      if (leftover) {
+      offset = std::min(offset, n_bit());
+      count = std::min(count, n_bit() - offset);
+      uintlen_t end_i = offset + count;
+      if (!count)
+        return ret;
+      if (offset & 63) {
+        uintlen_t del = std::min(count, 64 - (offset & 63));
         ret += uintlen_t(
-            std::popcount(nth_word((end_bits) / 64) << (64 - leftover)));
+            uint_ex_t::popcount(nth_word(offset >> 6), offset & 63, del));
+        count -= del;
+      }
+      if (!count)
+        return ret;
+      for (uint64_t n : std::views::iota((offset + 63) >> 6, end_i >> 6)) {
+        ret += uintlen_t(std::popcount(nth_word(n)));
+        count -= 64;
+      }
+      if (!count)
+        return ret;
+      if (end_i & 63) {
+        ret +=
+            uintlen_t(uint_ex_t::popcount(nth_word(end_i >> 6), 0, end_i & 63));
       }
       return ret;
     }
@@ -895,159 +1056,6 @@ MJZ_EXPORT namespace mjz {
       return log_or_1_plus_log + 1;
     }
   };
-  template <class T> MJZ_CX_AL_FN uintlen_t n_bit(const T &v) noexcept {
-    if constexpr (requires() { v.n_bit(); }) {
-      return v.n_bit();
-    } else {
-      static_assert(std::unsigned_integral<T>);
-      return sizeof(T) * 8;
-    }
-  }
-  template <class T> MJZ_CX_AL_FN T compl_uintn(T v) noexcept { return T(~v); }
-  template <class T>
-  MJZ_CX_AL_FN T shift_right_uintn(T v, uintlen_t offset) noexcept {
-    if (n_bit(v) <= offset)
-      return T();
-    return T(v >> offset);
-  }
-  template <class T>
-  MJZ_CX_AL_FN T shift_left_uintn(T v, uintlen_t offset) noexcept {
-    if (n_bit(v) <= offset)
-      return T();
-    return T(v << offset);
-  }
-  MJZ_CX_AL_FN uintlen_t countr_zero(auto v, uintlen_t offset = 0) noexcept {
-    if constexpr (requires() { std::countr_zero(v); }) {
-      if (n_bit(v) <= offset)
-        v = uintlen_t(-1);
-      return uintlen_t(
-          std::countr_one(shift_right_uintn(compl_uintn(v), offset)));
-    } else {
-      if (offset)
-        return v.countr_zero(offset);
-      return v.countr_zero();
-    }
-  }
-  MJZ_CX_AL_FN uintlen_t countl_zero(auto v, uintlen_t offset = 0) noexcept {
-    if constexpr (requires() { std::countl_zero(v); }) {
-      if (n_bit(v) <= offset)
-        v = uintlen_t(-1);
-      return (uintlen_t)std::countl_one(
-          shift_left_uintn(compl_uintn(v), offset));
-    } else {
-
-      if (offset)
-        return v.countl_zero(offset);
-      return v.countl_zero();
-    }
-  }
-  MJZ_CX_AL_FN uintlen_t countr_one(auto v, uintlen_t offset = 0) noexcept {
-    if constexpr (requires() { std::countr_one(v); }) {
-      if (n_bit(v) <= offset)
-        v = 0;
-      return (uintlen_t)std::countr_one(shift_right_uintn(v, offset));
-    } else {
-      if (offset)
-        return v.countr_one(offset);
-      return v.countr_one();
-    }
-  }
-
-  MJZ_CX_AL_FN uintlen_t countl_one(auto v, uintlen_t offset = 0) noexcept {
-    if constexpr (requires() { std::countl_one(v); }) {
-      if (n_bit(v) <= offset)
-        v = 0;
-      return (uintlen_t)std::countl_one(shift_left_uintn(v, offset));
-    } else {
-      if (offset)
-        return v.countl_one(offset);
-      return v.countl_one();
-    }
-  }
-
-  MJZ_CX_AL_FN uintlen_t popcount(auto v, uintlen_t offset = 0,
-                                  uintlen_t count = uintlen_t(-1)) noexcept {
-    if constexpr (requires() { std::popcount(v); }) {
-      if (n_bit(v) <= offset || !count)
-        return 0;
-      if (n_bit(v) < count)
-        count = n_bit(v);
-      return (uintlen_t)std::popcount(
-          shift_left_uintn(shift_right_uintn(v, offset), n_bit(v) - count));
-    } else {
-      return v.popcount(offset, count);
-    }
-  }
-
-  MJZ_CX_AL_FN bool has_single_bit(auto v) noexcept {
-    if constexpr (requires() { std::has_single_bit(v); }) {
-      return std::has_single_bit(v);
-    } else {
-      return v.has_single_bit();
-    }
-  }
-  MJZ_CX_AL_FN bool nth_bit(auto v, auto i) noexcept {
-    if (n_bit(v) <= i)
-      return false;
-    if constexpr (requires() { v.nth_bit(i); }) {
-      return v.nth_bit(i);
-    } else {
-      using T = std::remove_cvref_t<decltype(v)>;
-
-      const T mask = T(1) << i;
-      return bool(v & mask);
-    }
-  }
-  MJZ_CX_AL_FN auto make_set_nth_bit(auto v, auto i, bool val) noexcept {
-    if (n_bit(v) <= i)
-      return v;
-    if constexpr (requires() { v.set_nth_bit(i, val); }) {
-      v.set_nth_bit(i, val);
-      return v;
-    } else {
-      using T = std::remove_cvref_t<decltype(v)>;
-      const T mask = T(1) << i;
-      v &= ~mask;
-      v |= val ? mask : T();
-      return v;
-    }
-  }
-
-  MJZ_CX_AL_FN auto bit_ceil(auto v) noexcept {
-    if constexpr (requires() { std::bit_ceil(v); }) {
-      return std::bit_ceil(v);
-    } else {
-      return v.bit_ceil();
-    }
-  }
-  MJZ_CX_AL_FN auto bit_floor(auto v) noexcept {
-    if constexpr (requires() { std::bit_floor(v); }) {
-      return std::bit_floor(v);
-    } else {
-      return v.bit_floor();
-    }
-  }
-  MJZ_CX_AL_FN uintlen_t bit_width(auto v) noexcept {
-    if constexpr (requires() { std::bit_width(v); }) {
-      return (uintlen_t)std::bit_width(v);
-    } else {
-      return v.bit_width();
-    }
-  }
-  MJZ_CX_AL_FN auto rotr(auto v, intlen_t r) noexcept {
-    if constexpr (requires() { std::rotr(v, int(r)); }) {
-      return std::rotr(v, int(uint8_t(r)));
-    } else {
-      return v.rotr(r);
-    }
-  }
-  MJZ_CX_AL_FN auto rotl(auto v, intlen_t r) noexcept {
-    if constexpr (requires() { std::rotl(v, int(r)); }) {
-      return std::rotl(v, int(uint8_t(r)));
-    } else {
-      return v.rotl(r);
-    }
-  }
 
   MJZ_CX_AL_FN auto to_modulo_ret_devide(auto &lhs, const auto &rhs) noexcept {
     if constexpr (requires() {
@@ -1138,11 +1146,12 @@ MJZ_EXPORT namespace mjz {
   template <version_t version_v> struct vectorizable_conv_base_impl_t {
     struct convert_base10p8_to_base10_u64_t {
     private:
+      constexpr static inline uint64_t ascii_offset = std::bit_cast<uint64_t>(
+          std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
       constexpr static inline uint64_t mask = (uint64_t(1) << 47) - 1;
       constexpr static inline uint64_t inv10p6_47b = 140737489;
       constexpr static inline uint64_t mask_upper_6b = 0xfc00'fc00'fc00'fc00;
       constexpr static inline uint64_t inv10p1_b10 = 103;
-      constexpr static inline uint64_t ascii_offset = details_ns::ascii_offset;
 
     public:
       MJZ_CX_FN uint64_t operator()(const uint64_t less10p8) const noexcept {
@@ -1199,7 +1208,8 @@ MJZ_EXPORT namespace mjz {
       constexpr static inline uint32_t high32_half_mask32 =
           uint32_t(0xffff0000);
 
-      constexpr static inline uint64_t ascii_offset = details_ns::ascii_offset;
+      constexpr static inline uint64_t ascii_offset = std::bit_cast<uint64_t>(
+          std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
 
     public:
       MJZ_CX_FN static uint32_t call(uint64_t ascii) noexcept {
@@ -1413,7 +1423,10 @@ MJZ_EXPORT namespace mjz {
     while (!vals[0])
       vals = vals.subspan(1);
     vectorizable_conv_base_impl<version_v>.base10p8_to_base10_u64(vals);
-    uint64_t first = (vals[0] & ~details_ns::ascii_offset);
+
+    constexpr uint64_t ascii_offset = std::bit_cast<uint64_t>(
+        std::array{'0', '0', '0', '0', '0', '0', '0', '0'});
+    uint64_t first = (vals[0] & ~ascii_offset);
     uintlen_t count = vals.size() * 8;
     uintlen_t offset{};
     if constexpr (std::endian::big == std::endian::native) {

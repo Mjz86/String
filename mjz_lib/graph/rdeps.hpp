@@ -302,7 +302,8 @@ struct MJZ_maybe_trivially_relocatable
 
   MJZ_CX_FN node_id_t make_node() noexcept {
     if (m.m_free_list.size()) {
-      auto ret = node_id_t(m.m_free_list.back());
+      auto ret = node_id_t(m.m_free_list.back());  
+      dependency(ret) = dependency_node_t{};
       m.m_free_list.pop_back();
       return ret;
     }

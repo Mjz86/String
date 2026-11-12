@@ -154,15 +154,16 @@ calculate_graph_sequenced_components_events(
 
   monotonic_id_counter = 0;
   for (auto &&nodes : edge_of_node) {
-    uintlen_t src_scc = ~uintlen_t(scc_indexies_compl[monotonic_id_counter++]);
+    const uintlen_t node_index_ = monotonic_id_counter++;
+    uintlen_t src_scc = ~uintlen_t(scc_indexies_compl[node_index_]);
     if (src_scc == uintlen_t(-1)) {
-      early_exit = bool(null_scc_node_found_event(+monotonic_id_counter));
+      early_exit = bool(null_scc_node_found_event(+node_index_));
       if (early_exit)
         break;
       continue;
     }
     early_exit =
-        bool(scc_node_found_entry_event(+monotonic_id_counter, +src_scc));
+        bool(scc_node_found_entry_event(+node_index_, +src_scc));
 
     if (early_exit)
       break;
@@ -172,25 +173,25 @@ calculate_graph_sequenced_components_events(
       uintlen_t dst_scc = ~uintlen_t(scc_indexies_compl[to_index]);
       if (dst_scc == uintlen_t(-1)) {
         early_exit = bool(null_scc_edge_found_event(
-            +edge_index, +monotonic_id_counter, +src_scc, +to_index));
+            +edge_index, +node_index_, +src_scc, +to_index));
         if (early_exit)
           break;
         continue;
       }
       if (src_scc == dst_scc) {
         early_exit = bool(same_scc_edge_found_event(
-            +edge_index, +monotonic_id_counter, +src_scc, +to_index));
+            +edge_index, +node_index_, +src_scc, +to_index));
         if (early_exit)
           break;
         continue;
       }
       early_exit =
-          bool(edge_found_event(+edge_index, +monotonic_id_counter, +src_scc,
+          bool(edge_found_event(+edge_index, +node_index_, +src_scc,
                                 +to_index, +dst_scc, +(in_degree[dst_scc]++)));
       if (early_exit)
         break;
     }
-    early_exit = bool(scc_node_found_exit_event(+monotonic_id_counter, +src_scc,
+    early_exit = bool(scc_node_found_exit_event(+node_index_, +src_scc,
                                                 bool(early_exit)));
     if (early_exit)
       break;
@@ -591,7 +592,7 @@ calculate_acyclic_graph_topological_sort_waves(
   auto edge_of_node = edge_of_node_.range();
   treversal_result_t<version_v> ret{};
   uintlen_t total_node_count = std::ranges::size(edge_of_node);
-  ret.edges.resize(total_node_count * 2 + 1, uintlen_t(-1));
+  ret.edges.resize(total_node_count * 2 + 1);
   ret.nodes_index.reserve(total_node_count);
   auto wave_que =
       std::span(ret.edges).subspan(uintlen_t(), total_node_count + 1);

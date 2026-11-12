@@ -62,16 +62,12 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return m.wait(true, std::memory_order_acquire);
 #else
       if constexpr (uses_atomic_bool) {
-        while (m.load(std::memory_order_acquire))
-          ;
-        {
+        while (m.load(std::memory_order_acquire)) {
           std::this_thread::sleep_for(
               std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
         }
       } else {
-        while (m.test(std::memory_order_acquire))
-          ;
-        {
+        while (m.test(std::memory_order_acquire)) {
           std::this_thread::sleep_for(
               std::chrono_literals::operator""ns(MJZ_SLEEP_WITH_WAIT_));
         }

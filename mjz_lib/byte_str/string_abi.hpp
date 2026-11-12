@@ -508,9 +508,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return {m_sso_buffer_(), get_sso_length()};
         }
         /* UB? na , just branchless */
-        const char *p = m_sso_buffer_();
-        p = *forced_branchless_teranary(
-            is_sso(), &p,
+        const char *const ssop = m_sso_buffer_();
+        const char *p = *forced_branchless_teranary(
+            is_sso(), &ssop,
             reinterpret_cast<const char *const *>(
                 reinterpret_cast<const char *>(&m_v().raw_data.non_sso) +
                 offsetof(non_sso_t, begin_ptr)));
@@ -875,8 +875,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
       MJZ_CX_AL_FN may_bool_t is_owner_no_heap() const noexcept {
         str_data_t cnt = cntrl();
-        bool certin_yes = (cnt.is_sso || cnt.is_ownerized ||
-                           (cnt.is_sharable != cnt.no_destroy));
+        bool certin_yes = (cnt.is_sso || cnt.is_ownerized || !cnt.is_sharable);
         may_bool_t ret = force_bit_branchless_teranary(
             certin_yes, may_bool_t::yes,
             force_bit_branchless_teranary(!!cnt.no_destroy, may_bool_t::no,

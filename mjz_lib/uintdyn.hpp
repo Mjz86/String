@@ -92,9 +92,12 @@ MJZ_EXPORT namespace mjz {
     operator&=(uint_dyn_t<version_v, true> amount) noexcept
       requires(!is_const_v)
     {
-      for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
-           i++) {
-        words[size_t(i)] &= amount.words[size_t(i)];
+      const uintlen_t n = std::min(words.size(), amount.n_word());
+      for (uintlen_t i{}; i < n; i++) {
+        nth_word(i) &= amount.nth_word(i);
+      }
+      for (uintlen_t i{n}; i < words.size(); i++) {
+        nth_word(i) = 0;
       }
       return *this;
     }
@@ -102,9 +105,9 @@ MJZ_EXPORT namespace mjz {
     operator|=(uint_dyn_t<version_v, true> amount) noexcept
       requires(!is_const_v)
     {
-      for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
-           i++) {
-        words[size_t(i)] |= amount.words[size_t(i)];
+      const uintlen_t n = std::min(words.size(), amount.n_word());
+      for (uintlen_t i{}; i < n; i++) {
+        nth_word(i) |= amount.nth_word(i);
       }
       return *this;
     }
@@ -112,9 +115,9 @@ MJZ_EXPORT namespace mjz {
     operator^=(uint_dyn_t<version_v, true> amount) noexcept
       requires(!is_const_v)
     {
-      for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
-           i++) {
-        words[size_t(i)] ^= amount.words[size_t(i)];
+      const uintlen_t n = std::min(words.size(), amount.n_word());
+      for (uintlen_t i{}; i < n; i++) {
+        nth_word(i) ^= amount.nth_word(i);
       }
       return *this;
     }
@@ -377,16 +380,47 @@ MJZ_EXPORT namespace mjz {
       return static_cast<T>(nth_word(0));
     }
 
+    MJZ_CX_AL_FN auto word_uindex_range() const noexcept {
+      return std::views::iota(uintlen_t(), uintlen_t(n_word()));
+    }
+    MJZ_CX_AL_FN auto word_iindex_range() const noexcept {
+      return std::views::iota(intlen_t(), intlen_t(n_word()));
+    }
+    MJZ_CX_AL_FN auto word_span() const noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [this](uintlen_t i) noexcept -> const uint64_t & {
+                   return nth_word(i);
+                 });
+    }
+    MJZ_CX_AL_FN auto bit_view() const noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [this](uintlen_t i) noexcept -> bool { return nth_bit(i); });
+    }
+
+    MJZ_CX_AL_FN auto word_span() noexcept {
+      return word_uindex_range() |
+             std::views::transform(
+                 [this](uintlen_t i) noexcept -> decltype(auto) {
+                   return nth_word(i);
+                 });
+    }
     MJZ_CX_AL_FN uint_dyn_t &operator--() noexcept
       requires(!is_const_v)
     {
-      return *this -= 1;
+      for (auto &w : word_span())
+        if (w--)
+          break;
+      return *this;
     }
-
     MJZ_CX_AL_FN uint_dyn_t &operator++() noexcept
       requires(!is_const_v)
     {
-      return *this += 1;
+      for (auto &w : word_span())
+        if (++w)
+          break;
+      return *this;
     }
 
     MJZ_CX_AL_FN explicit operator bool() const noexcept {
@@ -941,20 +975,26 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN void to_rotr(intlen_t r) noexcept
       requires(!is_const_v)
     {
-      uintlen_t n_bits_ = words.size() * 64;
-
-      if (n_bits_ <= uintlen_t(std::max(r, -r)))
-        r %= intlen_t(n_bits_);
+      if (!n_word())
+        return;
+      if (n_bit() <= uintlen_t(std::max(r, -r)))
+        r %= intlen_t(n_bit());
       if (!r)
         return;
       if (r < 0) {
-        r = intlen_t(words.size()) + r;
+        r = intlen_t(n_bit()) + r;
       }
       uint64_t bit_rot = uint64_t(r) & 63;
-      for (uint64_t &w : words) {
-        w = std::rotr(w, int(bit_rot));
+      std::ranges::rotate(words, words.begin() + intlen_t(uint64_t(r) >> 6));
+      if (!bit_rot)
+        return;
+      uint64_t word0 = nth_word(0);
+      for (uintlen_t j = 0; j + 1 < n_word(); j++) {
+        nth_word(j) =
+            (nth_word(j) >> bit_rot) | (nth_word(j + 1) << (64 - bit_rot));
       }
-      std::ranges::rotate(words, words.begin() + (uint64_t(r) >> 6));
+      nth_word(n_word() - 1) =
+          (nth_word(n_word() - 1) >> bit_rot) | (word0 << (64 - bit_rot));
     }
     MJZ_CX_AL_FN void to_byteswap() noexcept
       requires(!is_const_v)
@@ -1019,23 +1059,31 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uintlen_t
     popcount(uintlen_t offset, uintlen_t count = uintlen_t(-1)) const noexcept {
-      if (n_bit() < count)
-        count = n_bit();
-      if (n_bit() <= offset || !count)
-        return 0;
-
-      auto temp = word_sr(offset >> 6);
-      temp = word_sl(temp.n_word() - ((count + 63) >> 6));
-      offset &= ~uintlen_t(63);
-      uintlen_t cnt = uint_ex_t::popcount(temp.nth_word(0), offset, count);
-      temp = temp.word_sr(1);
-      count -= 64 - offset;
-      if (count & 63) {
-        cnt += uint_ex_t::popcount(temp.nth_word(count >> 6), 0, count & 63);
-        temp.word_sl(1);
-        count &= ~uintlen_t(63);
+      uintlen_t ret{};
+      offset = std::min(offset, n_bit());
+      count = std::min(count, n_bit() - offset);
+      uintlen_t end_i = offset + count;
+      if (!count)
+        return ret;
+      if (offset & 63) {
+        uintlen_t del = std::min(count, 64 - (offset & 63));
+        ret += uintlen_t(
+            uint_ex_t::popcount(nth_word(offset >> 6), offset & 63, del));
+        count -= del;
       }
-      return cnt + temp.popcount();
+      if (!count)
+        return ret;
+      for (uint64_t n : std::views::iota((offset + 63) >> 6, end_i >> 6)) {
+        ret += uintlen_t(uint_ex_t::popcount(nth_word(n)));
+        count -= 64;
+      }
+      if (!count)
+        return ret;
+      if (end_i & 63) {
+        ret +=
+            uintlen_t(uint_ex_t::popcount(nth_word(end_i >> 6), 0, end_i & 63));
+      }
+      return ret;
     }
 
     template <bool set>

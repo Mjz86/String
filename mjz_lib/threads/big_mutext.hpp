@@ -68,7 +68,19 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_ND_RES_OBJ_FN
     success_t try_lock(const bool need_to_wait,
                        uint64_t timeout_count) noexcept {
-      MJZ_IFN_CONSTEVAL { return try_lock(); }
+      MJZ_IFN_CONSTEVAL {
+        uint64_t i{};
+        do {
+          if (m.get_r().try_lock())
+            return true;
+          i++;
+        } while (i < timeout_count);
+        if (need_to_wait) {
+          m.get_r().lock();
+          return true;
+        }
+        return false;
+      }
       return m.cx_mutex.try_lock(need_to_wait, timeout_count);
     }
     MJZ_CX_ND_RES_OBJ_FN success_t try_lock() noexcept {

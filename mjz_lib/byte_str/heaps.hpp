@@ -420,15 +420,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     }
 
     MJZ_CX_AL_FN str_heap_manager_t(str_heap_manager_t &&obj) noexcept
-        : m{std::exchange(obj.m,
-                          m_t{obj.m.alloc_ptr(), obj.get_is_threaded()})} {}
+            : m{std::exchange(obj.m, m_t{})} {}
     MJZ_CX_AL_FN str_heap_manager_t &
     operator=(str_heap_manager_t &&obj) noexcept {
 
       if (this == &obj)
         return *this;
       must_free();
-      m = std::exchange(obj.m, m_t{obj.m.alloc_ptr(), obj.get_is_threaded()});
+      m = std::exchange(obj.m, m_t{});
       return *this;
     }
     MJZ_CX_AL_FN ~str_heap_manager_t() noexcept {

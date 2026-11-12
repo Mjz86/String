@@ -214,7 +214,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_AL_FN success_t memcpy_to_me_nonsso_alloc(const char *ptr,
                                                      uintlen_t len) noexcept {
       if constexpr (when_v) {
-        m.destruct_to_invalid();
+        m.destruct_all();
       }
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
       if (!hm.u_malloc(uintlen_t(props_v.has_null) + len))
@@ -373,7 +373,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       };
       if constexpr (!props_v.is_ownerized) {
         if (other_ownerized != m.is_ownerized()) {
-          m.destruct_to_invalid();
+          m.destruct_all();
           m.set_ownerized(other_ownerized);
 
           return copy_assign_<when_t::no_heap>(str);
@@ -460,7 +460,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
 
       if constexpr (when_v) {
-        m.destruct_to_invalid();
+        m.destruct_all();
       }
       m.u_set_encoding(str.m.u_get_encoding());
       m.set_threaded(str.m.is_threaded());
@@ -650,7 +650,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (!destroy_v)
         return;
       if constexpr (when_v) {
-        m.destruct_to_invalid();
+        m.destruct_all();
       }
       if constexpr (props_v.has_null) {
         *m.get_alloc_ptr() = src.m.get_alloc();
@@ -1007,7 +1007,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
       uintlen_t cap = hm.get_heap_cap();
-      m.destruct_to_invalid();
+      m.destruct_all();
       m.set_threaded(hm.get_is_threaded());
       if constexpr (props_v.has_alloc) {
         *m.get_alloc_ptr() = *hm.alloc_ptr();
@@ -1373,7 +1373,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return true;
       }
       str_heap_manager hm{m.get_alloc(), m.is_threaded(), m.is_ownerized()};
-      if (!hm.u_malloc(uintlen_t(props_v.has_null) + mincap, round_up))
+      if (!hm.u_malloc(uintlen_t(props_v.has_null) +
+                           std::max(mincap, m.get_length()),
+                       round_up))
         MJZ_IS_UNLIKELY {
           hm.unsafe_clear();
           return false;

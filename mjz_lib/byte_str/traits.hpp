@@ -631,7 +631,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           i = 0;
         }
         if (3 < length || !length) {
-          return 1000;
+          return !length ? uint16_t(1000) : uint16_t(1001);
         }
 
         if (raidex == 16) {
@@ -659,9 +659,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       auto get_sec2_val = [=](uint8_t raidex, const char *begin,
                               uintlen_t length) noexcept -> mjz_float_t {
         mjz_float_t var{};
-        uintlen_t real_accuracy{16};
+        uintlen_t real_accuracy{18};
         uintlen_t i{};
-        length = std::min(details_ns::lookup_dbl_pow5_table_len_, length);
+        length = std::min(lookup_dbl_pow5_table_len_, length);
         for (; i < length && begin[i] == '0'; i++)
           ;
         ;
@@ -689,8 +689,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           auto digit = uint8_t(begin[i] & ~'0');
           mjz_float_t val_ =
               mjz_float_t::float_from_i(digit) *
-              pos_real_dbl_to_bf_impl_(
-                  *(details_ns::lookup_dbl_pow5_table_ptr_<0> - (i + 1)));
+              data_table_to_bf_impl_(*(lookup_dbl_pow5_table_ptr_ - (i + 1)));
           val_.m_exponent -= int64_t(i + 1);
           var = var + val_;
           if (!(real_accuracy--))
@@ -702,7 +701,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       auto get_sec3_val = [=](uint8_t raidex, const char *begin,
                               uintlen_t length) noexcept -> mjz_float_t {
         mjz_float_t var{};
-        uintlen_t real_accuracy{16};
+        uintlen_t real_accuracy{18};
         uintlen_t i{};
         for (; i < length && begin[i] == '0'; i++)
           ;
@@ -710,7 +709,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         begin += i;
         length -= i;
         i = 0;
-        if (details_ns::lookup_dbl_pow5_table_len_ <= length) {
+        if (lookup_dbl_pow5_table_len_ <= length) {
           mjz_float_t val_{};
           val_.m_exponent = int64_t(uint32_t(-1));
           return val_;
@@ -736,10 +735,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             continue;
           }
           auto digit = uint8_t(begin[i] & ~'0');
-          mjz_float_t val_ =
-              mjz_float_t::float_from_i(digit) *
-              pos_real_dbl_to_bf_impl_(*(
-                  details_ns::lookup_dbl_pow5_table_ptr_<0> + length - i - 1));
+          mjz_float_t val_ = mjz_float_t::float_from_i(digit) *
+                             data_table_to_bf_impl_(*(
+                                 lookup_dbl_pow5_table_ptr_ + length - i - 1));
 
           val_.m_exponent += int64_t(length - i - 1);
           var = var + val_;
@@ -757,8 +755,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (1000 == v) {
           return std::nullopt;
         }
-        if (exponent_raidex != 16 &&
-            details_ns::lookup_dbl_pow5_table_len_ <= uint32_t(v)) {
+        if (1001 == v) {
+          if (neg_sientific_exponent) {
+            T z{};
+            return is_neg ? -z : z;
+          }
           return std::nullopt;
         }
         exponent = neg_sientific_exponent ? -v : v;
@@ -785,9 +786,22 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if (exponent_base == 16) {
         coeffient.m_exponent += int64_t(power) << 4;
       } else {
-        coeffient = coeffient *
-                    pos_real_dbl_to_bf_impl_(
-                        *(details_ns::lookup_dbl_pow5_table_ptr_<0> + power));
+        constexpr auto pow5o9_v = mjz_float_t::float_from_i(int32_t(1953125));
+        constexpr auto invpow5o9_v = mjz_float_t::float_from_i(1) / pow5o9_v;
+        constexpr int32_t table_len_{int32_t(lookup_dbl_pow5_table_len_)};
+        while (table_len_ <= (power < 0 ? -power : power)) {
+          if (power < 0) {
+            coeffient = coeffient * invpow5o9_v;
+            coeffient.m_exponent -= 9;
+            power += 9;
+          } else {
+            coeffient = coeffient * pow5o9_v;
+            coeffient.m_exponent += 9;
+            power -= 9;
+          }
+        }
+        coeffient = coeffient * data_table_to_bf_impl_(
+                                    *(lookup_dbl_pow5_table_ptr_ + power));
         coeffient.m_exponent += int64_t(power);
       }
 
@@ -1650,7 +1664,6 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN static std::optional<T>
     to_real_floating(const char *ptr, uintlen_t len,
                      is_point_fn_t &&is_point_fn = is_point_fn_t{}) noexcept {
-      uint8_t raidex_{10};
 
       bool is_neg{};
       while (len && *ptr == ' ') {
@@ -1739,17 +1752,18 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return ret;
         }
       };
-      if (raidex_) {
-        return do_ret(to_integral_pv<UT>(ptr, len, raidex_));
-      }
       while (len && *ptr == ' ') {
         ptr++;
         len--;
       }
-      if (len && (*ptr == '-' || *ptr == '+')) {
+      // multi sign ok
+      while (len && (*ptr == '-' || *ptr == '+')) {
         is_neg = *ptr == '-';
         ptr++;
         len--;
+      }
+      if (raidex_) {
+        return do_ret(to_integral_pv<UT>(ptr, len, raidex_));
       }
       if (len && *ptr != '0') {
         return do_ret(to_integral_pv<UT>(ptr, len, 10));
@@ -1851,6 +1865,49 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return good;
     }
     static_assert(double_is_IEEE754_binary64_assert());
+
+    using uint1024_t = uintN_t<version_v, 1024>;
+    MJZ_CX_FN big_float_t<version_v> static data_table_to_bf_impl_(
+        uint64_t u64_val) noexcept {
+      big_float_t<version_v> ret{};
+      ret.m_exponent = (int64_t(u64_val) >> 53) - 53;
+      ret.m_coeffient = ((u64_val << 53) >> 53) | (uint64_t(1) << 53);
+      return ret;
+    }
+    MJZ_CX_FN static uint64_t
+    pos_df_to_data_table_impl_(big_float_t<version_v> bf) noexcept {
+      bf.template normalize<54>();
+      asserts(asserts.assume_rn, std::bit_width(uint64_t(bf.m_coeffient)) == 54);
+      asserts(asserts.assume_rn, int32_t(bf.m_exponent) == bf.m_exponent);
+      bf.m_exponent += 53;
+      asserts(asserts.assume_rn,
+              std::bit_width(bf.m_exponent < 0
+                                 ? ~uint64_t(bf.m_exponent)
+                                 : uint64_t(bf.m_exponent)) <= 64 - 53);
+      bf.m_exponent <<= 53;
+      return (uint64_t(bf.m_coeffient) & ~(uint64_t(1) << 53)) | uint64_t(bf.m_exponent);
+    }
+
+   static constexpr const inline size_t lookup_dbl_pow5_table_len_ = 440;
+  static  constexpr auto const inline lookup_dbl_pow5_table_ = []() noexcept {
+      std::array<uint64_t, lookup_dbl_pow5_table_len_ * 2> ret{};
+      uint1024_t val(1);
+      constexpr auto one = big_float_t<version_v>::float_from_i(1);
+      for (uintlen_t i{1}; i < lookup_dbl_pow5_table_len_; i++) {
+        val *= uint64_t(5);
+        auto pow5_to_i = big_float_t<version_v>::float_from_big(val);
+        ret[lookup_dbl_pow5_table_len_ + i] =
+            pos_df_to_data_table_impl_(pow5_to_i);
+        ret[lookup_dbl_pow5_table_len_ - i] =
+            pos_df_to_data_table_impl_(one / pow5_to_i);
+      }
+      val *= uint64_t(5);
+      ret[0] = pos_df_to_data_table_impl_(
+          one / big_float_t<version_v>::float_from_big(val));
+      return ret;
+    }();
+  static  inline constexpr const double *const lookup_dbl_pow5_table_ptr_ =
+        lookup_dbl_pow5_table_.data() + lookup_dbl_pow5_table_len_;
     MJZ_CX_FN big_float_t<version_v> static pos_real_dbl_to_bf_impl_(
         double val) noexcept {
       // In the IEEE 754 standard binary64
@@ -1903,6 +1960,32 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                 big_float_t<version_v>::float_from_i(10) <= f_val));
       return exponent_log10;
     }
+    // 1+floor(log_10(x)) , x=0 -> 0
+     MJZ_CX_AL_FN static int
+    dec_width_dbl_(const big_float_t<version_v> x_pos_real_) noexcept {
+      uint64_t x = uint64_t(x_pos_real_.m_coeffient);
+      const int32_t log2_exp = int32_t(x_pos_real_.m_exponent);
+      const bool had_1bit = std::has_single_bit(x);
+      const int32_t log2_ceil =
+          int32_t(std::bit_width(x)) - had_1bit + log2_exp;
+      const int32_t log10_2_bx = 19729;
+      const int32_t bx = 16;
+      bool is_neg_log = log2_ceil < 0;
+      const int32_t correct_or_1_plus_correct_abs =
+          int32_t((uint32_t(is_neg_log ? +(!had_1bit) - log2_ceil : log2_ceil) *
+                   log10_2_bx) >>
+                  bx);
+      const int32_t correct_or_1_plus_correct =
+          is_neg_log ? -correct_or_1_plus_correct_abs
+                     : correct_or_1_plus_correct_abs;
+      big_float_t<version_v> dbl = data_table_to_bf_impl_(
+          *(lookup_dbl_pow5_table_ptr_ + correct_or_1_plus_correct));
+      dbl.m_exponent += correct_or_1_plus_correct;
+
+      const bool is_correct = dbl <= x_pos_real_;
+      return correct_or_1_plus_correct + is_correct;
+    }
+
     MJZ_CX_FN int64_t static exponent_log10_and_component_aprox_(
         big_float_t<version_v> &val) noexcept {
       constexpr const big_float_t<version_v> inv_ten =
@@ -1915,12 +1998,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         if (val.m_coeffient == 0) {
           return 0;
         }
-        details_ns::double_64_t_impl_ dbl{};
+        big_float_t<version_v> dbl{};
         dbl.m_coeffient = uint64_t(val.m_coeffient);
         dbl.m_exponent = val.m_exponent;
-        int64_t ret = int64_t(details_ns::dec_width_dbl_<0>(dbl)) - 1;
-        val = val * pos_real_dbl_to_bf_impl_(
-                        *(details_ns::lookup_dbl_pow5_table_ptr_<0> - ret));
+        int64_t ret = int64_t(dec_width_dbl_(dbl)) - 1;
+        val = val * data_table_to_bf_impl_(*(lookup_dbl_pow5_table_ptr_ - ret));
         val.m_exponent -= ret;
 
         uint64_t v = uint64_t(val.m_coeffient);

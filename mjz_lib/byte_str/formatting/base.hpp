@@ -349,16 +349,17 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       }
       if (curs[0] != curs[1])
         MJZ_IS_UNLIKELY {
-          this->fctx_.as_error(
+          parse_ctx().as_error(
               "[Error]append_unescaped_text: excpected '{{' or '}}' "
               " got '{' or '}' ");
           return false;
         }
-      std::ignore = this->output.append_u_(
+      std::ignore = this->output_it.append_u_(
           view.make_subview(offset, count + uintlen_t(curs[0].has_value()))
               .unsafe_handle());
       pos_p = cur_p;
     };
+    return !!this->output_it;
   }
   template <version_t version_v>
   MJZ_CX_FN success_t

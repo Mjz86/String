@@ -70,6 +70,19 @@ MJZ_EXPORT namespace mjz {
     using parse_math_helper_t_<version_v>::divide_modulo;
     using parse_math_helper_t_<version_v>::signed_divide_modulo;
 
+    MJZ_CX_FN static big_float_t
+    float_from_big(fixed_extended_ingeral_c auto u) noexcept {
+      big_float_t ret{};
+      const uintlen_t real_bw = bit_width(u);
+      ret.m_exponent = intlen_t(real_bw);
+      if (62 < real_bw) {
+        u >>= real_bw - 62;
+      }
+      ret.m_coeffient =int64_t(uint64_t(u));
+      ret.m_exponent -= std::bit_width(uint64_t(ret.m_coeffient));
+      return ret;
+    }
+
   private:
     template <std::floating_point T>
     MJZ_CX_FN static std::optional<bit_range_t> get_sign_range() noexcept {
@@ -213,7 +226,8 @@ MJZ_EXPORT namespace mjz {
       big_float_t ret{};
       bool normal_mantisa{true};
       if (auto exp = get_exponent<T>(val)) {
-        ret.m_exponent = exp->first - int64_t(bitcopy_len);
+        ret.m_exponent = exp->first - int64_t(bitcopy_len) +
+                         (exp->second ? int64_t(1) : int64_t(0));
         normal_mantisa = !exp->second;
       } else {
         return std::nullopt;
@@ -234,9 +248,14 @@ MJZ_EXPORT namespace mjz {
                      uint8_t(uint8_t(1) << (sign_bit->i % 8)))};
       if (is_neg)
         ret.m_coeffient = -ret.m_coeffient;
+      if (is_neg && !ret.m_coeffient)
+        ret.m_exponent = neg_zero_sentinel_;
       return ret;
     }
 
+  private:
+    static constexpr int64_t neg_zero_sentinel_{
+        std::numeric_limits<int64_t>::min()};
     template <std::floating_point T>
     MJZ_CX_FN std::optional<T> to_float_() noexcept {
       constexpr auto exp_range{get_exponent_bit_range<T>()};
@@ -247,7 +266,14 @@ MJZ_EXPORT namespace mjz {
         return std::nullopt;
       }
       if (!m_coeffient) {
-        return T();
+        T z{};
+        if (m_exponent == neg_zero_sentinel_) {
+          std::array<char, sizeof(T)> za = get_XE_bitcast<T, false, false>(z);
+          za[uintptr_t(sign_bit->i / 8)] |=
+              char(uint8_t(1) << (sign_bit->i % 8));
+          z = from_XE_bitcast<T, false, false>(za);
+        }
+        return z;
       }
       bool is_neg{};
       if (m_coeffient < 0) {
@@ -262,26 +288,63 @@ MJZ_EXPORT namespace mjz {
       auto floor_log_cof = log2_of_val_create(uint64_t(m_coeffient));
       int64_t exp = m_exponent + floor_log_cof;
       uint64_t sub_range_delta_exp = 0;
-      if (exp < min_exponent) {
-        if (exp + int64_t(coeffient_range->len) < min_exponent) {
-          return std::nullopt;
+      auto return_signed_zero = [&]() noexcept -> T {
+        T z{};
+        if (is_neg) {
+          std::array<char, sizeof(T)> za = get_XE_bitcast<T, false, false>(z);
+          za[uintptr_t(sign_bit->i / 8)] |=
+              char(uint8_t(1) << (sign_bit->i % 8));
+          z = from_XE_bitcast<T, false, false>(za);
         }
-        sub_range_delta_exp = uint64_t(min_exponent - exp);
-        if (63 < sub_range_delta_exp)
-          return std::nullopt;
-        exp += intlen_t(sub_range_delta_exp);
-        m_coeffient >>= sub_range_delta_exp;
+        return z;
+      };
+      if (exp <= min_exponent) {
+        if (exp < min_exponent - 62) {
+          return return_signed_zero();
+        }
+        sub_range_delta_exp =
+            uint64_t(min_exponent + 1 - exp) +
+            uint64_t(int64_t(floor_log_cof) - int64_t(coeffient_range->len));
+        if (uint64_t(63) < sub_range_delta_exp) {
+          return return_signed_zero();
+        }
+        {
+          const uint64_t lost_mask =
+              (uint64_t(1) << sub_range_delta_exp) - uint64_t(1);
+          const uint64_t lost = uint64_t(m_coeffient) & lost_mask;
+          const uint64_t half = uint64_t(1) << (sub_range_delta_exp - 1);
+          m_coeffient >>= sub_range_delta_exp;
+          if (half < lost ||
+              (half == lost && (uint64_t(m_coeffient) & uint64_t(1)))) {
+            m_coeffient += 1;
+            if (uint64_t(coeffient_range->len) < uint64_t(63) &&
+                uint64_t(m_coeffient) ==
+                    (uint64_t(1) << uint64_t(coeffient_range->len))) {
+              sub_range_delta_exp = 0;
+              m_coeffient = 0;
+              exp = min_exponent + 1;
+            }
+          }
+        }
+        if (!m_coeffient && sub_range_delta_exp) {
+          return return_signed_zero();
+        }
+        if (sub_range_delta_exp) {
+          exp = min_exponent;
+        }
       }
       T ret_val{};
       if (!set_exponent_get_normaity(ret_val, exp))
         return std::nullopt;
       std::array<char, sizeof(T)> a = get_XE_bitcast<T, false, false>(ret_val);
-      uint64_t bitnum = get_end_bit_index(uint64_t(m_coeffient));
+      uint64_t bitnum = (uint64_t)std::bit_width(uint64_t(m_coeffient));
       if (!sub_range_delta_exp) {
         bitnum = std::max<uint64_t>(1, bitnum) - 1;
-      }
-      if (ceil_log_cof == floor_log_cof) {
-        bitnum = 0;
+        if (ceil_log_cof == floor_log_cof) {
+          bitnum = 0;
+        }
+      } else {
+        bitnum = std::min<uint64_t>(bitnum, uint64_t(coeffient_range->len));
       }
       for (uint64_t ip{}; ip < bitnum; ip++) {
         uint64_t i{coeffient_range->i + ip};
@@ -298,6 +361,8 @@ MJZ_EXPORT namespace mjz {
       ret_val = from_XE_bitcast<T, false, false>(a);
       return ret_val;
     }
+
+  public:
     template <int64_t cof_log_dest>
       requires(0 < cof_log_dest && cof_log_dest < 63)
     MJZ_CX_AL_FN void normalize() noexcept {
@@ -309,11 +374,22 @@ MJZ_EXPORT namespace mjz {
       int64_t cof_log_delta{cof_log_dest - int64_t(cof_log)};
       m_exponent -= cof_log_delta;
       uint64_t coeffient = uint64_t(m_coeffient);
-      coeffient = cof_log_delta < 0 ? coeffient >> (-cof_log_delta)
-                                    : coeffient << cof_log_delta;
+      if (cof_log_delta < 0) {
+        const uint64_t sh = uint64_t(-cof_log_delta);
+        const uint64_t lost = coeffient & ((uint64_t(1) << sh) - uint64_t(1));
+        const uint64_t half = uint64_t(1) << (sh - 1);
+        coeffient >>= sh;
+        if (half < lost || (half == lost && (coeffient & uint64_t(1)))) {
+          coeffient += 1;
+        }
+      } else {
+        coeffient <<= uint64_t(cof_log_delta);
+      }
       m_coeffient = int64_t(coeffient);
       m_coeffient = is_neg ? -m_coeffient : m_coeffient;
     };
+
+  private:
     MJZ_CX_FN static big_float_t normalize_add_impl_(big_float_t hs) noexcept {
       bool is_neg = hs.m_coeffient < 0;
       const int shift_amount =
@@ -327,16 +403,38 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_FN static big_float_t add(big_float_t lhs,
                                      big_float_t rhs) noexcept {
+      if (!lhs.m_coeffient || !rhs.m_coeffient) {
+        if (!lhs.m_coeffient && !rhs.m_coeffient) {
+          if (lhs.m_exponent == neg_zero_sentinel_ &&
+              rhs.m_exponent == neg_zero_sentinel_)
+            return lhs;
+          return big_float_t{};
+        }
+        return !lhs.m_coeffient ? rhs : lhs;
+      }
       lhs = normalize_add_impl_(lhs);
       rhs = normalize_add_impl_(rhs);
       const int64_t delta_exp = lhs.m_exponent - rhs.m_exponent;
       std::swap(lhs, delta_exp < 0 ? rhs : lhs);
       const int64_t abs_delta_exp = lhs.m_exponent - rhs.m_exponent;
-      lhs.m_coeffient +=
-          abs_delta_exp < 63 ? rhs.m_coeffient >> abs_delta_exp : 0;
+      if (abs_delta_exp < 63) {
+        const bool rhs_neg = rhs.m_coeffient < 0;
+        const uint64_t mag =
+            rhs_neg ? uint64_t(-rhs.m_coeffient) : uint64_t(rhs.m_coeffient);
+        uint64_t quot = mag;
+        if (abs_delta_exp) {
+          quot >>= uint64_t(abs_delta_exp);
+          const uint64_t rem =
+              mag & ((uint64_t(1) << uint64_t(abs_delta_exp)) - uint64_t(1));
+          const uint64_t half = uint64_t(1) << uint64_t(abs_delta_exp - 1);
+          if (half < rem || (half == rem && (quot & uint64_t(1)))) {
+            quot += 1;
+          }
+        }
+        lhs.m_coeffient += rhs_neg ? -int64_t(quot) : int64_t(quot);
+      }
       return lhs;
     }
-
     MJZ_CX_FN static big_float_t muliply(big_float_t lhs,
                                          big_float_t rhs) noexcept {
       const bool is_neg{(rhs.m_coeffient < 0) != (lhs.m_coeffient < 0)};
@@ -346,16 +444,7 @@ MJZ_EXPORT namespace mjz {
           lhs.m_coeffient < 0 ? -lhs.m_coeffient : lhs.m_coeffient;
       uintN_t<version_v, 128> i1{rhs.m_coeffient}, i2{lhs.m_coeffient},
           i3{i1 * i2};
-      int shift_amount = std::countl_zero(i3.nth_word(1));
-      shift_amount = branchless_teranary<int>(
-          shift_amount == 64, std::countl_zero(i3.nth_word(0)) + 64,
-          shift_amount);
-      i3 <<= uintlen_t(shift_amount);
-      i3 >>= 2;
-      i3.nth_word(1) += !!i3.nth_word(0);
-      rhs.m_exponent += lhs.m_exponent;
-      rhs.m_exponent += int64_t(66 - shift_amount);
-      rhs.m_coeffient = int64_t(i3.nth_word(1));
+      rhs = float_from_big(i3);
       rhs.m_coeffient = is_neg ? -rhs.m_coeffient : rhs.m_coeffient;
       return rhs;
     }
@@ -370,16 +459,14 @@ MJZ_EXPORT namespace mjz {
       lhs.m_coeffient =
           lhs.m_coeffient < 0 ? -lhs.m_coeffient : lhs.m_coeffient;
       lhs.normalize<62>();
-      rhs.normalize<32>();
-
-      auto [coff_, rem_] =
-          signed_divide_modulo(lhs.m_coeffient, rhs.m_coeffient);
-      int64_t round((rhs.m_coeffient >> 1) <= (rem_));
-      lhs.m_coeffient = coff_;
-      lhs.m_coeffient += round;
-      lhs.m_coeffient = is_neg ? -lhs.m_coeffient : lhs.m_coeffient;
-      lhs.m_exponent -= rhs.m_exponent;
-      return lhs;
+      rhs.normalize<62>();
+      auto ret =
+          float_from_big((uintN_t<version_v, 128>(uint64_t(lhs.m_coeffient))
+                          << uintlen_t(62)) /
+                         uintN_t<version_v, 128>(uint64_t(rhs.m_coeffient)));
+      ret.m_coeffient = is_neg ? -ret.m_coeffient : ret.m_coeffient;
+      ret.m_exponent += lhs.m_exponent - 62 - rhs.m_exponent;
+      return ret;
     }
 
   public:
@@ -389,10 +476,30 @@ MJZ_EXPORT namespace mjz {
   public:
     template <std::floating_point T>
     MJZ_CX_FN std::optional<T> to_float(bool allow_nan = true) const noexcept {
-      constexpr auto maxed =
-          *get_big_float_from<T>(std::numeric_limits<T>().max());
-      if (!allow_nan && maxed < *this)
-        return std::nullopt;
+      if (!allow_nan) {
+        constexpr auto exp_range_ = get_exponent_bit_range<T>();
+        constexpr auto coeff_range_ = get_coeffient_bit_range<T>();
+        if constexpr (exp_range_ && coeff_range_ &&
+                      uint64_t(coeff_range_->len) < uint64_t(63)) {
+          constexpr int64_t min_exp_{
+              -int64_t(~((uint64_t(-1) >> (uint64_t(exp_range_->len) - 1))
+                         << (uint64_t(exp_range_->len) - 1)))};
+          constexpr int64_t len_ = int64_t(coeff_range_->len);
+          constexpr big_float_t cutoff_ = []() noexcept {
+            big_float_t c{};
+            c.m_coeffient = int64_t((uint64_t(1) << uint64_t(len_ + 2)) - 1);
+            c.m_exponent = -min_exp_ - len_ - 1;
+            return c;
+          }();
+          if (cutoff_ < *this)
+            return std::nullopt;
+        } else {
+          constexpr auto maxed =
+              *get_big_float_from<T>(std::numeric_limits<T>().max());
+          if (maxed < *this)
+            return std::nullopt;
+        }
+      }
       return big_float_t(*this).to_float_<T>();
     }
     template <std::floating_point T>
@@ -416,6 +523,7 @@ MJZ_EXPORT namespace mjz {
       ret.m_coeffient = int64_t(val);
       return ret;
     }
+
     MJZ_CX_FN friend std::optional<big_float_t>
     operator+(std::optional<big_float_t> rhs,
               std::optional<big_float_t> lhs) noexcept {
