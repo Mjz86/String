@@ -211,9 +211,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 
   template <class T, version_t version_v>
   concept mjz_str_c = requires(const T &obj) {
-    {
-      obj.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v)
-    } noexcept -> std::same_as<base_lazy_view_t<version_v>>;
+    { obj.to_base_lazy_pv_fn_(unsafe_ns::unsafe_v) }
+    noexcept->std::same_as<base_lazy_view_t<version_v>>;
   };
 
   template <typename T, version_t version_v>
@@ -243,5 +242,5 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       return true;
     };
   };
-}; // namespace mjz::bstr_ns::format_ns
+};     // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_formatters_abi_HPP_FILE_

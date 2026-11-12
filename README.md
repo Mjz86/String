@@ -608,7 +608,7 @@ an important thing is that the failure of the `alloca` function is perfectly val
 
 
  * is virtual function call that bad?
- i refer you to  John Lakos “Local ('Arena') Memory Allocators":
+ i refer you to  John Lakos "Local ('Arena') Memory Allocators":
  " compated to the global allocator,  the virtual call overhead is just noise".
  
  
@@ -1016,11 +1016,11 @@ You may give feedback in:
 [https://github.com/Mjz86/String/issues](https://github.com/Mjz86/String/issues)
 
 **References and Inspirations:**
-- CppCon 2015： Andrei Alexandrescu “std：：allocator...” :
+- CppCon 2015： Andrei Alexandrescu "std：：allocator..." :
 
 [https://www.youtube.com/watch?v=LIb3L4vKZ7U](https://www.youtube.com/watch?v=LIb3L4vKZ7U)
 
-- CppCon 2017： John Lakos “Local ('Arena') Memory Allocators (part 1&2 of 2)” :
+- CppCon 2017： John Lakos "Local ('Arena') Memory Allocators (part 1&2 of 2)" :
 
  [https://www.youtube.com/watch?v=nZNd5FjSquk](https://www.youtube.com/watch?v=nZNd5FjSquk)
 
@@ -1038,11 +1038,11 @@ You may give feedback in:
 
    [https://www.youtube.com/watch?v=dFIqNZ8VbRY](https://www.youtube.com/watch?v=dFIqNZ8VbRY)
   
-- CppCon 2016： Timur Doumler “Want fast C++？ Know your hardware!＂:
+- CppCon 2016： Timur Doumler "Want fast C++？ Know your hardware!＂:
 
   [https://www.youtube.com/watch?v=BP6NxVxDQIs](https://www.youtube.com/watch?v=BP6NxVxDQIs)
   
-- what does  atomic do to the cache | CppCon 2017： Fedor Pikus “C++ atomics, from basic to advanced.  What do they really do？” :
+- what does  atomic do to the cache | CppCon 2017： Fedor Pikus "C++ atomics, from basic to advanced.  What do they really do？" :
 
   [https://www.youtube.com/watch?v=ZQFzMfHIxng](https://www.youtube.com/watch?v=ZQFzMfHIxng)
   
@@ -1058,7 +1058,7 @@ You may give feedback in:
 
 [https://www.youtube.com/watch?v=pbkQG09grFw](https://www.youtube.com/watch?v=pbkQG09grFw)
 
-- CppCon 2017： P. McKenney, M. Michael & M. Wong “Is Parallel Programming still hard？ PART 1&2 of 2” :
+- CppCon 2017： P. McKenney, M. Michael & M. Wong "Is Parallel Programming still hard？ PART 1&2 of 2" :
 
 [https://www.youtube.com/watch?v=YM8Xy6oKVQg](https://www.youtube.com/watch?v=YM8Xy6oKVQg)
 
@@ -1080,17 +1080,17 @@ You may give feedback in:
 
   [https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
   
-- CppCon 2017: Barbara Geller & Ansel Sermersheim “Unicode Strings: Why the
-  Implementation Matters”:
+- CppCon 2017: Barbara Geller & Ansel Sermersheim "Unicode Strings: Why the
+  Implementation Matters":
 
    [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
   
- -[CppCon 2016： Chandler Carruth “High Performance Code 201： Hybrid Data Structures＂](https://www.youtube.com/watch?v=vElZc6zSIXM)
+ -[CppCon 2016： Chandler Carruth "High Performance Code 201： Hybrid Data Structures＂](https://www.youtube.com/watch?v=vElZc6zSIXM)
   
   -[CppCon 2014： Chandler Carruth ＂Efficiency with Algorithms, Performance with Data Structures＂ ](https://www.youtube.com/watch?v=fHNmRkzxHWs)
   
-- CppCon 2016: Nicholas Ormrod “The strange details of std::string at
-  Facebook”:
+- CppCon 2016: Nicholas Ormrod "The strange details of std::string at
+  Facebook":
 
   [https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
   
@@ -1099,7 +1099,7 @@ You may give feedback in:
 
   [https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
   
-- CppCon 2018: Victor Ciura “Enough string_view to Hang Ourselves”:
+- CppCon 2018: Victor Ciura "Enough string_view to Hang Ourselves":
  
   [https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
   
@@ -1127,8 +1127,8 @@ You may give feedback in:
  - [Catch ⬆️： Unicode for C++23 - JeanHeyd Meneide - CppCon 2019](https://www.youtube.com/watch?v=BdUipluIf1E)
  - [Catching ⬆️： Unicode for C++ in Greater Detail - JeanHeyd Meneide - Meeting C++ 2019 ](https://www.youtube.com/watch?v=FQHofyOgQtM)
  
- - [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 1)” ](https://www.youtube.com/watch?v=944GjKxwMBo) 
- -  [C++Now 2018： Z. Laine “Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 2)” ](https://www.youtube.com/watch?v=GJ2xMAqCZL8)
+ - [C++Now 2018： Z. Laine "Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 1)" ](https://www.youtube.com/watch?v=944GjKxwMBo) 
+ -  [C++Now 2018： Z. Laine "Boost.Text： Fixing std：：string, and Adding Unicode to Standard C++ (part 2)" ](https://www.youtube.com/watch?v=GJ2xMAqCZL8)
  
 -[Unicode - going down the rabbit hole - Peter Bindels](https://www.youtube.com/watch?v=IXNIqThaSs8)
  
@@ -1152,7 +1152,7 @@ You may give feedback in:
 
  -[the c++ abi from the gruond up](https://www.youtube.com/watch?v=DZ93lP1I7wU)
 
--[C++Now 2019: Arvid Norberg “The ABI challenge”](https://www.youtube.com/watch?v=ncyQAjTyPwU)
+-[C++Now 2019: Arvid Norberg "The ABI challenge"](https://www.youtube.com/watch?v=ncyQAjTyPwU)
 -[What is an ABI, and Why is Breaking it Bad? - Marshall Clow - CppCon 2020](https://www.youtube.com/watch?v=7RoTDjLLXJQ)
  
  - [https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp](https://github.com/Mjz86/String/blob/main/mjz_lib/mjz_uintconv.hpp)

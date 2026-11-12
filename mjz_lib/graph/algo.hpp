@@ -94,5 +94,5 @@ template <version_t version_v> struct calculate_too_much_t {
 
 ///////////
 
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_algo_FILE_

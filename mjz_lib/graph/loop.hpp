@@ -148,5 +148,5 @@ MJZ_CX_FN void calculate_nesting_of_natural_loop_headers(
   }
 }
 
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_loop_FILE_

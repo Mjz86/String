@@ -30,16 +30,16 @@ namespace mjz::graph_ns {
 template <class T, version_t version_v>
 concept dependency_state_c = requires(std::remove_cvref_t<T> s) {
   requires std::is_enum_v<std::remove_cvref_t<T>>;
-  { to_underlying(s) } noexcept -> std::unsigned_integral;
+  { to_underlying(s) }
+  noexcept->std::unsigned_integral;
 };
 
 template <version_t version_v>
 MJZ_CX_FN decltype(auto)
 state_to_str_impl_(dependency_state_c<version_v> auto e) noexcept {
   if constexpr (requires() {
-                  {
-                    state_to_str(e)
-                  } noexcept -> mjz::bstr_ns::format_ns::
+                  { state_to_str(e) }
+                  noexcept->mjz::bstr_ns::format_ns::
                       basic_format_specs_formatted_c<version_v>;
                 }) {
     return state_to_str(e);
@@ -466,7 +466,8 @@ public:
       {
         std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn)(
             std::move(id_view))
-      } noexcept;
+      }
+      noexcept;
     });
     std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn)(
         std::move(id_view));

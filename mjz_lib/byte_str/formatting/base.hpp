@@ -663,12 +663,16 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 
   template <typename T, version_t version_v>
   concept valid_formatter_format_c =
-      requires(T &obj, parse_context_t<version_v> &pctx) {
-        { obj.~T() } noexcept;
-        { T() } noexcept;
-        { obj.parse(pctx) } noexcept -> std::same_as<success_t>;
-        { obj = std::as_const(obj) } noexcept;
-      };
+      requires(T & obj, parse_context_t<version_v> & pctx) {
+    { obj.~T() }
+    noexcept;
+    { T() }
+    noexcept;
+    { obj.parse(pctx) }
+    noexcept->std::same_as<success_t>;
+    { obj = std::as_const(obj) }
+    noexcept;
+  };
 
   template <version_t version_v, valid_formatter_format_c<version_v> T>
   struct formatter_formatter_base_t {
@@ -683,11 +687,11 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
   template <version_t version_v, valid_formatter_format_c<version_v> T,
             class Lambda_t = decltype([]<class... Ts>(Ts &&...) noexcept
-                                          -> success_t { return true; })>
-    requires callable_c<
-        const Lambda_t,
-        success_t(optional_ref_t<formatter_formatter_base_t<version_v, T>> obj,
-                  format_context_t<version_v> & ctx) noexcept>
+                                      -> success_t { return true; })>
+  requires callable_c<
+      const Lambda_t,
+      success_t(optional_ref_t<formatter_formatter_base_t<version_v, T>> obj,
+                format_context_t<version_v> & ctx) noexcept>
   struct formatter_formatter_ref_t {
     using view_t = basic_string_view_t<version_v>;
     using base_t = formatter_formatter_base_t<version_v, T>;
@@ -703,11 +707,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         this, std::forward<L>(lambda)};
   }
   template <version_t version_v, class T>
-    requires requires() {
-      {
-        formatter_formatter_ref_t(std::declval<std::remove_cvref_t<T>>())
-      } noexcept -> std::same_as<std::remove_cvref_t<T>>;
-    }
+  requires requires() {
+    { formatter_formatter_ref_t(std::declval<std::remove_cvref_t<T>>()) }
+    noexcept->std::same_as<std::remove_cvref_t<T>>;
+  }
   struct default_formatter_t<version_v, T, 55> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = false;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = false;
@@ -962,17 +965,17 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     success_t successful{true};
     MJZ_NO_MV_NO_CPY(cx_parser_t);
     template <size_t... Is>
-      requires(sizeof...(Is) == sizeof...(Ts))
-    MJZ_CX_FN cx_parser_t(view_t fmt_str, alloc_ref_t alloc,
-                          std::span<char> cache_ref, uintlen_t cache_ref_align,
-                          std::index_sequence<Is...>,
-                          cx_formatter_storage_base_ref_t<version_v>
-                              *cx_parse_storage_ptr = nullptr) noexcept
+    requires(sizeof...(Is) == sizeof...(Ts)) MJZ_CX_FN cx_parser_t(
+        view_t fmt_str, alloc_ref_t alloc, std::span<char> cache_ref,
+        uintlen_t cache_ref_align, std::index_sequence<Is...>,
+        cx_formatter_storage_base_ref_t<version_v> *cx_parse_storage_ptr =
+            nullptr)
+    noexcept
         : formatting_object_t<version_v>{std::move(alloc), cache_ref,
                                          cache_ref_align} {
       if constexpr (sizeof...(Ts)) {
         basic_format_args_t<version_v, sizeof...(Ts)> buf{
-            basic_format_args_parse_tag{}, alias_t<void (*)(Ts &&...)>{}};
+            basic_format_args_parse_tag{}, alias_t<void (*)(Ts && ...)>{}};
         base_ctx().number_of_args = buf.count_args;
         base_ctx().parse_and_format_fn_of_args =
             buf.parse_and_format_fn_of_args;
@@ -1006,15 +1009,18 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   MJZ_CX_FN success_t formatting_object_t<version_v>::format_to_pv(
       out_it_t iter, L_v value, Ts && ...args) noexcept {
     if constexpr (requires() {
-                    { int(L_v::format_optimization_lvl_v) } noexcept;
+                    { int(L_v::format_optimization_lvl_v) }
+                    noexcept;
                   }) {
       [&]() noexcept {
         constexpr const int format_optimization_lvl_v =
             L_v::format_optimization_lvl_v;
         static_assert(
             requires() {
-              { view_t(L_v()()) } noexcept;
-            }, "see if you used \"...\"_fmt or not (you should) ");
+              { view_t(L_v()()) }
+              noexcept;
+            },
+            "see if you used \"...\"_fmt or not (you should) ");
         static_assert(0 <= format_optimization_lvl_v);
         //
         // cx_formatter_storages_t<version_v, Ts &&...> cx_store{};
@@ -1088,7 +1094,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                       ret.data()};
 
                   return formatters;
-                }(std::make_index_sequence<give_first_fn_t_{}()>{});
+                }
+                (std::make_index_sequence<give_first_fn_t_{}()>{});
               };
 
               using generate_format_table_ft =
@@ -1101,14 +1108,16 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                       ((ret[Is].formatter_ptr = &std::get<Is>(formatters),
                         true) &&
                        ...);
-                }(std::make_index_sequence<give_first_fn_t_{}()>{});
+                }
+                (std::make_index_sequence<give_first_fn_t_{}()>{});
                 return ret;
               };
               using link_tables_ft = static_data_t<decltype(link_tables_f)>;
               base_ctx().cx_parse_storage_of_args = link_tables_ft{}().data();
               base_ctx().number_of_cx_parse_storage_of_args =
                   link_tables_ft{}().size();
-            }();
+            }
+            ();
           };
         }
         auto failure_f =

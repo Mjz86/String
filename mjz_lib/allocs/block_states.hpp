@@ -551,5 +551,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       return {};
     }
   };
-}; // namespace mjz::allocs_ns
+};     // namespace mjz::allocs_ns
 #endif // MJZ_ALLOCS_block_states_FILE_HPP_

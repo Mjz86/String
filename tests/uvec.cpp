@@ -2,18 +2,18 @@
 
 // sowwy :/ its a test
 
-  using namespace mjz;
-  using namespace bstr_ns;
-  using namespace litteral_ns;
-  using namespace allocs_ns;
-  using namespace format_ns;
-  using namespace fmt_litteral_ns;
-  using namespace print_ns;
-  inline static constexpr version_t version_v{};
-  using sview_t = static_string_view_t<version_v>;
-  using dview_t = dynamic_string_view_t<version_v>;
-  using view_t = basic_string_view_t<version_v>;
-  using str_t = basic_str_t<version_v, basic_str_props_t<version_v>{}>;
+using namespace mjz;
+using namespace bstr_ns;
+using namespace litteral_ns;
+using namespace allocs_ns;
+using namespace format_ns;
+using namespace fmt_litteral_ns;
+using namespace print_ns;
+inline static constexpr version_t version_v{};
+using sview_t = static_string_view_t<version_v>;
+using dview_t = dynamic_string_view_t<version_v>;
+using view_t = basic_string_view_t<version_v>;
+using str_t = basic_str_t<version_v, basic_str_props_t<version_v>{}>;
 
 MJZ_EXPORT struct scoped_timer_t {
   MJZ_NO_MV_NO_CPY(scoped_timer_t);
@@ -55,7 +55,8 @@ MJZ_EXPORT struct scoped_timer_t {
   MJZ_CX_FN auto begin() noexcept { return iter{this, 0}; }
   MJZ_CX_FN uintlen_t end() const noexcept { return count; }
 };
-#define MJZ_BENCHMARK(X) scoped_timer_t X##_benchmarker{basic_str_t<version_v>(#X), 1}
+#define MJZ_BENCHMARK(X)                                                       \
+  scoped_timer_t X##_benchmarker { basic_str_t<version_v>(#X), 1 }
 int main() {
   using sa = std::array<char, 8>;
   auto gen = std::views::iota(0, 1000000);
@@ -114,15 +115,14 @@ int main() {
     }
   }
 
-  struct stdhash{
-    std::hash<std::string_view> hs{}; 
-     std::size_t operator()(const sa& s) const noexcept
-    {
-      return hs(std::string_view{s.data(),s.size()});
+  struct stdhash {
+    std::hash<std::string_view> hs{};
+    std::size_t operator()(const sa &s) const noexcept {
+      return hs(std::string_view{s.data(), s.size()});
     }
   };
-  std::unordered_map<sa,sa,stdhash > ht{};
-  
+  std::unordered_map<sa, sa, stdhash> ht{};
+
   {
     MJZ_BENCHMARK(std_insert);
     for (auto i : gen | std::views::reverse) {

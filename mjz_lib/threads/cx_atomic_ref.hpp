@@ -26,10 +26,10 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz::threads_ns {
   /* the illusion of atomic_ref in compile time */
   template <typename T>
-    requires std::is_trivially_copyable_v<T>
+  requires std::is_trivially_copyable_v<T>
   class cx_atomic_ref_t {
     T &ref;
-    MJZ_MCONSTANT(bool) mutable_v { !std::is_const_v<T> };
+    MJZ_MCONSTANT(bool) mutable_v{!std::is_const_v<T>};
     /*  struct byte_T_t {
       alignas(alignof(T)) char a[sizeof(T)];
       MJZ_CX_ND_FN std::strong_ordering operator<=>(
@@ -50,8 +50,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN void
     store(const T obj,
           const std::memory_order = std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       ref = obj;
     }
     MJZ_CX_ND_FN T
@@ -67,9 +66,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
       return;
     }
 
-    MJZ_CX_FN T operator=(const T obj) const noexcept
-      requires(mutable_v)
-    {
+    MJZ_CX_FN T operator=(const T obj) const noexcept requires(mutable_v) {
       store(obj);
       return obj;
     }
@@ -77,8 +74,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_ND_FN T exchange(
         const T value,
         const std::memory_order = std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return std::exchange(ref, value);
     }
 
@@ -86,8 +82,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
         T &Expected, const T Desired,
         const std::memory_order = std::memory_order::relaxed,
         const std::memory_order = std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       if (/*std::bit_cast<byte_T_t>(Expected) !=
            std::bit_cast<byte_T_t>(ref) */
           Expected != ref) {
@@ -102,8 +97,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
         T &Expected, const T Desired,
         const std::memory_order = std::memory_order::relaxed,
         const std::memory_order = std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       asserts(compare_exchange_weak(Expected, Desired),
               " compare_exchange_strong failed, shall we retry "
               "forever?, you may use compare_exchange_weak if you "
@@ -120,56 +114,35 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN
     T fetch_add(const T Operand, const std::memory_order =
                                      std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return exchange(ref + Operand);
     }
 
-    MJZ_CX_FN T fetch_and(
-        const T Operand,
-        const std::memory_order = std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+    MJZ_CX_FN T fetch_and(const T Operand,
+                          const std::memory_order = std::memory_order::relaxed)
+        const noexcept requires(mutable_v) {
       return exchange(ref & Operand);
     }
     MJZ_CX_FN
     T fetch_or(const T Operand, const std::memory_order =
                                     std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return exchange(ref | Operand);
     }
     MJZ_CX_FN
     T fetch_xor(const T Operand, const std::memory_order =
                                      std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return exchange(ref ^ Operand);
     }
     MJZ_CX_FN
-    T operator++(int) const noexcept
-      requires(mutable_v)
-    {
-      return ref++;
-    }
+    T operator++(int) const noexcept requires(mutable_v) { return ref++; }
     MJZ_CX_FN
-    T operator++() const noexcept
-      requires(mutable_v)
-    {
-      return ++ref;
-    }
+    T operator++() const noexcept requires(mutable_v) { return ++ref; }
     MJZ_CX_FN
-    T operator--(int) const noexcept
-      requires(mutable_v)
-    {
-      return ref--;
-    }
+    T operator--(int) const noexcept requires(mutable_v) { return ref--; }
     MJZ_CX_FN
-    T operator--() const noexcept
-      requires(mutable_v)
-    {
-      return --ref;
-    }
+    T operator--() const noexcept requires(mutable_v) { return --ref; }
     using difference_type = T;
 
     MJZ_CX_ND_FN auto &&as_normal_() volatile noexcept {
@@ -181,15 +154,12 @@ MJZ_EXPORT namespace mjz::threads_ns {
 
     MJZ_CX_FN T fetch_add(const T Operand, const std::memory_order =
                                                std::memory_order::relaxed) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return as_normal_().fetch_add(Operand);
     }
 
     MJZ_CX_ND_FN static T negate_obj_(const T val) noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       if constexpr (std::integral<T>) {
         return static_cast<T>(std::make_unsigned_t<T>() -
                               static_cast<std::make_unsigned_t<T>>(val));
@@ -200,129 +170,94 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN
     T fetch_sub(const T Operand, const std::memory_order =
                                      std::memory_order::relaxed) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return fetch_add(negate_obj_(Operand));
     }
     MJZ_CX_FN
     T fetch_sub(const T Operand,
                 const std::memory_order = std::memory_order::relaxed) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return fetch_add(negate_obj_(Operand));
     }
 
     MJZ_CX_FN
     T fetch_and(const T Operand,
                 const std::memory_order = std::memory_order::relaxed) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return as_normal_().fetch_and(Operand);
     }
     MJZ_CX_FN
     T fetch_or(const T Operand,
                const std::memory_order = std::memory_order::relaxed) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return as_normal_().fetch_or(Operand);
     }
     MJZ_CX_FN
     T fetch_xor(const T Operand,
                 const std::memory_order = std::memory_order::relaxed) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return as_normal_().fetch_xor(Operand);
     }
     MJZ_CX_FN
-    T operator++(int) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator++(int) const volatile noexcept requires(mutable_v) {
       return as_normal_().operator++(0);
     }
     MJZ_CX_FN
     T operator++() const volatile noexcept { return as_normal_().operator++(); }
     MJZ_CX_FN
-    T operator--(int) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator--(int) const volatile noexcept requires(mutable_v) {
       return as_normal_().operator--(0);
     }
     MJZ_CX_FN
 
-    T operator--() const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator--() const volatile noexcept requires(mutable_v) {
       return as_normal_().operator--();
     }
     MJZ_CX_FN
-    T operator+=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator+=(const T Operand) const noexcept requires(mutable_v) {
       return static_cast<T>(this->fetch_add(Operand) + Operand);
     }
     MJZ_CX_FN
 
-    T operator+=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator+=(const T Operand) const volatile noexcept requires(mutable_v) {
       return static_cast<T>(as_normal_().fetch_add(Operand) + Operand);
     }
     MJZ_CX_FN
 
-    T operator-=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator-=(const T Operand) const noexcept requires(mutable_v) {
       return static_cast<T>(fetch_sub(Operand) - Operand);
     }
     MJZ_CX_FN
 
-    T operator-=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator-=(const T Operand) const volatile noexcept requires(mutable_v) {
       return static_cast<T>(as_normal_().fetch_sub(Operand) - Operand);
     }
     MJZ_CX_FN
-    T operator&=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator&=(const T Operand) const noexcept requires(mutable_v) {
       return static_cast<T>(this->fetch_and(Operand) & Operand);
     }
     MJZ_CX_FN
-    T operator&=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator&=(const T Operand) const volatile noexcept requires(mutable_v) {
       return static_cast<T>(as_normal_().fetch_and(Operand) & Operand);
     }
     MJZ_CX_FN
-    T operator|=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator|=(const T Operand) const noexcept requires(mutable_v) {
       return static_cast<T>(this->fetch_or(Operand) | Operand);
     }
     MJZ_CX_FN
 
-    T operator|=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator|=(const T Operand) const volatile noexcept requires(mutable_v) {
       return static_cast<T>(as_normal_().fetch_or(Operand) | Operand);
     }
     MJZ_CX_FN
-    T operator^=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator^=(const T Operand) const noexcept requires(mutable_v) {
       return static_cast<T>(this->fetch_xor(Operand) ^ Operand);
     }
     MJZ_CX_FN
-    T operator^=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator^=(const T Operand) const volatile noexcept requires(mutable_v) {
       return static_cast<T>(as_normal_().fetch_xor(Operand) ^ Operand);
     }
   };
   template <typename T> cx_atomic_ref_t(T) -> cx_atomic_ref_t<T>;
-}; // namespace mjz::threads_ns
+};     // namespace mjz::threads_ns
 #endif //  MJZ_THREADS_cx_atomic_ref_LIB_HPP_FILE_

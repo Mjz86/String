@@ -43,90 +43,98 @@ calculate_graph_sequenced_components_events(
     auto &&null_scc_edge_remove_event, auto &&edge_found_event,
     auto &&same_scc_edge_found_event, auto &&null_scc_edge_found_event,
     auto &&null_scc_node_found_event, auto &&scc_node_found_entry_event,
-    auto &&scc_node_found_exit_event) noexcept
-  requires requires(uintlen_t node_index, uintlen_t edge_index,
-                    uintlen_t from_node_index, uintlen_t to_node_index,
-                    uintlen_t from_scc_index, uintlen_t to_scc_index,
-                    intlen_t degree_index, bool early_exit,
-                    std::span<const intlen_t> scc_wave_que,
-                    intlen_t wave_index_sequence, bool was_self_sequencal) {
-    //
-    {
-      early_exit ==
-          bool(wave_exit_event(+wave_index_sequence, std::span(scc_wave_que),
-                               bool(early_exit)))
-    } noexcept;
-    {
-      early_exit ==
-          bool(wave_entry_event(+wave_index_sequence, std::span(scc_wave_que)))
-    } noexcept;
-
-    //
-    {
-      early_exit == bool(scc_found_event(+from_scc_index, +degree_index))
-    } noexcept;
-    //
-    {
-      early_exit ==
-          bool(node_exit_event(+from_scc_index, +from_node_index,
-                               bool(early_exit), bool(was_self_sequencal)))
-    } noexcept;
-
-    {
-      early_exit == bool(node_entry_event(+from_scc_index, +from_node_index))
-    } noexcept;
-    //
-    { early_exit == bool(scc_entry_event(+from_scc_index)) } noexcept;
-    {
-      early_exit == bool(scc_exit_event(+from_scc_index, bool(early_exit)))
-    } noexcept;
-    //
-    {
-      early_exit ==
-          bool(edge_remove_event(+edge_index, +from_node_index, +from_scc_index,
-                                 +to_node_index, +to_scc_index, +degree_index))
-    } noexcept;
-    {
-      early_exit ==
-          bool(same_scc_edge_remove_event(+edge_index, +from_node_index,
-                                          +from_scc_index, +to_node_index))
-    } noexcept;
-    {
-      early_exit ==
-          bool(null_scc_edge_remove_event(+edge_index, +from_node_index,
-                                          +from_scc_index, +to_node_index))
-    } noexcept;
-    //
-
-    {
-      early_exit ==
-          bool(edge_found_event(+edge_index, +from_node_index, +from_scc_index,
-                                +to_node_index, +to_scc_index, +degree_index))
-    } noexcept;
-    {
-      early_exit ==
-          bool(same_scc_edge_found_event(+edge_index, +from_node_index,
-                                         +from_scc_index, +to_node_index))
-    } noexcept;
-    {
-      early_exit ==
-          bool(null_scc_edge_found_event(+edge_index, +from_node_index,
-                                         +from_scc_index, +to_node_index))
-    } noexcept;
-    //
-    {
-      early_exit == bool(null_scc_node_found_event(+from_node_index))
-    } noexcept;
-    //
-    {
-      early_exit ==
-          bool(scc_node_found_entry_event(+from_node_index, +from_scc_index))
-    } noexcept;
-    {
-      early_exit == bool(scc_node_found_exit_event(
-                        +from_node_index, +from_scc_index, bool(early_exit)))
-    } noexcept;
+    auto &&scc_node_found_exit_event) noexcept requires
+    requires(uintlen_t node_index, uintlen_t edge_index,
+             uintlen_t from_node_index, uintlen_t to_node_index,
+             uintlen_t from_scc_index, uintlen_t to_scc_index,
+             intlen_t degree_index, bool early_exit,
+             std::span<const intlen_t> scc_wave_que,
+             intlen_t wave_index_sequence, bool was_self_sequencal) {
+  //
+  {
+    early_exit ==
+        bool(wave_exit_event(+wave_index_sequence, std::span(scc_wave_que),
+                             bool(early_exit)))
   }
+  noexcept;
+  {
+    early_exit ==
+        bool(wave_entry_event(+wave_index_sequence, std::span(scc_wave_que)))
+  }
+  noexcept;
+
+  //
+  { early_exit == bool(scc_found_event(+from_scc_index, +degree_index)) }
+  noexcept;
+  //
+  {
+    early_exit ==
+        bool(node_exit_event(+from_scc_index, +from_node_index,
+                             bool(early_exit), bool(was_self_sequencal)))
+  }
+  noexcept;
+
+  { early_exit == bool(node_entry_event(+from_scc_index, +from_node_index)) }
+  noexcept;
+  //
+  { early_exit == bool(scc_entry_event(+from_scc_index)) }
+  noexcept;
+  { early_exit == bool(scc_exit_event(+from_scc_index, bool(early_exit))) }
+  noexcept;
+  //
+  {
+    early_exit ==
+        bool(edge_remove_event(+edge_index, +from_node_index, +from_scc_index,
+                               +to_node_index, +to_scc_index, +degree_index))
+  }
+  noexcept;
+  {
+    early_exit ==
+        bool(same_scc_edge_remove_event(+edge_index, +from_node_index,
+                                        +from_scc_index, +to_node_index))
+  }
+  noexcept;
+  {
+    early_exit ==
+        bool(null_scc_edge_remove_event(+edge_index, +from_node_index,
+                                        +from_scc_index, +to_node_index))
+  }
+  noexcept;
+  //
+
+  {
+    early_exit ==
+        bool(edge_found_event(+edge_index, +from_node_index, +from_scc_index,
+                              +to_node_index, +to_scc_index, +degree_index))
+  }
+  noexcept;
+  {
+    early_exit ==
+        bool(same_scc_edge_found_event(+edge_index, +from_node_index,
+                                       +from_scc_index, +to_node_index))
+  }
+  noexcept;
+  {
+    early_exit ==
+        bool(null_scc_edge_found_event(+edge_index, +from_node_index,
+                                       +from_scc_index, +to_node_index))
+  }
+  noexcept;
+  //
+  { early_exit == bool(null_scc_node_found_event(+from_node_index)) }
+  noexcept;
+  //
+  {
+    early_exit ==
+        bool(scc_node_found_entry_event(+from_node_index, +from_scc_index))
+  }
+  noexcept;
+  {
+    early_exit == bool(scc_node_found_exit_event(
+                      +from_node_index, +from_scc_index, bool(early_exit)))
+  }
+  noexcept;
+}
 {
   auto edge_of_node = edge_of_node_.index_range();
   auto scc_forest = scc_forest_.range();
@@ -162,8 +170,7 @@ calculate_graph_sequenced_components_events(
         break;
       continue;
     }
-    early_exit =
-        bool(scc_node_found_entry_event(+node_index_, +src_scc));
+    early_exit = bool(scc_node_found_entry_event(+node_index_, +src_scc));
 
     if (early_exit)
       break;
@@ -172,27 +179,27 @@ calculate_graph_sequenced_components_events(
       uintlen_t to_index{edge_of_node_.get_edge_to(edge_index)};
       uintlen_t dst_scc = ~uintlen_t(scc_indexies_compl[to_index]);
       if (dst_scc == uintlen_t(-1)) {
-        early_exit = bool(null_scc_edge_found_event(
-            +edge_index, +node_index_, +src_scc, +to_index));
+        early_exit = bool(null_scc_edge_found_event(+edge_index, +node_index_,
+                                                    +src_scc, +to_index));
         if (early_exit)
           break;
         continue;
       }
       if (src_scc == dst_scc) {
-        early_exit = bool(same_scc_edge_found_event(
-            +edge_index, +node_index_, +src_scc, +to_index));
+        early_exit = bool(same_scc_edge_found_event(+edge_index, +node_index_,
+                                                    +src_scc, +to_index));
         if (early_exit)
           break;
         continue;
       }
       early_exit =
-          bool(edge_found_event(+edge_index, +node_index_, +src_scc,
-                                +to_index, +dst_scc, +(in_degree[dst_scc]++)));
+          bool(edge_found_event(+edge_index, +node_index_, +src_scc, +to_index,
+                                +dst_scc, +(in_degree[dst_scc]++)));
       if (early_exit)
         break;
     }
-    early_exit = bool(scc_node_found_exit_event(+node_index_, +src_scc,
-                                                bool(early_exit)));
+    early_exit = bool(
+        scc_node_found_exit_event(+node_index_, +src_scc, bool(early_exit)));
     if (early_exit)
       break;
   }
@@ -432,41 +439,41 @@ calculate_acyclic_graph_topological_sort_events(
 
     auto &&wave_entry_event, auto &&wave_exit_event
 
-    ) noexcept
-  requires requires(uintlen_t node_index, uintlen_t edge_index,
-                    uintlen_t from_index, uintlen_t to_index,
-                    uintlen_t degree_index, bool early_exit,
-                    std::span<const uintlen_t> wave_que,
-                    uintlen_t wave_index_sequence) {
-    { early_exit == bool(node_entry_event(+node_index)) } noexcept;
-    {
-      early_exit == bool(node_exit_event(+node_index, bool(early_exit)))
-    } noexcept;
-    {
-      early_exit == bool(node_found_event(+node_index, +degree_index))
-    } noexcept;
+    ) noexcept requires
+    requires(uintlen_t node_index, uintlen_t edge_index, uintlen_t from_index,
+             uintlen_t to_index, uintlen_t degree_index, bool early_exit,
+             std::span<const uintlen_t> wave_que,
+             uintlen_t wave_index_sequence) {
+  { early_exit == bool(node_entry_event(+node_index)) }
+  noexcept;
+  { early_exit == bool(node_exit_event(+node_index, bool(early_exit))) }
+  noexcept;
+  { early_exit == bool(node_found_event(+node_index, +degree_index)) }
+  noexcept;
 
-    //
+  //
 
-    {
-      early_exit == bool(edge_remove_event(+edge_index, +from_index, +to_index,
-                                           +degree_index))
-    } noexcept;
-
-    {
-      early_exit == bool(edge_found_event(+edge_index, +from_index, +to_index,
-                                          +degree_index))
-    } noexcept;
-
-    //
-    {
-      early_exit == bool(wave_entry_event(+wave_index_sequence, wave_que))
-    } noexcept;
-    {
-      early_exit == bool(wave_exit_event(+wave_index_sequence, wave_que,
-                                         bool(early_exit)))
-    } noexcept;
+  {
+    early_exit == bool(edge_remove_event(+edge_index, +from_index, +to_index,
+                                         +degree_index))
   }
+  noexcept;
+
+  {
+    early_exit == bool(edge_found_event(+edge_index, +from_index, +to_index,
+                                        +degree_index))
+  }
+  noexcept;
+
+  //
+  { early_exit == bool(wave_entry_event(+wave_index_sequence, wave_que)) }
+  noexcept;
+  {
+    early_exit ==
+        bool(wave_exit_event(+wave_index_sequence, wave_que, bool(early_exit)))
+  }
+  noexcept;
+}
 {
   auto edge_of_node_index = edge_of_node_.index_range();
   uintlen_t total_node_count = std::ranges::size(edge_of_node_index);

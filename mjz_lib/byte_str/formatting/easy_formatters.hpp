@@ -69,8 +69,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   };
 
   template <version_t version_v>
-  MJZ_CX_FN easy_output_data_t<version_v> &
-  easy_output_it<version_v>::operator()() noexcept {
+  MJZ_CX_FN easy_output_data_t<version_v>
+      &easy_output_it<version_v>::operator()() noexcept {
     return *ptr;
   }
   template <version_t version_v>
@@ -91,7 +91,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     return *this;
   }
   template <typename T> struct easy_formatter_t {
-    MJZ_MCONSTANT(version_t) version_v {};
+    MJZ_MCONSTANT(version_t) version_v{};
     MJZ_NO_MV_NO_CPY(easy_formatter_t);
     MJZ_CX_FN easy_formatter_t() noexcept = delete;
     MJZ_CX_FN ~easy_formatter_t() noexcept = delete;
@@ -106,26 +106,30 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       requires(F_t obj, const F_t cobj, T &&arg,
                basic_string_view_t<version_v> format_input,
                easy_output_it<version_v> it) {
-        { obj.~F_t() } noexcept;
-        { F_t() } noexcept;
-        { F_t(cobj) } noexcept;
-        { obj = cobj } noexcept;
-        { F_t(std::move(obj)) } noexcept;
-        { obj = std::move(obj) } noexcept;
-        {
-          obj.parse(format_input)
-        } noexcept -> std::same_as<status_view_t<version_v>>;
-        {
-          cobj.format(std::forward<T>(arg), it)
-        } noexcept -> std::same_as<status_view_t<version_v>>;
-      };
+    { obj.~F_t() }
+    noexcept;
+    { F_t() }
+    noexcept;
+    { F_t(cobj) }
+    noexcept;
+    { obj = cobj }
+    noexcept;
+    { F_t(std::move(obj)) }
+    noexcept;
+    { obj = std::move(obj) }
+    noexcept;
+    { obj.parse(format_input) }
+    noexcept->std::same_as<status_view_t<version_v>>;
+    { cobj.format(std::forward<T>(arg), it) }
+    noexcept->std::same_as<status_view_t<version_v>>;
+  };
   template <version_t version_v, typename T>
-  concept easy_formatted_c =
-      easy_formatted_helper_c<version_v, const std::remove_cvref_t<T> &,
-                              easy_formatter_t<std::remove_cvref_t<T>>>;
+  concept easy_formatted_c = easy_formatted_helper_c < version_v,
+          const std::remove_cvref_t<T>
+  &, easy_formatter_t < std::remove_cvref_t < T >>> ;
 
   template <version_t version_v, typename T>
-    requires easy_formatted_c<version_v, T>
+  requires easy_formatted_c<version_v, T>
   struct default_formatter_t<version_v, T, 10> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;

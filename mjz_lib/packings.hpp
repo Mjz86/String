@@ -38,37 +38,35 @@ MJZ_EXPORT namespace mjz {
     T unaligned_data;
 
   public:
-    MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
+    MJZ_CX_FN T *assume_aligned_ptr() &noexcept {
       return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
     }
-    MJZ_CX_FN const T *assume_aligned_ptr() const & noexcept {
+    MJZ_CX_FN const T *assume_aligned_ptr() const &noexcept {
       return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
     }
-    MJZ_CX_FN const T &&assume_aligned() const && noexcept {
+    MJZ_CX_FN const T &&assume_aligned() const &&noexcept {
       return std::move(*assume_aligned_ptr());
     }
-    MJZ_CX_FN T &&assume_aligned() && noexcept {
+    MJZ_CX_FN T &&assume_aligned() &&noexcept {
       return std::move(*assume_aligned_ptr());
     }
-    MJZ_CX_FN const T &assume_aligned() const & noexcept {
+    MJZ_CX_FN const T &assume_aligned() const &noexcept {
       return *assume_aligned_ptr();
     }
-    MJZ_CX_FN T &assume_aligned() & noexcept { return *assume_aligned_ptr(); }
-    MJZ_CX_FN T create_aligned() noexcept
-      requires requires(T obj) {
-        { std::bit_cast<T>(obj) } noexcept -> std::same_as<T>;
-      }
-    {
-      return std::bit_cast<T>(unaligned_data);
+    MJZ_CX_FN T &assume_aligned() &noexcept { return *assume_aligned_ptr(); }
+    MJZ_CX_FN T create_aligned() noexcept requires requires(T obj) {
+      { std::bit_cast<T>(obj) }
+      noexcept->std::same_as<T>;
     }
+    { return std::bit_cast<T>(unaligned_data); }
 
     // abbreviation, careful
-    MJZ_CX_FN const T &AA() const & noexcept { return assume_aligned(); }
-    MJZ_CX_FN const T &&AA() const && noexcept { return assume_aligned(); }
-    MJZ_CX_FN T &&AA() && noexcept { return assume_aligned(); }
-    MJZ_CX_FN T &AA() & noexcept { return assume_aligned(); }
-    MJZ_CX_FN T *AAP() & noexcept { return assume_aligned_ptr(); }
-    MJZ_CX_FN const T *AAP() const & noexcept { return assume_aligned_ptr(); }
+    MJZ_CX_FN const T &AA() const &noexcept { return assume_aligned(); }
+    MJZ_CX_FN const T &&AA() const &&noexcept { return assume_aligned(); }
+    MJZ_CX_FN T &&AA() &&noexcept { return assume_aligned(); }
+    MJZ_CX_FN T &AA() &noexcept { return assume_aligned(); }
+    MJZ_CX_FN T *AAP() &noexcept { return assume_aligned_ptr(); }
+    MJZ_CX_FN const T *AAP() const &noexcept { return assume_aligned_ptr(); }
   };
 
   template <typename T, size_t minsize_> union unaligned_optional_holder_t {
@@ -80,48 +78,46 @@ MJZ_EXPORT namespace mjz {
     T unaligned_data;
 
   public:
-    MJZ_CX_FN T *assume_aligned_dead_ptr() & noexcept {
+    MJZ_CX_FN T *assume_aligned_dead_ptr() &noexcept {
       return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
     }
-    MJZ_CX_FN const T *assume_aligned_dead_ptr() const & noexcept {
+    MJZ_CX_FN const T *assume_aligned_dead_ptr() const &noexcept {
       return mjz::assume_aligned<alignof(T)>(std::addressof(unaligned_data));
     }
-    MJZ_CX_FN T *assume_aligned_dead_ptr() && noexcept = delete;
-    MJZ_CX_FN const T *assume_aligned_dead_ptr() const && noexcept = delete;
+    MJZ_CX_FN T *assume_aligned_dead_ptr() &&noexcept = delete;
+    MJZ_CX_FN const T *assume_aligned_dead_ptr() const &&noexcept = delete;
 
-    MJZ_CX_FN T *assume_aligned_ptr() & noexcept {
+    MJZ_CX_FN T *assume_aligned_ptr() &noexcept {
       return mjz::assume_aligned<alignof(T)>((std::addressof(unaligned_data)));
     }
-    MJZ_CX_FN const T *assume_aligned_ptr() const & noexcept {
+    MJZ_CX_FN const T *assume_aligned_ptr() const &noexcept {
       return mjz::assume_aligned<alignof(T)>((std::addressof(unaligned_data)));
     }
-    MJZ_CX_FN const T &&assume_aligned() const && noexcept {
+    MJZ_CX_FN const T &&assume_aligned() const &&noexcept {
       return std::move(*assume_aligned_ptr());
     }
-    MJZ_CX_FN T &&assume_aligned() && noexcept {
+    MJZ_CX_FN T &&assume_aligned() &&noexcept {
       return std::move(*assume_aligned_ptr());
     }
-    MJZ_CX_FN const T &assume_aligned() const & noexcept {
+    MJZ_CX_FN const T &assume_aligned() const &noexcept {
       return *assume_aligned_ptr();
     }
-    MJZ_CX_FN T &assume_aligned() & noexcept { return *assume_aligned_ptr(); }
-    MJZ_CX_FN T create_aligned() noexcept
-      requires requires(T obj) {
-        { std::bit_cast<T>(obj) } noexcept -> std::same_as<T>;
-      }
-    {
-      return std::bit_cast<T>(unaligned_data);
+    MJZ_CX_FN T &assume_aligned() &noexcept { return *assume_aligned_ptr(); }
+    MJZ_CX_FN T create_aligned() noexcept requires requires(T obj) {
+      { std::bit_cast<T>(obj) }
+      noexcept->std::same_as<T>;
     }
+    { return std::bit_cast<T>(unaligned_data); }
 
     // abbreviation, careful
-    MJZ_CX_FN const T &AA() const & noexcept { return assume_aligned(); }
-    MJZ_CX_FN const T &&AA() const && noexcept {
+    MJZ_CX_FN const T &AA() const &noexcept { return assume_aligned(); }
+    MJZ_CX_FN const T &&AA() const &&noexcept {
       return std::move(assume_aligned());
     }
-    MJZ_CX_FN T &&AA() && noexcept { return std::move(assume_aligned()); }
-    MJZ_CX_FN T &AA() & noexcept { return assume_aligned(); }
-    MJZ_CX_FN T *AAP() & noexcept { return assume_aligned_ptr(); }
-    MJZ_CX_FN const T *AAP() const & noexcept { return assume_aligned_ptr(); }
+    MJZ_CX_FN T &&AA() &&noexcept { return std::move(assume_aligned()); }
+    MJZ_CX_FN T &AA() &noexcept { return assume_aligned(); }
+    MJZ_CX_FN T *AAP() &noexcept { return assume_aligned_ptr(); }
+    MJZ_CX_FN const T *AAP() const &noexcept { return assume_aligned_ptr(); }
   };
   MJZ_PACKING_END_;
 

@@ -90,23 +90,27 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   concept valid_format_c = requires(F_t obj, const F_t cobj, T &&arg,
                                     parse_context_t<version_v> &pctx,
                                     format_context_t<version_v> &fctx) {
-    { obj.~F_t() } noexcept;
-    { F_t() } noexcept;
-    { obj.parse(pctx) } noexcept -> std::same_as<success_t>;
-    {
-      cobj.format(std::forward<T>(arg), fctx)
-    } noexcept -> std::same_as<success_t>;
+    { obj.~F_t() }
+    noexcept;
+    { F_t() }
+    noexcept;
+    { obj.parse(pctx) }
+    noexcept->std::same_as<success_t>;
+    { cobj.format(std::forward<T>(arg), fctx) }
+    noexcept->std::same_as<success_t>;
   };
 
   template <version_t version_v> struct hash_context_t;
   template <typename F_t, typename T, version_t version_v>
   concept named_arg_c = requires(const std::remove_reference_t<T> &s,
                                  hash_context_t<version_v> &ctx) {
-    { F_t ::arg_name(s, ctx) } noexcept -> std::same_as<success_t>;
+    { F_t ::arg_name(s, ctx) }
+    noexcept->std::same_as<success_t>;
   };
   template <typename F_t, typename T, version_t version_v>
-  concept sname_arg_c = requires(hash_context_t<version_v> &ctx) {
-    { F_t ::arg_name(ctx) } noexcept -> std::same_as<success_t>;
+  concept sname_arg_c = requires(hash_context_t<version_v> & ctx) {
+    { F_t ::arg_name(ctx) }
+    noexcept->std::same_as<success_t>;
   };
 
   template <version_t version_v, typename T> struct formatter_t {
@@ -152,18 +156,19 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
                                                     priority + 1>::type;
   };
   template <version_t version_v, typename T, uint32_t priority>
-    requires(256 < priority)
-  struct default_formatter_slector_helper_t<version_v, T, priority> {
+  requires(256 <
+           priority) struct default_formatter_slector_helper_t<version_v, T,
+                                                               priority> {
     using type = formatter_t<version_v, T>;
   };
   template <version_t version_v, typename T>
-    requires valid_format_c<formatter_t<version_v, T>, version_v, T>
+  requires valid_format_c<formatter_t<version_v, T>, version_v, T>
   struct default_formatter_slector_helper_t<version_v, T, 0> {
     using type = formatter_t<version_v, T>;
   };
   template <version_t version_v, typename T, uint32_t priority>
-    requires valid_format_c<default_formatter_t<version_v, T, priority>,
-                            version_v, T>
+  requires valid_format_c<default_formatter_t<version_v, T, priority>,
+                          version_v, T>
   struct default_formatter_slector_helper_t<version_v, T, priority> {
     using type = default_formatter_t<version_v, T, priority>;
   };
@@ -180,7 +185,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <version_t version_v>
   using parse_and_format_fn_t =
       success_t (*)(typeless_arg_ref_t<version_v> storage,
-                    parse_and_format_data_t<version_v> &fn_data,
+                    parse_and_format_data_t<version_v> & fn_data,
                     cx_formatter_storage_ref_t<version_v> cx_store) noexcept;
 
   template <version_t version_v> struct argument_name_t {
@@ -652,10 +657,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   template <typename T, version_t version_v>
   concept is_formatted_exact_c =
       valid_format_c<formatter_type_t<version_v, T>, version_v, T> ||
-      valid_format_c<formatter_type_t<version_v, const T>, version_v,
-                     const T> ||
-      valid_format_c<formatter_type_t<version_v, const T &>, version_v,
-                     const T &>;
+      valid_format_c < formatter_type_t<version_v, const T>,
+          version_v,
+  const T > || valid_format_c<formatter_type_t<version_v, const T &>, version_v,
+                              const T &>;
 
   template <version_t version_v> struct format_context_t {
     using stack_alloc_t =
@@ -1148,7 +1153,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
           optional_ref_t<std::remove_reference_t<type_t>>{ref},
           alias_t<void (*)(type_t)>{}, cxref);
     }
-    MJZ_CX_FN typeless_ref operator+() & noexcept {
+    MJZ_CX_FN typeless_ref operator+() &noexcept {
       typeless_ref ref{};
       ref.parse_and_format = &parse_and_format_outer_fn;
       MJZ_IF_CONSTEVAL { ref.m.compile_time_only_raw_ptr = this; }
@@ -1184,20 +1189,20 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   };
 
   template <typename T, version_t version_v>
-  concept bit_cast_able_and_small_c =
-      requires() {
-        {
-          format_context_t<version_v>::template formatter_type<
-              T>::can_bitcast_optimize_v
-        } -> std::convertible_to<bool>;
-        requires(!!format_context_t<version_v>::template formatter_type<
-                  T>::can_bitcast_optimize_v);
-      } && is_totaly_trivial_after_init<T> && !std::is_array_v<T> &&
+  concept bit_cast_able_and_small_c = requires() {
+    {
+      format_context_t<version_v>::template formatter_type<
+          T>::can_bitcast_optimize_v
+      } -> std::convertible_to<bool>;
+    requires(!!format_context_t<version_v>::template formatter_type<
+              T>::can_bitcast_optimize_v);
+  }
+  &&is_totaly_trivial_after_init<T> && !std::is_array_v<T> &&
       sizeof(T) <= sizeof(void *) && alignof(T) <= alignof(void *) &&
       requires(T obj, std::array<char, sizeof(T)> buf) {
-        std::bit_cast<std::array<char, sizeof(T)>>(obj);
-        std::bit_cast<T>(buf);
-      };
+    std::bit_cast<std::array<char, sizeof(T)>>(obj);
+    std::bit_cast<T>(buf);
+  };
 
   template <typename T, version_t version_v>
   concept can_have_cx_formatter_c = can_have_cx_formatter_F_c_<
@@ -1216,15 +1221,15 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     {
       format_context_t<version_v>::template formatter_type<
           T>::no_perfect_forwarding_v
-    } -> std::convertible_to<bool>;
+      } -> std::convertible_to<bool>;
     requires(!!format_context_t<version_v>::template formatter_type<
               T>::no_perfect_forwarding_v);
   };
   template <version_t version_v, typename type_t>
-    requires(
-        bit_cast_able_and_small_c<std::remove_cvref_t<type_t>, version_v> &&
-        !std::is_volatile_v<type_t>)
-  struct the_typed_arg_ref_t<version_v, type_t> : void_struct_t {
+  requires(
+      bit_cast_able_and_small_c<std::remove_cvref_t<type_t>, version_v> &&
+      !std::is_volatile_v<type_t>) struct the_typed_arg_ref_t<version_v, type_t>
+      : void_struct_t {
 
     using Type_t = type_t;
     using typeless_ref = typeless_arg_ref_t<version_v>;
@@ -1245,7 +1250,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
             alias_t<void (*)(type_t)>{}, cxref);
       }
     }
-    MJZ_CX_FN typeless_ref operator+() & noexcept {
+    MJZ_CX_FN typeless_ref operator+() &noexcept {
       typeless_ref ref{};
       ref.parse_and_format = &parse_and_format_outer_fn;
       ref.m.raw_val[0] = 0;
@@ -1292,12 +1297,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   concept decay_optimize_to_c = requires(T obj) {
     typename formatter_type_helper_t<T, version_v>::decay_optimize_to_t;
     requires default_formatter_has_decay_optimization_c<T, version_v> ||
-                 !requires() {
-                   {
-                     default_formatter_t(
-                         formatter_type_helper_t<T, version_v>{})
-                   };
-                 };
+        !requires() {
+      {default_formatter_t(formatter_type_helper_t<T, version_v>{})};
+    };
   };
 
   template <version_t version_v, typename T>
@@ -1305,7 +1307,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     using type = T;
   };
   template <version_t version_v, typename T>
-    requires decay_optimize_to_c<T, version_v>
+  requires decay_optimize_to_c<T, version_v>
   struct typed_arg_ref_decay_type_helper_t<version_v, T> {
     using type =
         typename formatter_type_helper_t<T, version_v>::decay_optimize_to_t;
@@ -1343,21 +1345,19 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         std::forward<T>(arg));
   }
   template <version_t version_v, typename T>
-    requires(partial_same_as<typed_arg_ref_final_type_t<version_v, T>, T>)
-  MJZ_CX_FN typed_arg_ref_final_type_t<version_v, T> to_final_type_fn(
-      T && arg) noexcept {
-    return std::forward<T>(arg);
-  }
+  requires(partial_same_as<typed_arg_ref_final_type_t<version_v, T>, T>)
+      MJZ_CX_FN typed_arg_ref_final_type_t<version_v, T>
+      to_final_type_fn(T && arg)
+  noexcept { return std::forward<T>(arg); }
 
   template <version_t version_v, uintlen_t num_of_args>
   struct basic_format_args_t : void_struct_t {
     raw_storage_ref_u<version_v> data_of_args[num_of_args];
     const parse_and_format_fn_t<version_v> *parse_and_format_fn_of_args;
-    MJZ_MCONSTANT(uintlen_t) count_args { num_of_args };
+    MJZ_MCONSTANT(uintlen_t) count_args{num_of_args};
 
     template <typename... Ts>
-      requires(sizeof...(Ts) == num_of_args)
-    struct func_storage_t {
+    requires(sizeof...(Ts) == num_of_args) struct func_storage_t {
       MJZ_DISABLE_ALL_WANINGS_START_;
       MJZ_MCONSTANT(auto)
       functions{std::array{parse_and_format_fn_t<version_v>{
@@ -1367,9 +1367,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     };
 
     template <std::size_t... I>
-      requires(sizeof...(I) == num_of_args)
-    MJZ_CX_FN basic_format_args_t(basic_format_args_cx_tag, auto &tuple,
-                                  std::index_sequence<I...>) noexcept
+    requires(sizeof...(I) == num_of_args) MJZ_CX_FN
+        basic_format_args_t(basic_format_args_cx_tag, auto &tuple,
+                            std::index_sequence<I...>)
+    noexcept
         : data_of_args{(+std::get<I>(tuple)).m...},
           parse_and_format_fn_of_args{} {
       parse_and_format_fn_of_args =
@@ -1378,18 +1379,17 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
               [0];
     }
     template <typename... Ts>
-      requires(sizeof...(Ts) == num_of_args)
-    MJZ_CX_FN basic_format_args_t(basic_format_args_ncx_tag,
-                                  Ts &&...args) noexcept
+    requires(sizeof...(Ts) == num_of_args) MJZ_CX_FN
+        basic_format_args_t(basic_format_args_ncx_tag, Ts &&...args)
+    noexcept
         : data_of_args{(-original_typed_arg_ref_t<version_v, Ts>(args)).m...},
           parse_and_format_fn_of_args{} {
       parse_and_format_fn_of_args = &func_storage_t<Ts...>::functions[0];
     }
     template <typename... Ts>
-      requires(sizeof...(Ts) == num_of_args)
-    MJZ_CX_FN basic_format_args_t(basic_format_args_parse_tag,
-                                  void (*)(Ts...)) noexcept
-        : data_of_args{}, parse_and_format_fn_of_args{} {
+    requires(sizeof...(Ts) == num_of_args) MJZ_CX_FN
+        basic_format_args_t(basic_format_args_parse_tag, void (*)(Ts...))
+    noexcept : data_of_args{}, parse_and_format_fn_of_args{} {
       parse_and_format_fn_of_args = &func_storage_t<Ts...>::functions[0];
     }
   };
@@ -1400,9 +1400,9 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     tuple_t<original_typed_arg_ref_t<version_v, Ts>...> arg_typed;
     basic_format_args_t<version_v, sizeof...(Ts)> arg_no_typed;
     MJZ_CX_FN basic_cx_format_args_t(Ts &&...args) noexcept
-        : arg_typed{args...},
-          arg_no_typed{basic_format_args_cx_tag{}, arg_typed,
-                       std::make_index_sequence<sizeof...(Ts)>()} {}
+        : arg_typed{args...}, arg_no_typed{
+                                  basic_format_args_cx_tag{}, arg_typed,
+                                  std::make_index_sequence<sizeof...(Ts)>()} {}
   };
 
   /*
@@ -1423,10 +1423,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     MJZ_DISABLE_ALL_WANINGS_END_;
   }
   template <version_t version_v, class fn_t, typename... Ts>
-    requires(callable_c<fn_t &, void(Ts) noexcept> && ...)
-  MJZ_CX_FN success_t visit_heper_pv(
-      fn_t & noexcept_with_void_return_fn,
-      typeless_arg_ref_t<version_v> ref) noexcept {
+  requires(callable_c<fn_t &, void(Ts) noexcept> && ...) MJZ_CX_FN success_t
+  visit_heper_pv(fn_t & noexcept_with_void_return_fn,
+                 typeless_arg_ref_t<version_v> ref)
+  noexcept {
     return (([&]() noexcept -> success_t {
               if (!is_type_heper_pv<version_v, Ts>(ref))
                 return false;
@@ -1647,13 +1647,13 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const parse_and_format_data_t<version_v> &
-  base_context_t<version_v>::main_ctx() const noexcept {
+  MJZ_CX_FN const parse_and_format_data_t<version_v>
+      &base_context_t<version_v>::main_ctx() const noexcept {
     return static_cast<const parse_and_format_data_t<version_v> &>(*this);
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_and_format_data_t<version_v> &
-  base_context_t<version_v>::main_ctx() noexcept {
+  MJZ_CX_FN parse_and_format_data_t<version_v>
+      &base_context_t<version_v>::main_ctx() noexcept {
     return static_cast<parse_and_format_data_t<version_v> &>(*this);
   }
 
@@ -1671,188 +1671,188 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const parse_and_format_data_t<version_v> &
-  format_context_t<version_v>::main_ctx() const noexcept {
+  MJZ_CX_FN const parse_and_format_data_t<version_v>
+      &format_context_t<version_v>::main_ctx() const noexcept {
     return static_cast<const parse_and_format_data_t<version_v> &>(*this);
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_and_format_data_t<version_v> &
-  format_context_t<version_v>::main_ctx() noexcept {
+  MJZ_CX_FN parse_and_format_data_t<version_v>
+      &format_context_t<version_v>::main_ctx() noexcept {
     return static_cast<parse_and_format_data_t<version_v> &>(*this);
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const parse_and_format_data_t<version_v> &
-  hash_context_t<version_v>::main_ctx() const noexcept {
+  MJZ_CX_FN const parse_and_format_data_t<version_v>
+      &hash_context_t<version_v>::main_ctx() const noexcept {
     return static_cast<const parse_and_format_data_t<version_v> &>(*this);
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_and_format_data_t<version_v> &
-  hash_context_t<version_v>::main_ctx() noexcept {
+  MJZ_CX_FN parse_and_format_data_t<version_v>
+      &hash_context_t<version_v>::main_ctx() noexcept {
     return static_cast<parse_and_format_data_t<version_v> &>(*this);
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const parse_context_t<version_v> &
-  base_context_t<version_v>::parse_ctx() const noexcept {
+  MJZ_CX_FN const parse_context_t<version_v>
+      &base_context_t<version_v>::parse_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_context_t<version_v> &
-  base_context_t<version_v>::parse_ctx() noexcept {
+  MJZ_CX_FN parse_context_t<version_v>
+      &base_context_t<version_v>::parse_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const hash_context_t<version_v> &
-  base_context_t<version_v>::hash_ctx() const noexcept {
+  MJZ_CX_FN const hash_context_t<version_v>
+      &base_context_t<version_v>::hash_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN hash_context_t<version_v> &
-  base_context_t<version_v>::hash_ctx() noexcept {
+  MJZ_CX_FN hash_context_t<version_v>
+      &base_context_t<version_v>::hash_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const format_context_t<version_v> &
-  base_context_t<version_v>::format_ctx() const noexcept {
+  MJZ_CX_FN const format_context_t<version_v>
+      &base_context_t<version_v>::format_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN format_context_t<version_v> &
-  base_context_t<version_v>::format_ctx() noexcept {
+  MJZ_CX_FN format_context_t<version_v>
+      &base_context_t<version_v>::format_ctx() noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN const parse_context_t<version_v> &
-  parse_context_t<version_v>::parse_ctx() const noexcept {
+  MJZ_CX_FN const parse_context_t<version_v>
+      &parse_context_t<version_v>::parse_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_context_t<version_v> &
-  parse_context_t<version_v>::parse_ctx() noexcept {
+  MJZ_CX_FN parse_context_t<version_v>
+      &parse_context_t<version_v>::parse_ctx() noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN const base_context_t<version_v> &
-  parse_context_t<version_v>::base_ctx() const noexcept {
+  MJZ_CX_FN const base_context_t<version_v>
+      &parse_context_t<version_v>::base_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN base_context_t<version_v> &
-  parse_context_t<version_v>::base_ctx() noexcept {
+  MJZ_CX_FN base_context_t<version_v>
+      &parse_context_t<version_v>::base_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const hash_context_t<version_v> &
-  parse_context_t<version_v>::hash_ctx() const noexcept {
+  MJZ_CX_FN const hash_context_t<version_v>
+      &parse_context_t<version_v>::hash_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN hash_context_t<version_v> &
-  parse_context_t<version_v>::hash_ctx() noexcept {
+  MJZ_CX_FN hash_context_t<version_v>
+      &parse_context_t<version_v>::hash_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const format_context_t<version_v> &
-  parse_context_t<version_v>::format_ctx() const noexcept {
+  MJZ_CX_FN const format_context_t<version_v>
+      &parse_context_t<version_v>::format_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN format_context_t<version_v> &
-  parse_context_t<version_v>::format_ctx() noexcept {
+  MJZ_CX_FN format_context_t<version_v>
+      &parse_context_t<version_v>::format_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const parse_context_t<version_v> &
-  format_context_t<version_v>::parse_ctx() const noexcept {
+  MJZ_CX_FN const parse_context_t<version_v>
+      &format_context_t<version_v>::parse_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_context_t<version_v> &
-  format_context_t<version_v>::parse_ctx() noexcept {
+  MJZ_CX_FN parse_context_t<version_v>
+      &format_context_t<version_v>::parse_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const base_context_t<version_v> &
-  format_context_t<version_v>::base_ctx() const noexcept {
+  MJZ_CX_FN const base_context_t<version_v>
+      &format_context_t<version_v>::base_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN base_context_t<version_v> &
-  format_context_t<version_v>::base_ctx() noexcept {
+  MJZ_CX_FN base_context_t<version_v>
+      &format_context_t<version_v>::base_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const hash_context_t<version_v> &
-  format_context_t<version_v>::hash_ctx() const noexcept {
+  MJZ_CX_FN const hash_context_t<version_v>
+      &format_context_t<version_v>::hash_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN hash_context_t<version_v> &
-  format_context_t<version_v>::hash_ctx() noexcept {
+  MJZ_CX_FN hash_context_t<version_v>
+      &format_context_t<version_v>::hash_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const format_context_t<version_v> &
-  format_context_t<version_v>::format_ctx() const noexcept {
+  MJZ_CX_FN const format_context_t<version_v>
+      &format_context_t<version_v>::format_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN format_context_t<version_v> &
-  format_context_t<version_v>::format_ctx() noexcept {
+  MJZ_CX_FN format_context_t<version_v>
+      &format_context_t<version_v>::format_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const parse_context_t<version_v> &
-  hash_context_t<version_v>::parse_ctx() const noexcept {
+  MJZ_CX_FN const parse_context_t<version_v>
+      &hash_context_t<version_v>::parse_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN parse_context_t<version_v> &
-  hash_context_t<version_v>::parse_ctx() noexcept {
+  MJZ_CX_FN parse_context_t<version_v>
+      &hash_context_t<version_v>::parse_ctx() noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN const base_context_t<version_v> &
-  hash_context_t<version_v>::base_ctx() const noexcept {
+  MJZ_CX_FN const base_context_t<version_v>
+      &hash_context_t<version_v>::base_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN base_context_t<version_v> &
-  base_context_t<version_v>::base_ctx() noexcept {
+  MJZ_CX_FN base_context_t<version_v>
+      &base_context_t<version_v>::base_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const hash_context_t<version_v> &
-  hash_context_t<version_v>::hash_ctx() const noexcept {
+  MJZ_CX_FN const hash_context_t<version_v>
+      &hash_context_t<version_v>::hash_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN hash_context_t<version_v> &
-  hash_context_t<version_v>::hash_ctx() noexcept {
+  MJZ_CX_FN hash_context_t<version_v>
+      &hash_context_t<version_v>::hash_ctx() noexcept {
     return main_ctx();
   }
 
   template <version_t version_v>
-  MJZ_CX_FN const format_context_t<version_v> &
-  hash_context_t<version_v>::format_ctx() const noexcept {
+  MJZ_CX_FN const format_context_t<version_v>
+      &hash_context_t<version_v>::format_ctx() const noexcept {
     return main_ctx();
   }
   template <version_t version_v>
-  MJZ_CX_FN format_context_t<version_v> &
-  hash_context_t<version_v>::format_ctx() noexcept {
+  MJZ_CX_FN format_context_t<version_v>
+      &hash_context_t<version_v>::format_ctx() noexcept {
     return main_ctx();
   }
 
-}; // namespace mjz::bstr_ns::format_ns
+};     // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_base_abi_LIB_HPP_FILE_

@@ -871,9 +871,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
   }
   template <class T, version_t version_v>
   concept as_basic_format_specs_formatted_c = requires(const T &obj) {
-    {
-      obj.basic_format_specs_formatted_pv_fn_(unsafe_ns::unsafe_v)
-    } noexcept -> basic_format_specs_formatted_c<version_v>;
+    { obj.basic_format_specs_formatted_pv_fn_(unsafe_ns::unsafe_v) }
+    noexcept->basic_format_specs_formatted_c<version_v>;
   };
 
   template <version_t version_v, as_basic_format_specs_formatted_c<version_v> T>
@@ -905,5 +904,5 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     };
   };
 
-}; // namespace mjz::bstr_ns::format_ns
+};     // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_basic_formatters_HPP_FILE_

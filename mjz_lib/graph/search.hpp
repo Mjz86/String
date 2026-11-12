@@ -42,13 +42,16 @@ calculate_breadth_first_levels_and_parent(
     uninit_bfs_parent_t &&uninit_bfs_parent,
     const basic_forest_t<version_v, R> &edge_of_node_, RIR_t &&visit_order,
     auto &&entry_callback, auto &&tree_edge_callback,
-    auto &&visited_edge_callback) noexcept
-  requires requires(uintlen_t parent, uintlen_t entry_level, uintlen_t node,
-                    uintlen_t adj) {
-    { (void)entry_callback(+parent, +node, +entry_level) } noexcept;
-    { (void)tree_edge_callback(+node, +adj) } noexcept;
-    { (void)visited_edge_callback(+node, +adj) } noexcept;
-  }
+    auto &&visited_edge_callback) noexcept requires
+    requires(uintlen_t parent, uintlen_t entry_level, uintlen_t node,
+             uintlen_t adj) {
+  { (void)entry_callback(+parent, +node, +entry_level) }
+  noexcept;
+  { (void)tree_edge_callback(+node, +adj) }
+  noexcept;
+  { (void)visited_edge_callback(+node, +adj) }
+  noexcept;
+}
 {
 
   auto adjs = edge_of_node_.range();
@@ -92,12 +95,15 @@ MJZ_CX_FN pair_t<uintlen_t, uintlen_t> calculate_breadth_first_levels_no_parent(
     zero_init_level_t &&zero_init_level, uninit_bfs_order_t &&uninit_bfs_order,
     const basic_forest_t<version_v, R> &edge_of_node_, RIR_t &&visit_order,
     auto &&entry_callback, auto &&tree_edge_callback,
-    auto &&visited_edge_callback) noexcept
-  requires requires(uintlen_t entry_level, uintlen_t node, uintlen_t adj) {
-    { (void)entry_callback(+node, +entry_level) } noexcept;
-    { (void)tree_edge_callback(+node, +adj) } noexcept;
-    { (void)visited_edge_callback(+node, +adj) } noexcept;
-  }
+    auto &&visited_edge_callback) noexcept requires
+    requires(uintlen_t entry_level, uintlen_t node, uintlen_t adj) {
+  { (void)entry_callback(+node, +entry_level) }
+  noexcept;
+  { (void)tree_edge_callback(+node, +adj) }
+  noexcept;
+  { (void)visited_edge_callback(+node, +adj) }
+  noexcept;
+}
 {
 
   auto adjs = edge_of_node_.range();
@@ -144,16 +150,22 @@ MJZ_CX_FN uintlen_t calculate_depth_first_intervals(
     const basic_forest_t<version_v, R> &edge_of_node_, RIR_t &&visit_order,
     auto &&entry_callback, auto &&tree_edge_callback, auto &&back_edge_callback,
     auto &&cross_edge_callback, auto &&forward_edge_callback,
-    auto &&exit_callback) noexcept
-  requires requires(uintlen_t parent, uintlen_t entry_time, uintlen_t exit_time,
-                    uintlen_t node, uintlen_t adj) {
-    { (void)entry_callback(+parent, +node, +entry_time) } noexcept;
-    { (void)tree_edge_callback(+node, +adj) } noexcept;
-    { (void)back_edge_callback(+node, +adj) } noexcept;
-    { (void)cross_edge_callback(+node, +adj) } noexcept;
-    { (void)forward_edge_callback(+node, +adj) } noexcept;
-    { (void)exit_callback(+parent, +node, +exit_time) } noexcept;
-  }
+    auto &&exit_callback) noexcept requires
+    requires(uintlen_t parent, uintlen_t entry_time, uintlen_t exit_time,
+             uintlen_t node, uintlen_t adj) {
+  { (void)entry_callback(+parent, +node, +entry_time) }
+  noexcept;
+  { (void)tree_edge_callback(+node, +adj) }
+  noexcept;
+  { (void)back_edge_callback(+node, +adj) }
+  noexcept;
+  { (void)cross_edge_callback(+node, +adj) }
+  noexcept;
+  { (void)forward_edge_callback(+node, +adj) }
+  noexcept;
+  { (void)exit_callback(+parent, +node, +exit_time) }
+  noexcept;
+}
 {
 
   auto adjs = edge_of_node_.range();
@@ -388,5 +400,5 @@ MJZ_CX_FN uintlen_t count_unreducibles_given_dfs_and_dominance_intervals(
       depth_first_interval_begin, depth_first_interval_end, edge_of_node_,
       visit_range, [](auto &&...) noexcept {}, [](auto &&...) noexcept {});
 }
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_search_FILE_

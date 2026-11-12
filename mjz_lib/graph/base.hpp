@@ -37,16 +37,14 @@ template <typename T, version_t version_v>
 concept usable_range_exact_c =
     std::ranges::random_access_range<T> && std::ranges::sized_range<T>;
 template <typename T, class U, version_t version_v>
-concept usable_type_range_exact_c =
-    usable_range_exact_c<T, version_v> &&
+concept usable_type_range_exact_c = usable_range_exact_c<T, version_v> &&
     std::convertible_to<std::ranges::range_reference_t<T>, U>;
 template <typename T, class U, version_t version_v>
 concept usable_type_range_c =
     usable_type_range_exact_c<std::remove_cvref_t<T>, U, version_v>;
 
 template <typename T, version_t version_v>
-concept index_range_of_c =
-    std::ranges::range<T> &&
+concept index_range_of_c = std::ranges::range<T> &&
     std::convertible_to<std::ranges::range_reference_t<T>, uintlen_t>;
 
 template <typename T, version_t version_v>

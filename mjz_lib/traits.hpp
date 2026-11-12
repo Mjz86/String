@@ -29,23 +29,25 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz {
 
   template <class R, class T>
-  concept conv_range_of_c =
-      std::ranges::range<R> &&
+  concept conv_range_of_c = std::ranges::range<R> &&
       std::convertible_to<std::ranges::range_reference_t<R>, T>;
   using nullopt_t = std::nullopt_t;
   MJZ_FCONSTANT(nullopt_t) nullopt{std::nullopt};
   template <class T>
   concept noexcept_destructable_c = requires(T obj) {
-    { obj.~T() } noexcept;
+    { obj.~T() }
+    noexcept;
   };
 
   template <class T, typename... Ts>
-  concept noexcept_constructable_c = requires(Ts &&...args) {
-    { T(std::forward<Ts>(args)...) } noexcept;
+  concept noexcept_constructable_c = requires(Ts && ...args) {
+    { T(std::forward<Ts>(args)...) }
+    noexcept;
   };
   template <class T, typename U>
-  concept noexcept_assignment_c = requires(T obj, U &&arg) {
-    { obj = std::forward<U>(arg) } noexcept -> std::convertible_to<T &>;
+  concept noexcept_assignment_c = requires(T obj, U && arg) {
+    { obj = std::forward<U>(arg) }
+    noexcept->std::convertible_to<T &>;
   };
   template <class T, typename... Ts>
   concept noexcept_de_or_con_structable_c =
@@ -91,10 +93,11 @@ MJZ_EXPORT namespace mjz {
   concept is_totaly_trivial_subs = requires(T t) {
     requires is_totaly_trivial_sub_subs<T, T, Us...>;
     requires is_totaly_trivial_sub_subs<T, const T, Us...>;
-    requires is_totaly_trivial_sub_subs<T, std::remove_cvref_t<T> &, Us...>;
+    requires is_totaly_trivial_sub_subs < T, std::remove_cvref_t<T>
+    &, Us... > ;
     requires is_totaly_trivial_sub_subs<T, std::remove_cvref_t<T> &&, Us...>;
-    requires is_totaly_trivial_sub_subs<T, const std::remove_cvref_t<T> &,
-                                        Us...>;
+    requires is_totaly_trivial_sub_subs < T, const std::remove_cvref_t<T>
+    &, Us... > ;
     requires is_totaly_trivial_sub_subs<T, const std::remove_cvref_t<T> &&,
                                         Us...>;
   };
@@ -102,9 +105,11 @@ MJZ_EXPORT namespace mjz {
   concept is_totaly_trivial_sub = requires(T t) {
     requires is_totaly_trivial_sub_sub<T, T>;
     requires is_totaly_trivial_sub_sub<T, const T>;
-    requires is_totaly_trivial_sub_sub<T, std::remove_cvref_t<T> &>;
+    requires is_totaly_trivial_sub_sub < T, std::remove_cvref_t<T>
+    & > ;
     requires is_totaly_trivial_sub_sub<T, std::remove_cvref_t<T> &&>;
-    requires is_totaly_trivial_sub_sub<T, const std::remove_cvref_t<T> &>;
+    requires is_totaly_trivial_sub_sub < T, const std::remove_cvref_t<T>
+    & > ;
     requires is_totaly_trivial_sub_sub<T, const std::remove_cvref_t<T> &&>;
   };
   template <typename T, typename... Us>
@@ -112,26 +117,36 @@ MJZ_EXPORT namespace mjz {
     requires is_totaly_trivial_subs<T, T, Us...>;
     {
       T {}
-    } noexcept;
-    { t.~T() } noexcept;
+    }
+    noexcept;
+    { t.~T() }
+    noexcept;
     {
       t = T {}
-    } noexcept;
-    { t = t } noexcept;
-    { t = ct } noexcept;
+    }
+    noexcept;
+    { t = t }
+    noexcept;
+    { t = ct }
+    noexcept;
   };
   template <typename T, typename... Us>
   concept is_totaly_trivial = requires(T t, const T ct) {
     requires is_totaly_trivial_sub<T, T>;
     {
       T {}
-    } noexcept;
-    { t.~T() } noexcept;
+    }
+    noexcept;
+    { t.~T() }
+    noexcept;
     {
       t = T {}
-    } noexcept;
-    { t = t } noexcept;
-    { t = ct } noexcept;
+    }
+    noexcept;
+    { t = t }
+    noexcept;
+    { t = ct }
+    noexcept;
   };
 
   template <typename T>
@@ -142,13 +157,16 @@ MJZ_EXPORT namespace mjz {
     requires std::is_trivially_copy_assignable_v<T>;
     requires std::is_trivially_move_assignable_v<T>;
     requires std::is_trivially_destructible_v<T>;
-    { t.~T() } noexcept;
-    { t = t } noexcept;
-    { t = ct } noexcept;
+    { t.~T() }
+    noexcept;
+    { t = t }
+    noexcept;
+    { t = ct }
+    noexcept;
   };
 
   template <auto integral_constant_maker_lambda>
-    requires requires { integral_constant_maker_lambda(); }
+  requires requires { integral_constant_maker_lambda(); }
   struct mjz_integral_constant_t {
     MJZ_MCONSTANT(auto) value = integral_constant_maker_lambda();
     using value_type = decltype(value);
@@ -198,34 +216,32 @@ MJZ_EXPORT namespace mjz {
   struct is_callable_helper : std::false_type {};
   template <typename fn_t, bool strict_return_v, typename ret_t,
             typename... args_t>
-    requires requires(fn_t f, args_t... args) {
-      requires !strict_return_v || requires() {
-        {
-          std::forward<fn_t>(f)(std::forward<args_t>(args)...)
+  requires requires(fn_t f, args_t... args) {
+    requires !strict_return_v || requires() {
+      {
+        std::forward<fn_t>(f)(std::forward<args_t>(args)...)
         } -> std::same_as<ret_t>;
-      };
-      requires strict_return_v || requires() {
-        {
-          std::forward<fn_t>(f)(std::forward<args_t>(args)...)
+    };
+    requires strict_return_v || requires() {
+      {
+        std::forward<fn_t>(f)(std::forward<args_t>(args)...)
         } -> std::convertible_to<ret_t>;
-      };
-    }
+    };
+  }
   struct is_callable_helper<fn_t, ret_t(args_t...), strict_return_v>
       : std::true_type {};
   template <typename fn_t, bool strict_return_v, typename ret_t,
             typename... args_t>
-    requires requires(fn_t f, args_t... args) {
-      requires !strict_return_v || requires() {
-        {
-          std::forward<fn_t>(f)(std::forward<args_t>(args)...)
-        } noexcept -> std::same_as<ret_t>;
-      };
-      requires strict_return_v || requires() {
-        {
-          std::forward<fn_t>(f)(std::forward<args_t>(args)...)
-        } noexcept -> std::convertible_to<ret_t>;
-      };
-    }
+  requires requires(fn_t f, args_t... args) {
+    requires !strict_return_v || requires() {
+      { std::forward<fn_t>(f)(std::forward<args_t>(args)...) }
+      noexcept->std::same_as<ret_t>;
+    };
+    requires strict_return_v || requires() {
+      { std::forward<fn_t>(f)(std::forward<args_t>(args)...) }
+      noexcept->std::convertible_to<ret_t>;
+    };
+  }
   struct is_callable_helper<fn_t, ret_t(args_t...) noexcept, strict_return_v>
       : std::true_type {};
   template <typename T, typename FN_t>
@@ -444,5 +460,5 @@ MJZ_EXPORT namespace mjz {
 
   template <typename T>
   using total_decay_t = std::remove_cvref_t<std::decay_t<T>>;
-}; // namespace mjz
+};     // namespace mjz
 #endif // MJZ_TRAIS_LIB_HPP_FILE_

@@ -33,9 +33,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   };
   template <version_t version_v, basic_str_props_t<version_v> props_v,
             uintlen_t stack_cap>
-    requires requires() {
-      requires(basic_str_t<version_v, props_v>::sso_cap < stack_cap);
-    }
+  requires requires() {
+    requires(basic_str_t<version_v, props_v>::sso_cap < stack_cap);
+  }
   struct implace_string_data_t<version_v, props_v, stack_cap>
       : public basic_str_t<version_v, props_v> {
   protected:
@@ -100,14 +100,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN std::optional<owned_stack_buffer_t<version_v>>
     my_stack_buffer() noexcept {
       return [&]<int = 0>() noexcept
-                 -> std::optional<owned_stack_buffer_t<version_v>> {
+          ->std::optional<owned_stack_buffer_t<version_v>> {
         if constexpr (requires() { this->m_stack_buffer_; }) {
           this->m_stack_buffer_.data[0] = 0;
           auto temp = std::span(this->m_stack_buffer_.data);
           return owned_stack_buffer_t<version_v>{temp.data(), temp.size()};
         }
         return {};
-      }();
+      }
+      ();
     }
     MJZ_CX_FN str_t &m_str() noexcept { return *this; }
     MJZ_CX_FN const str_t &m_str() const noexcept { return *this; }
@@ -150,12 +151,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                         totally_empty_type) {}
 
     template <class U>
-    MJZ_CX_FN implace_str_t(U &&source_, void_struct_t) noexcept
-      requires requires() {
-        requires std::same_as<U, std::remove_cvref_t<U>>;
-        typename U::implace_str_t_unique_tag_;
-      }
-        : implace_str_t() {
+    MJZ_CX_FN implace_str_t(U &&source_, void_struct_t) noexcept requires
+        requires() {
+      requires std::same_as<U, std::remove_cvref_t<U>>;
+      typename U::implace_str_t_unique_tag_;
+    } : implace_str_t() {
       m_str().reset_to_error_on_fail(
           std::move(source_).move_to_dest(m_str()),
           "[Error]implace_str_t::implace_str_t( "
@@ -163,12 +163,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           "string init");
     }
     template <class U>
-    MJZ_CX_FN implace_str_t(U &&source_, void_struct_t) noexcept
-      requires requires() {
-        requires std::same_as<U, std::remove_reference_t<U> &>;
-        typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
-      }
-        : implace_str_t() {
+    MJZ_CX_FN implace_str_t(U &&source_, void_struct_t) noexcept requires
+        requires() {
+      requires std::same_as < U, std::remove_reference_t<U>
+      & > ;
+      typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
+    } : implace_str_t() {
       m_str().reset_to_error_on_fail(
           m_str().assign(source_.m_str()),
           "[Error]implace_str_t::implace_str_t( "
@@ -178,10 +178,10 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <class U>
-      requires requires() {
-        requires std::same_as<U, std::remove_cvref_t<U>>;
-        typename U::implace_str_t_unique_tag_;
-      }
+    requires requires() {
+      requires std::same_as<U, std::remove_cvref_t<U>>;
+      typename U::implace_str_t_unique_tag_;
+    }
     MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
       if (!source_.is_stable()) {
         return operator_assign(source_);
@@ -194,11 +194,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return *this;
     }
     template <class U>
-      requires requires() {
-        requires std::same_as<U, std::remove_reference_t<U> &> ||
-                     std::is_const_v<U>;
-        typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
-      }
+    requires requires() {
+      requires std::same_as < U, std::remove_reference_t<U>
+      & > || std::is_const_v<U>;
+      typename std::remove_cvref_t<U>::implace_str_t_unique_tag_;
+    }
     MJZ_CX_FN implace_str_t &operator_assign(U &&source_) noexcept {
       m_str().reset_to_error_on_fail(
           m_str().assign(source_.m_str()),
@@ -236,16 +236,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
   public:
-    MJZ_CX_FN success_t move_to_dest(str_t &dest) && noexcept {
+    MJZ_CX_FN success_t move_to_dest(str_t &dest) &&noexcept {
       if (m_str().is_stacked()) {
         return dest.assign(m_str());
       }
       return dest.assign_move(std::move(m_str()));
     }
     template <class type_t>
-      requires(!partial_same_as<implace_str_t, type_t &&> &&
-               std::is_rvalue_reference_v<type_t &&>)
-    MJZ_CX_FN operator type_t &&() const noexcept = delete;
+    requires(!partial_same_as<implace_str_t, type_t &&> &&
+             std::is_rvalue_reference_v<type_t &&>) MJZ_CX_FN
+    operator type_t &&() const noexcept = delete;
 
     MJZ_CX_FN const str_t &get() const noexcept { return m_str(); }
 
@@ -259,9 +259,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       implace_str_t ret{};
       str_t &str = ret.m_str();
       str.reset_to_error_on_fail(
-          str.copy_assign_<when_t_impl_<version_v>::relax>(m_str(), false,
-                                                        byte_offset,
-                                                        byte_count) &&
+          str.copy_assign_<when_t_impl_<version_v>::relax>(
+              m_str(), false, byte_offset, byte_count) &&
               ret.init_stack(str),
           "[Error]implace_str_t::make_substring: cannot init string");
       return ret;
@@ -285,7 +284,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN implace_str_t make_implace_substrview(
         const dont_mess_up_t &idk, uintlen_t byte_offset, uintlen_t byte_count,
         bool propgate_alloc = true,
-        bool unsafe_assume_static_ = false) const & noexcept {
+        bool unsafe_assume_static_ = false) const &noexcept {
       return get().make_substrview(idk, byte_offset, byte_count, propgate_alloc,
                                    unsafe_assume_static_);
     }
@@ -300,13 +299,12 @@ MJZ_EXPORT namespace mjz::bstr_ns {
             mjz::bstr_ns::basic_str_props_t<version_v> props_v>
   MJZ_CE_FN implace_str_t<version_v, stack_cap, props_v>
   operator_icxstr() noexcept
-    requires(!std::is_empty_v<implace_str_t<version_v, stack_cap, props_v>>)
-  {
+      requires(!std::is_empty_v<implace_str_t<version_v, stack_cap, props_v>>) {
     return implace_str_t<version_v, stack_cap, props_v>(
         operator_str<L, version_v, props_v>());
   };
   }; // namespace litteral_ns
-}; // namespace mjz::bstr_ns
+};   // namespace mjz::bstr_ns
 MJZ_EXPORT template <mjz::version_t version_v,
                      mjz::bstr_ns::basic_str_props_t<version_v> props_v,
                      mjz::uintlen_t stack_cap>

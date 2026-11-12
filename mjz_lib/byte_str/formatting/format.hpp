@@ -129,5 +129,5 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     vformat_err_handle_pv_(ret, opt);
     return ret;
   }
-}; // namespace mjz::bstr_ns::format_ns
+};     // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_print_HPP_FILE_

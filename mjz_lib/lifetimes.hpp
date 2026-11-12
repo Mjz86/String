@@ -70,5 +70,5 @@ MJZ_EXPORT namespace mjz {
 
 #endif
   };
-}; // namespace mjz
+};     // namespace mjz
 #endif // MJZ_TEST_lifetimes_HPP_FILE_

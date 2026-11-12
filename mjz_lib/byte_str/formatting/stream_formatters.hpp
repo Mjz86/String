@@ -31,11 +31,11 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   template <version_t version_v, typename T>
   concept is_stream_formatter_c =
-      requires(std::ostream &buffer, const std::remove_reference_t<T> &arg) {
-        buffer << arg;
-      };
+      requires(std::ostream & buffer, const std::remove_reference_t<T> &arg) {
+    buffer << arg;
+  };
   template <version_t version_v, class T_>
-    requires is_stream_formatter_c<version_v, T_>
+  requires is_stream_formatter_c<version_v, T_>
   struct default_formatter_t<version_v, T_, 100> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;

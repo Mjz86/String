@@ -1350,7 +1350,7 @@ MJZ_EXPORT namespace mjz {
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <size_t n, typename type>
   concept get_sized_helper_c = requires() {
-    requires[]() {
+    requires []() {
       if constexpr (false) {
         return false;
       } else if constexpr (n == 0x1) {
@@ -1603,8 +1603,7 @@ MJZ_EXPORT namespace mjz {
       } else {
         return false;
       }
-    }
-    ();
+    }();
   };
   template <std::size_t i, size_t n, typename type>
   concept get_sized_c = get_sized_helper_c<n, type>;
@@ -1697,22 +1696,20 @@ MJZ_EXPORT namespace mjz {
         ...);
 
   template <typename type, size_t... i>
-    requires aggregate_cs<type, i...>
-  void aggregate_fn(type &&, std::index_sequence<i...>) {};
+  requires aggregate_cs<type, i...>
+  void aggregate_fn(type &&, std::index_sequence<i...>){};
   template <typename aggregate_t, std::size_t count>
   concept aggregate_c = requires() {
     aggregate_fn(get_invalid_T_obj<aggregate_t>(),
                  std::make_index_sequence<count>{});
   };
   template <typename aggregate_t, size_t size_v = 32> struct aggregate_size_t {
-    MJZ_CX_FN size_t static size() noexcept
-      requires aggregate_c<aggregate_t, size_v>
-    {
+    MJZ_CX_FN size_t static size() noexcept requires
+        aggregate_c<aggregate_t, size_v> {
       return size_v;
     }
     MJZ_CX_FN size_t static size() noexcept
-      requires(!aggregate_c<aggregate_t, size_v>)
-    {
+        requires(!aggregate_c<aggregate_t, size_v>) {
       return aggregate_size_t<aggregate_t, size_v - 1>::size();
     }
   };
@@ -1723,14 +1720,14 @@ MJZ_EXPORT namespace mjz {
 
   template <typename type, std::size_t i>
   concept test = requires(type value) {
-    { aggregate_ns_::get<i, type>(std::forward<type>(value)) };
+    {aggregate_ns_::get<i, type>(std::forward<type>(value))};
     requires !std::same_as<void, decltype(aggregate_ns_::get<i, type>(
                                      std::forward<type>(value)))>;
   };
   template <typename type, size_t... i>
   concept tests = (test<type, i> && ...);
   template <typename type, size_t... i>
-    requires tests<type, i...>
+  requires tests<type, i...>
   void tests_fn(std::index_sequence<i...>){};
 
   } // namespace aggregate_ns_

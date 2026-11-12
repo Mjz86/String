@@ -33,12 +33,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   concept str_c_ = requires() {
     {
       version_t { std::remove_cvref_t<T>::Version_v_ }
-    } noexcept;
+    }
+    noexcept;
     requires(std::remove_cvref_t<T>::Version_v_ ==
              std::remove_cvref_t<self_str_t_>::Version_v_);
     typename std::remove_cvref_t<T>::str_t_indentity_t_;
-    requires std::same_as<std::remove_cvref_t<T>,
-                          typename std::remove_cvref_t<T>::str_t_indentity_t_>;
+    requires std::same_as < std::remove_cvref_t<T>,
+    typename std::remove_cvref_t<T>::str_t_indentity_t_ > ;
   };
 
   template <class T, class self_str_t_>
@@ -809,18 +810,17 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     }
 
     template <str_c_<self_t> T>
-      requires(!partial_same_as<T, self_t>)
-    MJZ_CX_ND_FN basic_str_t(T &&obj, cheap_str_info info) noexcept
-        : basic_str_t(std::forward<T>(obj), info, useless_tag_t_<>{}) {}
+    requires(!partial_same_as<T, self_t>) MJZ_CX_ND_FN
+        basic_str_t(T &&obj, cheap_str_info info)
+    noexcept : basic_str_t(std::forward<T>(obj), info, useless_tag_t_<>{}) {}
     template <str_c_<self_t> T>
-      requires(!partial_same_as<T, self_t>)
-    MJZ_CX_ND_FN basic_str_t(T &&obj) noexcept
-        : basic_str_t(std::forward<T>(obj), useless_tag_t_<>{}) {}
+    requires(!partial_same_as<T, self_t>) MJZ_CX_ND_FN basic_str_t(T &&obj)
+    noexcept : basic_str_t(std::forward<T>(obj), useless_tag_t_<>{}) {}
 
     template <class T>
-      requires requires(basic_str_t &str) {
-        str.operator_assign_(just_some_invalid_obj<T &&>(), useless_tag_t_<>{});
-      }
+    requires requires(basic_str_t &str) {
+      str.operator_assign_(just_some_invalid_obj<T &&>(), useless_tag_t_<>{});
+    }
     MJZ_CX_FN basic_str_t &operator=(T &&val) noexcept {
       return operator_assign_(std::forward<T>(val), useless_tag_t_<>{});
     }
@@ -1155,19 +1155,17 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     void data() && = delete;
     void data() const && = delete;
     /* gives a pointer to the data */
-    MJZ_CX_ND_FN const char *data() const & noexcept { return m.get_begin(); }
+    MJZ_CX_ND_FN const char *data() const &noexcept { return m.get_begin(); }
     template <int = 0>
-      requires(!props_v.is_ownerized)
-    MJZ_CX_ND_FN const char *data() & noexcept {
+    requires(!props_v.is_ownerized) MJZ_CX_ND_FN const char *data() &noexcept {
       return m.get_begin();
     }
     template <int = 0>
-      requires(props_v.is_ownerized)
-    MJZ_CX_ND_FN char *data() & noexcept {
+    requires(props_v.is_ownerized) MJZ_CX_ND_FN char *data() &noexcept {
       return m.u_get_mut_begin();
     }
     /*as long as we are ownerized this is valid*/
-    MJZ_CX_ND_FN char *aown_data() & noexcept {
+    MJZ_CX_ND_FN char *aown_data() &noexcept {
       if (m.is_ownerized())
         return m.u_get_mut_begin();
       return nullptr;
@@ -1279,7 +1277,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN generic_string_view
     make_subview(const dont_mess_up_t &, uintlen_t byte_offset = 0,
                  uintlen_t byte_count = nops,
-                 bool unsafe_assume_static_ = false) const & noexcept {
+                 bool unsafe_assume_static_ = false) const &noexcept {
       base_string_view_t<version_v> view = m.get_view().unsafe_handle();
       view.is_static |= unsafe_assume_static_;
       view.has_null_v = make_right_then_give_has_null(byte_offset, byte_count);
@@ -1305,7 +1303,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_ND_FN self_t
     make_substrview(const dont_mess_up_t &, uintlen_t byte_offset,
                     uintlen_t byte_count, bool propgate_alloc = true,
-                    bool unsafe_assume_static_ = false) const & noexcept {
+                    bool unsafe_assume_static_ = false) const &noexcept {
       auto view = make_subview(dont_mess_up, byte_offset, byte_count,
                                unsafe_assume_static_);
       self_t ret{};
@@ -1488,7 +1486,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return has_null() || add_null_impl_<when_t::relax, true, false, false>();
     }
 
-    MJZ_CX_FN const char *as_c_str() & noexcept {
+    MJZ_CX_FN const char *as_c_str() &noexcept {
       bool good = add_null();
       return branchless_teranary<const char *>(!good, nullptr, data());
     }
@@ -1754,16 +1752,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return flag_state_ == true;
     }
     template <int = 0>
-      requires(props_v.is_ownerized)
-    MJZ_CX_ND_FN success_t
-    as_always_ownerized(bool flag_state_) const noexcept {
-      return flag_state_ == true;
-    }
+    requires(props_v.is_ownerized) MJZ_CX_ND_FN success_t
+        as_always_ownerized(bool flag_state_)
+    const noexcept { return flag_state_ == true; }
     template <class R_t>
-      requires std::ranges::sized_range<R_t> && std::ranges::input_range<R_t>
-    MJZ_CX_ND_FN success_t replace_data_with_range(uintlen_t offset,
-                                                   uintlen_t byte_count,
-                                                   R_t &&range) noexcept {
+    requires std::ranges::sized_range<R_t> && std::ranges::input_range<R_t>
+        MJZ_CX_ND_FN success_t replace_data_with_range(uintlen_t offset,
+                                                       uintlen_t byte_count,
+                                                       R_t &&range)
+    noexcept {
       return ::mjz::noexcept_er_helper_t<>{} *
                  [&]() /*noexcept(...) todo!*/ -> success_t {
         std::ignore = make_right_then_give_has_null(offset, byte_count);
@@ -1777,7 +1774,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           if constexpr (requires() {
                           {
                             std::ranges::data(range)
-                          } -> std::convertible_to<const char *>;
+                            } -> std::convertible_to<const char *>;
                         }) {
             return static_cast<const char *>(std::ranges::data(range));
           } else {
@@ -1998,25 +1995,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return m.get_view().find_last_not_of(rhs, offset, encoding);
     }
     template <std::integral T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T>
-    to_integral(uint8_t raidex = 0) const noexcept {
-      return m.get_view().template to_integral<T>(raidex);
-    }
+    requires(!std::same_as<T, bool>)
+        MJZ_CX_ND_FN std::optional<T> to_integral(uint8_t raidex = 0)
+    const noexcept { return m.get_view().template to_integral<T>(raidex); }
     template <std::floating_point T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T> to_real_floating() const noexcept {
-      return m.get_view().template to_real_floating<T>();
-    }
+    requires(!std::same_as<T, bool>)
+        MJZ_CX_ND_FN std::optional<T> to_real_floating()
+    const noexcept { return m.get_view().template to_real_floating<T>(); }
     template <std::floating_point T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T> to_floating() const noexcept {
-      return m.get_view().template to_floating<T>();
-    }
+    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN std::optional<T> to_floating()
+    const noexcept { return m.get_view().template to_floating<T>(); }
     template <std::integral T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_FN success_t as_integral(T val, const uint8_t raidex = 10,
-                                    bool upper_case = false) noexcept {
+    requires(!std::same_as<T, bool>) MJZ_CX_FN success_t
+        as_integral(T val, const uint8_t raidex = 10, bool upper_case = false)
+    noexcept {
       uintlen_t new_len = 0;
       auto fn = [&]() noexcept -> success_t {
         auto ret = traits_type{}.template from_integral_fill<T>(
@@ -2043,9 +2035,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   private:
   public:
     template <std::integral T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_FN static self_t s_make_str(T val, const uint8_t raidex,
-                                       bool upper_case = false) noexcept {
+    requires(!std::same_as<T, bool>) MJZ_CX_FN static self_t
+        s_make_str(T val, const uint8_t raidex,
+                   bool upper_case = false) noexcept {
       self_t ret{};
       if constexpr (int_to_dec_unchekced_size_v<T> <= sso_cap) {
         if (9 < raidex) {
@@ -2066,8 +2058,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return ret;
     }
     template <std::integral T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_FN static self_t s_make_str(T val) noexcept {
+    requires(!std::same_as<T, bool>) MJZ_CX_FN static self_t
+        s_make_str(T val) noexcept {
       self_t ret{};
       if constexpr (int_to_dec_unchekced_size_v<T> <= sso_cap) {
         ret.m
@@ -2471,8 +2463,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
   template <str_litteral_t L, version_t vr, basic_str_props_t<vr> props_v>
   MJZ_CX_FN const basic_str_t<vr, props_v> &operator_cxref_str() noexcept
-    requires bstr_can_be_strored_statically_c<L.size(), vr, props_v>
-  {
+      requires bstr_can_be_strored_statically_c<L.size(), vr, props_v> {
     using ret_t = basic_str_t<vr, props_v>;
     return make_static_data(
         []() noexcept { return ret_t{operator_view<L, vr>()}; });
@@ -2512,7 +2503,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   }
 
   }; // namespace litteral_ns
-}; // namespace mjz::bstr_ns
+};   // namespace mjz::bstr_ns
 MJZ_EXPORT template <mjz::version_t version_v,
                      mjz::bstr_ns::basic_str_props_t<version_v> props_v>
 struct std::hash<mjz::bstr_ns::basic_str_t<version_v, props_v>> {

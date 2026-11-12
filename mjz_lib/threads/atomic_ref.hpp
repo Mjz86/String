@@ -26,9 +26,9 @@ SOFTWARE.
 #define MJZ_THREADS_atomic_ref_LIB_HPP_FILE_
 MJZ_EXPORT namespace mjz::threads_ns {
   template <typename T>
-    requires std::is_trivially_copyable_v<T>
+  requires std::is_trivially_copyable_v<T>
   class atomic_ref_t {
-    MJZ_MCONSTANT(bool) mutable_v { !std::is_const_v<T> };
+    MJZ_MCONSTANT(bool) mutable_v{!std::is_const_v<T>};
     atomic_ref_t &operator=(const atomic_ref_t &) = delete;
     union ref_pair_t {
       MJZ_CX_FN ref_pair_t(const ref_pair_t &) = default;
@@ -99,8 +99,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN void
     store(const T obj,
           const std::memory_order mo = std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> void { return ref.store(obj, mo); });
     }
@@ -138,17 +137,14 @@ MJZ_EXPORT namespace mjz::threads_ns {
 #endif // MJZ_SLEEP_WITH_WAIT_
     }
 
-    MJZ_CX_FN T operator=(const T obj) const noexcept
-      requires(mutable_v)
-    {
+    MJZ_CX_FN T operator=(const T obj) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref = obj; });
     }
 
     MJZ_CX_ND_FN T exchange(
         const T value,
         const std::memory_order mo = std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.exchange(value, mo); });
     }
@@ -156,8 +152,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_ND_FN success_t compare_exchange_weak(
         T &Expected, const T Desired,
         const std::memory_order mo = std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> success_t {
         return ref.compare_exchange_weak(Expected, Desired, mo);
       });
@@ -166,17 +161,14 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_ND_FN success_t compare_exchange_strong(
         T &Expected, const T Desired,
         const std::memory_order mo = std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> success_t {
         return ref.compare_exchange_strong(Expected, Desired, mo);
       });
     }
     MJZ_CX_ND_FN success_t compare_exchange_weak(
         T &Expected, const T Desired, const std::memory_order success,
-        const std::memory_order failure) const noexcept
-      requires(mutable_v)
-    {
+        const std::memory_order failure) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> success_t {
         return ref.compare_exchange_weak(Expected, Desired, success, failure);
       });
@@ -184,9 +176,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
 
     MJZ_CX_ND_FN success_t compare_exchange_strong(
         T &Expected, const T Desired, const std::memory_order success,
-        const std::memory_order failure) const noexcept
-      requires(mutable_v)
-    {
+        const std::memory_order failure) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> success_t {
         return ref.compare_exchange_strong(Expected, Desired, success, failure);
       });
@@ -209,8 +199,7 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN
     T fetch_add(const T Operand, const std::memory_order mo =
                                      std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_add(Operand, mo); });
     }
@@ -218,58 +207,45 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN T fetch_and(
         const T Operand,
         const std::memory_order mo = std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_and(Operand, mo); });
     }
     MJZ_CX_FN
     T fetch_or(const T Operand, const std::memory_order mo =
                                     std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_or(Operand, mo); });
     }
     MJZ_CX_FN
     T fetch_xor(const T Operand, const std::memory_order mo =
                                      std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_xor(Operand, mo); });
     }
     MJZ_CX_FN
-    T operator++(int) const noexcept
-      requires(mutable_v)
-    {
+    T operator++(int) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref++; });
     }
     MJZ_CX_FN
-    T operator++() const noexcept
-      requires(mutable_v)
-    {
+    T operator++() const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ++ref; });
     }
     MJZ_CX_FN
-    T operator--(int) const noexcept
-      requires(mutable_v)
-    {
+    T operator--(int) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref--; });
     }
     MJZ_CX_FN
-    T operator--() const noexcept
-      requires(mutable_v)
-    {
+    T operator--() const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return --ref; });
     }
     using difference_type = T;
 
     MJZ_CX_FN T fetch_add(const T Operand, const std::memory_order mo =
                                                std::memory_order_seq_cst) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_add(Operand, mo); });
     }
@@ -277,33 +253,26 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN
     T fetch_sub(const T Operand, const std::memory_order mo =
                                      std::memory_order_seq_cst) const noexcept
-      requires(mutable_v)
-    {
+        requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_sub(Operand, mo); });
     }
     MJZ_CX_FN
     T fetch_sub(const T Operand,
                 const std::memory_order mo = std::memory_order_seq_cst) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_sub(Operand, mo); });
     }
     MJZ_CX_FN
-    T fetch_and(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T fetch_and(const T Operand) const volatile noexcept requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_and(Operand); });
     }
     MJZ_CX_FN
     T fetch_and(const T Operand,
                 const std::memory_order mo = std::memory_order_seq_cst) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_and(Operand, mo); });
     }
@@ -311,111 +280,79 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_FN
     T fetch_or(const T Operand,
                const std::memory_order mo = std::memory_order_seq_cst) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_or(Operand, mo); });
     }
     MJZ_CX_FN
     T fetch_xor(const T Operand,
                 const std::memory_order mo = std::memory_order_seq_cst) const
-        volatile noexcept
-      requires(mutable_v)
-    {
+        volatile noexcept requires(mutable_v) {
       return perform(
           [&](auto &&ref) noexcept -> T { return ref.fetch_xor(Operand, mo); });
     }
     MJZ_CX_FN
-    T operator++(int) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator++(int) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref++; });
     }
     MJZ_CX_FN
-    T operator++() const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator++() const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ++ref; });
     }
     MJZ_CX_FN
-    T operator--(int) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator--(int) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref--; });
     }
     MJZ_CX_FN
 
-    T operator--() const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator--() const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return --ref; });
     }
     MJZ_CX_FN
-    T operator+=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator+=(const T Operand) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref += Operand; });
     }
     MJZ_CX_FN
 
-    T operator+=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator+=(const T Operand) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref += Operand; });
     }
     MJZ_CX_FN
 
-    T operator-=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator-=(const T Operand) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref -= Operand; });
     }
     MJZ_CX_FN
 
-    T operator-=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator-=(const T Operand) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref -= Operand; });
     }
     MJZ_CX_FN
-    T operator&=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator&=(const T Operand) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref &= Operand; });
     }
     MJZ_CX_FN
-    T operator&=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator&=(const T Operand) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref &= Operand; });
     }
     MJZ_CX_FN
-    T operator|=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator|=(const T Operand) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref |= Operand; });
     }
     MJZ_CX_FN
 
-    T operator|=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator|=(const T Operand) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref |= Operand; });
     }
     MJZ_CX_FN
-    T operator^=(const T Operand) const noexcept
-      requires(mutable_v)
-    {
+    T operator^=(const T Operand) const noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref ^= Operand; });
     }
     MJZ_CX_FN
-    T operator^=(const T Operand) const volatile noexcept
-      requires(mutable_v)
-    {
+    T operator^=(const T Operand) const volatile noexcept requires(mutable_v) {
       return perform([&](auto &&ref) noexcept -> T { return ref ^= Operand; });
     }
   };
   template <typename T> atomic_ref_t(T) -> atomic_ref_t<T>;
-}; // namespace mjz::threads_ns
+};     // namespace mjz::threads_ns
 #endif //  MJZ_THREADS_atomic_ref_LIB_HPP_FILE_

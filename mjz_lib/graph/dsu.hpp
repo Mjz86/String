@@ -122,5 +122,5 @@ struct disjoint_set_union_t {
   }
 };
 
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_DSU_FILE_

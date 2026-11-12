@@ -78,8 +78,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     template <partial_same_as<generic_alloc_init_t> T>
     MJZ_CX_FN generic_alloc_t(alloc_ref &&upstream_alloc, T &&ai,
                               bool fast_table = false) noexcept
-        : alloc_base{vtable_val_f(fast_table)},
-          upstream{std::move(upstream_alloc)} {
+        : alloc_base{vtable_val_f(fast_table)}, upstream{
+                                                    std::move(upstream_alloc)} {
       std::construct_at(&data.obj, std::forward<T>(ai), *this);
     }
     MJZ_CX_FN ~generic_alloc_t() noexcept {
@@ -93,13 +93,13 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
   private:
     MJZ_MCONSTANT(bool)
     Const_inequals = !requires(const obj_t &obj) {
-      { obj != obj } noexcept -> std::same_as<bool>;
+      { obj != obj }
+      noexcept->std::same_as<bool>;
     };
     MJZ_MCONSTANT(bool)
     has_handle = requires(const alloc_base *This, const void_struct_t *ptr) {
-      {
-        As(This).data.obj.handle(ptr)
-      } noexcept -> std::same_as<const void_struct_t *>;
+      { As(This).data.obj.handle(ptr) }
+      noexcept->std::same_as<const void_struct_t *>;
     };
     MJZ_CX_FN static bool inequals(const alloc_ref &other,
                                    const alloc_base *This) noexcept {
@@ -123,8 +123,10 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
                                 alloc_info ai) const noexcept {
       static_assert(
           requires() {
-            { get().is_owner(blk, ai) } noexcept -> std::convertible_to<bool>;
-          }, " we shall know the truth!");
+            { get().is_owner(blk, ai) }
+            noexcept->std::convertible_to<bool>;
+          },
+          " we shall know the truth!");
       return get().is_owner(blk, ai);
     }
     MJZ_CX_FN block_info obj_allocate(uintlen_t minsize,
@@ -268,8 +270,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     MJZ_CX_FN generic_alloc *operator&() noexcept { return this; }
     MJZ_DEPRECATED_R("be careful! we dont want non ref counted refrences!")
     MJZ_CX_FN const generic_alloc *operator&() const noexcept { return this; }
-    MJZ_CX_FN alloc_ref operator()() & noexcept { return +*this; }
-    MJZ_CX_FN alloc_ref operator+() & noexcept { return alloc_ref{this, true}; }
+    MJZ_CX_FN alloc_ref operator()() &noexcept { return +*this; }
+    MJZ_CX_FN alloc_ref operator+() &noexcept { return alloc_ref{this, true}; }
 
   private:
     MJZ_CX_FN auto &&get() noexcept { return *(&data.obj); }

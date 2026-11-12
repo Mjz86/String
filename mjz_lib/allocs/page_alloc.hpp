@@ -51,16 +51,15 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
 
     public:
       MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
-                                 strategy_t) const & noexcept {
+                                 strategy_t) const &noexcept {
         return mjz::memory_is_inside(stack_begin_ptr, stack_length, blk.ptr,
                                      uintlen_t(!!blk.length));
       }
-      MJZ_CX_ND_FN success_t deallocate(heap_block_t &&,
-                                        strategy_t) & noexcept {
+      MJZ_CX_ND_FN success_t deallocate(heap_block_t &&, strategy_t) &noexcept {
         return true;
       }
       MJZ_CX_ND_FN heap_block_t allocate(uintlen_t minsize,
-                                         strategy_t strategy) & noexcept {
+                                         strategy_t strategy) &noexcept {
         bool bad = strategy.is_thread_safe;
         bad |= !minsize;
         bad |= !stack_refrence;
@@ -114,12 +113,12 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
 
     public:
       MJZ_CX_ND_FN bool is_owner(const heap_block_t &blk,
-                                 strategy_t) const & noexcept {
+                                 strategy_t) const &noexcept {
         return mjz::memory_is_inside(data_begin_ptr, data_length, blk.ptr,
                                      uintlen_t(!!blk.length));
       }
       MJZ_CX_ND_FN success_t deallocate(heap_block_t &&blk,
-                                        strategy_t strategy) & noexcept {
+                                        strategy_t strategy) &noexcept {
         bool bad = strategy.cant_bother_with_good_size().is_thread_safe;
         bad |= !blk.length;
         bad |= !meta_refrence;
@@ -132,7 +131,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return true;
       }
       MJZ_CX_ND_FN heap_block_t allocate(uintlen_t minsize,
-                                         strategy_t strategy) & noexcept {
+                                         strategy_t strategy) &noexcept {
         bool bad = strategy.cant_bother_with_good_size().is_thread_safe;
         bad |= !minsize;
         bad |= !meta_refrence;

@@ -116,9 +116,11 @@ MJZ_EXPORT namespace mjz {
   template <template <class...> class TC, class... Ts>
   struct compare_tamplates_helper_t<TC<Ts...>, TC> : std::true_type {};
   template <class T, class U>
-  concept compare_tamplate_codes_c = compare_tamplate_codes_helper_t<T, U>()();
+  concept compare_tamplate_codes_c = compare_tamplate_codes_helper_t<T, U>()
+  ();
   template <class T, template <class...> class TC>
-  concept compare_tamplates_c = compare_tamplates_helper_t<T, TC>()();
+  concept compare_tamplates_c = compare_tamplates_helper_t<T, TC>()
+  ();
   template <size_t size_of_myt>
   using uint_sizeof_t =
       type_at_index_t<size_of_myt, uint8_t, uint8_t, uint16_t, uint32_t,
@@ -172,10 +174,9 @@ MJZ_EXPORT namespace mjz {
   MJZ_CX_AL_ND_FN uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
     return static_cast<uint64_t>(1ull << log2_val);
   }
-  MJZ_CX_AL_ND_FN uint8_t log2_ceil_of_val_create(
-      std::integral auto val) noexcept
-    requires(std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>)
-  {
+  MJZ_CX_AL_ND_FN uint8_t
+  log2_ceil_of_val_create(std::integral auto val) noexcept requires(
+      std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>) {
     return uint8_t(std::bit_width(val) - std::has_single_bit(val));
   }
 
@@ -187,13 +188,13 @@ MJZ_EXPORT namespace mjz {
   using int_with_max_of_t = std::make_signed_t<uint_with_max_of_t<min_max_val>>;
 
   template <typename T>
-    requires(std::is_integral_v<std::remove_cvref_t<T>>)
-  constexpr inline auto signedof(T val) noexcept {
+  requires(std::is_integral_v<std::remove_cvref_t<T>>) constexpr inline auto
+  signedof(T val) noexcept {
     return std::bit_cast<std::make_signed_t<T>>(val);
   }
   template <typename T>
-    requires(std::is_integral_v<std::remove_cvref_t<T>>)
-  constexpr inline auto unsignedof(T val) noexcept {
+  requires(std::is_integral_v<std::remove_cvref_t<T>>) constexpr inline auto
+  unsignedof(T val) noexcept {
     return std::bit_cast<std::make_unsigned_t<T>>(val);
   }
 
@@ -203,21 +204,21 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <typename T>
-    requires(!std::is_integral_v<std::remove_cvref_t<T>>)
-  MJZ_CX_FN decltype(auto) unsignedof(T && obj_for_unsignedcast) noexcept {
+  requires(!std::is_integral_v<std::remove_cvref_t<T>>) MJZ_CX_FN decltype(auto)
+  unsignedof(T && obj_for_unsignedcast) noexcept {
     return std::forward<T>(obj_for_unsignedcast);
   };
   template <typename T>
-    requires(!std::is_integral_v<std::remove_cvref_t<T>>)
-  MJZ_CX_FN decltype(auto) signedof(T && obj_for_signedcast) noexcept {
+  requires(!std::is_integral_v<std::remove_cvref_t<T>>) MJZ_CX_FN decltype(auto)
+  signedof(T && obj_for_signedcast) noexcept {
     return std::forward<T>(obj_for_signedcast);
   };
 
   template <class releaser_LAMBDA_t, typename... reasorces_t>
-    requires requires(releaser_LAMBDA_t l, reasorces_t &&...args) {
-      releaser_LAMBDA_t(std::move(l));
-      l(std::forward<reasorces_t>(args)...);
-    }
+  requires requires(releaser_LAMBDA_t l, reasorces_t && ...args) {
+    releaser_LAMBDA_t(std::move(l));
+    l(std::forward<reasorces_t>(args)...);
+  }
   class releaser_t {
   public:
     using tuple_t_0_ = tuple_t<reasorces_t...>;
@@ -230,13 +231,16 @@ MJZ_EXPORT namespace mjz {
     releaser_t() = delete;
     MJZ_CX_AL_FN releaser_t(releaser_LAMBDA_t &&releaser_lambda,
                             reasorces_t &&...args) noexcept(requires() {
-      { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
-      { tuple_t_0_(std::forward<reasorces_t>(args)...) } noexcept;
+      { releaser_LAMBDA_t(std::move(releaser_lambda)) }
+      noexcept;
+      { tuple_t_0_(std::forward<reasorces_t>(args)...) }
+      noexcept;
     })
         : m_releaser_lambda_(std::move(releaser_lambda)),
           data(std::forward<reasorces_t>(args)...) {}
     MJZ_CX_AL_FN ~releaser_t() noexcept(requires(reasorces_t &&...args) {
-      { m_releaser_lambda_(std::forward<reasorces_t>(args)...) } noexcept;
+      { m_releaser_lambda_(std::forward<reasorces_t>(args)...) }
+      noexcept;
     }) {
       call();
     }
@@ -247,8 +251,8 @@ MJZ_EXPORT namespace mjz {
     using type_at = std::tuple_element_t<INDEX, tuple_t_0_>;
 
     template <typename... Ts>
-      requires(sizeof...(Ts) < sizeof...(reasorces_t))
-    MJZ_CX_AL_FN void call(Ts &&...args) {
+    requires(sizeof...(Ts) < sizeof...(reasorces_t)) MJZ_CX_AL_FN
+        void call(Ts &&...args) {
       call(std::forward<Ts>(args)...,
            std::forward<type_at<sizeof...(Ts)>>(std::get<sizeof...(Ts)>(data)));
     }
@@ -261,18 +265,20 @@ MJZ_EXPORT namespace mjz {
     MJZ_NO_DYNAMIC_ALLOCATOR(releaser_t);
   };
   template <class releaser_LAMBDA_t>
-    requires requires(releaser_LAMBDA_t l) {
-      releaser_LAMBDA_t(std::move(l));
-      l();
-    }
+  requires requires(releaser_LAMBDA_t l) {
+    releaser_LAMBDA_t(std::move(l));
+    l();
+  }
   class releaser_t<releaser_LAMBDA_t> {
   public:
     MJZ_NO_MV_NO_CPY(releaser_t);
     releaser_t() = delete;
     MJZ_CX_AL_FN
     releaser_t(releaser_LAMBDA_t &&releaser_lambda) noexcept(requires() {
-      { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
-    }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
+      { releaser_LAMBDA_t(std::move(releaser_lambda)) }
+      noexcept;
+    })
+        : m_releaser_lambda_(std::move(releaser_lambda)) {}
     MJZ_CX_AL_FN ~releaser_t() { m_releaser_lambda_(); }
 
   private:
@@ -296,9 +302,9 @@ MJZ_EXPORT namespace mjz {
   // no perfect forward
   template <typename T> using Rvalueref_t = T &&;
   template <class T>
-    requires(!std::is_const_v<T> && !std::is_abstract_v<T> &&
-             !std::is_reference_v<T> && std::is_class_v<T>)
-  class conditional_releaser_t : private T {
+  requires(!std::is_const_v<T> && !std::is_abstract_v<T> &&
+           !std::is_reference_v<T> &&
+           std::is_class_v<T>) class conditional_releaser_t : private T {
 
     conditional_releaser_t(const conditional_releaser_t &) = delete;
     conditional_releaser_t(conditional_releaser_t &) = delete;
@@ -311,7 +317,8 @@ MJZ_EXPORT namespace mjz {
   public:
     MJZ_MCONSTANT(bool)
     noexcept_v = requires(T lamda) {
-      { std::move(lamda)() } noexcept;
+      { std::move(lamda)() }
+      noexcept;
     };
     MJZ_CX_FN conditional_releaser_t(T &&lambda_,
                                      bool has_lambda_ = true) noexcept
@@ -331,13 +338,15 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_AL_FN conditional_releaser_t(
         conditional_releaser_t &&other) noexcept(requires(T other_l) {
-      { T(std::move(other_l)) } noexcept;
+      { T(std::move(other_l)) }
+      noexcept;
     })
         : T(std::move(*other)),
           has_lambda(std::exchange(other.has_lambda, false)) {}
     MJZ_CX_AL_FN conditional_releaser_t &operator=(
         conditional_releaser_t &&other) noexcept(requires(T other_l, T lamda) {
-      { lamda = std::move(other_l) } noexcept;
+      { lamda = std::move(other_l) }
+      noexcept;
     }) {
       has_lambda = std::exchange(other.has_lambda, false);
       **this = std::move(*other);
@@ -347,5 +356,5 @@ MJZ_EXPORT namespace mjz {
     MJZ_NO_DYNAMIC_ALLOCATOR(conditional_releaser_t);
   };
 
-}; // namespace mjz
+};     // namespace mjz
 #endif // MJZ_RELEASER_LIB_HPP_FILE_

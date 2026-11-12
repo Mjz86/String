@@ -98,8 +98,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       MJZ_CX_AL_FN ~temp_layout_t() noexcept = default;
       MJZ_CX_AL_FN temp_layout_t(m_t &m) noexcept
           : var{m.heap_rc_ptr, non_threaded_rf_block, non_threaded_rf_block},
-            refcr{*var}, is_threaded{m.is_threaded},
-            is_owenrized{m.is_owenrized} {}
+            refcr{*var}, is_threaded{m.is_threaded}, is_owenrized{
+                                                         m.is_owenrized} {}
       MJZ_CX_AL_FN auto perform_ref(MJZ_MAYBE_UNUSED auto &&Lmabda_th,
                                     auto &&Lmabda_nth) noexcept {
         if constexpr (is_ownerized_v_ || is_threaded_v_ == may_bool_t::no) {
@@ -420,7 +420,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     }
 
     MJZ_CX_AL_FN str_heap_manager_t(str_heap_manager_t &&obj) noexcept
-            : m{std::exchange(obj.m, m_t{})} {}
+        : m{std::exchange(obj.m, m_t{})} {}
     MJZ_CX_AL_FN str_heap_manager_t &
     operator=(str_heap_manager_t &&obj) noexcept {
 

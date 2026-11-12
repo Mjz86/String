@@ -84,9 +84,9 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   } // namespace fmt_litteral_ns
 
   template <version_t version_v, class T_>
-    requires requires() {
-      typename is_named_arg_t<version_v, std::remove_cvref_t<T_>>::type;
-    }
+  requires requires() {
+    typename is_named_arg_t<version_v, std::remove_cvref_t<T_>>::type;
+  }
   struct default_formatter_t<version_v, T_, 20> {
     using T = typename is_named_arg_t<version_v, std::remove_cvref_t<T_>>::type;
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;

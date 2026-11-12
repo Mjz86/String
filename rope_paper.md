@@ -484,11 +484,11 @@ std::basic_string_view:
 
 [https://en.cppreference.com/w/cpp/string/basic_string_view](https://en.cppreference.com/w/cpp/string/basic_string_view)
 
-CppCon 2017： Barbara Geller & Ansel Sermersheim “Unicode Strings： Why the Implementation Matters” :
+CppCon 2017： Barbara Geller & Ansel Sermersheim "Unicode Strings： Why the Implementation Matters" :
 
 [https://www.youtube.com/watch?v=ysh2B6ZgNXk](https://www.youtube.com/watch?v=ysh2B6ZgNXk)
 
-CppCon 2016： Nicholas Ormrod “The strange details of std：：string at Facebook＂ :
+CppCon 2016： Nicholas Ormrod "The strange details of std：：string at Facebook＂ :
 
 [https://www.youtube.com/watch?v=kPR8h4-qZdk](https://www.youtube.com/watch?v=kPR8h4-qZdk)
 
@@ -496,7 +496,7 @@ Optimizing A String Class for Computer Graphics in Cpp - Zander Majercik, Morgan
 
 [https://www.youtube.com/watch?v=fglXeSWGVDc](https://www.youtube.com/watch?v=fglXeSWGVDc)
 
-CppCon 2018： Victor Ciura “Enough string_view to Hang Ourselves” :
+CppCon 2018： Victor Ciura "Enough string_view to Hang Ourselves" :
 
 [https://www.youtube.com/watch?v=xwP4YCP_0q0](https://www.youtube.com/watch?v=xwP4YCP_0q0)
 

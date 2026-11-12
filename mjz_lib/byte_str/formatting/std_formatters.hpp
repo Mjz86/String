@@ -36,7 +36,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     std::make_format_args(arg);
   };
   template <version_t version_v, class T_>
-    requires is_std_formatter_c<version_v, T_>
+  requires is_std_formatter_c<version_v, T_>
   struct default_formatter_t<version_v, T_, 90> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;

@@ -40,6 +40,6 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
   template <version_t version_v> struct alloc_t<version_v, true> {
     allocs_ns::alloc_base_ref_t<version_v> alloc_;
   };
-  }; // namespace abi_ns_
-}; // namespace mjz::bstr_ns
+  };   // namespace abi_ns_
+};     // namespace mjz::bstr_ns
 #endif // MJZ_BYTE_STRING_base_abi_LIB_HPP_FILE_

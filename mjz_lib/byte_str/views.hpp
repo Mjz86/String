@@ -365,25 +365,26 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return traits_type{}.find_last_not_of(data(), length(), offset, &rhs, 1);
     }
     template <std::integral T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T>
-    to_integral(uint8_t raidex = 0) const noexcept {
+    requires(!std::same_as<T, bool>)
+        MJZ_CX_ND_FN std::optional<T> to_integral(uint8_t raidex = 0)
+    const noexcept {
       if (get_encoding() != encodings_e::ascii) {
         return std::nullopt;
       }
       return traits_type{}.template to_integral<T>(data(), length(), raidex);
     }
     template <std::floating_point T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T> to_real_floating() const noexcept {
+    requires(!std::same_as<T, bool>)
+        MJZ_CX_ND_FN std::optional<T> to_real_floating()
+    const noexcept {
       if (get_encoding() != encodings_e::ascii) {
         return std::nullopt;
       }
       return traits_type{}.template to_real_floating<T>(data(), length());
     }
     template <std::floating_point T>
-      requires(!std::same_as<T, bool>)
-    MJZ_CX_ND_FN std::optional<T> to_floating() const noexcept {
+    requires(!std::same_as<T, bool>) MJZ_CX_ND_FN std::optional<T> to_floating()
+    const noexcept {
       if (get_encoding() != encodings_e::ascii) {
         return std::nullopt;
       }
@@ -498,24 +499,24 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN
     generic_string_view_t(totally_empty_type_t, const char (&str)[N],
                           encodings_e encodings_ = encodings_e::ascii) noexcept
-      requires(is_static_)
+        requires(is_static_)
         : generic_string_view_t{str, encodings_, totally_empty_type} {}
     template <size_t N>
     MJZ_CE_FN
     generic_string_view_t(const char (&str)[N],
                           encodings_e encodings_ = encodings_e::ascii) noexcept
-      requires(is_static_)
+        requires(is_static_)
         : generic_string_view_t{str, encodings_, totally_empty_type} {}
     template <size_t N>
     MJZ_CX_FN
     generic_string_view_t(const char (&str)[N],
                           encodings_e encodings_ = encodings_e::ascii) noexcept
-      requires(not is_static_)
+        requires(not is_static_)
         : generic_string_view_t{str, encodings_, totally_empty_type} {}
     MJZ_CX_FN generic_string_view_t(const char *str, uintlen_t count,
                                     encodings_e encodings_ = encodings_e::ascii,
                                     bool nulled = false) noexcept
-      requires(not is_static_)
+        requires(not is_static_)
         : generic_string_view_t{"", encodings_, totally_empty_type} {
       this->has_null_v = nulled;
       asserts(asserts.assume_rn, !this->has_null_v || !str[count]);
@@ -680,7 +681,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     using sview_t::to_base_lazy_pv_fn_;
     using sview_t::to_base_view_pv_fn_;
     using sview_t::unsafe_handle;
-    MJZ_MCONSTANT(sview_t) empty { nullopt };
+    MJZ_MCONSTANT(sview_t) empty{nullopt};
     template <size_t N>
     MJZ_CE_FN
     status_view_t(const char (&str)[N],
@@ -697,7 +698,6 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return sview_t::operator bool() && this->length();
     }
     MJZ_CX_FN sview_t sview() const noexcept { return *this; }
-    
   };
 
 }; // namespace mjz::bstr_ns

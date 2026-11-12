@@ -54,39 +54,42 @@ MJZ_CX_AL_FN void calculate_shortest_positive_path_entry_edge_distance_events(
 
     auto &&edge_drop_event, auto &&edge_select_event,
 
-    auto &&edge_stale_event, auto &&edge_hit_event) noexcept
-  requires requires(uintlen_t node_index, uintlen_t edge_index,
-                    uintlen_t from_index, uintlen_t to_index, bool early_exit) {
-    //
-    { weight_of_edge(+edge_index, +from_index, +to_index) } noexcept;
-    //
-    { early_exit == bool(node_entry_event(+node_index)) } noexcept;
-    {
-      early_exit == bool(node_exit_event(+node_index, bool(early_exit)))
-    } noexcept;
-    //
-    {
-      early_exit == bool(edge_drop_event(+edge_index, +from_index, +to_index))
-    } noexcept;
-    {
-      early_exit == bool(edge_select_event(+edge_index, +from_index, +to_index))
-    } noexcept;
-    requires(
-        requires() {
-          { early_exit == bool(edge_stale_event(+edge_index)) } noexcept;
-          { early_exit == bool(edge_hit_event(+edge_index)) } noexcept;
-        } ||
-        requires() {
-          {
-            early_exit ==
-                bool(edge_stale_event(+edge_index, +from_index, +to_index))
-          } noexcept;
-          {
-            early_exit ==
-                bool(edge_hit_event(+edge_index, +from_index, +to_index))
-          } noexcept;
-        });
-  }
+    auto &&edge_stale_event, auto &&edge_hit_event) noexcept requires
+    requires(uintlen_t node_index, uintlen_t edge_index, uintlen_t from_index,
+             uintlen_t to_index, bool early_exit) {
+  //
+  { weight_of_edge(+edge_index, +from_index, +to_index) }
+  noexcept;
+  //
+  { early_exit == bool(node_entry_event(+node_index)) }
+  noexcept;
+  { early_exit == bool(node_exit_event(+node_index, bool(early_exit))) }
+  noexcept;
+  //
+  { early_exit == bool(edge_drop_event(+edge_index, +from_index, +to_index)) }
+  noexcept;
+  { early_exit == bool(edge_select_event(+edge_index, +from_index, +to_index)) }
+  noexcept;
+  requires(
+      requires() {
+        { early_exit == bool(edge_stale_event(+edge_index)) }
+        noexcept;
+        { early_exit == bool(edge_hit_event(+edge_index)) }
+        noexcept;
+      } ||
+      requires() {
+        {
+          early_exit ==
+              bool(edge_stale_event(+edge_index, +from_index, +to_index))
+        }
+        noexcept;
+        {
+          early_exit ==
+              bool(edge_hit_event(+edge_index, +from_index, +to_index))
+        }
+        noexcept;
+      });
+}
 {
   uintlen_t esz = std::ranges::size(graph.edges);
   uintlen_t nsz = std::ranges::size(graph.nodes_index);
@@ -166,10 +169,10 @@ MJZ_CX_AL_FN void calculate_shortest_positive_path_entry_edge_distance_events(
       stale = make_bitcast(+edge_distance[edge_i]) !=
               make_bitcast(+node_distance[node_i]);
       if constexpr (requires() {
-                      {
-                        early_exit == bool(edge_stale_event(+edge_i))
-                      } noexcept;
-                      { early_exit == bool(edge_hit_event(+edge_i)) } noexcept;
+                      { early_exit == bool(edge_stale_event(+edge_i)) }
+                      noexcept;
+                      { early_exit == bool(edge_hit_event(+edge_i)) }
+                      noexcept;
                     }) {
         if (stale) {
           early_exit = bool(edge_stale_event(+edge_i));

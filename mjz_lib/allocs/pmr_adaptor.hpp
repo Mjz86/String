@@ -219,10 +219,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     MJZ_NCX_FN pmr_alloc *operator&() noexcept { return this; }
     MJZ_DEPRECATED_R("be careful! we dont want non ref counted refrences!")
     MJZ_NCX_FN const pmr_alloc *operator&() const noexcept { return this; }
-    MJZ_NCX_FN alloc_ref operator()() & noexcept { return +*this; }
-    MJZ_NCX_FN alloc_ref operator+() & noexcept {
-      return alloc_ref{this, true};
-    }
+    MJZ_NCX_FN alloc_ref operator()() &noexcept { return +*this; }
+    MJZ_NCX_FN alloc_ref operator+() &noexcept { return alloc_ref{this, true}; }
   };
 
   template <version_t version_v> struct pmr_alloc_maker_t {
@@ -242,6 +240,6 @@ MJZ_EXPORT namespace mjz::allocs_ns {
   template <version_t version_v>
   MJZ_FCONSTANT(pmr_alloc_maker_t<version_v>)
   pmr_alloc_maker{totally_empty_type};
-}; // namespace mjz::allocs_ns
+};     // namespace mjz::allocs_ns
 #endif // MJZ_ALLOCS_pmr_adaptor_FILE_HPP_
 #endif

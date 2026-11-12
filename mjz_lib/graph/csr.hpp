@@ -410,5 +410,5 @@ make_forest_given_parents(parents_t &&parents) noexcept {
   return make_forest_given_parents_inludes<version_v>(
       parents, [](auto &&...) noexcept { return true; });
 }
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_CSR_FILE_

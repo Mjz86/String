@@ -348,15 +348,15 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
     public:
       template <class = void>
-        requires has_alloc_v_
-      MJZ_CX_AL_FN const alloc_ref *get_alloc_ptr() const noexcept
+      requires has_alloc_v_ MJZ_CX_AL_FN const alloc_ref *
+      get_alloc_ptr() const noexcept
 
       {
         return &this->alloc_;
       }
       template <class = void>
-        requires(!has_alloc_v_)
-      MJZ_CX_AL_FN const alloc_ref *get_alloc_ptr() const noexcept {
+      requires(!has_alloc_v_)
+          MJZ_CX_AL_FN const alloc_ref *get_alloc_ptr() const noexcept {
         return {};
       }
       MJZ_CX_AL_FN const alloc_ref &get_alloc() const noexcept {
@@ -367,13 +367,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         }
       }
       template <class = void>
-        requires has_alloc_v_
-      MJZ_CX_AL_FN alloc_ref *get_alloc_ptr() noexcept {
+      requires has_alloc_v_ MJZ_CX_AL_FN alloc_ref *get_alloc_ptr() noexcept {
         return &this->alloc_;
       }
       template <class = void>
-        requires(!has_alloc_v_)
-      MJZ_CX_AL_FN alloc_ref *get_alloc_ptr() noexcept {
+      requires(!has_alloc_v_) MJZ_CX_AL_FN alloc_ref *get_alloc_ptr() noexcept {
         return {};
       }
       MJZ_CX_AL_FN static bool has_alloc_v() noexcept { return has_alloc_v_; }
@@ -1180,5 +1178,5 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       }
     };
   };
-}; // namespace mjz::bstr_ns
+};     // namespace mjz::bstr_ns
 #endif // MJZ_BYTE_STRING_string_ABI_LIB_HPP_FILE_

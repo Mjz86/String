@@ -49,8 +49,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     }
 
   public:
-    MJZ_CX_FN alloc_ref operator()() & noexcept { return +*this; }
-    MJZ_CX_FN alloc_ref operator+() & noexcept { return alloc_ref{this, true}; }
+    MJZ_CX_FN alloc_ref operator()() &noexcept { return +*this; }
+    MJZ_CX_FN alloc_ref operator+() &noexcept { return alloc_ref{this, true}; }
   };
 
 }; // namespace mjz::allocs_ns

@@ -326,5 +326,5 @@ MJZ_CX_FN
   return monotonic_dominator_ordenal;
 }
 
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_dom_FILE_

@@ -30,14 +30,12 @@ MJZ_EXPORT namespace mjz {
   template <auto Val, bool allow_conversion = false>
   struct the_literal_value_t {
     MJZ_CE_FN the_literal_value_t(auto &&val_) noexcept
-      requires(allow_conversion)
-    {
+        requires(allow_conversion) {
       asserts(val_ != Val, " the the_literal_value_t is poorly initialized ");
     }
     MJZ_CE_FN
     the_literal_value_t(partial_same_as<decltype(Val)> auto &&val_) noexcept
-      requires(!allow_conversion)
-    {
+        requires(!allow_conversion) {
       asserts(val_ != Val, " the the_literal_value_t is poorly initialized ");
     }
   };
@@ -80,12 +78,11 @@ MJZ_EXPORT namespace mjz {
     }
 
   private:
-    MJZ_MCONSTANT(i_know_what_im_doing_t) they_do {};
+    MJZ_MCONSTANT(i_know_what_im_doing_t) they_do{};
   };
   template <varify_t varification>
   MJZ_CX_FN i_know_what_im_doing_t operator""_dw() noexcept
-    requires(varification.they_know)
-  {
+      requires(varification.they_know) {
     return **varification;
   }
 
@@ -94,17 +91,19 @@ MJZ_EXPORT namespace mjz {
   }; // namespace unsafe_ns
   inline namespace static_data_ns {
   template <callable_anyret_c<void() noexcept> static_data_fn_t>
-    requires requires() {
-      { static_data_fn_t()() } noexcept;
-    }
+  requires requires() {
+    { static_data_fn_t()() }
+    noexcept;
+  }
   struct static_data_t {
-    MJZ_MCONSTANT(auto) val { static_data_fn_t()() };
+    MJZ_MCONSTANT(auto) val{static_data_fn_t()()};
     MJZ_CX_FN auto &operator()() const noexcept { return val; }
   };
   template <callable_anyret_c<void() noexcept> static_range_fn_t>
-    requires requires() {
-      { static_range_fn_t()() } noexcept -> std::ranges::input_range;
-    }
+  requires requires() {
+    { static_range_fn_t()() }
+    noexcept->std::ranges::input_range;
+  }
   struct static_range_t {
   private:
     using result_t = decltype(static_range_fn_t()());
@@ -119,24 +118,26 @@ MJZ_EXPORT namespace mjz {
     }
 
   public:
-    MJZ_MCONSTANT(auto) val { get() };
+    MJZ_MCONSTANT(auto) val{get()};
     MJZ_CX_FN auto &operator()() const noexcept { return val; }
   };
 
   struct static_data_maker_t {
     template <class static_data_fn_t>
-      requires requires() {
-        { static_data_t<static_data_fn_t>() } noexcept;
-      }
+    requires requires() {
+      { static_data_t<static_data_fn_t>() }
+      noexcept;
+    }
     MJZ_CX_FN auto &operator()(static_data_fn_t) const noexcept {
       return static_data_t<static_data_fn_t>()();
     }
   };
   struct static_range_maker_t {
     template <class static_range_fn_t>
-      requires requires() {
-        { static_range_t<static_range_fn_t>() } noexcept;
-      }
+    requires requires() {
+      { static_range_t<static_range_fn_t>() }
+      noexcept;
+    }
     MJZ_CX_FN auto &operator()(static_range_fn_t) const noexcept {
       return static_range_t<static_range_fn_t>()();
     }

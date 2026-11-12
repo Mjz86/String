@@ -94,5 +94,5 @@ MJZ_EXPORT namespace mjz::any_ns {
   MJZ_FCONSTANT(uintlen_t)
   hash_of_t_nzero_v{std::max<uintlen_t>(
       1, uintlen_t(actual_name<version_v, total_decay_t<T>>().hash()))};
-}; // namespace mjz::any_ns
+};     // namespace mjz::any_ns
 #endif // MJZ_ANY_id_FILE_HPP_

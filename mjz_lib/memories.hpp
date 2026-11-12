@@ -130,7 +130,7 @@ MJZ_EXPORT namespace mjz {
 
   template <typename T>
   concept bitcastable_c = std::is_trivially_copy_constructible_v<T> &&
-                          std::is_trivially_destructible_v<T>;
+      std::is_trivially_destructible_v<T>;
 
   template <size_t sz, size_t mysz>
   MJZ_NCX_AL_FN void memcpy_fixed_impl_helper_ncx_al_(
@@ -152,10 +152,9 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <typename T>
-    requires std::is_enum_v<T>
-  MJZ_CX_FN std::underlying_type_t<T> to_underlying(T e) noexcept {
-    return static_cast<std::underlying_type_t<T>>(e);
-  }
+  requires std::is_enum_v<T> MJZ_CX_FN std::underlying_type_t<T> to_underlying(
+      T e)
+  noexcept { return static_cast<std::underlying_type_t<T>>(e); }
 
   MJZ_CX_FN void mjz_prefetch_pimpl_(MJZ_MAYBE_UNUSED const void *p) noexcept {
     MJZ_IF_CONSTEVAL { return; }
@@ -197,9 +196,9 @@ MJZ_EXPORT namespace mjz {
     return ref;
   }
   template <size_t sz, size_t aliggz = 1>
-    requires(std::has_single_bit(aliggz))
-  MJZ_NCX_AL_FN void memcpy_fixed_impl_ncx_al_(
-      char *MJZ_restrict dest, const char *MJZ_restrict src) noexcept {
+  requires(std::has_single_bit(aliggz)) MJZ_NCX_AL_FN void
+  memcpy_fixed_impl_ncx_al_(char *MJZ_restrict dest,
+                            const char *MJZ_restrict src) noexcept {
     if constexpr (1024 < sz || !std::has_single_bit(sz) || aliggz < sz) {
       constexpr size_t szf = std::bit_ceil(sz) >> 1;
       memcpy_fixed_impl_ncx_al_<szf, aliggz>(dest, src);
@@ -224,9 +223,8 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <size_t sz, size_t aliggz = 1>
-    requires(std::has_single_bit(aliggz))
-  MJZ_CX_AL_FN void memcpy_fixed_impl_(char *MJZ_restrict dest,
-                                       const char *MJZ_restrict src) noexcept {
+  requires(std::has_single_bit(aliggz)) MJZ_CX_AL_FN void memcpy_fixed_impl_(
+      char *MJZ_restrict dest, const char *MJZ_restrict src) noexcept {
     dest = mjz::assume_aligned<aliggz>(dest);
     src = mjz::assume_aligned<aliggz>(src);
     MJZ_IF_CONSTEVAL_ {
@@ -435,21 +433,20 @@ MJZ_EXPORT namespace mjz {
   template <typename T>
   MJZ_CX_AL_FN auto mjz_memset_lambda_createor(T val) noexcept {
     return [val = std::move(val)](
-               T &c, MJZ_UNUSED uintlen_t &i,
-               MJZ_UNUSED const uintlen_t len) constexpr noexcept -> success_t {
+               T & c, MJZ_UNUSED uintlen_t & i,
+               MJZ_UNUSED const uintlen_t len) constexpr noexcept->success_t {
       c = val;
       return 1;
     };
   };
 
   template <typename T, class Lambda_t>
-  MJZ_CX_AL_FN T *mjz_mem_iterate(T * dest, const uintlen_t len,
-                                  Lambda_t &&lambda) noexcept
-    requires requires(uintlen_t &i, T *ptr) {
-      {
-        std::forward<Lambda_t>(lambda)(ptr[i], i, len)
-      } noexcept -> std::convertible_to<success_t>;
-    }
+  MJZ_CX_AL_FN T *mjz_mem_iterate(
+      T * dest, const uintlen_t len,
+      Lambda_t &&lambda) noexcept requires requires(uintlen_t & i, T * ptr) {
+    { std::forward<Lambda_t>(lambda)(ptr[i], i, len) }
+    noexcept->std::convertible_to<success_t>;
+  }
   {
     for (uintlen_t i{}; i < len; i++) {
       if (!std::forward<Lambda_t>(lambda)(dest[i], i, len)) {
@@ -510,16 +507,17 @@ MJZ_EXPORT namespace mjz {
       log2_of_val_create(hardware_constructive_interference_size));
 
   template <uintlen_t N>
-  MJZ_CX_AL_FN alias_t<char (&)[N]> mjz_array_set(char (&array)[N],
-                                                  char val) noexcept {
+  MJZ_CX_AL_FN alias_t<char(&)[N]> mjz_array_set(char(&array)[N],
+                                                 char val) noexcept {
     memset(array, N, val);
     return array;
   }
 
   template <typename T, class F_t, uintlen_t cache_size_v_0_ = 8>
-    requires requires(F_t &&access_at, uintlen_t i, const T &value) {
-      { std::weak_ordering(access_at(i) <=> value) } noexcept;
-    }
+  requires requires(F_t && access_at, uintlen_t i, const T &value) {
+    { std::weak_ordering(access_at(i) <=> value) }
+    noexcept;
+  }
   MJZ_CX_AL_FN uintlen_t mjz_binary_search(
       const T &value, const uintlen_t array_size, F_t &&access_at,
       const bool exclusive_search = false) noexcept {
@@ -711,8 +709,8 @@ MJZ_EXPORT namespace mjz {
   template <typename T>
   constexpr inline const bool is_trivially_relocatable_v =
       ((std::is_trivially_move_constructible_v<T> ||
-        std::is_trivially_copy_constructible_v<T>) &&
-       std::is_trivially_destructible_v<T>)
+        std::is_trivially_copy_constructible_v<
+            T>)&&std::is_trivially_destructible_v<T>)
 #ifdef __cpp_impl_trivially_relocatable
       || std::is_trivially_relocatable_v<T>
 #endif

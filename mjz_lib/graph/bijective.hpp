@@ -104,10 +104,10 @@ reorder_range_bijective_transform_indexies(index_range_t &&map,
   }
 }
 template <std::ranges::random_access_range it_range_t>
-  requires std::random_access_iterator<std::ranges::range_value_t<it_range_t>>
-MJZ_CX_FN void reorder_range_bijective_transform_iterators(
-    it_range_t &&map,
-    std::ranges::range_value_t<it_range_t> begining) noexcept {
+requires std::random_access_iterator<std::ranges::range_value_t<it_range_t>>
+    MJZ_CX_FN void reorder_range_bijective_transform_iterators(
+        it_range_t &&map,
+        std::ranges::range_value_t<it_range_t> begining) noexcept {
   auto en = std::ranges::end(map);
   auto bg = std::ranges::begin(map);
   for (auto it = bg; it != en; ++it) {
@@ -128,5 +128,5 @@ MJZ_CX_FN void reorder_range_bijective_transform_iterators(
   }
 }
 
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_bijective_FILE_

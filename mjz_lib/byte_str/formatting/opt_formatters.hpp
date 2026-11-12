@@ -63,8 +63,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     using type = T;
   };
   template <version_t version_v, typename T_>
-    requires(!!std::is_reference_v<T_>)
-  struct decay_optimize_opt_to_t<version_v, T_> {
+  requires(
+      !!std::is_reference_v<T_>) struct decay_optimize_opt_to_t<version_v, T_> {
     using T = std::remove_reference_t<T_>;
     optional_ref_t<T> obj;
     MJZ_CX_FN decay_optimize_opt_to_t(auto &&arg) noexcept
@@ -76,9 +76,9 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   };
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <version_t version_v, class T_>
-    requires requires() {
-      typename is_opt_arg_t<version_v, std::remove_cvref_t<T_>>::type;
-    }
+  requires requires() {
+    typename is_opt_arg_t<version_v, std::remove_cvref_t<T_>>::type;
+  }
   struct default_formatter_t<version_v, T_, 20> {
     using T1 = typename is_opt_arg_t<version_v, std::remove_cvref_t<T_>>::type;
     using T = const std::remove_const_t<T1>;
@@ -105,8 +105,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
 
     MJZ_CX_FN static success_t arg_name(auto &&arg,
                                         hash_context_t<version_v> &ctx) noexcept
-      requires(noexcept(Formatter::arg_name(*arg, ctx)))
-    {
+        requires(noexcept(Formatter::arg_name(*arg, ctx))) {
       if (!arg)
         return true;
       return Formatter::arg_name(*arg, ctx);

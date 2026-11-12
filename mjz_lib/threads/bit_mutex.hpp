@@ -193,5 +193,5 @@ MJZ_EXPORT namespace mjz::threads_ns {
     }
   };
 
-}; // namespace mjz::threads_ns
+};     // namespace mjz::threads_ns
 #endif // MJZ_THREADS_bit_mutex_LIB_HPP_FILE_

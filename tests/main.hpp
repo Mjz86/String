@@ -53,13 +53,13 @@ struct scoped_timer_t {
   }
 
   struct iter {
-    scoped_timer_t* ptr{};
+    scoped_timer_t *ptr{};
     uintlen_t i{};
-    MJZ_CX_FN auto& operator++() noexcept {
+    MJZ_CX_FN auto &operator++() noexcept {
       i++;
       return *this;
     }
-    MJZ_CX_FN auto& operator*() noexcept { return *ptr; }
+    MJZ_CX_FN auto &operator*() noexcept { return *ptr; }
     MJZ_CX_FN bool operator==(uintlen_t count_) const noexcept {
       return count_ == i;
     }
@@ -67,7 +67,7 @@ struct scoped_timer_t {
 
   MJZ_CX_FN auto begin() noexcept { return iter{this, 0}; }
   MJZ_CX_FN uintlen_t end() noexcept { return count; }
-  MJZ_CX_FN void no_optimize(auto&&... vals) noexcept {
+  MJZ_CX_FN void no_optimize(auto &&...vals) noexcept {
     MJZ_IF_CONSTEVAL { return; };
     [&]() noexcept { just_do(vals...); }();
   }
@@ -89,40 +89,40 @@ MJZ_CX_FN void main_t::run() const {
   format_to(result, "{}{:s}"_fmt, front_part, std::views::iota(0, 10));
   println("{} num : {} "_fmt, result, val);
 
-  auto fn_do_work = [&](auto&& fn1, auto&& fn2, auto&& fn3, str_t name = ""_str,
+  auto fn_do_work = [&](auto &&fn1, auto &&fn2, auto &&fn3, str_t name = ""_str,
                         uintlen_t count = 10000000ull) {
-    for (auto&& timer : scoped_timer_t{name, count}) {
+    for (auto &&timer : scoped_timer_t{name, count}) {
       timer.no_optimize(0);
     }
-    for (auto&& timer : scoped_timer_t{name + ":mjz"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":mjz"_str, count}) {
       timer.no_optimize(fn1());
     }
-    for (auto&& timer : scoped_timer_t{name + ":mmjz"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":mmjz"_str, count}) {
       timer.no_optimize(implace_str_t<version_v>(fn1()));
     }
-    
-    for (auto&& timer : scoped_timer_t{name + ":nth-omjz"_str, count}) {
+
+    for (auto &&timer : scoped_timer_t{name + ":nth-omjz"_str, count}) {
       str_t t = fn1();
       t.set_alloc(t.get_alloc(), 0, may_bool_t::no);
       timer.no_optimize(t.as_ownerized(), t);
     }
-    for (auto&& timer : scoped_timer_t{name + ":nth-aomjz"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":nth-aomjz"_str, count}) {
       str_t t = fn1();
       t.set_alloc(t.get_alloc(), 0, may_bool_t::no);
       timer.no_optimize(t.as_always_ownerized(true), t);
     }
-    for (auto&& timer : scoped_timer_t{name + ":omjz"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":omjz"_str, count}) {
       str_t t = fn1();
       timer.no_optimize(t.as_ownerized(), t);
     }
-    for (auto&& timer : scoped_timer_t{name + ":aomjz"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":aomjz"_str, count}) {
       str_t t = fn1();
       timer.no_optimize(t.as_always_ownerized(true), t);
     }
-    for (auto&& timer : scoped_timer_t{name + ":std"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":std"_str, count}) {
       timer.no_optimize(fn2());
     }
-    for (auto&& timer : scoped_timer_t{name + ":stdv"_str, count}) {
+    for (auto &&timer : scoped_timer_t{name + ":stdv"_str, count}) {
       timer.no_optimize(fn3());
     }
   };
@@ -163,4 +163,4 @@ MJZ_CX_FN void main_t::run() const {
       },
       "std::pair<unsigned long long,unsigned long long> hello world"_str);
 }
-};  // namespace used_mjz_ns
+}; // namespace used_mjz_ns

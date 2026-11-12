@@ -78,7 +78,7 @@ MJZ_EXPORT namespace mjz {
       if (62 < real_bw) {
         u >>= real_bw - 62;
       }
-      ret.m_coeffient =int64_t(uint64_t(u));
+      ret.m_coeffient = int64_t(uint64_t(u));
       ret.m_exponent -= std::bit_width(uint64_t(ret.m_coeffient));
       return ret;
     }
@@ -364,8 +364,8 @@ MJZ_EXPORT namespace mjz {
 
   public:
     template <int64_t cof_log_dest>
-      requires(0 < cof_log_dest && cof_log_dest < 63)
-    MJZ_CX_AL_FN void normalize() noexcept {
+    requires(0 < cof_log_dest && cof_log_dest < 63) MJZ_CX_AL_FN
+        void normalize() noexcept {
       bool is_neg{};
       m_exponent = !m_coeffient ? 0 : m_exponent;
       is_neg = m_coeffient < 0;
@@ -513,8 +513,8 @@ MJZ_EXPORT namespace mjz {
       return ret;
     }
     template <std::integral T>
-      requires(sizeof(T) <= sizeof(int64_t))
-    MJZ_CX_FN static big_float_t float_from_i(T val) noexcept {
+    requires(sizeof(T) <= sizeof(int64_t)) MJZ_CX_FN static big_float_t
+        float_from_i(T val) noexcept {
       big_float_t ret{};
       if ((uint64_t(val) & ~(uint64_t(-1) >> 1)) && std::unsigned_integral<T>) {
         ret.m_exponent++;
@@ -594,8 +594,9 @@ MJZ_EXPORT namespace mjz {
       return r.m_coeffient == int64_t(0);
     }
     template <int64_t cof_log_dest>
-      requires(0 < cof_log_dest && cof_log_dest < 62)
-    MJZ_CX_FN big_float_t make_normal() const noexcept {
+    requires(0 < cof_log_dest && cof_log_dest < 62) MJZ_CX_FN big_float_t
+        make_normal()
+    const noexcept {
       big_float_t ret{*this};
       ret.normalize<cof_log_dest>();
       return ret;
@@ -700,10 +701,10 @@ MJZ_EXPORT namespace mjz {
   template <bool B = 0> struct power2_helper_t {
     using maxfloat_t = double;
 
-    MJZ_MCONSTANT(maxfloat_t) two { 2 };
-    MJZ_MCONSTANT(maxfloat_t) one { 1 };
-    MJZ_MCONSTANT(maxfloat_t) zero { 0 };
-    MJZ_MCONSTANT(maxfloat_t) eps { DBL_EPSILON };
+    MJZ_MCONSTANT(maxfloat_t) two{2};
+    MJZ_MCONSTANT(maxfloat_t) one{1};
+    MJZ_MCONSTANT(maxfloat_t) zero{0};
+    MJZ_MCONSTANT(maxfloat_t) eps{DBL_EPSILON};
     MJZ_CX_FN static maxfloat_t small_exp(maxfloat_t x,
                                           uint32_t recursion_index) noexcept {
       uint64_t i_factorial{1};
@@ -751,9 +752,9 @@ MJZ_EXPORT namespace mjz {
              (get_log2(input, recursion_index - 1) / maxfloat_t(1ULL << sz));
     }
 
-    MJZ_MCONSTANT(maxfloat_t) e { 2.7182818284590452353602874713527 };
-    MJZ_MCONSTANT(maxfloat_t) log_e_2 { 0.69314718055994530941723212145818 };
-    MJZ_MCONSTANT(maxfloat_t) log_2_e { one / log_e_2 };
+    MJZ_MCONSTANT(maxfloat_t) e{2.7182818284590452353602874713527};
+    MJZ_MCONSTANT(maxfloat_t) log_e_2{0.69314718055994530941723212145818};
+    MJZ_MCONSTANT(maxfloat_t) log_2_e{one / log_e_2};
     MJZ_CX_FN static maxfloat_t
     get_pow2(maxfloat_t input,
              uint32_t recursion_index = sizeof(maxfloat_t)) noexcept {
@@ -801,13 +802,13 @@ MJZ_EXPORT namespace mjz {
     MJZ_IFN_CONSTEVAL { return std::exp(x); }
     return power2_helper_t<>::get_pow2(x * power2_helper_t<>::log_2_e, 63);
   }
-  MJZ_CX_FN auto mjz_sqrt(std::floating_point auto x) noexcept -> decltype(x) {
+  MJZ_CX_FN auto mjz_sqrt(std::floating_point auto x) noexcept->decltype(x) {
     MJZ_IFN_CONSTEVAL { return decltype(x)(std::sqrt((double)(x))); }
     return decltype(x)(pow_base_e(log_base_e((double)(x)) / 2));
   }
   MJZ_MCONSTANT(double)
   PI_num_{3.1415926535897932384626433832795};
-  MJZ_CX_FN auto mjz_sin(std::floating_point auto x) noexcept -> decltype(x) {
+  MJZ_CX_FN auto mjz_sin(std::floating_point auto x) noexcept->decltype(x) {
     MJZ_IFN_CONSTEVAL { return decltype(x)(std::sin((double)(x))); }
     if (x < 0) {
       return -mjz_sin(-x);
@@ -833,7 +834,7 @@ MJZ_EXPORT namespace mjz {
     return ret;
   }
 
-  MJZ_CX_FN auto mjz_cos(std::floating_point auto x) noexcept -> decltype(x) {
+  MJZ_CX_FN auto mjz_cos(std::floating_point auto x) noexcept->decltype(x) {
     MJZ_IFN_CONSTEVAL { return decltype(x)(std::cos((double)(x))); }
     if (x < 0) {
       return mjz_cos(-x);

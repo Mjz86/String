@@ -31,16 +31,15 @@ SOFTWARE.
 
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   template <version_t version_v, typename T>
-  concept is_streamed_c_helper_ =
-      is_formatted_c<T, version_v> &&
-      !requires(std::ostream &buffer, const std::remove_reference_t<T> &arg) {
-        buffer << arg;
-      } && is_formatted_exact_c<T, version_v>;
+  concept is_streamed_c_helper_ = is_formatted_c<T, version_v> &&
+      !requires(std::ostream & buffer, const std::remove_reference_t<T> &arg) {
+    buffer << arg;
+  }
+  &&is_formatted_exact_c<T, version_v>;
 
   template <typename T, version_t version_v>
-    requires is_streamed_c_helper_<version_v, T>
-  MJZ_NCX_FN std::ostream &operator_shift_left(std::ostream & cout_v,
-                                               T && arg) {
+  requires is_streamed_c_helper_<version_v, T> MJZ_NCX_FN std::ostream &
+  operator_shift_left(std::ostream & cout_v, T && arg) {
     using printer_t_ = print_t<version_v>;
     stream_output_it_t<version_v> it{cout_v};
     status_view_t<version_v> status = printer_t_::format_to(
@@ -68,8 +67,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   namespace fmt_litteral_ns {
   namespace shl_litteral_ns {
   template <typename T>
-    requires is_streamed_c_helper_<version_t{}, T>
-  MJZ_NCX_FN std::ostream &operator<<(std::ostream & cout_v, T && arg) {
+  requires is_streamed_c_helper_<version_t{}, T> MJZ_NCX_FN std::ostream &
+  operator<<(std::ostream &cout_v, T &&arg) {
     return operator_shift_left<T, version_t{}>(cout_v, std::forward<T>(arg));
   }
   } // namespace shl_litteral_ns

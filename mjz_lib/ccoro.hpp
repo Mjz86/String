@@ -16,8 +16,9 @@ struct base_coroutine_handle_t {
   MJZ_CX_FN base_coroutine_handle_t() noexcept = default;
 
   template <class frame_t>
-    requires std::derived_from<frame_t, base_coroutine_frame_t>
-  MJZ_CX_FN base_coroutine_handle_t(frame_t *p) noexcept : ptr{p} {}
+  requires std::derived_from<frame_t, base_coroutine_frame_t>
+      MJZ_CX_FN base_coroutine_handle_t(frame_t *p)
+  noexcept : ptr{p} {}
   MJZ_CX_FN base_coroutine_handle_t(ptr_t p, void_struct_t) noexcept : ptr{p} {}
   MJZ_CX_FN base_coroutine_handle_t(std::nullptr_t) noexcept : ptr{} {}
   MJZ_CX_ND_FN ptr_t address() const noexcept { return ptr; }
@@ -289,6 +290,6 @@ struct base_coroutine_stack_frame_t : base_coroutine_frame_t {
   base_coroutine_handle_t caller{base_coroutine_frame_t::noop()};
 };
 
-}; // namespace ccoro_ns
-}; // namespace mjz
+};     // namespace ccoro_ns
+};     // namespace mjz
 #endif // MJZ_CCORO_LIB_HPP_FILE_

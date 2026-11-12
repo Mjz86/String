@@ -44,10 +44,9 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
         : ctx{base}, input{input_} {}
     MJZ_CX_FN ~common_data_t() noexcept {}
 
-    MJZ_CX_FN common_data_t &operator_ll(const auto &v) noexcept
-      requires std::same_as<
-          success_t, decltype(base_out_it_t<version_v>{}.append_obj_impl_(v))>
-    {
+    MJZ_CX_FN common_data_t &
+    operator_ll(const auto &v) noexcept requires std::same_as<
+        success_t, decltype(base_out_it_t<version_v>{}.append_obj_impl_(v))> {
       if (ctx.out().append_obj_impl_(v))
         return *this;
       err_view = sview_t{
@@ -56,21 +55,22 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       return *this;
     }
 
-    MJZ_CX_FN common_data_t &operator<<(const auto &val) noexcept
-      requires requires() { this->operator_ll(val); }
-    {
-      return operator_ll(val);
+    MJZ_CX_FN common_data_t &operator<<(const auto &val) noexcept requires
+        requires() {
+      this->operator_ll(val);
     }
+    { return operator_ll(val); }
   };
 
   template <version_t version_v, typename T>
   concept common_formatted_c = requires(const std::remove_cvref_t<T> &obj,
                                         common_data_t<version_v> &cf) {
-    { cf << obj } noexcept;
+    { cf << obj }
+    noexcept;
     requires(!requires() { cf.operator_ll(obj); });
   };
   template <version_t version_v, typename T>
-    requires common_formatted_c<version_v, T>
+  requires common_formatted_c<version_v, T>
   struct default_formatter_t<version_v, T, 15> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;

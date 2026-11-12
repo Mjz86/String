@@ -203,8 +203,7 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <version_t version_v, uintlen_t n_bits>
-    requires(64 * (n_bits / 64) == n_bits && !!n_bits)
-  struct uintN_t {
+  requires(64 * (n_bits / 64) == n_bits && !!n_bits) struct uintN_t {
     MJZ_MCONSTANT(uintlen_t) word_count = n_bits / 64;
     alignas(std::min<uintlen_t>(
         hardware_constructive_interference_size,
@@ -239,8 +238,8 @@ MJZ_EXPORT namespace mjz {
     }
 
     template <std::integral... Ts>
-      requires(sizeof...(Ts) <= word_count)
-    MJZ_CX_AL_FN explicit uintN_t(/*low to high*/ Ts... args) noexcept
+    requires(sizeof...(Ts) <= word_count) MJZ_CX_AL_FN
+        explicit uintN_t(/*low to high*/ Ts... args) noexcept
         : uintN_t{void_struct_t{}, 0, uint64_t(args)...} {}
 
     MJZ_CX_AL_FN uint64_t &nth_word(auto i) noexcept {
@@ -421,8 +420,7 @@ MJZ_EXPORT namespace mjz {
       return *this;
     }
     template <int = 0>
-      requires(1 < word_count)
-    MJZ_CX_AL_FN auto split() const noexcept
+    requires(1 < word_count) MJZ_CX_AL_FN auto split() const noexcept
 
     {
       using ret_t = pair_t<uintN_t<version_v, ((word_count + 1) / 2) * 64>,
@@ -442,10 +440,8 @@ MJZ_EXPORT namespace mjz {
       }
     }
     template <int = 0>
-      requires(1 == word_count)
-    MJZ_CX_AL_FN pair_t<uint32_t, uint32_t> split() const noexcept {
-      return {uint32_t(words[0]), uint32_t(words[0] >> 32)};
-    }
+    requires(1 == word_count) MJZ_CX_AL_FN pair_t<uint32_t, uint32_t> split()
+    const noexcept { return {uint32_t(words[0]), uint32_t(words[0] >> 32)}; }
     // buggy rn
     MJZ_CX_FN auto acumilate_halfs() const noexcept {
       using ret_t = uintN_t<version_v, ((word_count + 1) / 2) * 64 + 64>;
@@ -1116,12 +1112,13 @@ MJZ_EXPORT namespace mjz {
                    most_significant_bit_is_set_comparasion_shift};
   }
   template <version_t version_v = version_t{}, uintlen_t n_ = 64>
-  MJZ_CX_AL_FN auto get_devide_inverse_and_shift(
-      uint_min_N_t<version_v, n_> max_value_,
-      uint_min_N_t<version_v, n_> devisor_, bool reduce_ = true,
-      uint_min_N_t<version_v, n_> modulos_percition =
-          uint_min_N_t<version_v, n_>{},
-      bool two_shifts_ = false) noexcept {
+  MJZ_CX_AL_FN auto
+  get_devide_inverse_and_shift(uint_min_N_t<version_v, n_> max_value_,
+                               uint_min_N_t<version_v, n_> devisor_,
+                               bool reduce_ = true,
+                               uint_min_N_t<version_v, n_> modulos_percition =
+                                   uint_min_N_t<version_v, n_>{},
+                               bool two_shifts_ = false) noexcept {
     uint_min_N_t<version_v, n_ * 2 + 1> ret{1};
     const auto [fraction_bit_count, bit_count, second_shift,
                 most_significant_bit_is_set_comparasion_shift] =
@@ -1234,16 +1231,16 @@ MJZ_EXPORT namespace mjz {
     constexpr static inline convert_base10_to_base10p8_u64_t b10p1_2_10p8{};
     constexpr static inline convert_base10p8_to_base10_u64_t b10p8_2_10p1{};
     template <std::ranges::input_range R = std::span<uint64_t>>
-      requires std::same_as<std::ranges::range_reference_t<R>, uint64_t &>
-    MJZ_CX_FN static void base10p8_to_base10_u64(R &&vals) noexcept {
+    requires std::same_as<std::ranges::range_reference_t<R>, uint64_t &>
+        MJZ_CX_FN static void base10p8_to_base10_u64(R &&vals) noexcept {
       for (uint64_t &elem : std::forward<R>(vals)) {
         asserts(asserts.assume_rn, elem < 100000000ull);
         elem = b10p8_2_10p1(elem);
       }
     }
     template <std::ranges::input_range R = std::span<uint64_t>>
-      requires std::same_as<std::ranges::range_reference_t<R>, uint64_t &>
-    MJZ_CX_FN static void base10_to_base10p8_u64(R &&vals) noexcept {
+    requires std::same_as<std::ranges::range_reference_t<R>, uint64_t &>
+        MJZ_CX_FN static void base10_to_base10p8_u64(R &&vals) noexcept {
       for (uint64_t &elem : vals)
         elem = b10p1_2_10p8(elem);
     }
@@ -1275,8 +1272,7 @@ MJZ_EXPORT namespace mjz {
     }
   }
   template <version_t version_v, uintlen_t max_dec_width, uintlen_t n_bits>
-    requires(!(n_bits & 63))
-  MJZ_CX_FN void conert_extended_uint_to_base10p8_u64(
+  requires(!(n_bits & 63)) MJZ_CX_FN void conert_extended_uint_to_base10p8_u64(
       std::span<uint64_t> vals, std::span<uint64_t, n_bits / 64> right_var_ref,
       uintlen_t bw_) noexcept {
     using uintn_t_ = uintN_t<version_v, n_bits>;

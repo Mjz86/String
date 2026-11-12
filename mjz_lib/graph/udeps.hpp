@@ -151,7 +151,6 @@ struct MJZ_trivially_relocatable uni_dependancy_node_t
     return this->format_node_state_direct({});
   }
 };
- 
 
 template <version_t version_v>
 struct MJZ_maybe_trivially_relocatable basic_uni_dependency_graph_base_t {
@@ -378,7 +377,8 @@ struct MJZ_maybe_trivially_relocatable basic_uni_dependency_graph_base_t {
       {
         std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn)(
             std::move(id_view))
-      } noexcept;
+      }
+      noexcept;
     });
     std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn)(
         std::move(id_view));

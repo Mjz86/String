@@ -154,7 +154,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
   template <version_t version_v,
             uintlen_t align_v = 16 /*dont change 16 for defualt*/>
   struct stack_allocator_meta_t {
-    MJZ_MCONSTANT(uintlen_t) align { 16 };
+    MJZ_MCONSTANT(uintlen_t) align{16};
     using self_t = stack_allocator_meta_t;
     /*CATION !!!!!!!!!!!!!
      *WILL LEAD TO UB IF THE STACK IS MISUSED,
@@ -209,8 +209,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         This_->fn_dealloca(std::move(blk));
       }
 
-      MJZ_CX_FN const std::span<char> &operator*() & noexcept { return blk; }
-      MJZ_CX_FN const std::span<char> *operator->() & noexcept { return &blk; }
+      MJZ_CX_FN const std::span<char> &operator*() &noexcept { return blk; }
+      MJZ_CX_FN const std::span<char> *operator->() &noexcept { return &blk; }
 
     private:
       std::span<char> blk{};
@@ -245,8 +245,8 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
 
   private:
     MJZ_NO_MV_NO_CPY(areana_t);
-    union alignas(std::max<uintlen_t>(alignof(std::span<char>), align_v))
-        raw_t {
+    union alignas(std::max<uintlen_t>(alignof(std::span<char>),
+                                      align_v)) raw_t {
       char dummy{};
       char raw_buffer_[buffer_size_v];
     } raw{};
@@ -391,5 +391,5 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
     }
   };
 
-}; // namespace mjz::allocs_ns
+};     // namespace mjz::allocs_ns
 #endif // MJZ_ALLOCS_bump_alloc_FILE_HPP_

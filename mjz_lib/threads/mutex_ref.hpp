@@ -26,8 +26,8 @@ SOFTWARE.
 MJZ_EXPORT namespace mjz::threads_ns {
   template <std::integral T> class mutex_ref_t : private atomic_ref_t<T> {
 
-    MJZ_MCONSTANT(T) one { 1 };
-    MJZ_MCONSTANT(T) zero { 0 };
+    MJZ_MCONSTANT(T) one{1};
+    MJZ_MCONSTANT(T) zero{0};
 
   private:
     MJZ_NCX_FN bool test_and_set_m() noexcept {
@@ -208,11 +208,11 @@ MJZ_EXPORT namespace mjz::threads_ns {
         : is_mut{is_mut_}, ref{ref_} {}
 
     MJZ_CX_FN multiread_singlewrite_lock_ref_t(char *ptr, bool is_mut_) noexcept
-        : is_mut{is_mut_},
-          ref{MJZ_STD_is_constant_evaluated_FUNCTION_RET_
-                  ? (cx_val = cpy_bitcast<T>(cx_ptr = ptr))
-                  : *reinterpret_cast<T *>(
-                        mjz::assume_aligned<alignof(T)>(ptr))} {
+        : is_mut{is_mut_}, ref{MJZ_STD_is_constant_evaluated_FUNCTION_RET_
+                                   ? (cx_val = cpy_bitcast<T>(cx_ptr = ptr))
+                                   : *reinterpret_cast<T *>(
+                                         mjz::assume_aligned<alignof(T)>(
+                                             ptr))} {
       ref.lock(is_mut);
     }
     MJZ_CX_FN ~multiread_singlewrite_lock_ref_t() noexcept {

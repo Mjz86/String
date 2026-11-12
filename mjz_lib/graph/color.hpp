@@ -150,5 +150,5 @@ color_chordal_graph(const basic_forest_t<version_v, T> &graph) noexcept {
   return color_graph_greedy_by_order(
       graph, optimize_maximum_cardinality_search_ordering(graph));
 }
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_color_FILE_

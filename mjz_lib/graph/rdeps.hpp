@@ -243,7 +243,8 @@ struct MJZ_maybe_trivially_relocatable
       {
         std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn)(
             std::move(id_view))
-      } noexcept;
+      }
+      noexcept;
     });
     std::forward<execute_resolution_wave_fnt>(execute_resolution_wave_fn)(
         std::move(id_view));
@@ -302,7 +303,7 @@ struct MJZ_maybe_trivially_relocatable
 
   MJZ_CX_FN node_id_t make_node() noexcept {
     if (m.m_free_list.size()) {
-      auto ret = node_id_t(m.m_free_list.back());  
+      auto ret = node_id_t(m.m_free_list.back());
       dependency(ret) = dependency_node_t{};
       m.m_free_list.pop_back();
       return ret;
@@ -386,5 +387,5 @@ struct MJZ_maybe_trivially_relocatable
     this->m.m_connections_list.clear();
   }
 };
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_rdeps_FILE_

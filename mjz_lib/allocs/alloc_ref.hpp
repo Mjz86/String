@@ -229,9 +229,7 @@ MJZ_EXPORT namespace mjz::allocs_ns {
     none,
   };
 
-  template <version_t version_v> struct alloc_speed_t {
-    uintlen_t wat{};
-  };
+  template <version_t version_v> struct alloc_speed_t { uintlen_t wat{}; };
 
   template <version_t version_v> struct alloc_vtable_t {
   public:
@@ -581,8 +579,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
                                                      priority + 1>::type;
   };
   template <version_t version_v, int priority>
-    requires std::derived_from<global_allocator_class_t<version_v, priority>,
-                               void_struct_t>
+  requires std::derived_from<global_allocator_class_t<version_v, priority>,
+                             void_struct_t>
   struct global_allocator_selector_helper_t_<version_v, priority> {
     using type = global_allocator_class_t<version_v, priority>;
   };
@@ -1222,9 +1220,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
       if (!ptr)
         return ptr;
       if constexpr (requires() {
-                      {
-                        std::construct_at(ptr, std::forward<Ts>(args)...)
-                      } noexcept;
+                      { std::construct_at(ptr, std::forward<Ts>(args)...) }
+                      noexcept;
                     }) {
         std::construct_at(ptr, std::forward<Ts>(args)...);
         return ptr;
@@ -1254,7 +1251,8 @@ MJZ_EXPORT namespace mjz::allocs_ns {
         return ptr;
       uintlen_t i{};
       if constexpr (requires() {
-                      { std::construct_at(ptr, args...) } noexcept;
+                      { std::construct_at(ptr, args...) }
+                      noexcept;
                     }) {
         for (; i < count; i++) {
           std::construct_at(ptr, args...);

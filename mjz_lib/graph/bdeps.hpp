@@ -273,12 +273,12 @@ struct MJZ_maybe_trivially_relocatable base_edge_connections_list_t {
       push_i = edge_list_expand(new_direct, 1, force_realloc);
     }
     connections_list[push_i] = push_val;
-  } 
+  }
   MJZ_CX_FN void edge_list_delete(edges_ids_t old_direct) noexcept {
     deallocate_connections(old_direct.m_connections_begin_index,
                            old_direct.get_capacity(connections_list));
   }
-  
+
   MJZ_CX_FN void edge_list_push_back(edges_ids_t &new_direct,
                                      uintlen_t push_val,
                                      uintlen_t extra_later) noexcept {

@@ -207,7 +207,7 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_degree_ordering(
   return optimize_maximum_bucket_ordering(
       suboptimal_indexed_graph, order,
       [adjs = suboptimal_indexed_graph.range()](uintlen_t i) noexcept
-          -> uintlen_t { return std::ranges::size(adjs[i]); },
+      -> uintlen_t { return std::ranges::size(adjs[i]); },
       std::ranges::size(suboptimal_indexed_graph.edges));
 }
 
@@ -218,5 +218,5 @@ MJZ_CX_FN std::vector<uintlen_t> optimize_maximum_degree_ordering(
       graph, std::views::iota(uintlen_t(),
                               uintlen_t(std::ranges::size(graph.range()))));
 }
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_optimize_FILE_

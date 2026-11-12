@@ -44,12 +44,10 @@ MJZ_EXPORT namespace mjz {
     words_t words{};
     MJZ_CX_AL_FN uint_dyn_t() noexcept : words{} {}
     MJZ_CX_AL_FN uint_dyn_t(std::span<const uint64_t> w) noexcept
-      requires(is_const_v)
+        requires(is_const_v)
         : words{w} {}
     MJZ_CX_AL_FN uint_dyn_t(std::span<uint64_t> w) noexcept : words{w} {}
-    MJZ_CX_AL_FN uint64_t &nth_word(auto i) noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN uint64_t &nth_word(auto i) noexcept requires(!is_const_v) {
       if constexpr (version_v.is_LE()) {
         return words[size_t(i)];
       } else {
@@ -67,8 +65,7 @@ MJZ_EXPORT namespace mjz {
       return !!(nth_word(i >> 6) & (uint64_t(1) << (i & 63)));
     }
     MJZ_CX_AL_FN void set_nth_bit(auto i, bool val) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       uint64_t mask = uint64_t(1) << (i & 63);
       uint64_t &word = nth_word(i >> 6);
       word &= ~mask;
@@ -76,22 +73,19 @@ MJZ_EXPORT namespace mjz {
     }
 
     MJZ_CX_AL_FN uint_dyn_t &operator>>=(uintlen_t amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       operator_sr(amount);
       return *this;
     }
 
     MJZ_CX_AL_FN uint_dyn_t &operator<<=(uintlen_t amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       operator_sl(amount);
       return *this;
     }
     MJZ_CX_AL_FN uint_dyn_t &
     operator&=(uint_dyn_t<version_v, true> amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       const uintlen_t n = std::min(words.size(), amount.n_word());
       for (uintlen_t i{}; i < n; i++) {
         nth_word(i) &= amount.nth_word(i);
@@ -103,8 +97,7 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uint_dyn_t &
     operator|=(uint_dyn_t<version_v, true> amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       const uintlen_t n = std::min(words.size(), amount.n_word());
       for (uintlen_t i{}; i < n; i++) {
         nth_word(i) |= amount.nth_word(i);
@@ -113,8 +106,7 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uint_dyn_t &
     operator^=(uint_dyn_t<version_v, true> amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       const uintlen_t n = std::min(words.size(), amount.n_word());
       for (uintlen_t i{}; i < n; i++) {
         nth_word(i) ^= amount.nth_word(i);
@@ -124,8 +116,7 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_AL_FN uint_dyn_t &
     copy_from(uint_dyn_t<version_v, true> amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       for (uintlen_t i{}; i < std::min(words.size(), amount.n_word()); i++) {
         nth_word(size_t(i)) = amount.nth_word(size_t(i));
       }
@@ -135,17 +126,14 @@ MJZ_EXPORT namespace mjz {
 
       return *this;
     }
-    MJZ_CX_AL_FN uint_dyn_t &flip() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN uint_dyn_t &flip() noexcept requires(!is_const_v) {
       for (intlen_t i{}; i < intlen_t(words.size()); i++) {
         nth_word(i) = ~nth_word(i);
       }
       return *this;
     }
     MJZ_CX_AL_FN uint_dyn_t &broadcast(uint64_t u64) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       for (intlen_t i{}; i < intlen_t(words.size()); i++) {
         nth_word(i) = u64;
       }
@@ -153,9 +141,7 @@ MJZ_EXPORT namespace mjz {
     }
 
     MJZ_CX_AL_FN bool add(uint_dyn_t<version_v, true> amount,
-                          bool carry = false) noexcept
-      requires(!is_const_v)
-    {
+                          bool carry = false) noexcept requires(!is_const_v) {
       for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
            i++) {
         uint64_t rhs = nth_word(i);
@@ -180,9 +166,7 @@ MJZ_EXPORT namespace mjz {
       }
       return carry;
     }
-    MJZ_CX_AL_FN uint_dyn_t &negate() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN uint_dyn_t &negate() noexcept requires(!is_const_v) {
       // twos compliment (~*this + 1)
       bool carry = true;
       for (intlen_t i{}; i < intlen_t(words.size()); i++) {
@@ -195,9 +179,7 @@ MJZ_EXPORT namespace mjz {
       return *this;
     }
     MJZ_CX_AL_FN bool minus(uint_dyn_t<version_v, true> amount,
-                            bool carry = false) noexcept
-      requires(!is_const_v)
-    {
+                            bool carry = false) noexcept requires(!is_const_v) {
       bool negate_carry = true;
       for (intlen_t i{}; i < intlen_t(std::min(words.size(), amount.n_word()));
            i++) {
@@ -236,15 +218,13 @@ MJZ_EXPORT namespace mjz {
     }
     MJZ_CX_AL_FN uint_dyn_t &
     operator-=(uint_dyn_t<version_v, true> amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       minus(amount);
       return *this;
     }
     MJZ_CX_AL_FN uint_dyn_t &
     operator+=(uint_dyn_t<version_v, true> amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       add(amount);
       return *this;
     }
@@ -406,17 +386,13 @@ MJZ_EXPORT namespace mjz {
                    return nth_word(i);
                  });
     }
-    MJZ_CX_AL_FN uint_dyn_t &operator--() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN uint_dyn_t &operator--() noexcept requires(!is_const_v) {
       for (auto &w : word_span())
         if (w--)
           break;
       return *this;
     }
-    MJZ_CX_AL_FN uint_dyn_t &operator++() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN uint_dyn_t &operator++() noexcept requires(!is_const_v) {
       for (auto &w : word_span())
         if (++w)
           break;
@@ -478,9 +454,7 @@ MJZ_EXPORT namespace mjz {
 
     MJZ_CX_AL_FN void /*byte count*/
     unchecked_from_ascii(std::span<const char> ascii_input,
-                         uint8_t raidex = 10) noexcept
-      requires(!is_const_v)
-    {
+                         uint8_t raidex = 10) noexcept requires(!is_const_v) {
       *this = unchecked_from_ascii_impl_(*this, ascii_input, raidex);
     }
 
@@ -499,9 +473,7 @@ MJZ_EXPORT namespace mjz {
         /*restrict span*/ /*from outside it can be considered non-thread safe
                              const , but mofified witith function so its not
                              const */
-        uint_dyn_t rhs) noexcept
-      requires(!is_const_v)
-    {
+        uint_dyn_t rhs) noexcept requires(!is_const_v) {
 
       uintlen_t rhs_lz = rhs.countl_zero();
       uintlen_t rhs_bw = rhs.n_bit() - rhs_lz;
@@ -544,18 +516,15 @@ MJZ_EXPORT namespace mjz {
     MJZ_DEPRECATED_R("O(3*n) memory , use operator_modulo_and_devide")
     MJZ_CX_AL_FN uint_dyn_t &
     operator%=(uint_dyn_t<version_v, true> rhs) noexcept
-      requires(!is_const_v)
-    = delete;
+        requires(!is_const_v) = delete;
     MJZ_DEPRECATED_R("O(3*n) memory , use operator_modulo_and_devide")
     MJZ_CX_AL_FN uint_dyn_t &
     operator/=(uint_dyn_t<version_v, true> rhs) noexcept
-      requires(!is_const_v)
-    = delete;
+        requires(!is_const_v) = delete;
     MJZ_DEPRECATED_R("3*n) memory , use operator_muleq")
     MJZ_CX_AL_FN uint_dyn_t &
     operator*=(uint_dyn_t<version_v, true> rhs) noexcept
-      requires(!is_const_v)
-    = delete;
+        requires(!is_const_v) = delete;
 
     MJZ_CX_AL_FN uint_dyn_t &operator*=(uint64_t amount) noexcept {
       using u128_t0_ = uintN_t<version_v, 128>;
@@ -573,15 +542,13 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN pair_t<success_t, bool /*overflow-cutoff of devide_out*/>
     operator_modulo_in_to_devide(uint_dyn_t modulo_out_val_in,
                                  uint_dyn_t rhs) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       return operator_modulo_and_devide(*this, modulo_out_val_in, rhs);
     }
     // argument must not overlap (/*restrict span*/ )
     MJZ_CX_AL_FN pair_t<success_t, bool /*overflow-cutoff of devide_out*/>
     operator_devide_to_modulo_in(uint_dyn_t devide_out, uint_dyn_t rhs) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       return operator_modulo_and_devide(devide_out, *this, rhs);
     }
 
@@ -590,8 +557,7 @@ MJZ_EXPORT namespace mjz {
     operator_mul(uint64_t *MJZ_restrict ptr, uintlen_t word_n,
                  uint_dyn_t<version_v, true> lhs,
                  uint_dyn_t<version_v, true> rhs) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       std::span<uint64_t> playground_space{ptr, word_n};
       uint_dyn_t dyn_int = playground_space;
       using u128_t0_ = uintN_t<version_v, 128>;
@@ -657,14 +623,11 @@ MJZ_EXPORT namespace mjz {
       }
     }
 
-    MJZ_CX_FN static uint_dyn_t
-    operator_muladd(uint64_t *const MJZ_restrict ptr, const uintlen_t word_n,
-                    uint_dyn_t<version_v, true> lhs,
-                    uint_dyn_t<version_v, true> rhs,
-                    uint64_t *const MJZ_restrict stack_ptr_,
-                    const uintlen_t stack_word_size_) noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_FN static uint_dyn_t operator_muladd(
+        uint64_t *const MJZ_restrict ptr, const uintlen_t word_n,
+        uint_dyn_t<version_v, true> lhs, uint_dyn_t<version_v, true> rhs,
+        uint64_t *const MJZ_restrict stack_ptr_,
+        const uintlen_t stack_word_size_) noexcept requires(!is_const_v) {
       std::span<uint64_t> playground_space =
           std::span<uint64_t>{stack_ptr_, stack_word_size_};
       using u128_t0_ = uintN_t<version_v, 128>;
@@ -838,8 +801,7 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN uint_dyn_t &
     operator_muleq(uint_dyn_t<version_v, true> lhs,
                    uint_dyn_t<version_v, true> rhs) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       for (uintlen_t i{
                operator_mul(words.data(), words.size(), lhs, rhs).n_word()};
            i < words.size(); i++) {
@@ -850,8 +812,7 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_AL_FN uint_dyn_t &operator_muleqadd(
         uint_dyn_t<version_v, true> lhs, uint_dyn_t<version_v, true> rhs,
         std::span<uint64_t> stack = std::span<uint64_t>{}) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       for (uintlen_t i{operator_muladd(words.data(), words.size(), lhs, rhs,
                                        stack.data(), stack.size())
                            .n_word()};
@@ -861,8 +822,7 @@ MJZ_EXPORT namespace mjz {
       return *this;
     }
     MJZ_CX_AL_FN void operator_sl(uintlen_t amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       if (n_bit() <= amount) {
         for (uint64_t &w : words)
           w = 0;
@@ -895,8 +855,7 @@ MJZ_EXPORT namespace mjz {
       }
     }
     MJZ_CX_AL_FN void operator_sr(uintlen_t amount) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
       if (n_bit() <= amount) {
         for (uint64_t &w : words)
           w = 0;
@@ -928,9 +887,7 @@ MJZ_EXPORT namespace mjz {
         }
       }
     }
-    MJZ_CX_AL_FN void to_bit_ceil() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN void to_bit_ceil() noexcept requires(!is_const_v) {
       if (!words.size())
         return;
       bool low_had_value{};
@@ -951,9 +908,7 @@ MJZ_EXPORT namespace mjz {
       nth_word(last_byte_value_i) = std::bit_ceil(last_byte_value);
       return;
     }
-    MJZ_CX_AL_FN void to_bit_floor() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN void to_bit_floor() noexcept requires(!is_const_v) {
 
       for (intlen_t i{intlen_t(words.size()) - 1}; 0 <= i; i--) {
         if (!nth_word(i)) {
@@ -967,14 +922,10 @@ MJZ_EXPORT namespace mjz {
         break;
       }
     }
-    MJZ_CX_AL_FN void to_rotl(intlen_t r) noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN void to_rotl(intlen_t r) noexcept requires(!is_const_v) {
       return to_rotr(-r);
     }
-    MJZ_CX_AL_FN void to_rotr(intlen_t r) noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN void to_rotr(intlen_t r) noexcept requires(!is_const_v) {
       if (!n_word())
         return;
       if (n_bit() <= uintlen_t(std::max(r, -r)))
@@ -996,18 +947,14 @@ MJZ_EXPORT namespace mjz {
       nth_word(n_word() - 1) =
           (nth_word(n_word() - 1) >> bit_rot) | (word0 << (64 - bit_rot));
     }
-    MJZ_CX_AL_FN void to_byteswap() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN void to_byteswap() noexcept requires(!is_const_v) {
       // mem_byteswap(words.data(),words.byte_size())
       for (uint64_t &w : words) {
         w = byteswap(w);
       }
       std::ranges::reverse(words);
     }
-    MJZ_CX_AL_FN void to_bitswap() noexcept
-      requires(!is_const_v)
-    {
+    MJZ_CX_AL_FN void to_bitswap() noexcept requires(!is_const_v) {
       // mem_bitswap(words.data(),words.byte_size())
       for (uint64_t &w : words) {
         w = bitswap(w);
@@ -1088,8 +1035,7 @@ MJZ_EXPORT namespace mjz {
 
     template <bool set>
     MJZ_CX_AL_FN void set_bit_patch(uintlen_t index, uintlen_t count) noexcept
-      requires(!is_const_v)
-    {
+        requires(!is_const_v) {
 
       if (!count)
         return;
@@ -1185,17 +1131,13 @@ MJZ_EXPORT namespace mjz {
   };
 
   template <version_t version_v, uintlen_t n_bits>
-    requires(64 * (n_bits / 64) == n_bits && !!n_bits)
-  MJZ_CX_AL_FN uint_dyn_t<version_v, true>
-  uintN_t<version_v, n_bits>::as_dyn() const noexcept {
-    return std::span<const uint64_t>(words);
-  }
+  requires(64 * (n_bits / 64) == n_bits && !!n_bits) MJZ_CX_AL_FN
+      uint_dyn_t<version_v, true> uintN_t<version_v, n_bits>::as_dyn()
+  const noexcept { return std::span<const uint64_t>(words); }
   template <version_t version_v, uintlen_t n_bits>
-    requires(64 * (n_bits / 64) == n_bits && !!n_bits)
-  MJZ_CX_AL_FN uint_dyn_t<version_v, false>
-  uintN_t<version_v, n_bits>::as_dyn() noexcept {
-    return std::span<uint64_t>(words);
-  }
+  requires(64 * (n_bits / 64) == n_bits && !!n_bits) MJZ_CX_AL_FN
+      uint_dyn_t<version_v, false> uintN_t<version_v, n_bits>::as_dyn()
+  noexcept { return std::span<uint64_t>(words); }
   template <version_t version_v>
   MJZ_CX_FN uint_dyn_t<version_v, false>
   pow10_dyn_uint_u64(std::span<uint64_t> out_and_temp, uintlen_t pow) noexcept {
@@ -1547,9 +1489,9 @@ MJZ_EXPORT namespace mjz {
     return ret0;
   }
   template <version_t version_v, uintlen_t n_bits>
-    requires(64 * (n_bits / 64) == n_bits && !!n_bits)
-  MJZ_CX_AL_FN void uintN_t<version_v, n_bits>::unchecked_from_ascii(
-      std::span<const char> ascii_input, uint8_t raidex) noexcept {
+  requires(64 * (n_bits / 64) == n_bits && !!n_bits) MJZ_CX_AL_FN
+      void uintN_t<version_v, n_bits>::unchecked_from_ascii(
+          std::span<const char> ascii_input, uint8_t raidex) noexcept {
     uintN_t<version_v, n_bits> t{};
     t.as_dyn() |= unchecked_from_ascii_impl_(as_dyn(), ascii_input, raidex);
     *this = t;

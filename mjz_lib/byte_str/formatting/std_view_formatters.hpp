@@ -27,12 +27,12 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_std_view_formatters_HPP_FILE_
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   template <version_t version_v, typename T>
-    requires requires() {
-      { std::string_view(just_some_invalid_obj<T &&>()) };
-      // to forward the span into std::basic_string_view
-      requires !partial_same_as<
-          decltype(std::string_view(just_some_invalid_obj<T &&>())), T>;
-    }
+  requires requires() {
+    {std::string_view(just_some_invalid_obj<T &&>())};
+    // to forward the span into std::basic_string_view
+    requires !partial_same_as<
+        decltype(std::string_view(just_some_invalid_obj<T &&>())), T>;
+  }
   struct default_formatter_t<version_v, T, 30> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
@@ -49,11 +49,11 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
   template <version_t version_v, typename T>
-    requires requires() {
-      requires std::is_pointer_v<std::remove_cvref_t<T>>;
-      requires partial_same_as<char,
-                               std::remove_pointer_t<std::remove_cvref_t<T>>>;
-    }
+  requires requires() {
+    requires std::is_pointer_v<std::remove_cvref_t<T>>;
+    requires partial_same_as<char,
+                             std::remove_pointer_t<std::remove_cvref_t<T>>>;
+  }
   struct default_formatter_t<version_v, T, 19> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;

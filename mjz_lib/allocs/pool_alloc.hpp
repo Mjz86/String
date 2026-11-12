@@ -25,7 +25,7 @@ SOFTWARE.
 #define MJZ_ALLOCS_pool_alloc_FILE_HPP_
 MJZ_EXPORT namespace mjz ::allocs_ns {
   template <version_t version_v, uintlen_t N, bool has_lock = true>
-    requires requires() { requires(!!N && N <= ((sizeof(uintlen_t) * 8) - 3)); }
+  requires requires() { requires(!!N && N <= ((sizeof(uintlen_t) * 8) - 3)); }
   struct pool_alloc_info_t {
     using alloc_t = pool_alloc_info_t;
     using alloc_base = alloc_base_t<version_v>;
@@ -152,9 +152,7 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
       }
 
     private:
-      MJZ_CX_FN char *mutex_byte() const noexcept
-        requires(has_lock)
-      {
+      MJZ_CX_FN char *mutex_byte() const noexcept requires(has_lock) {
         return this->bucket_data_s[0].data_buffer
                    ? this->bucket_data_s[0].data_buffer +
                          this->bucket_data_s[0].my_block_manager.num_blocks *

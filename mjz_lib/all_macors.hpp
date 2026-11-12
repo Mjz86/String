@@ -341,10 +341,10 @@ using void_struct_t = totally_empty_type_t;
 #define MJZ_musttail [[clang::musttail]]
 #elif __has_cpp_attribute(gnu::musttail)
 #define MJZ_musttail [[gnu::musttail]]
-#elif __has_attribute(musttail) 
-#define MJZ_musttail __attribute__((musttail)) 
-#else 
-#define MJZ_musttail ::mjz::asserts.panic("no tail call is supported  "); 
+#elif __has_attribute(musttail)
+#define MJZ_musttail __attribute__((musttail))
+#else
+#define MJZ_musttail ::mjz::asserts.panic("no tail call is supported  ");
 #endif
 
 #define MJZ_retail MJZ_musttail return
@@ -805,18 +805,20 @@ typedef bool success_t;
 template <std::same_as<void> = void> struct releaser_helper_t {
 private:
   template <class releaser_LAMBDA_t>
-    requires requires(releaser_LAMBDA_t l) {
-      releaser_LAMBDA_t(std::move(l));
-      l();
-    }
+  requires requires(releaser_LAMBDA_t l) {
+    releaser_LAMBDA_t(std::move(l));
+    l();
+  }
   class releaser_0_t_ {
   public:
     MJZ_NO_MV_NO_CPY(releaser_0_t_);
     releaser_0_t_() = delete;
     MJZ_CX_AL_FN
     releaser_0_t_(releaser_LAMBDA_t &&releaser_lambda) noexcept(requires() {
-      { releaser_LAMBDA_t(std::move(releaser_lambda)) } noexcept;
-    }) : m_releaser_lambda_(std::move(releaser_lambda)) {}
+      { releaser_LAMBDA_t(std::move(releaser_lambda)) }
+      noexcept;
+    })
+        : m_releaser_lambda_(std::move(releaser_lambda)) {}
     MJZ_CX_AL_FN ~releaser_0_t_() { m_releaser_lambda_(); }
 
     //
@@ -846,8 +848,9 @@ static_assert(std::is_empty_v<releaser_helper_t<>>);
 
 template <class Lmabda_t, bool no_exeptions = false>
 MJZ_CX_AL_FN success_t run_and_block_exeptions(Lmabda_t &&code) noexcept {
-  if constexpr (requires(Lmabda_t &&code_) {
-                  { std::forward<Lmabda_t>(code_)() } noexcept;
+  if constexpr (requires(Lmabda_t && code_) {
+                  { std::forward<Lmabda_t>(code_)() }
+                  noexcept;
                 }) {
     std::forward<Lmabda_t>(code)();
     return true;
@@ -911,7 +914,7 @@ void g(){
 }
 */
 
-#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable->void
+#define MJZ_NOEXCEPT ::mjz::noexcept_er_helper_t<>{}->*[&]() mutable -> void
 
 /*
 this is a temporary RAII object for being used for something like this:

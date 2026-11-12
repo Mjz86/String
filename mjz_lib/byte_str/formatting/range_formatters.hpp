@@ -36,9 +36,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   concept is_tuple_c = requires {
     typename mjz::tuple_size<std::remove_cvref_t<T>>;
     mjz::tuple_size<std::remove_cvref_t<T>>::value;
-    {
-      mjz::tuple_size_v<std::remove_cvref_t<T>>
-    } noexcept -> std::convertible_to<uintlen_t>;
+    { mjz::tuple_size_v<std::remove_cvref_t<T>> }
+    noexcept->std::convertible_to<uintlen_t>;
   };
 
   template <version_t version_v> struct ranges_default_formatter_base_t {
@@ -70,7 +69,7 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
     MJZ_MCONSTANT(bool) can_have_cx_formatter_v = true;
     using T = std::remove_cvref_t<T_>;
-    MJZ_MCONSTANT(bool) a_tuple_thingy_v { true };
+    MJZ_MCONSTANT(bool) a_tuple_thingy_v{true};
     using sview = static_string_view_t<version_v>;
     using view = basic_string_view_t<version_v>;
     template <std::size_t I>
@@ -259,10 +258,11 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   struct default_formatter_t<version_v, T, 50>
       : ranges_default_formatter_base_t<version_v> {
     using T_range = std::remove_const_t<std::remove_reference_t<T>>;
-    using CT_range = std::conditional_t<requires(const T_range obj) {
+    using CT_range = std::conditional_t < requires(const T_range obj) {
       *std::ranges::begin(obj);
       std::ranges::begin(obj) == std::ranges::end(obj);
-    }, const T_range, T_range>;
+    }
+    , const T_range, T_range > ;
     using CRT_range = CT_range &;
     MJZ_MCONSTANT(bool)
     no_perfect_forwarding_v = std::is_const_v<CT_range>;
@@ -322,9 +322,8 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
       }
       if (ch && *ch == 'm') {
         if constexpr (!requires() {
-                        {
-                          F_t::a_tuple_thingy_v
-                        } noexcept -> partial_same_as<bool>;
+                        { F_t::a_tuple_thingy_v }
+                        noexcept->partial_same_as<bool>;
                         requires bool(F_t::a_tuple_thingy_v);
                       }) {
           ctx.as_error(
@@ -431,12 +430,13 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
   template <version_t version_v, typename T>
-    requires requires() {
-      { std::span(just_some_invalid_obj<T &&>()) } noexcept;
-      // to forward the span into std::ranges::input_range
-      requires !partial_same_as<
-          decltype(std::span(just_some_invalid_obj<T &&>())), T>;
-    }
+  requires requires() {
+    { std::span(just_some_invalid_obj<T &&>()) }
+    noexcept;
+    // to forward the span into std::ranges::input_range
+    requires !partial_same_as<
+        decltype(std::span(just_some_invalid_obj<T &&>())), T>;
+  }
   struct default_formatter_t<version_v, T, 40> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;
@@ -454,5 +454,5 @@ MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
     };
   };
 
-}; // namespace mjz::bstr_ns::format_ns
+};     // namespace mjz::bstr_ns::format_ns
 #endif // MJZ_BYTE_FORMATTING_range_formatters_HPP_FILE_

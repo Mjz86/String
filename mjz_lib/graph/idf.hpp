@@ -194,5 +194,5 @@ calculate_iterated_dominance_frontiers_given_dominance_frontiers(
       std::forward<definion_range_t>(definion_range));
   return ret;
 }
-}; // namespace mjz::graph_ns
+};     // namespace mjz::graph_ns
 #endif // MJZ_SRC_GRAPH_idf_FILE_

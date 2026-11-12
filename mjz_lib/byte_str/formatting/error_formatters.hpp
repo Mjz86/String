@@ -29,7 +29,7 @@ SOFTWARE.
 #define MJZ_BYTE_FORMATTING_error_formatters_HPP_FILE_
 MJZ_EXPORT namespace mjz::bstr_ns::format_ns {
   template <version_t version_v, class T>
-    requires std::derived_from<std::remove_cvref_t<T>, std::exception>
+  requires std::derived_from<std::remove_cvref_t<T>, std::exception>
   struct default_formatter_t<version_v, T, 30> {
     MJZ_MCONSTANT(bool) no_perfect_forwarding_v = true;
     MJZ_MCONSTANT(bool) can_bitcast_optimize_v = true;

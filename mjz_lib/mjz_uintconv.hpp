@@ -50,24 +50,24 @@ SOFTWARE.
 #else
 #endif
 MJZ_EXPORT namespace mjz{
-inline namespace uint_to_ascci_ns0 {
-namespace details_ns {
+    inline namespace uint_to_ascci_ns0{namespace details_ns{
 
-constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
-  std::array<uint64_t, 9> ret{};
-  uint64_t p10_{1};
-  for (size_t i{}; i < 9; i++) {
-    ret[i] = ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
-    p10_ *= 10;
-  }
-  return ret;
-}(); /*
- constexpr   inline std::array<uint64_t, 21> floor10_table = []()
- noexcept { std::array<uint64_t, 21> ret{}; ret[0] = 1; for (size_t
- i{1}; i < 20; i++) { ret[i] = ret[i - 1] * 10;
-   }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we
- know that this is correct ret[20] = uint64_t(-1); return ret;
- }(); */
+        constexpr inline std::array<uint64_t, 9> inv_p10_b57 = []() noexcept {
+          std::array<uint64_t, 9> ret{};
+          uint64_t p10_{1};
+          for (size_t i{}; i < 9; i++) {
+            ret[i] =
+                ((uint64_t(1) << 57) / p10_) + !!((uint64_t(1) << 57) % p10_);
+            p10_ *= 10;
+          }
+          return ret;
+        }(); /*
+         constexpr   inline std::array<uint64_t, 21> floor10_table = []()
+         noexcept { std::array<uint64_t, 21> ret{}; ret[0] = 1; for (size_t
+         i{1}; i < 20; i++) { ret[i] = ret[i - 1] * 10;
+           }// coudnt show max pow 10 , but based on the   (64*39/128)==19 we
+         know that this is correct ret[20] = uint64_t(-1); return ret;
+         }(); */
 constexpr inline const auto floor10_table =
     std::array<uint64_t, 21>{1ull,
                              10ull,
@@ -1313,8 +1313,8 @@ constexpr uint64_t iota_5_u32_tou64digits(uint64_t n) noexcept {
   return ret;
 }
 
-[[maybe_unused]]
-constexpr std::array<char, 4> iota_forward_3digits(uint32_t n) noexcept {
+[[maybe_unused]] constexpr std::array<char, 4>
+iota_forward_3digits(uint32_t n) noexcept {
   uint32_t awnser = iota_3digits(n);
   int num0ch{};
   if constexpr (std::endian::big == std::endian::native) {
@@ -1477,8 +1477,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint32_t number_) noexcept {
           16 - num_high_0ch,
           num_high_0ch};
 }
-[[maybe_unused]]
-inline std::tuple<uint64_t, size_t, size_t>
+[[maybe_unused]] inline std::tuple<uint64_t, size_t, size_t>
 dec_from_uint_impl_semi_parallel_impl_ncx_(const uint16_t number_) noexcept {
   uint64_t ret = iota_5_u32_tou64digits(number_);
 
@@ -1489,8 +1488,7 @@ dec_from_uint_impl_semi_parallel_impl_ncx_(const uint16_t number_) noexcept {
                                  3));
   return {ret | ascii_offset, 8 - num_high_0ch, num_high_0ch};
 }
-[[maybe_unused]]
-inline std::tuple<uint32_t, size_t, size_t>
+[[maybe_unused]] inline std::tuple<uint32_t, size_t, size_t>
 dec_from_uint_impl_semi_parallel_impl_ncx_(const uint8_t number_) noexcept {
   uint32_t ret = iota_3digits(number_);
   const size_t num_high_0ch =
@@ -1560,7 +1558,8 @@ uint_to_dec_forward(char *buffer, size_t cap, uint64_t number_0_) noexcept {
   uint_to_dec_forward_less1e11(buffer, count - 10, low);
   return count;
 }
-}; // namespace details_ns
+}
+; // namespace details_ns
 
 [[maybe_unused]] inline size_t
 uint_to_dec_less1e9(char *buffer, size_t cap, uint32_t number_0_) noexcept {
@@ -1952,9 +1951,8 @@ inv10p8_b57_mul100_num_to_iota_impl_(uint64_t &n) noexcept {
   return u16x4_num_to_iota_impl_(std::bit_cast<uint64_t>(indexies));
 }
 
-[[maybe_unused]]
-constexpr MJZ_JUST_FORCED_INLINE_
-    uint64_t inv10p8_b57_num_to_iota_impl_(uint64_t &n) noexcept {
+[[maybe_unused]] constexpr MJZ_JUST_FORCED_INLINE_ uint64_t
+inv10p8_b57_num_to_iota_impl_(uint64_t &n) noexcept {
   std::array<uint16_t, 4> indexies{};
   for (uint16_t &index : indexies) {
     n *= 100;
@@ -2323,9 +2321,8 @@ constexpr inline size_t integral_to_dec_impl_(char *buffer, const size_t cap,
                              buffer, size_t(width_), u_t(abs_n)));
 }
 template <size_t size_v, std::integral T>
-  requires(int_to_dec_unchekced_size_v<T> <= size_v)
-constexpr inline size_t integral_to_dec_impl_unchecked_(char *buffer,
-                                                        T num_) noexcept {
+requires(int_to_dec_unchekced_size_v<T> <= size_v) constexpr inline size_t
+    integral_to_dec_impl_unchecked_(char *buffer, T num_) noexcept {
   const bool is_neg = num_ < 0;
   using u_t = std::make_unsigned_t<decltype(num_)>;
   const auto abs_n = is_neg ? u_t(u_t(~u_t(num_)) + 1) : u_t(num_);
@@ -2968,8 +2965,8 @@ constexpr inline size_t int_to_dec(char *buffer, const size_t cap,
   return details_ns::integral_to_dec_impl_(buffer, cap, num_);
 }
 template <size_t size_v, std::integral T>
-  requires(int_to_dec_unchekced_size_v<T> <= size_v)
-constexpr inline size_t int_to_dec_unchecked(char *buffer, T num_) noexcept {
+requires(int_to_dec_unchekced_size_v<T> <= size_v) constexpr inline size_t
+    int_to_dec_unchecked(char *buffer, T num_) noexcept {
   if constexpr (true)
     return details_ns::int_to_dec_par<size_v>(buffer, size_v, num_);
   return details_ns::integral_to_dec_impl_unchecked_<size_v, T>(buffer, num_);

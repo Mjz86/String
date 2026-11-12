@@ -151,10 +151,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       asserts(asserts.expect_rn, Right.trc == trc);
       return index <=> Right.index;
     }
-    MJZ_CX_ND_FN encodings_e get_encoding() const noexcept
-      requires requires(Range_t *p) {
-        { p->get_encoding() } noexcept -> std::same_as<encodings_e>;
-      }
+    MJZ_CX_ND_FN encodings_e get_encoding() const noexcept requires
+        requires(Range_t *p) {
+      { p->get_encoding() }
+      noexcept->std::same_as<encodings_e>;
+    }
     {
       asserts(asserts.assume_rn, !!this->trc);
       return this->trc->get_encoding();
@@ -162,12 +163,13 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
   protected:
     MJZ_CX_ND_FN auto check(bool extra = false) const noexcept {
-      static_assert(requires(Range_t &p) {
-        { p.data() } noexcept;
-        { *p.data() } noexcept;
-        {
-          std::addressof(*p.data())
-        } noexcept -> std::same_as<std::remove_cvref_t<decltype(p.data())>>;
+      static_assert(requires(Range_t & p) {
+        { p.data() }
+        noexcept;
+        { *p.data() }
+        noexcept;
+        { std::addressof(*p.data()) }
+        noexcept->std::same_as<std::remove_cvref_t<decltype(p.data())>>;
       });
       auto fn = [this, extra]() noexcept -> void {
         if (!trc) {
@@ -307,10 +309,11 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       asserts(asserts.expect_rn, Right.trc == trc);
       return index <=> Right.index;
     }
-    MJZ_CX_ND_FN encodings_e get_encoding() const noexcept
-      requires requires(Range_t *p) {
-        { p->get_encoding() } noexcept -> std::same_as<encodings_e>;
-      }
+    MJZ_CX_ND_FN encodings_e get_encoding() const noexcept requires
+        requires(Range_t *p) {
+      { p->get_encoding() }
+      noexcept->std::same_as<encodings_e>;
+    }
     {
       asserts(asserts.assume_rn, !!this->trc);
       return this->trc->get_encoding();
@@ -318,8 +321,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
 
   protected:
     MJZ_CX_ND_FN auto check(bool extra = false) const noexcept {
-      static_assert(requires(Range_t &p) {
-        { p[uintlen_t(0)] } noexcept;
+      static_assert(requires(Range_t & p) {
+        { p[uintlen_t(0)] }
+        noexcept;
       });
       auto fn = [this, extra]() noexcept -> void {
         if (!trc) {
@@ -393,26 +397,28 @@ MJZ_EXPORT namespace mjz::bstr_ns {
   }; // namespace basic_str_abi_ns_
   template <typename T, version_t version_v>
   concept base_out_it_viawble_c =
-      requires(T obj, void_struct_t *vp,
+      requires(T obj, void_struct_t * vp,
                base_string_view_t<version_v> opt_view_or_reserve) {
-        {
-          obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
-                                               opt_view_or_reserve)
-        } noexcept -> std::same_as<success_t>;
-        void_struct_cast_t::down_cast<T>(vp);
-      };
+    {
+      obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
+                                           opt_view_or_reserve)
+    }
+    noexcept->std::same_as<success_t>;
+    void_struct_cast_t::down_cast<T>(vp);
+  };
 
   template <typename T, version_t version_v>
   concept base_out_it_lazy_viawble_c =
 
-      requires(T obj, void_struct_t *vp,
+      requires(T obj, void_struct_t * vp,
                base_lazy_view_t<version_v> opt_view_or_reserve) {
-        {
-          obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
-                                               opt_view_or_reserve)
-        } noexcept -> std::same_as<success_t>;
-        void_struct_cast_t::down_cast<T>(vp);
-      };
+    {
+      obj.format_back_insert_append_pv_fn_(unsafe_ns::unsafe_v,
+                                           opt_view_or_reserve)
+    }
+    noexcept->std::same_as<success_t>;
+    void_struct_cast_t::down_cast<T>(vp);
+  };
 
   template <version_t version_v>
   using base_out_it_fnp_t_ = funcptr_of_t<success_t(
@@ -469,8 +475,9 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           }) {}
 
     template <base_out_it_viawble_c<version_v> T>
-      requires(!base_out_it_lazy_viawble_c<T, version_v>)
-    MJZ_CX_FN base_out_it_t(T *actual_object, void_struct_t) noexcept
+    requires(!base_out_it_lazy_viawble_c<T, version_v>) MJZ_CX_FN
+        base_out_it_t(T *actual_object, void_struct_t)
+    noexcept
         : obj(void_struct_cast_t::up_cast(actual_object)),
           function_ptr(+[](void_struct_t &obj_ref,
                            blazy opt_view_or_reserve) noexcept -> success_t {
@@ -489,16 +496,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                            encodings_e(opt_view_or_reserve.encodings))) &&
                    opt_view_or_reserve.get_value(
                        [&](base_string_view_t<version_v> read_slice) noexcept
-                           -> success_t {
+                       -> success_t {
                          return actual_obj.format_back_insert_append_pv_fn_(
                              unsafe_ns::unsafe_v, read_slice);
                        });
           }) {}
 
     template <typename T>
-      requires(!partial_same_as<T, base_out_it_t>)
-    MJZ_CX_FN base_out_it_t(T &actual_object) noexcept
-        : base_out_it_t(std::addressof(actual_object), void_struct_t{}) {}
+    requires(!partial_same_as<T, base_out_it_t>) MJZ_CX_FN
+        base_out_it_t(T &actual_object)
+    noexcept : base_out_it_t(std::addressof(actual_object), void_struct_t{}) {}
     MJZ_CX_FN base_out_it_t() noexcept = default;
     MJZ_CX_FN base_out_it_t(nullptr_t) noexcept : base_out_it_t(){};
 
@@ -754,7 +761,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return view.get_value_fn(
           view, +no_type_ns::make<lazy_reader_fnt<version_v>>(
                     [this](base_string_view_t<version_v> read_slice) noexcept
-                        -> success_t {
+                    -> success_t {
                       memcpy(this->begin_ptr + Base::length, read_slice.ptr,
                              read_slice.len);
                       Base::length += read_slice.len;
@@ -834,8 +841,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     MJZ_CX_FN sub_out_iter_t(base_out_it_t<version_v> base_,
                              encodings_e encoding_, uintlen_t left_offset_ = 0,
                              uintlen_t left_len_ = uintlen_t(-1)) noexcept
-        : base{base_}, left_offset{left_offset_}, left_len{left_len_},
-          encoding{encoding_} {}
+        : base{base_},
+          left_offset{left_offset_}, left_len{left_len_}, encoding{encoding_} {}
     MJZ_CX_FN sub_out_iter_t(nullptr_t = nullptr) noexcept {};
 
     MJZ_CX_FN explicit operator bool() const noexcept { return !!base; }

@@ -30,20 +30,22 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
   template <class T, version_t version_v>
   concept lazy_reader_fn_c =
       requires(T &lazy_reader, basic_string_view_t<version_v> read_slice_) {
-        { lazy_reader(read_slice_) } noexcept -> std::same_as<success_t>;
-      };
+    { lazy_reader(read_slice_) }
+    noexcept->std::same_as<success_t>;
+  };
 
   template <class T, version_t version_v>
-  concept lazy_generatorable_c =
-      requires(uintlen_t offset, uintlen_t length, const T &obj) {
-        {
-          obj(offset, length,
-              [_ = std::array<uintlen_t, 2>{}](
-                  basic_string_view_t<version_v>) noexcept -> success_t {
-                return true;
-              })
-        } noexcept -> std::same_as<success_t>;
-      };
+  concept lazy_generatorable_c = requires(uintlen_t offset, uintlen_t length,
+                                          const T &obj) {
+    {
+      obj(offset, length,
+          [_ = std::array<uintlen_t, 2>{}](
+              basic_string_view_t<version_v>) noexcept -> success_t {
+            return true;
+          })
+    }
+    noexcept->std::same_as<success_t>;
+  };
 
   template <version_t version_v> struct basic_lazy_str_t;
   template <version_t version_v> struct basic_lazy_vtable_t {
@@ -72,7 +74,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     T object;
     template <class... Us>
     MJZ_CX_FN heap_storage_t(Us &&...args) noexcept
-        : object(std::forward<Us>(args)...) {};
+        : object(std::forward<Us>(args)...){};
     MJZ_CX_FN ~heap_storage_t() noexcept = default;
     MJZ_NO_MV_NO_CPY(heap_storage_t);
   };
@@ -154,7 +156,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       return iterate(offset, length,
                      +no_type_ns::make<lazy_reader_fnt<version_v>>(
                          [&](base_string_view_t<version_v> read_slice) noexcept
-                             -> success_t {
+                         -> success_t {
                            return lazy_reader(
                                basic_string_view_t<version_v>(read_slice));
                          }));
@@ -214,7 +216,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
         return ref(object)(
             offset, length,
             [&lazy_reader](basic_string_view_t<version_v> read_slice) noexcept
-                -> success_t {
+            -> success_t {
               return lazy_reader.run(read_slice.unsafe_handle());
             });
       }
@@ -272,7 +274,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
       MJZ_CX_FN success_t
       init(basic_lazy_str_t &dest,
            const allocs_ns::alloc_base_ref_t<version_v> &alloc,
-           bool is_threaded, Ts &&...args) const & noexcept {
+           bool is_threaded, Ts &&...args) const &noexcept {
         auto alloc_path = [&]() noexcept {
           //  alloc_sigular_preapare_info_v
           hs_t *ref{};
@@ -310,9 +312,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
         T *ref{reinterpret_cast<T *>(ptr)};
         bool good{};
         if constexpr (requires() {
-                        {
-                          std::construct_at(ref, std::forward<Ts>(args)...)
-                        } noexcept;
+                        { std::construct_at(ref, std::forward<Ts>(args)...) }
+                        noexcept;
                       }) {
           good = !!std::construct_at(ref, std::forward<Ts>(args)...);
         } else {
@@ -433,5 +434,5 @@ MJZ_EXPORT namespace mjz ::bstr_ns {
     }
   };
 
-}; // namespace mjz::bstr_ns
+};     // namespace mjz::bstr_ns
 #endif // MJZ_BYTE_STRING_basic_lazy_str_LIB_HPP_FILE_

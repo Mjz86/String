@@ -198,45 +198,50 @@ template <version_t version_v, class event_t>
 MJZ_CX_FN void ignite_join_defuse_all_impl(auto &self_, std::span<event_t> ev,
                                            auto &...pram) noexcept {
   if constexpr (requires() {
-                  {
-                    event_t::ignite_join_defuse_all(self_, ev, pram...)
-                  } noexcept;
+                  { event_t::ignite_join_defuse_all(self_, ev, pram...) }
+                  noexcept;
                 }) {
     event_t::ignite_join_defuse_all(self_, ev, pram...);
   } else {
 
     if constexpr (requires() {
-                    { event_t::ignite_all(ev, pram...) } noexcept;
+                    { event_t::ignite_all(ev, pram...) }
+                    noexcept;
                   }) {
       event_t::ignite_all(ev, pram...);
     } else {
       for (event_t &e : ev) {
         static_assert(requires() {
-          { e.ignite(pram...) } noexcept;
+          { e.ignite(pram...) }
+          noexcept;
         });
         e.ignite(pram...);
       };
     }
     if constexpr (requires() {
-                    { event_t::join_all(ev, pram...) } noexcept;
+                    { event_t::join_all(ev, pram...) }
+                    noexcept;
                   }) {
       event_t::join_all(ev, pram...);
     } else {
       for (event_t &e : ev | std::views::reverse) {
         static_assert(requires() {
-          { e.join(pram...) } noexcept;
+          { e.join(pram...) }
+          noexcept;
         });
         e.join(pram...);
       };
     }
     if constexpr (requires() {
-                    { event_t::defuse_all(self_, ev, pram...) } noexcept;
+                    { event_t::defuse_all(self_, ev, pram...) }
+                    noexcept;
                   }) {
       event_t::defuse_all(self_, ev, pram...);
     } else {
       for (event_t &e : ev | std::views::reverse) {
         static_assert(requires() {
-          { std::move(e).defuse(self_, pram...) } noexcept;
+          { std::move(e).defuse(self_, pram...) }
+          noexcept;
         });
         std::move(e).defuse(self_, pram...);
       };
@@ -304,7 +309,8 @@ protected:
   MJZ_CX_FN bool execute_resolution_wave(auto &resolve_one_callback) noexcept {
     static_assert(
         requires(previous_states_t<version_v, max_invalid_state_v> signal) {
-          { (void)resolve_one_callback(*this, std::move(signal)) } noexcept;
+          { (void)resolve_one_callback(*this, std::move(signal)) }
+          noexcept;
         });
     return base::run_one_callback([&](auto &&id_range) noexcept {
       for (auto id : id_range) {
@@ -380,9 +386,8 @@ struct signal_uni_dependency_graph_of_t : base {
 protected:
   MJZ_CX_FN bool execute_resolution_wave(auto &resolve_one_callback) noexcept {
     static_assert(requires() {
-      {
-        (void)resolve_one_callback(*this, base_node_id_t<version_v>())
-      } noexcept;
+      { (void)resolve_one_callback(*this, base_node_id_t<version_v>()) }
+      noexcept;
     });
     return base::run_one_callback([&](auto &&id_range) noexcept {
       for (auto id : id_range) {
@@ -442,7 +447,7 @@ enum class inf_states_e : uint32_t { invalid = uint32_t(-1) };
 ///////////////////////////////
 template <version_t version_v = version_t{}>
 MJZ_CX_FN mjz::bstr_ns::static_string_view_t<version_v>
-    state_to_str(states_ns::states_e state) noexcept {
+state_to_str(states_ns::states_e state) noexcept {
 #define MJZ_MCC_SRC_DAG_STATES_ONE_(X)                                         \
   case states_ns::states_e::X:                                                 \
     return #X;

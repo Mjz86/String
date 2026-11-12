@@ -66,9 +66,9 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_FN optional_ref_t(std::optional<U> &op) noexcept
         : ptr(op ? &*op : nullptr) {}
     template <typename U>
-      requires(std::is_const_v<T>)
-    MJZ_CX_FN optional_ref_t(const std::optional<U> &op) noexcept
-        : ptr(op ? &*op : nullptr) {}
+    requires(std::is_const_v<T>) MJZ_CX_FN
+        optional_ref_t(const std::optional<U> &op)
+    noexcept : ptr(op ? &*op : nullptr) {}
 
     MJZ_CX_FN optional_ref_t(const optional_ref_t &opt) noexcept = default;
 
@@ -190,10 +190,10 @@ MJZ_EXPORT namespace mjz {
     };
     struct align_val_t_ {
       MJZ_CE_FN align_val_t_(auto var) {
-        asserts([]<typename Var_t>(Var_t alignment)
-                  requires(std::same_as<Var_t, std::align_val_t> ||
-                           std::integral<Var_t>)
-                { return alignof(T) <= uintlen_t(alignment); }(var));
+        asserts([]<typename Var_t>(Var_t alignment) requires(
+            std::same_as<Var_t, std::align_val_t> || std::integral<Var_t>) {
+          return alignof(T) <= uintlen_t(alignment);
+        }(var));
       }
     };
 
@@ -281,7 +281,8 @@ MJZ_EXPORT namespace mjz {
   MJZ_DISABLE_ALL_WANINGS_START_;
   template <class lam_t>
   concept multilambda_segment_ne_c = requires(lam_t &&arg) {
-    { (std::remove_cvref_t<lam_t>(std::forward<lam_t>(arg))) } noexcept;
+    { (std::remove_cvref_t<lam_t>(std::forward<lam_t>(arg))) }
+    noexcept;
   };
 
   template <class... lambdas_t>
@@ -342,7 +343,7 @@ MJZ_EXPORT namespace mjz {
     MJZ_CX_FN void operator+() noexcept;
   };
   template <typename T, typename ret_t, typename... args_t>
-    requires callable_c<T, ret_t(args_t...) noexcept>
+  requires callable_c<T, ret_t(args_t...) noexcept>
   struct function_holder_t<ret_t(args_t...) noexcept, T> : void_struct_t {
     T lambda;
     MJZ_CX_FN function_holder_t(T &&obj) noexcept
@@ -369,7 +370,7 @@ MJZ_EXPORT namespace mjz {
     using type = std::optional<T>;
   };
   template <class T>
-    requires std::same_as<std::remove_reference_t<T>, T>
+  requires std::same_as<std::remove_reference_t<T>, T>
   struct optioal_of_type_helper_t<T &> {
     using type = optional_ref_t<T>;
   };

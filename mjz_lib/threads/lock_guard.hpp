@@ -64,5 +64,5 @@ MJZ_EXPORT namespace mjz::threads_ns {
     MJZ_CX_ND_FN explicit operator bool() const noexcept { return !!ptr; }
   };
   template <typename T> lock_guard_t(T) -> lock_guard_t<T>;
-}; // namespace mjz::threads_ns
+};     // namespace mjz::threads_ns
 #endif // MJZ_THREADS_lock_guard_LIB_HPP_FILE_
