@@ -447,7 +447,7 @@ MJZ_EXPORT namespace mjz {
       auto ret = float_from_big(i3);
       ret.m_exponent += lhs.m_exponent + rhs.m_exponent;
       ret.m_coeffient = is_neg ? -ret.m_coeffient : ret.m_coeffient;
-      return rhs;
+      return ret;
     }
     MJZ_CX_FN static std::optional<big_float_t>
     devide(big_float_t lhs, big_float_t rhs) noexcept {
