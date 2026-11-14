@@ -633,7 +633,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
     template <when_t when_v>
     MJZ_CX_AL_FN void set_prpos_to_(str_c_<self_t> auto const &src) noexcept {
       if constexpr (!when_v) {
-        if constexpr (props_v.has_null) {
+        if constexpr (props_v.has_alloc) {
           *m.get_alloc_ptr() = src.m.get_alloc();
         }
         m.set_threaded(src.m.is_threaded());
@@ -643,7 +643,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       if constexpr (props_v.is_threaded == may_bool_t::idk) {
         destroy_v |= m.is_threaded() != src.m.is_threaded();
       }
-      if constexpr (props_v.has_null) {
+      if constexpr (props_v.has_alloc) {
         if (!destroy_v) {
           destroy_v |= *m.get_alloc_ptr() != src.m.get_alloc();
         }

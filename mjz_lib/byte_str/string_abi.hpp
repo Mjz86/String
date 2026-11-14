@@ -180,7 +180,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           count += l.count;
           l.offset = -count;
           return ::mjz::releaser_helper_t<>{}->*[&]() mutable noexcept -> void {
-            l.offset += count < 8 ? 8 : 16;
+            l.offset += count < 9 ? 8 : 16;
           };
         } else {
           l.offset = count;
@@ -208,6 +208,14 @@ MJZ_EXPORT namespace mjz::bstr_ns {
                            str_data_bytes_u16_t, str_data_bytes_u8_t>;
     using uintbytes_t_ = uint_size_of_t<sizeof(str_data_bytes_t)>;
 
+    constexpr static inline auto control_bytes_init_v_ = []() {
+      uintbytes_t_ ret{};
+      ret |= uintbytes_t_(uintbytes_t_(1)
+                          << (control_layout_cast_v.no_destroy.offset));
+      ret |= uintbytes_t_(uintbytes_t_(has_null_v_)
+                          << (control_layout_cast_v.has_null.offset));
+      return std::bit_cast<str_data_bytes_t>(ret);
+    }();
     MJZ_PACKING_START_;
     constexpr static uintlen_t raw_lencap_size_v =
         buffer_size - (sizeof(char *) * 2 + (8 < control_layout_cast_v.count));
@@ -217,9 +225,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       char raw_lencap[raw_lencap_size_v + (8 < control_layout_cast_v.count)]{};
       MJZ_CX_FN non_sso_t() noexcept {
         if constexpr (8 < control_layout_cast_v.count) {
-          constexpr char initv = make_bitcast(
-              uintbytes_t_(1 << (control_layout_cast_v.no_destroy.offset)))[0];
-          raw_lencap[raw_lencap_size_v] = initv;
+          raw_lencap[raw_lencap_size_v] =
+              char(control_bytes_init_v_.nsso_mdata);
         }
       }
     };
@@ -245,11 +252,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       raw_data_u raw_data{};
       uint8_t control_byte{};
       MJZ_CX_FN raw_data_t() noexcept {
-        constexpr uint8_t initv = uint8_t(
-            make_bitcast(
-                uintbytes_t_(1 << (control_layout_cast_v.no_destroy.offset)))
-                .back());
-        control_byte = initv;
+        control_byte = control_bytes_init_v_.control_byte;
       }
     };
     MJZ_PACKING_END_;
@@ -291,9 +294,8 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         MJZ_control_layout_cast_helper_in(no_destroy);
         MJZ_control_layout_cast_helper_in(is_sharable);
         MJZ_control_layout_cast_helper_in(has_mut);
-        if constexpr (!has_null_v_) {
-          MJZ_control_layout_cast_helper_in(has_null);
-        } else {
+        MJZ_control_layout_cast_helper_in(has_null);
+        if constexpr (has_null_v_) {
           asserts(asserts.assume_rn, input.is_sso || !!input.has_null);
         }
 #undef MJZ_control_layout_cast_helper_in
@@ -324,11 +326,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         MJZ_control_layout_cast_helper_out(no_destroy);
         MJZ_control_layout_cast_helper_out(is_sharable);
         MJZ_control_layout_cast_helper_out(has_mut);
-        if constexpr (!has_null_v_) {
-          MJZ_control_layout_cast_helper_out(has_null);
-        } else {
-          ret.has_null = true;
-        }
+        MJZ_control_layout_cast_helper_out(has_null);
 #undef MJZ_control_layout_cast_helper_out
         return ret;
       }
