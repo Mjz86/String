@@ -160,12 +160,12 @@ MJZ_EXPORT namespace mjz::allocs_ns {
                                            alloc_info ai) noexcept {
       return As(This).obj_deallocate(std::move(blk), ai);
     }
-    MJZ_CX_FN static void deallocate_call(alloc_base *This, block_info blk,
-                                          alloc_info ai) noexcept {
+    MJZ_NCX_FN static void deallocate_call(alloc_base *This, block_info blk,
+                                           alloc_info ai) noexcept {
       asserts(asserts.assume_rn, deallocate(This, std::move(blk), ai));
       return;
     }
-    MJZ_CX_FN static block_info
+    MJZ_NCX_FN static block_info
     allocate_call(alloc_base *This, uintlen_t minsize, alloc_info ai) noexcept {
       return allocate(This, minsize, ai);
     }

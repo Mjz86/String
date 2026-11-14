@@ -1999,7 +1999,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return 0;
         }
         big_float_t<version_v> dbl{};
-        dbl.m_coeffient = uint64_t(val.m_coeffient);
+        dbl.m_coeffient = val.m_coeffient;
         dbl.m_exponent = val.m_exponent;
         int64_t ret = int64_t(dec_width_dbl_(dbl)) - 1;
         val = val * data_table_to_bf_impl_(*(lookup_dbl_pow5_table_ptr_ - ret));

@@ -49,12 +49,12 @@ MJZ_EXPORT namespace mjz {
             (uint64_t(m_is_BE_) << 63));
       }
       MJZ_CX_FN operator int64_t() const noexcept { return operator()(); }
-      MJZ_CX_FN void make_(uint64_t value) noexcept {
-        m_named_any_ = (value) & (uint64_t(1 << 1) - 1);
-        m_any_size_log_offset_ = (value >> 1) & (uint64_t(1 << 2) - 1);
-        m_ver_ = (value >> 3) & ((uint64_t(1) << 30) - 1);
-        m_ver_mod_id_ = (value >> 33) & ((uint64_t(1) << 31) - 1);
-        m_is_BE_ = (value >> 63) & (uint64_t(1 << 1) - 1);
+      MJZ_CX_FN void make_(uint64_t v) noexcept {
+        m_named_any_ = (v) & (uint64_t(1 << 1) - 1);
+        m_any_size_log_offset_ = (v >> 1) & (uint64_t(1 << 2) - 1);
+        m_ver_ = (v >> 3) & ((uint64_t(1) << 30) - 1);
+        m_ver_mod_id_ = (v >> 33) & ((uint64_t(1) << 31) - 1);
+        m_is_BE_ = (v >> 63) & (uint64_t(1 << 1) - 1);
       }
     };
 

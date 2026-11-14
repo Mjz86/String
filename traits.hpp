@@ -1903,7 +1903,7 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           return 0;
         }
         details_ns::double_64_t_impl_ dbl{};
-        dbl.m_coeffient = uint64_t(val.m_coeffient);
+        dbl.m_coeffient = val.m_coeffient;
         dbl.m_exponent = val.m_exponent;
         int64_t ret = int64_t(details_ns::dec_width_dbl_<0>(dbl)) - 1;
         val = val * pos_real_dbl_to_bf_impl_(
