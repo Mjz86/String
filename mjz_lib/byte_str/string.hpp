@@ -1084,14 +1084,20 @@ MJZ_EXPORT namespace mjz::bstr_ns {
       return true;
     }
 
+  private:
     /* similar to as_substring_*/
+    MJZ_CX_AL_FN void init_substring_(const self_t &src, uintlen_t byte_offset,
+                                      uintlen_t byte_count) noexcept {
+      reset_to_error_on_fail_<when_t::as_sso>(
+          copy_assign_<when_t::as_sso>(src, false, byte_offset, byte_count),
+          "[Error]basic_str_t::make_substring");
+    }
+
+  public:
     MJZ_CX_ND_FN self_t make_substring(uintlen_t byte_offset,
                                        uintlen_t byte_count) const noexcept {
       self_t ret{};
-      ret.reset_to_error_on_fail_<when_t::as_sso>(
-          ret.copy_assign_<when_t::as_sso>(*this, false, byte_offset,
-                                           byte_count),
-          "[Error]basic_str_t::make_substring");
+      ret.init_substring_(*this, byte_offset, byte_count);
       return ret;
     }
     /*similar to make_substring but gives range from [begin_i,end_i) */

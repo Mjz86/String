@@ -32,14 +32,28 @@ namespace mjz::graph_ns {
 
 template <version_t version_v, usable_index_range_c<version_v> R>
 MJZ_CX_FN std::vector<uintlen_t> make_view_vector_range(R &&range_) noexcept {
-  return std::vector<uintlen_t>(std::ranges::begin(range_),
-                                std::ranges::end(range_));
+  if constexpr (requires() {
+                  {std::vector<uintlen_t>(
+                      std::ranges::begin(std::forward<R>(range_)),
+                      std::ranges::end(std::forward<R>(range_)))};
+                }) {
+    return std::vector<uintlen_t>(std::ranges::begin(std::forward<R>(range_)),
+                                  std::ranges::end(std::forward<R>(range_)));
+  } else {
+    std::vector<uintlen_t> vec{};
+    vec.reserve(std::ranges::size(range_));
+    for (auto &&u : range_) {
+      vec.push_back(uintlen_t(u));
+    }
+    return vec;
+  }
 }
 
 template <version_t version_v>
 MJZ_CX_FN std::vector<uintlen_t>
 make_index_vector_range(const uintlen_t sz) noexcept {
-  return make_view_vector_range<version_v>(std::views::iota(uintlen_t(0), sz));
+  return make_view_vector_range<version_v>(
+      std::views::iota(uintlen_t(0), uintlen_t(sz)));
 }
 template <version_t version_v, usable_index_range_c<version_v> R>
 MJZ_CX_FN auto original_order_transform(R &&transform_range_) noexcept {

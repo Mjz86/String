@@ -168,15 +168,15 @@ MJZ_EXPORT namespace mjz {
   }
 
   template <class> class my_totatlly_empty_template1_class_t {};
-  MJZ_CX_AL_ND_FN uint8_t log2_of_val_create(std::integral auto val) noexcept {
+  MJZ_CX_AL_ND_FN uint8_t log2_of_val_create(
+      std::unsigned_integral auto val) noexcept {
     return uint8_t(std::bit_width(val) - (val != 0));
   }
   MJZ_CX_AL_ND_FN uint64_t log2_of_val_to_val(uint8_t log2_val) noexcept {
     return static_cast<uint64_t>(1ull << log2_val);
   }
-  MJZ_CX_AL_ND_FN uint8_t
-  log2_ceil_of_val_create(std::integral auto val) noexcept requires(
-      std::is_unsigned_v<std::remove_cvref_t<decltype(val)>>) {
+  MJZ_CX_AL_ND_FN uint8_t log2_ceil_of_val_create(
+      std::unsigned_integral auto val) noexcept {
     return uint8_t(std::bit_width(val) - std::has_single_bit(val));
   }
 

@@ -386,7 +386,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       } else if constexpr (partial_same_as<char, T>) {
         type = type_e::Char;
       } else if constexpr (std::floating_point<T>) {
-        type = type_e::general;
+        type = type_e::Default_float;
       } else if constexpr (std::integral<T> || extended_ingeral_c<T>) {
         type = type_e::Dec;
       } else if constexpr (std::derived_from<T, base_lazy_view_t<version_v>>) {
@@ -459,13 +459,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     }
     if (need_numeric_argument && !is_numeric<T>) {
       cntx.as_error(
-          "[Error]basic_format_specs_t::check():type must be an integral");
+          "[Error]basic_format_specs_t::check():type must be an integral or "
+          "floating point");
       return false;
     }
     if (numeric_or_pointer_argument && !is_numeric_or_ptr<T>) {
       cntx.as_error(
-          "[Error]basic_format_specs_t::check():type must be an integral or "
-          "pointer");
+          "[Error]basic_format_specs_t::check():type must be an integral, "
+          "floating point or pointer");
       return false;
     }
     if (need_persitioned_argument && !has_persitioned_argument<T>) {
@@ -506,6 +507,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     if (!format_specs_start(ctx, stack))
       return false;
     if constexpr (std::derived_from<T, bview>) {
+      this->alignment =
+          this->alignment == align_e::none ? align_e::left : this->alignment;
       stack.as_string = arg;
       if (ctx.encoding() != stack.as_string.get_encoding()) {
         ctx.as_error(
@@ -552,8 +555,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 
           stack.buf, stack.buf_size, arg,
           uint8_t(precision == uintlen_t(-1)
-                      ? sizeof(std::remove_cvref_t<T>)
-                      : std::min<uintlen_t>(precision, 255)),
+                      ? uint8_t(255)
+                      : std::min<uintlen_t>(precision, 254)),
           uppser_case,
           floating_format_e(
               uint8_t(uint8_t(type) & uint8_t(type_e::raidex_mask_))),
@@ -657,6 +660,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
 
         branch = !!(b8 | b16 | b2);
 
+        branch &= !(b8 && 1 == *stack.length && '0' == stack.buf[0]);
+
         char *zero_ptr_ =
             branchless_teranary<char *>(!branch, &dummy_0_, stack.buf - 1);
         stack.buf -= branch;
@@ -685,6 +690,10 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     base_out_it_t<version_v> it = ctx.out();
     if (stack.is_string) {
       *stack.length = stack.as_string.len;
+      if (precision != uintlen_t(-1)) {
+        *stack.length = std::min(*stack.length, precision);
+        stack.as_string.len = *stack.length;
+      }
     }
     width = std::max(width, *stack.length);
     std::ignore = it.reserve(width, ctx.encoding());

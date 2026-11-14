@@ -1037,13 +1037,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
           upper_case ? alphabett_table_upper : alphabett_table_lower);
 
       uintlen_t i{};
-      for (char &c : buf) {
-        c = hexes[(uint64_t(number_) >> i) & 15];
-        i++;
-      }
 
       const uintlen_t count = uintlen_t(0 == number_) |
                               (uintlen_t(std::bit_width(number_) + 3) >> 2);
+      for (char &c : buf) {
+        c = hexes[(uint64_t(number_) >> ((count - 1 - i) * 4)) & 15];
+        i++;
+        if (count <= i)
+          break;
+      }
+
       if constexpr (sizeof(T) * 2 <= min_cap) {
         cpy_bitcast(out_buf, buf);
         return count;
@@ -1144,6 +1147,16 @@ MJZ_EXPORT namespace mjz::bstr_ns {
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;
       }
       if (raidex == 16) {
+        if constexpr (std::signed_integral<T>) {
+          if (val_rg_ < 0) {
+            if (!len)
+              return {};
+            *buf = '-';
+            uintlen_t ret = hex_from_uint(
+                buf + 1, len - 1, UT(UT(1) + UT(~UT(val_rg_))), upper_case);
+            return ret ? std::optional<uintlen_t>(ret + 1) : std::nullopt;
+          }
+        }
         uintlen_t ret = hex_from_uint<min_cap, min_align>(
             buf, len, std::make_unsigned_t<T>(val_rg_), upper_case);
         return ret ? std::optional<uintlen_t>(ret) : std::nullopt;

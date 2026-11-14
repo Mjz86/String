@@ -47,8 +47,9 @@ MJZ_EXPORT namespace mjz ::allocs_ns {
         return lock_details_ns::lock_gaurd_maker<version_v>(
             is_threaded, mutex_byte(), has_lock);
       }
-      MJZ_CX_FN char *mutex_byte() const noexcept requires(has_lock) {
-        return m.monotonic_ptr ? m.monotonic_ptr + m.monotonic_left : nullptr;
+      MJZ_CX_FN char *mutex_byte() const noexcept {
+        return m.monotonic_ptr && has_lock ? m.monotonic_ptr + m.monotonic_left
+                                           : nullptr;
       }
 
       MJZ_CX_ND_FN friend bool operator==(const obj_t &a,

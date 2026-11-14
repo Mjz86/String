@@ -29,6 +29,11 @@ SOFTWARE.
 #define MJZ_USE_cpp_lib_to_chars_float false
 #endif
 #define MJZ_CAN_USE_LIB_STD_charconv_ false
+#if defined(__has_include)
+#if __has_include(<version>)
+#include <version>
+#endif
+#endif
 #if MJZ_USE_cpp_lib_to_chars_float || MJZ_USE_cpp_lib_to_chars_int
 #ifdef __cpp_lib_to_chars
 

@@ -64,7 +64,14 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     constexpr static inline uintlen_t type_buffer_size_v = std::max(
         []() -> uintlen_t {
           if constexpr (fixed_extended_ingeral_c<T>) {
-            return 8 * ((std::decay_t<T>::max_dec_width + 8) / 8);
+            return 8 * ((std::max<size_t>(std::decay_t<T>::max_dec_width,
+                                          sizeof(T) * 8 + 3) +
+                         7) /
+                        8);
+          } else if constexpr (std::integral<T>) {
+            return sizeof(T) * 8 + 5;
+          } else if constexpr (std::floating_point<T>) {
+            return uintlen_t(360);
           }
           return 16;
         }(),
@@ -83,6 +90,8 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
       auto_bool = 6 << 5,
       invalid_ = 7 << 5,
       type_mask_ = invalid_,
+
+      Default_float = auto_float,
       binary = 2 | auto_int,
       Octal = 8 | auto_int,
       Dec = 10 | auto_int,
@@ -105,7 +114,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
     align_e alignment = align_e::none;
     sign_e sign = sign_e::none;
     bool alt = false;
-    bool uppser_case = true;
+    bool uppser_case = false;
     bool leading_zero = false;
     // may change on encoding suppport, particularly
     char fill_char{' '};
@@ -129,7 +138,7 @@ MJZ_EXPORT namespace mjz ::bstr_ns::format_ns {
         partial_is_one_of_c<T, signed char, unsigned char, short,
                             unsigned short, int, unsigned int, long,
                             unsigned long, long long, unsigned long long> ||
-        is_extended_uint_<T>;
+        std::floating_point<T> || is_extended_uint_<T>;
     template <typename T>
     MJZ_MCONSTANT(bool)
     is_numeric_or_ptr =
